@@ -1,0 +1,18 @@
+:root {
+  color-scheme: dark;
+  --bg: #0d0221;
+  --surface: #261447;
+  --text: #f3e9ff;
+  --muted: #a99ac9;
+  --magenta: #ff2a6d;
+  --cyan: #05d9e8;
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+}
+body { margin: 0; background: var(--bg); color: var(--text); }
+main { max-width: 720px; margin: 0 auto; padding: 16px; }
+h1 { color: var(--magenta); font-size: 20px; }
+.card { background: var(--surface); padding: 12px; margin: 12px 0; border: 2px solid var(--cyan); }
+label { display: block; margin: 8px 0 2px; color: var(--muted); }
+select { font: inherit; padding: 6px; background: var(--bg); color: var(--text); border: 2px solid var(--muted); }
+.notes span { display: inline-block; margin: 2px 6px 2px 0; }
+.small { color: var(--muted); font-size: 13px; }
