@@ -112,24 +112,33 @@ export function SettingsPage() {
 
       <Panel className="span-6" accent="magenta" label="Ambiance">
         <div className="theme-list">
-          {THEME_LIST.map((t) => (
-            <div key={t.id} className={`theme-row ${settings.theme === t.id ? 'on' : ''}`}>
-              <span className="theme-swatch" style={{ background: t.palette.bg, borderColor: t.palette.magenta }}>
-                <i style={{ background: t.palette.magenta }} />
-                <i style={{ background: t.palette.cyan }} />
-                <i style={{ background: t.palette.orange }} />
-              </span>
-              <span className="theme-name">
-                {t.name}
-                <em>{settings.theme === t.id ? 'active' : ''}</em>
-              </span>
-              <span className="tag">seul thème en 1d</span>
-            </div>
-          ))}
+          {THEME_LIST.map((t) => {
+            const on = settings.theme === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                className={`theme-row ${on ? 'on' : ''}`}
+                aria-pressed={on}
+                onClick={() => setSettings({ theme: t.id })}
+              >
+                <span className="theme-swatch" style={{ background: t.palette.bg, borderColor: t.palette.magenta }}>
+                  <i style={{ background: t.palette.magenta }} />
+                  <i style={{ background: t.palette.cyan }} />
+                  <i style={{ background: t.palette.orange }} />
+                </span>
+                <span className="theme-name">
+                  {t.name}
+                  <em>{on ? 'active' : t.scheme === 'light' ? 'clair' : 'sombre'}</em>
+                </span>
+                <span className={`tag ${on ? 'tag-on' : ''}`}>{on ? 'actif' : 'choisir'}</span>
+              </button>
+            );
+          })}
         </div>
         <p className="t-small t-dim">
           Les couleurs d’intervalles ne changent jamais avec l’ambiance : elles portent l’apprentissage.
-          Les autres ambiances (Cyber City, Lo-fi, Arcade) arrivent en phase 8.
+          Seul le décor et l’encre changent — les deux ambiances disent la même chose.
         </p>
       </Panel>
 

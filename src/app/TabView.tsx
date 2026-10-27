@@ -10,10 +10,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChordNotation, NoteNotation } from '../core/theory';
 import { fmtNote } from '../core/theory';
 import {
-  CanvasSurface, THEME_SYNTHWAVE, cursorAt, drawOverlay, drawScore, drawText, layoutScore,
+  CanvasSurface, cursorAt, drawOverlay, drawScore, drawText, layoutScore,
   type AnnotationKind, type ScoreLayout, type TabScore,
 } from '../core/tab';
 import type { TabPlayer } from '../core/audio/tabPlayer';
+import { useThemeTokens } from './settings';
 
 export interface TabViewProps {
   score: TabScore;
@@ -87,6 +88,7 @@ function describe(score: TabScore, notation: NoteNotation): string {
 }
 
 export function TabView(props: TabViewProps) {
+  const tabTheme = useThemeTokens().tab;
   const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, activeHoleKey, onPick } = props;
   const playing = transport === 'playing';
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -153,14 +155,14 @@ export function TabView(props: TabViewProps) {
     const t0 = performance.now();
     const s = new CanvasSurface(ctx, layout.width, layout.height, k);
     s.begin();
-    drawScore(s, layout, THEME_SYNTHWAVE);
+    drawScore(s, layout, tabTheme);
     const m = metrics.current;
     m.staticMs = performance.now() - t0;
     Object.assign(m, {
       S, k, dpr, logicalW: layout.width, logicalH: layout.height, canvasW: c.width, canvasH: c.height,
       tooWide: c.width > MAX_CANVAS || c.height > MAX_CANVAS,
     });
-  }, [layout, k, S, dpr]);
+  }, [layout, k, S, dpr, tabTheme]);
 
   // --- étiquettes de cordes FIXES en défilement continu (elles ne partent pas avec la tablature)
   const labelW = layout.systems[0]?.x0 ?? 0;
@@ -174,11 +176,11 @@ export function TabView(props: TabViewProps) {
     if (!ctx || !sys) return;
     const s = new CanvasSurface(ctx, labelW, layout.height, k);
     s.begin();
-    s.fillRect(0, 0, labelW, layout.height, THEME_SYNTHWAVE.panel);
-    for (const y of sys.stringYs) s.fillRect(0, y, labelW, 1, THEME_SYNTHWAVE.stringLine);
-    s.fillRect(labelW - 1, sys.stringYs[0]!, 1, sys.stringYs[sys.stringYs.length - 1]! - sys.stringYs[0]! + 1, THEME_SYNTHWAVE.barLine);
-    for (const t of sys.texts) if (t.role === 'string') drawText(s, t.x, t.y, t.text, THEME_SYNTHWAVE.label);
-  }, [layout, k, mode, labelW]);
+    s.fillRect(0, 0, labelW, layout.height, tabTheme.panel);
+    for (const y of sys.stringYs) s.fillRect(0, y, labelW, 1, tabTheme.stringLine);
+    s.fillRect(labelW - 1, sys.stringYs[0]!, 1, sys.stringYs[sys.stringYs.length - 1]! - sys.stringYs[0]! + 1, tabTheme.barLine);
+    for (const t of sys.texts) if (t.role === 'string') drawText(s, t.x, t.y, t.text, tabTheme.label);
+  }, [layout, k, mode, labelW, tabTheme]);
 
   // --- couche animée
   const paint = useCallback(
@@ -194,7 +196,7 @@ export function TabView(props: TabViewProps) {
       const t0 = performance.now();
       const s = new CanvasSurface(ctx, layout.width, layout.height, k);
       s.begin();
-      drawOverlay(s, layout, THEME_SYNTHWAVE, { tick, frame, reduceMotion });
+      drawOverlay(s, layout, tabTheme, { tick, frame, reduceMotion });
       const dt = performance.now() - t0;
       const m = metrics.current;
       m.overlayMsAvg = m.frames === 0 ? dt : m.overlayMsAvg * 0.98 + dt * 0.02;
@@ -274,7 +276,7 @@ export function TabView(props: TabViewProps) {
       cancelAnimationFrame(raf);
       clearInterval(timer);
     };
-  }, [playing, transport, player, paint, scrollTo, layout, reduceMotion]);
+  }, [playing, transport, player, paint, scrollTo, layout, reduceMotion, tabTheme]);
 
   // --- crochets de vérification (développement uniquement)
   useEffect(() => {

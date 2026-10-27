@@ -9,6 +9,7 @@ import type { ThemeTokens } from './tokens';
 export const SYNTHWAVE: ThemeTokens = {
   id: 'synthwave',
   name: 'Synthwave Neon',
+  scheme: 'dark',
   palette: {
     bgDeep: '#06000F',
     bg: '#0D0221',
@@ -27,6 +28,7 @@ export const SYNTHWAVE: ThemeTokens = {
     green: '#7CFF6B',
     danger: '#FF5C7A',
     ok: '#4CFF9A',
+    onAccent: '#12021F',
   },
   scene: {
     skyTop: '#0A0126',

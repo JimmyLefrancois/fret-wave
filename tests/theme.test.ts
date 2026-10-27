@@ -11,7 +11,11 @@ describe('thème : tokens', () => {
     expect(getTheme(null).id).toBe(DEFAULT_THEME);
     expect(getTheme('nawak').id).toBe(DEFAULT_THEME);
     expect(THEMES.synthwave).toBe(SYNTHWAVE);
-    expect(THEME_LIST.length).toBeGreaterThanOrEqual(1);
+    expect(THEME_LIST.length).toBeGreaterThanOrEqual(2);
+    // un thème clair et un thème sombre, sélectionnables tous les deux
+    expect(new Set(THEME_LIST.map((t) => t.scheme))).toEqual(new Set(['dark', 'light']));
+    expect(getTheme('dawn').name).toContain('Aube');
+    expect(getTheme('dawn').scheme).toBe('light');
     for (const t of THEME_LIST) {
       expect(t.palette.bg).toMatch(/^#[0-9A-F]{6}$/i);
       expect(t.fonts.display).toContain('Press Start');
@@ -32,9 +36,30 @@ describe('thème : tokens', () => {
         expect(contrastRatio(t.palette.muted, bg), `${t.id} muted sur ${bgName}`).toBeGreaterThanOrEqual(7);
         expect(contrastRatio(t.palette.dim, bg), `${t.id} dim sur ${bgName}`).toBeGreaterThanOrEqual(5.5);
       }
-      // le texte est plus clair que le fond, et le fond plus sombre que la surface
-      expect(relativeLuminance(t.palette.text)).toBeGreaterThan(relativeLuminance(t.palette.bg));
-      expect(relativeLuminance(t.palette.surface)).toBeGreaterThan(relativeLuminance(t.palette.bg));
+      // la polarité suit `scheme` : encre claire sur fond sombre, ou l'inverse — jamais l'ambiguïté
+      const textLum = relativeLuminance(t.palette.text);
+      const bgLum = relativeLuminance(t.palette.bg);
+      if (t.scheme === 'dark') expect(textLum, `${t.id} : thème sombre`).toBeGreaterThan(bgLum);
+      else expect(textLum, `${t.id} : thème clair`).toBeLessThan(bgLum);
+      // la surface se détache du fond dans le sens de la lumière
+      const surfLum = relativeLuminance(t.palette.surface);
+      if (t.scheme === 'dark') expect(surfLum).toBeGreaterThan(bgLum);
+      else expect(surfLum).toBeGreaterThan(bgLum);
+      // encre posée SUR un aplat d'accent (bouton primaire, pastille pleine, segment actif)
+      for (const accent of ['magenta', 'cyan', 'violet'] as const) {
+        const r = contrastRatio(t.palette.onAccent, t.palette[accent]);
+        expect(r, `${t.id} onAccent sur ${accent} = ${r.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+      }
+      // les accents servent d'encre (liens, étiquettes, chiffres) : ≥ 4,5:1 sur la surface
+      for (const accent of ['magenta', 'cyan', 'orange', 'yellow', 'violet', 'green', 'danger', 'ok'] as const) {
+        const r = contrastRatio(t.palette[accent], t.palette.surface);
+        expect(r, `${t.id} ${accent} sur surface = ${r.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+      }
+      // la tablature : l'encre doit tenir sur SON panneau, pas sur celui du thème par défaut
+      expect(contrastRatio(t.tab.text, t.tab.panel), `${t.id} tab.text`).toBeGreaterThanOrEqual(7);
+      expect(contrastRatio(t.tab.textMuted, t.tab.panel), `${t.id} tab.textMuted`).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(t.tab.chord, t.tab.panel), `${t.id} tab.chord`).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(t.tab.annotation, t.tab.panel), `${t.id} tab.annotation`).toBeGreaterThanOrEqual(4.5);
     }
   });
 

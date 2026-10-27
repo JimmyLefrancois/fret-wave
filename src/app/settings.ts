@@ -6,7 +6,8 @@
 import { useSyncExternalStore } from 'react';
 import type { ChordNotation, NoteNotation } from '../core/theory';
 import type { KeyValueStore } from '../core/audio/mixer';
-import { DEFAULT_THEME, THEMES } from '../core/themes/registry';
+import { DEFAULT_THEME, THEMES, getTheme } from '../core/themes/registry';
+import type { ThemeTokens } from '../core/themes/tokens';
 
 export const SETTINGS_KEY = 'fretwave.settings.v1';
 
@@ -120,6 +121,15 @@ function subscribe(l: () => void): () => void {
 }
 
 /** Lit les réglages dans un composant React (re-rendu à chaque changement). */
+/**
+ * Jetons du thème actif. Indispensable aux rendus **canvas** (tablature, boîte d'accord) : le DOM suit
+ * les variables CSS, mais un canvas doit recevoir ses couleurs en arguments — les coder en dur a
+ * longtemps figé la tablature sur le thème sombre.
+ */
+export function useThemeTokens(): ThemeTokens {
+  return getTheme(useSettings().theme);
+}
+
 export function useSettings(): AppSettings {
   return useSyncExternalStore(subscribe, getSettings, getSettings);
 }

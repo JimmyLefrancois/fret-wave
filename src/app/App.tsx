@@ -117,7 +117,7 @@ export function App() {
       <SceneBackground
         theme={theme}
         reduceMotion={settings.reduceMotion}
-        scanlines={settings.scanlines}
+        scanlines={settings.scanlines && theme.scanlines}
         variant="poster"
         sunX={route === 'hub' ? 0.5 : 0.82}
       />

@@ -7,8 +7,9 @@
  * seul son contenu doit changer quand l'accord change.
  */
 import { useEffect, useRef, useState } from 'react';
-import { CanvasSurface, THEME_SYNTHWAVE, drawChordBox, layoutChordBox } from '../core/tab';
+import { CanvasSurface, drawChordBox, layoutChordBox } from '../core/tab';
 import type { Voicing } from '../core/theory/voicings';
+import { useThemeTokens } from './settings';
 
 export interface ChordBoxViewProps {
   voicing: Voicing;
@@ -43,6 +44,7 @@ export function ChordBoxView({ voicing, highlight = null, pending, maxScale = 4 
     return () => ro.disconnect();
   }, [layout.width, maxScale]);
 
+  const tabTheme = useThemeTokens().tab;
   const k = Math.max(1, Math.round(scale * dpr));
   const cssW = layout.width * scale;
   const cssH = layout.height * scale;
@@ -56,9 +58,9 @@ export function ChordBoxView({ voicing, highlight = null, pending, maxScale = 4 
     if (!ctx) return;
     const s = new CanvasSurface(ctx, layout.width, layout.height, k);
     s.begin();
-    s.fillRect(0, 0, layout.width, layout.height, THEME_SYNTHWAVE.panel);
-    drawChordBox(s, layout, THEME_SYNTHWAVE);
-  }, [layout, k]);
+    s.fillRect(0, 0, layout.width, layout.height, tabTheme.panel);
+    drawChordBox(s, layout, tabTheme);
+  }, [layout, k, tabTheme]);
 
   const openCount = layout.open.length;
   const mutedCount = layout.muted.length;

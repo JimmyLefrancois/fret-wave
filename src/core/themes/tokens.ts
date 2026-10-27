@@ -3,7 +3,7 @@
  * police d'accent, ambiance. **Les couleurs d'intervalle ne sont PAS ici** : elles sont globales
  * (`core/tab/colors.ts`) pour que l'apprentissage visuel ne change jamais avec l'habillage.
  */
-import type { TabTheme } from '../tab/colors';
+import { hexToRgb, type TabTheme } from '../tab/colors';
 import type { Hex } from '../tab/colors';
 
 export type { Hex };
@@ -41,6 +41,12 @@ export interface UiTokens {
 export interface ThemeTokens {
   id: string;
   name: string;
+  /**
+   * Polarité du thème. Elle sert à deux choses : vérifier le sens du contraste dans les tests
+   * (encre plus sombre que le fond, ou l'inverse) et déclarer `color-scheme` au navigateur, pour que
+   * les contrôles natifs, les barres de défilement et les champs suivent le thème.
+   */
+  scheme: 'dark' | 'light';
   palette: {
     bgDeep: Hex;
     bg: Hex;
@@ -59,6 +65,12 @@ export interface ThemeTokens {
     green: Hex;
     danger: Hex;
     ok: Hex;
+    /**
+     * Encre posée **sur** un aplat d'accent (bouton primaire, pastille pleine). Sombre quand l'accent
+     * est clair (synthwave), clair quand l'accent est profond (thème clair) : sans ce jeton, une
+     * couleur codée en dur rend un bouton illisible dès le deuxième thème.
+     */
+    onAccent: Hex;
   };
   scene: SceneTokens;
   /** Panneau de la tablature (couleurs du rendu canvas). */
@@ -93,6 +105,13 @@ export function cssVars(t: ThemeTokens): Record<string, string> {
     '--green': t.palette.green,
     '--danger': t.palette.danger,
     '--ok': t.palette.ok,
+    '--on-accent': t.palette.onAccent,
+    /* teinte du voile du décor : le fond lui-même, en composantes, pour que les dégradés de
+       lisibilité suivent le thème au lieu d'être peints en violet foncé */
+    '--veil-rgb': hexToRgb(t.palette.bg).join(', '),
+    /* ombre portée dure : noire sur fond sombre, teintée du trait sur fond clair (un noir à 45 %
+       sur du papier fait une tache sale) */
+    '--shadow-ink': t.scheme === 'dark' ? 'rgba(0, 0, 0, 0.45)' : 'rgba(178, 58, 107, 0.28)',
     '--font-display': t.fonts.display,
     '--font-label': t.fonts.label,
     '--font-body': t.fonts.body,
