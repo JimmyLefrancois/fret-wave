@@ -1113,3 +1113,12 @@ table.kv td:first-child { color: var(--muted); }
     box-shadow: 0 6px 18px rgba(6, 0, 15, 0.75);
   }
 }
+
+/* --- grille rythmique de l'exercice --- */
+.grid-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 10px 0 6px;
+}

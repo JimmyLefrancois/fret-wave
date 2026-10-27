@@ -7,8 +7,8 @@
  * complète en 3 notes par corde fait 18 notes : les demander d'un bloc au pavé numérique est un abandon
  * assuré (MUSIC_DESIGN §3.4), d'où les segments.
  */
-import { filterPosition, type NoteName, type Position } from '../../core/theory';
-import { type Direction, type TabScore } from '../../core/tab';
+import { TUNINGS, filterPosition, type NoteName, type Position } from '../../core/theory';
+import { PPQ, type Direction, type TabScore } from '../../core/tab';
 
 export type Segment = 'string1' | 'strings2' | 'strings3' | 'all' | 'updown';
 
@@ -164,13 +164,65 @@ export function checkAnswer(hole: Hole, entry: number): boolean {
   return Number.isInteger(entry) && entry >= 0 && entry <= 24 && entry === hole.fret;
 }
 
+/** Résultat vis-à-vis de la grille rythmique (absente, tenue, manquée). */
+export type GridOutcome = 'off' | 'kept' | 'missed';
+
 /**
  * Étoiles : ★ précision (≥ 80 %), ★★ ≥ 95 %, ★★★ sans une erreur ni révélation.
- * Le tempo (★★ au niveau 3 selon MUSIC_DESIGN §3.4) n'existe pas encore : l'app ne le prétend pas.
+ * Si une grille a été lancée, elle doit être **tenue** pour prétendre à ★★ ou ★★★ : la précision seule
+ * ne suffit plus (MUSIC_DESIGN §3.4). Hors grille, une série juste reste à ★ : on ne punit pas, on ne certifie pas.
  */
-export function starsFor(accuracy: number, revealed: number, errors: number): 0 | 1 | 2 | 3 {
+export function starsFor(accuracy: number, revealed: number, errors: number, grid: GridOutcome = 'off'): 0 | 1 | 2 | 3 {
   if (accuracy < 0.8) return 0;
-  if (accuracy === 1 && revealed === 0 && errors === 0) return 3;
+  if (grid === 'missed') return 1;
+  const perfect = accuracy === 1 && revealed === 0 && errors === 0;
+  if (grid === 'kept') return perfect ? 3 : accuracy >= 0.95 ? 2 : 1;
+  if (perfect) return 3;
   if (accuracy >= 0.95) return 2;
   return 1;
+}
+
+// ---------------------------------------------------------------------------
+// Grille rythmique (métronome)
+// ---------------------------------------------------------------------------
+
+export interface TempoGrid {
+  /** Score de silences : le métronome y place un clic par temps, aucune note ne sonne. */
+  score: TabScore;
+  /** Nombre de temps de la grille (multiple de 4 : la grille fait des mesures entières). */
+  beats: number;
+  /** Durée de la grille en secondes au tempo demandé. */
+  seconds: number;
+}
+
+/**
+ * Grille de travail : **un temps par trou**, en mesures entières de 4/4. Le métronome de la 1c joue
+ * les clics (aucune note : le score ne contient que des silences), donc l'élève entend la grille sans
+ * que l'app lui donne les réponses.
+ *
+ * Limite assumée : tant que la validation passe par le pavé, ce temps mesure la **rapidité à écrire**
+ * une case, pas à la jouer. La phase 3 (entrée audio) rendra la mesure honnête.
+ */
+export function tempoGrid(holes: number, tempo: number): TempoGrid {
+  const beats = Math.max(4, Math.ceil(Math.max(1, holes) / 4) * 4);
+  // `startTick` est RELATIF à la mesure (invariant du modèle) : chaque mesure porte 4 silences de noire
+  const measures = Array.from({ length: beats / 4 }, () => ({
+    events: [0, 1, 2, 3].map((b) => ({ startTick: b * PPQ, durTick: PPQ, kind: 'rest' as const, notes: [] })),
+  }));
+  const score: TabScore = {
+    id: 'exercise:grid',
+    kind: 'exercise',
+    tuning: TUNINGS.standard!,
+    stringCount: 6,
+    ppq: PPQ,
+    tempo: Math.max(30, Math.min(120, Math.round(tempo))),
+    timeSig: [4, 4],
+    measures,
+  };
+  return { score, beats, seconds: (beats * 60) / score.tempo };
+}
+
+/** Le trou a-t-il été posé dans la grille ? (tolérance : la dernière case sur le dernier temps) */
+export function insideGrid(seconds: number, grid: TempoGrid, tolerance = 0.3): boolean {
+  return seconds <= grid.seconds + tolerance;
 }

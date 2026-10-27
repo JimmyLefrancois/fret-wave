@@ -182,6 +182,7 @@ export function ScaleDiscoveryPage() {
         seconds,
         fretMin: r.position.fretMin,
         missedStrings: [],
+        tempoOk: false,
       });
     }
   };

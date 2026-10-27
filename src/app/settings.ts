@@ -20,7 +20,17 @@ export interface AppSettings {
   scanlines: boolean;
   /** Rangée de degrés sous la tablature (niveau 1). */
   showDegreeRow: boolean;
+  /** Part des notes masquées au niveau 2 (20 / 35 / 50 %). */
+  holeRate: HoleRate;
+  /** Tempo de la grille de l'exercice (un clic par trou), en BPM. */
+  trainingTempo: number;
 }
+
+/** Taux de trous du niveau 2 : trois crans, pas un curseur continu. */
+export type HoleRate = 0.2 | 0.35 | 0.5;
+export const HOLE_RATES: readonly HoleRate[] = [0.2, 0.35, 0.5];
+export const MIN_TEMPO = 30;
+export const MAX_TEMPO = 120;
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: DEFAULT_THEME,
@@ -29,6 +39,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   reduceMotion: false,
   scanlines: true,
   showDegreeRow: true,
+  holeRate: 0.35,
+  trainingTempo: 50,
 };
 
 const NOTATIONS: NoteNotation[] = ['fr', 'en'];
@@ -47,6 +59,10 @@ export function loadAppSettings(store: KeyValueStore | null): AppSettings {
     if (typeof o.reduceMotion === 'boolean') out.reduceMotion = o.reduceMotion;
     if (typeof o.scanlines === 'boolean') out.scanlines = o.scanlines;
     if (typeof o.showDegreeRow === 'boolean') out.showDegreeRow = o.showDegreeRow;
+    if (HOLE_RATES.includes(o.holeRate as HoleRate)) out.holeRate = o.holeRate as HoleRate;
+    if (typeof o.trainingTempo === 'number' && Number.isFinite(o.trainingTempo)) {
+      out.trainingTempo = Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, Math.round(o.trainingTempo)));
+    }
   } catch {
     /* JSON cassé : on garde les défauts */
   }

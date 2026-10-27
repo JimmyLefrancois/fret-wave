@@ -41,6 +41,7 @@ function attempt(patch: Partial<Attempt> = {}): Attempt {
     seconds: 42,
     fretMin: 5,
     missedStrings: [],
+    tempoOk: false,
   };
   return { ...base, ...patch };
 }
@@ -108,6 +109,30 @@ describe('journal de tentatives', () => {
     expect(d.accuracy).toBeCloseTo(5 / 6, 6);
     expect(d.seconds).toBe(42 + 42 + 10);
     expect(d.nodes).toBe(1); // même forme, même mode
+  });
+
+  it('le rappel (N3) pèse plus que les trous (N2) dans la maîtrise', () => {
+    // même journal sauf le niveau de la meilleure tentative : le poids 1,5 du N3 doit tirer la moyenne
+    const asHoles = [
+      attempt({ ts: at(4), correct: 3, total: 5, level: 2 }),
+      attempt({ ts: at(1), correct: 5, total: 5, level: 2 }),
+    ];
+    const asRecall = [
+      attempt({ ts: at(4), correct: 3, total: 5, level: 2 }),
+      attempt({ ts: at(1), correct: 5, total: 5, level: 3, kind: 'recall' }),
+    ];
+    const a = summarizeNodes(asHoles)[0]!;
+    const b = summarizeNodes(asRecall)[0]!;
+    expect(b.recent).toBeGreaterThan(a.recent);
+    expect(b.mastery).toBeGreaterThan(a.mastery);
+    // à scores égaux, la pondération ne change rien
+    expect(masteryOf([0.8, 0.8], 2, [1, 1.5])).toBeCloseTo(masteryOf([0.8, 0.8], 2), 6);
+  });
+
+  it('tempoOk survit à la normalisation, faux par défaut', () => {
+    expect(normalizeAttempt(attempt())!.tempoOk).toBe(false);
+    expect(normalizeAttempt({ ...attempt(), tempoOk: true })!.tempoOk).toBe(true);
+    expect(normalizeAttempt({ ...attempt(), tempoOk: 'oui' })!.tempoOk).toBe(false);
   });
 
   it('diagnostic par corde : valeurs invalides écartées, doublons fusionnés', () => {

@@ -50,6 +50,8 @@ export interface Attempt {
    * Sert au diagnostic par corde (« tu rates souvent la corde de Si ») sans stocker chaque réponse.
    */
   missedStrings: number[];
+  /** La grille rythmique a-t-elle été tenue (série finie dans le temps du métronome) ? */
+  tempoOk: boolean;
 }
 
 export function zoneOf(fret: number): number {
@@ -133,6 +135,7 @@ export function normalizeAttempt(v: unknown): Attempt | null {
     missedStrings: Array.isArray(a.missedStrings)
       ? [...new Set(a.missedStrings.filter((s): s is number => typeof s === 'number' && Number.isInteger(s) && s >= 0 && s < 8))]
       : [],
+    tempoOk: a.tempoOk === true,
   };
 }
 
@@ -177,6 +180,7 @@ export function fromLegacyEntry(e: PracticeEntry, i: number): Attempt {
     seconds: Number.isFinite(e.seconds) ? Math.max(0, Math.round(e.seconds)) : 0,
     fretMin: 0,
     missedStrings: [],
+    tempoOk: false,
   };
 }
 

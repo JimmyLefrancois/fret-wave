@@ -15,6 +15,14 @@ import { cardsFrom, type Card } from './scheduler';
 export const PASS = 0.8;
 export const EXCELLENT = 0.95;
 
+/**
+ * Poids d'une tentative dans la moyenne récente : une case écrite **de mémoire** (N3) vaut plus qu'un
+ * trou comblé dans une tablature lisible (N2), où l'élève peut compter les cases depuis une note voisine.
+ */
+export function levelWeight(level: Attempt['level']): number {
+  return level >= 3 ? 1.5 : 1;
+}
+
 export type NodeState = 'available' | 'learning' | 'learned' | 'mastered';
 
 export const STATE_LABEL: Readonly<Record<NodeState, string>> = {
@@ -53,14 +61,29 @@ export interface NodeStats {
   lastLevel: Attempt['level'];
 }
 
-/** Maîtrise 0-1 : la précision compte, mais une forme vue un seul soir ne vaut pas une forme tenue. */
-export function masteryOf(scores: readonly number[], days: number): number {
+/**
+ * Maîtrise 0-1 : la précision compte, mais une forme vue un seul soir ne vaut pas une forme tenue.
+ * `weights` (facultatif) pondère la moyenne récente par niveau : N3 pèse 1,5, N2 pèse 1.
+ */
+export function masteryOf(scores: readonly number[], days: number, weights?: readonly number[]): number {
   if (scores.length === 0) return 0;
   const best = Math.max(...scores);
-  const recent = scores.slice(-3);
-  const recentAvg = recent.reduce((s, v) => s + v, 0) / recent.length;
+  const from = Math.max(0, scores.length - 3);
+  const recent = scores.slice(from);
+  const w = weights ? weights.slice(from) : recent.map(() => 1);
+  const wSum = w.reduce((s, v) => s + v, 0) || 1;
+  const recentAvg = recent.reduce((s, v, i) => s + v * (w[i] ?? 1), 0) / wSum;
   const coverage = Math.min(1, days / 3);
   return Math.round((0.5 * best + 0.3 * recentAvg + 0.2 * coverage) * 1000) / 1000;
+}
+
+/** Moyenne des trois dernières tentatives, pondérée par le niveau. */
+function weightedRecent(scores: readonly number[], weights: readonly number[]): number {
+  const from = Math.max(0, scores.length - 3);
+  const recent = scores.slice(from);
+  const w = weights.slice(from);
+  const wSum = w.reduce((s, v) => s + v, 0) || 1;
+  return recent.reduce((s, v, i) => s + v * (w[i] ?? 1), 0) / wSum;
 }
 
 export function stateOf(opts: {
@@ -87,6 +110,7 @@ export function summarizeNodes(attempts: readonly Attempt[]): NodeStats[] {
   for (const [nodeId, list] of groups) {
     const sorted = [...list].sort((x, y) => x.ts - y.ts);
     const scores = sorted.map((a) => scoreOf(a) ?? 0);
+    const weights = sorted.map((a) => levelWeight(a.level));
     const successAttempts = sorted.filter((a) => (scoreOf(a) ?? 0) >= PASS);
     const successDays = new Set(successAttempts.map((a) => dayKey(a.ts))).size;
     const first = sorted[0]!;
@@ -103,11 +127,11 @@ export function summarizeNodes(attempts: readonly Attempt[]): NodeStats[] {
       firstTs: first.ts,
       lastTs: last.ts,
       best: Math.max(...scores),
-      recent: scores.slice(-3).reduce((s, v) => s + v, 0) / Math.min(3, scores.length),
+      recent: weightedRecent(scores, weights),
       last: scores[scores.length - 1]!,
       tonics: [...new Set(sorted.map((a) => a.tonic))],
       zones: [...new Set(sorted.map((a) => zoneOf(a.fretMin)))].sort((x, y) => x - y),
-      mastery: masteryOf(scores, successDays),
+      mastery: masteryOf(scores, successDays, weights),
       state: 'available',
       box: card ? card.box : null,
       due: card ? card.due : null,

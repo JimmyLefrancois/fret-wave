@@ -20,6 +20,7 @@ import {
   summarizeDay, summarizeNodes, weakTonics, xpSummary, type Attempt, type NodeStats,
 } from '../core/progress';
 import { unseenTonic } from '../modules/gammes/transpose';
+import { buildReviewQueue } from '../modules/gammes/review';
 
 /** Repère de lecture du diagnostic par corde (accordage standard, de la plus grave à la plus aiguë). */
 const STRING_LABEL_FR = ['Mi grave', 'La', 'Ré', 'Sol', 'Si', 'Mi aigu'];
@@ -105,6 +106,7 @@ export function HubPage() {
   const allCards = useMemo(() => cardsFrom(journal), [journal]);
   const nextDue = useMemo(() => allCards.filter((c) => c.due > now.getTime()).sort((a, b) => a.due - b.due)[0] ?? null, [allCards, now]);
   const weak = useMemo(() => stringWeakness(journal)[0] ?? null, [journal]);
+  const mix = useMemo(() => buildReviewQueue(journal, now.getTime()), [journal, now]);
   // une forme vue dans une seule zone du manche : on propose de la transposer, pas de la réviser à l'identique
   const tonicGap = useMemo(() => {
     const node = weakTonics(nodes)[0] ?? null;
@@ -204,8 +206,17 @@ export function HubPage() {
         )}
         <div className="row">
           <PixelButton variant="primary" onClick={review} disabled={due.length === 0}>Réviser maintenant</PixelButton>
+          <PixelButton onClick={() => navigate('review')} disabled={mix.length === 0}>
+            Session mélangée{mix.length > 0 ? ` (${mix.length})` : ''}
+          </PixelButton>
           <PixelButton variant="quiet" onClick={() => navigate('training')}>Nouvelle série</PixelButton>
         </div>
+        {mix.length > 0 && (
+          <p className="t-small t-dim">
+            Mélange proposé : {mix.map((t) => `${t.title} · ${t.positionLabel}`).join(' · ')}. Des formes différentes
+            d’affilée retiennent mieux que la même rejouée.
+          </p>
+        )}
         {nextDue && (
           <p className="t-small t-dim">
             Prochaine échéance : {dueIn(nextDue.due, now.getTime())} (boîte {nextDue.box} sur 6).

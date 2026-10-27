@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { TUNINGS, generatePositions, getScale, pitchClassOf, tonicSpellings } from '../src/core/theory';
 import { layoutScore, positionToScore, validateScore } from '../src/core/tab';
 import {
-  HOLES_RATIO, SEGMENTS, buildExercise, checkAnswer, holeKey, mulberry32, segmentPlan, starsFor, withRevealed,
+  HOLES_RATIO, SEGMENTS, buildExercise, checkAnswer, holeKey, insideGrid, mulberry32, segmentPlan, starsFor,
+  tempoGrid, withRevealed,
 } from '../src/modules/gammes/exercise';
 import { unseenTonic } from '../src/modules/gammes/transpose';
 
@@ -182,5 +183,43 @@ describe('transposition : proposer une tonique jamais vue', () => {
     const all: string[] = [];
     for (let pc = 0; pc < 12; pc++) all.push(...tonicSpellings(getScale('dorian'), pc));
     expect(unseenTonic('dorian', all)).toBeNull();
+  });
+});
+
+describe('grille rythmique (métronome sans notes)', () => {
+  it('un temps par trou, en mesures entières, sans aucune note jouée', () => {
+    const g = tempoGrid(5, 60);
+    expect(g.beats).toBe(8); // 5 trous → 2 mesures de 4 temps
+    expect(g.seconds).toBe(8);
+    expect(g.score.measures.length).toBe(2);
+    expect(validateScore(g.score)).toEqual([]);
+    expect(g.score.measures.flatMap((m) => m.events).every((e) => e.kind === 'rest' && e.notes.length === 0)).toBe(true);
+  });
+
+  it('le tempo reste dans 30-120 BPM et la durée suit', () => {
+    expect(tempoGrid(4, 10).score.tempo).toBe(30);
+    expect(tempoGrid(4, 500).score.tempo).toBe(120);
+    expect(tempoGrid(4, 50).beats).toBe(4);
+    expect(tempoGrid(4, 50).seconds).toBeCloseTo(4.8, 6);
+  });
+
+  it('dans la grille avec une tolérance d’un dixième de temps', () => {
+    const g = tempoGrid(4, 60); // 4 s
+    expect(insideGrid(3.5, g)).toBe(true);
+    expect(insideGrid(4.25, g)).toBe(true);
+    expect(insideGrid(4.5, g)).toBe(false);
+    expect(insideGrid(9, g)).toBe(false);
+  });
+
+  it('étoiles : la grille manquée plafonne à ★, la grille tenue conditionne ★★ et ★★★', () => {
+    expect(starsFor(1, 0, 0, 'kept')).toBe(3);
+    expect(starsFor(0.96, 0, 1, 'kept')).toBe(2);
+    expect(starsFor(0.96, 0, 0, 'kept')).toBe(2);
+    expect(starsFor(0.85, 0, 0, 'kept')).toBe(1);
+    expect(starsFor(1, 0, 0, 'missed')).toBe(1);
+    expect(starsFor(0.79, 0, 0, 'kept')).toBe(0);
+    // sans grille : comportement inchangé
+    expect(starsFor(1, 0, 0)).toBe(3);
+    expect(starsFor(0.95, 0, 0)).toBe(2);
   });
 });

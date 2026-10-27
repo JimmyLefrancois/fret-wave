@@ -27,6 +27,7 @@ const PAGES = [
   { id: 'gammes', hash: '#/gammes' },
   { id: 'n1', hash: '#/gammes/jouer' },
   { id: 'entrainement', hash: '#/gammes/entrainement' },
+  { id: 'revision', hash: '#/gammes/revision' },
   { id: 'reglages', hash: '#/reglages' },
 ];
 

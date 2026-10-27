@@ -1,30 +1,53 @@
 /**
- * Module Gammes — niveaux 2 « Mémorisation » et 3 « Rappel » (BRIEF.md §2, MUSIC_DESIGN §3.4).
+ * Module Gammes — niveaux 2 « Mémorisation » et 3 « Rappel » (BRIEF.md §2, MUSIC_DESIGN §3.4, §13).
  *
  * Un seul écran pour les deux niveaux, parce que la mécanique est la même : **des trous dans une
  * tablature réelle**, que l'élève comble au pavé numérique (ou au clavier). Ce qui change :
- *  - N2 masque ~35 % des notes (on lit encore la forme, on comble les manques) ;
+ *  - N2 masque une part des notes (réglable 20 / 35 / 50 %, au moins 2 trous, jamais toutes) ;
  *  - N3 masque **tout** (la tablature ne donne que les cordes, les mesures et le rythme) et chronomètre.
  *
- * Découpage (chunking) : 1 corde → 2 → 3 → position entière → aller-retour. Une tentative n'est
- * enregistrée qu'une fois la série terminée, avec les trous justes **au premier essai** : c'est la seule
- * mesure honnête de ce que l'élève sait déjà. Une note révélée après deux erreurs compte comme fausse.
+ * Trois ajouts de la seconde passe de la phase 2 :
+ *  - **grille rythmique** : le métronome de la 1c joue un temps par trou, sans jouer une seule note
+ *    (score de silences) ; finir dans la grille et juste à ≥ 95 % vaut ★★, parfait sans erreur vaut ★★★ ;
+ *  - **session mélangée** (interleaving) : 3 à 5 formes différentes enchaînées, calculées depuis le
+ *    journal, sans repasser par le hub ;
+ *  - le taux de trous et le tempo sont des réglages (`settings.holeRate`, `settings.trainingTempo`).
+ *
+ * Une tentative n'est enregistrée qu'une fois la série terminée, avec les trous justes **au premier
+ * essai** : c'est la seule mesure honnête de ce que l'élève sait déjà. Une case révélée après deux
+ * erreurs compte comme fausse.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
 import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
-import { useSettings } from '../../app/settings';
+import { setSettings, useSettings } from '../../app/settings';
 import { TabView, type TabPick } from '../../app/TabView';
-import { Panel, PixelButton, Segmented } from '../../app/ui';
+import { Panel, PixelButton, Segmented, Switch } from '../../app/ui';
 import { fmtNote } from '../../core/theory';
 import { positionToScore } from '../../core/tab';
-import { appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, xpForAttempt, type Attempt, type AttemptLevel } from '../../core/progress';
+import { TabPlayer } from '../../core/audio/tabPlayer';
+import {
+  appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, xpForAttempt,
+  type Attempt, type AttemptLevel,
+} from '../../core/progress';
 import { degreeName, fmtDegree, positionLabel, resolveScale } from './resolve';
 import {
-  HOLES_RATIO, SEGMENTS, buildExercise, holeKey, mulberry32, segmentPlan, starsFor, withRevealed, type Segment,
+  SEGMENTS, buildExercise, holeKey, insideGrid, mulberry32, segmentPlan, starsFor, tempoGrid, withRevealed,
+  type GridOutcome, type Segment,
 } from './exercise';
+import { buildReviewQueue, type ReviewTarget } from './review';
 
 type HoleMark = 'right' | 'revealed';
+
+interface Result {
+  accuracy: number;
+  stars: number;
+  xp: number;
+  seconds: number;
+  revealed: number;
+  errors: number;
+  grid: GridOutcome;
+}
 
 function mmss(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -32,11 +55,11 @@ function mmss(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function stars(n: number): string {
+function starRow(n: number): string {
   return '★'.repeat(n) + '☆'.repeat(3 - n);
 }
 
-export function ScaleTrainingPage() {
+export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boolean } = {}) {
   const settings = useSettings();
   const selection = useScaleSelection();
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
@@ -51,8 +74,22 @@ export function ScaleTrainingPage() {
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [result, setResult] = useState<{ accuracy: number; stars: number; xp: number; seconds: number; revealed: number; errors: number } | null>(null);
+  const [result, setResult] = useState<Result | null>(null);
   const [journal, setJournal] = useState<Attempt[]>(() => readAttempts(progressStore()));
+
+  // --- grille rythmique
+  const [grid, setGrid] = useState<'off' | 'running' | 'over'>('off');
+  const gridStart = useRef(0);
+  const player = useRef<TabPlayer | null>(null);
+  if (player.current === null) player.current = new TabPlayer();
+
+  // --- session mélangée
+  const [mixed, setMixed] = useState(initialMixed);
+  const [queue, setQueue] = useState<ReviewTarget[]>([]);
+  const [qIndex, setQIndex] = useState(0);
+  const [sessionDone, setSessionDone] = useState<{ forms: number; accuracy: number; xp: number } | null>(null);
+  // accumulateur de session : une ref, pour que le bilan soit juste dès le dernier clic (pas un rendu plus tard)
+  const sessionAcc = useRef({ forms: 0, accuracy: 0, xp: 0 });
 
   const plan = useMemo(() => (r.position ? segmentPlan(r.position, segment) : null), [r.position, segment]);
 
@@ -72,20 +109,30 @@ export function ScaleTrainingPage() {
 
   const exercise = useMemo(() => {
     if (!baseScore) return null;
-    return buildExercise(baseScore, level as 2 | 3, level === 2 ? { rng: mulberry32(seed) } : {});
-  }, [baseScore, level, seed]);
+    return buildExercise(baseScore, level as 2 | 3, level === 2 ? { ratio: settings.holeRate, rng: mulberry32(seed) } : {});
+  }, [baseScore, level, seed, settings.holeRate]);
 
   const revealed = useMemo(() => new Set(Object.keys(marks)), [marks]);
-  const display = useMemo(
-    () => (exercise ? withRevealed(exercise.score, revealed) : null),
-    [exercise, revealed],
-  );
+  const display = useMemo(() => (exercise ? withRevealed(exercise.score, revealed) : null), [exercise, revealed]);
 
   const done = Object.keys(marks).length;
   const total = exercise?.total ?? 0;
   const activeHole = useMemo(() => exercise?.holes.find((h) => h.key === activeKey) ?? null, [exercise, activeKey]);
+  const stopGrid = useCallback(() => {
+    player.current?.stop();
+    setGrid('off');
+  }, []);
 
-  // --- remise à zéro quand la cible change (gamme, position, niveau, segment)
+  // une session mélangée demandée par l'URL démarre tout de suite (une seule fois)
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!initialMixed || autoStarted.current) return;
+    autoStarted.current = true;
+    startMixed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMixed]);
+
+  // --- remise à zéro quand la cible change (gamme, position, niveau, segment, trous)
   useEffect(() => {
     setMarks({});
     setErrors({});
@@ -94,26 +141,57 @@ export function ScaleTrainingPage() {
     setFeedback(null);
     setStartedAt(null);
     setResult(null);
+    player.current?.stop();
+    setGrid('off');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selection.scaleId, selection.tonic, selection.tuningId, selection.system, selection.positionIndex, level, segment, seed]);
 
   useEffect(() => {
     if (startedAt === null || result) return;
-    const t = window.setInterval(() => setNow(Date.now()), 500);
+    const t = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(t);
   }, [startedAt, result]);
+
+  useEffect(() => {
+    const p = player.current!;
+    return () => p.dispose();
+  }, []);
 
   const touch = () => {
     if (startedAt === null) setStartedAt(Date.now());
   };
 
+  const startGrid = async () => {
+    if (total === 0 || grid === 'running') return;
+    const p = player.current!;
+    const g = tempoGrid(total, settings.trainingTempo);
+    try {
+      await p.init(); // en premier : reprend le contexte audio dans le geste
+      await p.load(g.score, { loop: false });
+      p.setMetronome(true);
+      p.onEnded = () => {
+        // la grille est finie : la suite se juge sans bonus de tempo
+        setGrid('over');
+      };
+      await p.play();
+      gridStart.current = performance.now();
+      // le chrono repart de la grille : sinon une grille lancée puis abandonnée compte dans la tentative
+      setStartedAt(Date.now());
+      setGrid('running');
+      setFeedback({ ok: true, text: `grille : ${g.beats} temps à ${g.score.tempo} BPM (${g.seconds.toFixed(1)} s)` });
+    } catch (e) {
+      setFeedback({ ok: false, text: `métronome indisponible : ${(e as Error).message}` });
+      setGrid('off');
+    }
+  };
+
   const nextOpen = useCallback((after: string | null): string | null => {
     if (!exercise) return null;
-    const marksNow = { ...marks };
     const order = exercise.holes.map((h) => h.key);
     const from = after ? order.indexOf(after) : -1;
     for (let i = 1; i <= order.length; i++) {
       const k = order[(from + i + order.length) % order.length]!;
-      if (!marksNow[k]) return k;
+      if (!marks[k]) return k;
     }
     return null;
   }, [exercise, marks]);
@@ -126,6 +204,9 @@ export function ScaleTrainingPage() {
     const revealedCount = Object.values(finalMarks).filter((m) => m === 'revealed').length;
     const errorTotal = Object.values(errorCount).reduce((s, v) => s + v, 0);
     const seconds = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0;
+    // grille tenue ? (finie avant la fin du métronome, tolérance d'un dixième de temps)
+    const gridOutcome: GridOutcome = grid === 'off' ? 'off' : grid === 'running' && insideGrid(seconds, tempoGrid(totalHoles, settings.trainingTempo)) ? 'kept' : 'missed';
+    if (grid !== 'off') stopGrid();
     const attempt: Attempt = {
       id: newAttemptId(Date.now(), nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index }), readAttempts(progressStore()).length),
       ts: Date.now(),
@@ -144,10 +225,20 @@ export function ScaleTrainingPage() {
       fretMin: plan.position.fretMin,
       // diagnostic par corde : les trous qui ont coûté une erreur (ou une révélation)
       missedStrings: [...new Set(Object.keys(errorCount).map((k) => Number(k.split(':')[1] ?? 0)).filter((s) => Number.isInteger(s)))],
+      tempoOk: gridOutcome === 'kept',
     };
     setJournal(appendAttempt(progressStore(), attempt));
-    setResult({ accuracy, stars: starsFor(accuracy, revealedCount, errorTotal), xp: xpForAttempt(attempt), seconds, revealed: revealedCount, errors: errorTotal });
-  }, [exercise, plan, r, level, startedAt]);
+    const res: Result = {
+      accuracy,
+      stars: starsFor(accuracy, revealedCount, errorTotal, gridOutcome),
+      xp: xpForAttempt(attempt),
+      seconds,
+      revealed: revealedCount,
+      errors: errorTotal,
+      grid: gridOutcome,
+    };
+    setResult(res);
+  }, [exercise, plan, r, level, startedAt, grid, settings.trainingTempo, stopGrid]);
 
   const validate = useCallback(() => {
     if (!activeHole || entry === '') return;
@@ -167,7 +258,6 @@ export function ScaleTrainingPage() {
       setErrors(nextErrors);
       setEntry('');
       if (count >= 2) {
-        // deuxième erreur : on révèle (la pastille reprend sa couleur) et on avance
         const nextMarks = { ...marks, [activeHole.key]: 'revealed' as HoleMark };
         setMarks(nextMarks);
         setFeedback({ ok: false, text: `c’était ${activeHole.fret} (case révélée)` });
@@ -177,7 +267,7 @@ export function ScaleTrainingPage() {
         setFeedback({ ok: false, text: 'non — réessaie (encore une erreur et je révèle la case)' });
       }
     }
-  }, [activeHole, entry, marks, errors, r.tonic, settings.noteNotation, nextOpen, total, finish]);
+  }, [activeHole, entry, marks, errors, settings.noteNotation, nextOpen, total, finish]);
 
   const press = useCallback((d: string) => {
     touch();
@@ -198,8 +288,8 @@ export function ScaleTrainingPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (result) return;
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
       if (/^[0-9]$/.test(e.key)) {
         e.preventDefault();
         press(e.key);
@@ -221,17 +311,74 @@ export function ScaleTrainingPage() {
     setSeed(Math.floor(Math.random() * 1e9));
   };
 
+  const applyTarget = (t: ReviewTarget) => {
+    setLevel(t.level);
+    setScaleSelection(t.selection);
+    setSeed(Math.floor(Math.random() * 1e9));
+  };
+
+  const startMixed = () => {
+    const q = buildReviewQueue(readAttempts(progressStore()), Date.now());
+    setJournal(readAttempts(progressStore()));
+    if (q.length === 0) {
+      setFeedback({ ok: false, text: 'aucune forme à réviser : commence par une écoute ou une série de trous' });
+      return;
+    }
+    setMixed(true);
+    setQueue(q);
+    setQIndex(0);
+    setSessionDone(null);
+    setResult(null);
+    sessionAcc.current = { forms: 0, accuracy: 0, xp: 0 };
+    applyTarget(q[0]!);
+  };
+
+  const nextInQueue = () => {
+    if (result) {
+      // la série vient de finir : on agrège la session avant d'avancer
+      const a = sessionAcc.current;
+      const forms = a.forms + 1;
+      sessionAcc.current = { forms, accuracy: (a.accuracy * a.forms + result.accuracy) / forms, xp: a.xp + result.xp };
+    }
+    const next = qIndex + 1;
+    if (next >= queue.length) {
+      // dernière forme : on affiche le bilan, avec la dernière série déjà comptée
+      setSessionDone({ ...sessionAcc.current });
+      setResult(null);
+      return;
+    }
+    setQIndex(next);
+    setResult(null);
+    applyTarget(queue[next]!);
+  };
+
+  const toggleMixed = (on: boolean) => {
+    setMixed(on);
+    setSessionDone(null);
+    sessionAcc.current = { forms: 0, accuracy: 0, xp: 0 };
+    if (!on) {
+      setQueue([]);
+      setQIndex(0);
+    } else {
+      startMixed();
+    }
+  };
+
   // --- crochet de vérification (développement uniquement) : état de la série, jamais en production
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     (window as unknown as { __training?: unknown }).__training = {
-      exercise, plan, marks, errors, activeKey, result, level, segment, total, done,
+      exercise, plan, marks, errors, activeKey, result, level, segment, total, done, grid, mixed, queue, qIndex,
       select: (key: string | null) => setActiveKey(key),
       press: (d: string) => press(d),
       validate: () => validate(),
+      startGrid: () => void startGrid(),
+      gridClicks: () => player.current?.clicksPlayed ?? 0,
+      startMixed: () => startMixed(),
+      nextInQueue: () => nextInQueue(),
       journalLength: journal.length,
     };
-  }, [exercise, plan, marks, errors, activeKey, result, level, segment, total, done, press, validate, journal.length]);
+  }, [exercise, plan, marks, errors, activeKey, result, level, segment, total, done, grid, mixed, queue, qIndex, press, validate, journal.length]);
 
   if (!r.position || !exercise || !display || !plan) {
     return (
@@ -254,55 +401,83 @@ export function ScaleTrainingPage() {
   const activeStringLabel = activeHole
     ? `${fmtNote(r.tuning.strings[activeHole.string]!.replace(/-?\d+$/, ''), settings.noteNotation)} ${activeHole.string === 0 ? '(grave)' : activeHole.string === r.tuning.strings.length - 1 ? '(aiguë)' : ''}`.trim()
     : null;
+  const gridSpec = tempoGrid(total, settings.trainingTempo);
 
   return (
     <main className="shell">
       <header className="page-head">
-        <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour à la sélection">‹</button>
+        <button type="button" className="back" onClick={() => navigate(mixed ? 'hub' : 'gammes')} aria-label="Retour">‹</button>
         <div>
           <h1 className="page-title">{r.title}</h1>
           <p className="t-small t-dim">{positionLabel(r.position, settings.noteNotation)} · {plan.label}</p>
         </div>
-        <span className="tag tag-on">N{level}</span>
+        <span className="tag tag-on">{mixed && queue.length > 0 ? `Session ${qIndex + 1} / ${queue.length}` : `N${level}`}</span>
       </header>
 
       <Panel className="span-7" accent="magenta" label="Exercice" right={<span className="badge">{done} / {total}</span>}>
-        <div className="field">
-          <span className="t-label">Niveau</span>
-          <Segmented<AttemptLevel>
-            size="sm"
-            label="Niveau"
-            value={level}
-            onChange={(v) => restart(v, segment)}
-            options={[
-              { value: 2, label: 'N2 · trous' },
-              { value: 3, label: 'N3 · rappel' },
-            ]}
-          />
+        <div className="row">
+          <Switch checked={mixed} onChange={toggleMixed} label="Session mélangée" hint="3 à 5 formes différentes d'affilée" />
         </div>
-        <div className="field">
-          <span className="t-label">Découpage</span>
-          <Segmented<Segment>
-            size="sm"
-            label="Découpage"
-            value={segment}
-            onChange={(v) => restart(level, v)}
-            options={SEGMENTS.map((s) => ({ value: s.value, label: s.label, note: s.hint }))}
-          />
-        </div>
+        {mixed && queue.length > 0 && (
+          <p className="t-small">
+            Formes : {queue.map((t) => `${t.title} (${t.positionLabel})`).join(' → ')}.
+            {queue[qIndex] ? ` Celle-ci : ${queue[qIndex]!.reason}.` : ''}
+          </p>
+        )}
+        {!mixed && (
+          <>
+            <div className="field">
+              <span className="t-label">Niveau</span>
+              <Segmented<AttemptLevel>
+                size="sm"
+                label="Niveau"
+                value={level}
+                onChange={(v) => restart(v, segment)}
+                options={[
+                  { value: 2, label: 'N2 · trous' },
+                  { value: 3, label: 'N3 · rappel' },
+                ]}
+              />
+            </div>
+            <div className="field">
+              <span className="t-label">Découpage</span>
+              <Segmented<Segment>
+                size="sm"
+                label="Découpage"
+                value={segment}
+                onChange={(v) => restart(level, v)}
+                options={SEGMENTS.map((s) => ({ value: s.value, label: s.label, note: s.hint }))}
+              />
+            </div>
+          </>
+        )}
         <p className="t-small">
           {level === 2
-            ? `Environ ${Math.round(HOLES_RATIO * 100)} % des notes sont masquées — au moins 2, jamais toutes : ici ${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes}. Touche un emplacement vide, tape la case au pavé, valide.`
+            ? `${Math.round(settings.holeRate * 100)} % des notes masquées (au moins 2, jamais toutes) : ici ${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes}. Touche un emplacement vide, tape la case au pavé, valide.`
             : `${exercise.notes} cases à écrire de mémoire : seules les cordes, les mesures et le rythme restent visibles.`}
         </p>
+
+        <div className="grid-row">
+          <div className="tempo">
+            <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.max(30, settings.trainingTempo - 5) })} aria-label="Grille moins vite">−</button>
+            <span className="tempo-val">♩ {settings.trainingTempo}</span>
+            <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.min(120, settings.trainingTempo + 5) })} aria-label="Grille plus vite">+</button>
+          </div>
+          <PixelButton variant={grid === 'running' ? 'primary' : 'ghost'} onClick={() => (grid === 'running' ? stopGrid() : void startGrid())} disabled={!!result}>
+            {grid === 'running' ? 'Arrêter la grille' : 'Grille (métronome)'}
+          </PixelButton>
+          <span className="t-small t-dim">{gridSpec.beats} temps ≈ {gridSpec.seconds.toFixed(1)} s</span>
+        </div>
+        <p className="t-small t-dim">
+          Un temps par trou, en mesures entières. Finir dans la grille **et** juste à ≥ 95 % vaut ★★,
+          parfait sans une erreur vaut ★★★. Le métronome ne joue aucune note : il ne donne pas les réponses.
+        </p>
+
         <div className="row">
           <PixelButton variant="quiet" onClick={() => restart()} title="Même gamme, nouveaux trous">Nouvelle série</PixelButton>
           <PixelButton variant="quiet" onClick={() => navigate('scale')}>Écouter d’abord</PixelButton>
           {startedAt !== null && !result && <span className="t-label">{mmss(elapsed)}</span>}
         </div>
-        {level === 3 && !startedAt && (
-          <p className="t-small t-dim">Le chrono démarre à ta première réponse ; le bonus de vitesse n’existe qu’à ≥ 95 % de précision.</p>
-        )}
       </Panel>
 
       <Panel className="span-5 numpad-panel" accent="cyan" label="Pavé numérique" right={activeStringLabel ? <span className="tag">corde de {activeStringLabel}</span> : <span className="tag">aucun trou</span>}>
@@ -341,26 +516,58 @@ export function ScaleTrainingPage() {
         {...(activeKey ? { activeHoleKey: activeKey } : {})}
       />
 
-      {result ? (
+      {sessionDone && mixed ? (
+        <Panel className="span-7" accent="green" label="Session terminée">
+          <p className="stat-line">
+            <strong>{sessionDone.forms}</strong> forme{sessionDone.forms > 1 ? 's' : ''} · précision moyenne{' '}
+            <strong>{Math.round(sessionDone.accuracy * 100)} %</strong> · <strong>{sessionDone.xp}</strong> XP
+          </p>
+          <p className="t-small">
+            Enchaîner des formes différentes coûte plus cher sur le moment et retient mieux que répéter la même :
+            c’est fait exprès. Les échéances sont recalculées, le hub les affiche.
+          </p>
+          <div className="row">
+            <PixelButton variant="primary" onClick={startMixed}>Nouvelle session</PixelButton>
+            <PixelButton variant="quiet" onClick={() => navigate('hub')}>Hub</PixelButton>
+          </div>
+        </Panel>
+      ) : result ? (
         <Panel className="span-7" accent={result.stars > 0 ? 'green' : 'orange'} label="Résultat">
-          <p className="result-stars">{stars(result.stars)}</p>
+          <p className="result-stars">{starRow(result.stars)}</p>
           <p className="stat-line">
             <strong>{Math.round(result.accuracy * 100)} %</strong> de trous justes au premier essai · {result.revealed} révélé{result.revealed > 1 ? 's' : ''} · {result.errors} erreur{result.errors > 1 ? 's' : ''}
           </p>
           <p className="t-small">
+            {result.grid === 'kept'
+              ? `grille tenue en ${mmss(result.seconds)} · `
+              : result.grid === 'missed'
+                ? `hors grille (${mmss(result.seconds)} pour ${gridSpec.seconds.toFixed(1)} s) · `
+                : ''}
             {result.xp > 0
-              ? `+${result.xp} XP · ${mmss(result.seconds)}. Tentative enregistrée : elle entre dans la répétition espacée.`
-              : `0 XP · ${mmss(result.seconds)}. La tentative est enregistrée quand même : elle dit où tu en es, et rien n’est bloqué.`}
+              ? `+${result.xp} XP. Tentative enregistrée : elle entre dans la répétition espacée.`
+              : '0 XP. La tentative est enregistrée quand même : elle dit où tu en es, et rien n’est bloqué.'}
           </p>
           <div className="row">
-            <PixelButton variant="primary" onClick={() => restart()}>Rejouer</PixelButton>
-            <PixelButton onClick={() => restart(level === 2 ? 3 : 2, segment)}>{level === 2 ? 'Passer au rappel (N3)' : 'Revenir aux trous (N2)'}</PixelButton>
-            <PixelButton variant="quiet" onClick={() => navigate('gammes')}>Changer de gamme</PixelButton>
-            <PixelButton variant="quiet" onClick={() => navigate('hub')}>Hub</PixelButton>
+            {mixed ? (
+              <>
+                <PixelButton variant="primary" onClick={nextInQueue} disabled={queue.length === 0}>
+                  {qIndex + 1 >= queue.length ? 'Terminer la session' : `Suivant · ${queue[qIndex + 1]?.title ?? ''}`}
+                </PixelButton>
+                <PixelButton variant="quiet" onClick={() => restart()}>Refaire celle-ci</PixelButton>
+              </>
+            ) : (
+              <>
+                <PixelButton variant="primary" onClick={() => restart()}>Rejouer</PixelButton>
+                <PixelButton onClick={() => restart(level === 2 ? 3 : 2, segment)}>{level === 2 ? 'Passer au rappel (N3)' : 'Revenir aux trous (N2)'}</PixelButton>
+                <PixelButton variant="quiet" onClick={() => navigate('gammes')}>Changer de gamme</PixelButton>
+                <PixelButton variant="quiet" onClick={() => navigate('hub')}>Hub</PixelButton>
+              </>
+            )}
           </div>
           <p className="t-small t-dim">
-            Étoiles : ★ dès 80 % de trous justes · ★★ dès 95 % · ★★★ sans une erreur ni une case révélée.
-            Prochaine révision calculée par la répétition espacée (Leitner, 6 boîtes) : le hub affiche les échéances.
+            Étoiles : ★ dès 80 % · ★★ dès 95 % · ★★★ sans une erreur ni une case révélée. Si tu as lancé la grille,
+            ★★ et ★★★ exigent de la tenir ; la manquer plafonne à ★. Une case écrite de mémoire (N3) pèse 1,5 dans la
+            maîtrise, un trou comblé (N2) pèse 1.
           </p>
         </Panel>
       ) : (

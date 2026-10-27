@@ -30,7 +30,7 @@ const NAV: { route: RouteName; label: string; icon: IconName }[] = [
 ];
 
 const ACTIVE: Record<RouteName, RouteName> = {
-  hub: 'hub', gammes: 'gammes', scale: 'gammes', training: 'gammes', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
+  hub: 'hub', gammes: 'gammes', scale: 'gammes', training: 'gammes', review: 'gammes', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
 };
 
 function Page({ route }: { route: RouteName }) {
@@ -38,7 +38,9 @@ function Page({ route }: { route: RouteName }) {
     case 'hub': return <HubPage />;
     case 'gammes': return <ScaleSelectPage />;
     case 'scale': return <ScaleDiscoveryPage />;
-    case 'training': return <ScaleTrainingPage />;
+    // clés distinctes : sans elles, React réutilise l'instance et la session mélangée ne démarre pas
+    case 'training': return <ScaleTrainingPage key="training" />;
+    case 'review': return <ScaleTrainingPage key="review" initialMixed />;
     case 'settings': return <SettingsPage />;
     case 'tab': return <TabPage />;
     case 'audio': return <AudioPage />;

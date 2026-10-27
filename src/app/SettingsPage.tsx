@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { navigate } from './router';
 import { SCALE_SELECTION_KEY, DEFAULT_SELECTION, setScaleSelection } from './scaleSession';
-import { DEFAULT_SETTINGS, setSettings, useSettings } from './settings';
+import { DEFAULT_SETTINGS, HOLE_RATES, MAX_TEMPO, MIN_TEMPO, setSettings, useSettings, type HoleRate } from './settings';
 import { Panel, PixelButton, Segmented, Switch } from './ui';
 import { Mixer, InstrumentPicker } from './AudioControls';
 
@@ -129,6 +129,37 @@ export function SettingsPage() {
           Les couleurs d’intervalles ne changent jamais avec l’ambiance : elles portent l’apprentissage.
           Les autres ambiances (Cyber City, Lo-fi, Arcade) arrivent en phase 8.
         </p>
+      </Panel>
+
+      <Panel className="span-6" accent="violet" label="Exercices">
+        <div className="field">
+          <span className="t-label">Trous au niveau 2</span>
+          <Segmented<HoleRate>
+            value={settings.holeRate}
+            onChange={(v) => setSettings({ holeRate: v })}
+            label="Part des notes masquées"
+            options={HOLE_RATES.map((r) => ({ value: r, label: `${Math.round(r * 100)} %` }))}
+          />
+          <p className="t-small t-dim">
+            Au moins 2 trous et jamais toute la position, quel que soit le pourcentage. Plus de trous = plus dur,
+            pas plus utile pour un débutant.
+          </p>
+        </div>
+        <div className="field">
+          <span className="t-label">Grille rythmique</span>
+          <div className="tempo-row">
+            <div className="tempo">
+              <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.max(MIN_TEMPO, settings.trainingTempo - 5) })} aria-label="Moins vite">−</button>
+              <span className="tempo-val">♩ {settings.trainingTempo}</span>
+              <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.min(MAX_TEMPO, settings.trainingTempo + 5) })} aria-label="Plus vite">+</button>
+            </div>
+            <span className="t-small t-dim">un temps par trou</span>
+          </div>
+          <p className="t-small t-dim">
+            Le métronome ne joue aucune note. Tant que la validation passe par le pavé, ce tempo mesure la
+            rapidité à écrire une case : la phase 3 (micro) rendra la mesure honnête.
+          </p>
+        </div>
       </Panel>
 
       <Panel className="span-5" label="Mouvement">

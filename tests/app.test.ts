@@ -64,6 +64,16 @@ describe('réglages globaux', () => {
     expect(loaded.scanlines).toBe(DEFAULT_SETTINGS.scanlines);
   });
 
+  it('réglages d’exercice : taux de trous borné aux trois crans, tempo borné 30-120', () => {
+    const s = fakeStore({ [SETTINGS_KEY]: JSON.stringify({ holeRate: 0.5, trainingTempo: 500 }) });
+    const loaded = loadAppSettings(s);
+    expect(loaded.holeRate).toBe(0.5);
+    expect(loaded.trainingTempo).toBe(120);
+    const bad = loadAppSettings(fakeStore({ [SETTINGS_KEY]: JSON.stringify({ holeRate: 0.42, trainingTempo: 10 }) }));
+    expect(bad.holeRate).toBe(DEFAULT_SETTINGS.holeRate);
+    expect(bad.trainingTempo).toBe(30);
+  });
+
   it('JSON cassé : aucun exception', () => {
     expect(loadAppSettings(fakeStore({ [SETTINGS_KEY]: '{oops' }))).toEqual(DEFAULT_SETTINGS);
   });
