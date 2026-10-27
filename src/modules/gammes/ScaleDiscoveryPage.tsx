@@ -22,6 +22,7 @@ import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
 import { AudioEngine } from '../../core/audio/engine';
 import { appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts } from '../../core/progress';
 import { degreeName, fmtDegree, legendFor, positionLabel, resolveScale } from './resolve';
+import { TabLegend } from './TabLegend';
 import {
   COMPARISON_LABEL, counterpartPosition, differingDegrees, markDegrees, neighbourDef, neighbourMode, neighbourPositions,
 } from './compare';
@@ -392,6 +393,8 @@ export function ScaleDiscoveryPage() {
           <PixelButton onClick={() => navigate('gammes')}>Changer de système</PixelButton>
         </Panel>
       )}
+
+      <TabLegend def={r.def} />
 
       <div className="pos-nav">
         <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>‹ Position</PixelButton>

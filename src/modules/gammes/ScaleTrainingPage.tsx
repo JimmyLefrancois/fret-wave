@@ -37,6 +37,7 @@ import {
   type Attempt, type AttemptLevel,
 } from '../../core/progress';
 import { degreeName, fmtDegree, positionLabel, resolveScale } from './resolve';
+import { TabLegend } from './TabLegend';
 import {
   SEGMENTS, buildExercise, holeKey, insideGrid, mulberry32, nearClick, segmentPlan, starsFor, tempoGrid, withRevealed,
   type GridOutcome, type Segment,
@@ -630,6 +631,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         onPick={onPick}
         {...(activeKey ? { activeHoleKey: activeKey } : {})}
       />
+
+      <TabLegend def={r.def} />
 
 
       <Panel className="span-7" accent="magenta" label="Exercice" right={<span className="badge">{done} / {total}</span>}>
