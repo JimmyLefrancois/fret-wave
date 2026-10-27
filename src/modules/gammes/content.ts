@@ -23,6 +23,17 @@ export const SCALE_GROUPS: readonly ScaleGroup[] = [
     scaleIds: ['pentatonic-minor', 'pentatonic-major', 'blues-minor', 'blues-major'],
   },
   {
+    // Une famille « mineures » explicite : la mineure naturelle (éolien) vivait seulement dans
+    // « Majeure & modes », sous un nom de mode — un débutant qui cherche « la gamme mineure » ne la
+    // trouvait pas. Ces gammes apparaissent aussi dans leur famille d'origine : ici, c'est un point
+    // d'entrée par ce qu'on entend, pas une nouvelle gamme.
+    id: 'minor',
+    title: 'Gammes mineures',
+    short: 'Mineures',
+    note: 'La mineure naturelle (♭3 ♭6 ♭7) d’abord, puis ses variantes : harmonique, mélodique.',
+    scaleIds: ['aeolian', 'pentatonic-minor', 'blues-minor', 'harmonic-minor', 'melodic-minor'],
+  },
+  {
     id: 'diatonic',
     title: 'Majeure & modes',
     short: 'Majeure & modes',
