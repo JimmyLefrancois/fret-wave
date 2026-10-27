@@ -1,6 +1,6 @@
 # MUSIC_DESIGN.md — choix musicaux et pédagogiques
 
-Statut : **phases 0, 1a, 1b, 1c, 1d, 2 et 3 terminées** (3 = entrée audio monophonique : détection, note stabilisée, calibration, latence mesurée, accordeur, validation au micro). Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la phase 3 : **§6** (validation audio : ce qui est maintenant réel, et ce que le micro ne peut pas dire), **§3.4** (la grille mesure le jeu quand le micro est actif), **§14** (bilan de la phase 3, avis de prof et propositions).
+Statut : **phases 0, 1a, 1b, 1c, 1d, 2, 3 et 4a terminées** (4a = module Accords : curriculum P0-P4, doigtés saisis et relus, boîte d'accord, leçon Découvrir → Construire → Vérifier en arpège → Plaquer déclaré, nœuds de progression, recommandation). Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la phase 4a : **§4.3** (les doigtés sont désormais saisis, plus « à saisir »), **§4.6** (ce que « appris » exige réellement aujourd'hui), **§15** (bilan de la 4a, avis de prof et propositions).
 Auteur du raisonnement : rôle « dev + prof de guitare » du BRIEF.md. Les avis de prof sont marqués **[AVIS PROF]**, les hypothèses **[HYP]**, les points à trancher par toi **[À TRANCHER]**.
 
 Ce qui a été **vérifié par calcul** en phase 0 (script jetable, hors dépôt) : les 43 formes d'accord de la section 4.3 (notes réellement produites en accordage standard = notes de l'accord, basse correcte, orthographe correcte) et les 10 formes mobiles (barrés Mi/La × 5 qualités) sur 13 positions de fondamentale (cases 0 à 12) : **0 erreur**. Tout le reste est du raisonnement non exécuté.
@@ -287,7 +287,7 @@ Le brief propose Em, Am (« 1 à 2 doigts »), puis E, A, D, puis Dm, C, G. Troi
 
 ### 4.3 Base de voicings : formes vérifiées (accordage standard)
 Notes en notation anglo (modèle) ; l'UI les affiche en solfège. « x » = corde non jouée. Cases listées de la corde grave (gauche) à l'aiguë (droite).
-Les doigtés par corde ne sont **pas** figés ici : ils seront saisis dans la base en phase 4 et relus (plusieurs doigtés conventionnels existent, par ex. G 2-1-3 ou 3-2-4). Aucune erreur de transcription tolérée : chaque ligne ci-dessous a été vérifiée par calcul.
+Les doigtés par corde sont **saisis dans la base depuis la 4a** (`src/data/voicings.ts`, champ `fingers`) et **relus par une règle mécanique** (`core/theory/chordFingers.ts`) : un doigt = une case sauf barré, corde à vide ou étouffée sans doigt, case la plus basse tenue par l'index ou le majeur, cordes du barré au doigt du barré, quatre doigts au plus. Ils ne sont **pas calculés** : plusieurs doigtés conventionnels coexistent (G en 2-1-3 ou 3-2-4) et une heuristique choisirait au hasard. L'ordre de pose est déduit — barré d'abord, puis index → auriculaire, cordes graves d'abord. Détail et limites : §15.
 
 | Palier | Accord | Frettes 6→1 | Notes (grave→aigu) | Remarque |
 |---|---|---|---|---|
@@ -392,6 +392,8 @@ Un accord passe **en cours d'apprentissage → appris** quand, **à la fois** :
 **Appris (non vérifié)** : même chose mais par auto-évaluation → statut distinct, moins d'XP, jamais « maîtrisé ».
 **Maîtrisé** : appris + intervalle de révision ≥ 14 jours réussi + transition vers ≥ 2 accords connus sous le seuil de tempo.
 Seuils configurables (N, jours, secondes). **[AVIS PROF]** : 3 arpèges propres sur 2 jours est exigeant mais honnête ; moins, c'est valider un hasard. Au micro de téléphone dans une pièce bruyante, passer N à 2 et le dire.
+
+**Tel que construit en 4a** : seules les deux premières lignes sont implémentées — **forme : 3 vérifications propres (≥ 80 %) sur ≥ 2 jours différents**, dans le même journal que les gammes (`acc:accord:{voicingId}`, `minSuccesses = 3`). **Le rappel à froid chronométré n'existe pas encore** : l'étape « Fixer » est en 4b. Conséquence à dire franchement : un accord peut aujourd'hui être « appris » sans avoir été posé une seule fois à froid. Le critère est donc **plus faible que ce paragraphe**, et l'écran l'annonce tel quel. Le plaqué déclaré (`kind: 'strum'`) n'entre jamais dans le calcul.
 
 ### 4.7 Les 3 axes de maîtrise
 | Axe | Unité de suivi | Mesure |
@@ -696,3 +698,45 @@ Ce qui n'est **pas** fait, et que je continue de recommander, hors phase 2 : la 
 **Pourquoi ces phases-là** : P1 et P4 sont les deux conditions de justesse de la validation audio du module Accords (viser une case, partir d'une guitare accordée), P2 corrige un contresens (une note morte n'est pas un problème d'accord), P3 partage la surcouche de tablature de l'improvisation, P5 appartient au timing. Le détail du rattachement est dans `PROJECT.md` §9.1.
 
 **Reste en attente des phases précédentes** : vue manche optionnelle (contraire au brief tel qu'écrit, toujours pas d'accord explicite), relecture des doigtés position par position, ear training sur la note caractéristique, page « Progression ».
+
+
+---
+
+## 15. Bilan de la phase 4a — avis de prof et propositions
+
+### 15.1 Ce qui marche vraiment
+- **Les doigtés existent enfin — et ils sont relus.** C'était la dette la plus gênante du projet : la rangée « doigté » était vide depuis la 1b, donc « un doigt à la fois » n'était qu'une intention. Quarante-quatre formes sont saisies, et une règle mécanique attrape les fautes qu'un œil pressé laisse passer : un doigt sur deux cases, un doigt sur une corde à vide, un barré dont une corde échappe à l'index, une forme commencée par l'annulaire. Le test ne prouve pas que le doigté est **le meilleur** — il prouve qu'il est **possible et cohérent**. C'est exactement ce qu'un test peut affirmer.
+- **La boîte d'accord gagne sa place.** Je la recommandais (D1 = B) avec la crainte d'ajouter un second langage à lire. Elle n'en ajoute pas : mêmes couleurs de fonction, mêmes noms de cordes, même vocabulaire. Elle apporte ce que la tab ne sait pas dire — la **géométrie** : deux doigts voisins, un écart, un index à plat. Et le fait qu'elle se remplisse doigt par doigt en fait un support de construction, pas une illustration.
+- **L'arpège dans l'ordre grave → aiguë est la bonne décision technique et pédagogique.** Elle règle d'un coup le problème posé en phase 3 (« le micro donne une hauteur, jamais une corde ») : la hauteur attendue est connue à chaque instant, donc valider la note *est* valider la corde. C'est aussi l'ordre dans lequel on vérifie un accord à l'oreille.
+- **Trois vérifications sur deux jours, dans le même journal que les gammes.** Aucun code de progression parallèle : mêmes tentatives, même Leitner, mêmes cartes. La seule différence est un seuil (3 au lieu de 2) — et c'est justifié : un accord est un geste, une gamme est une lecture.
+- **Le plaqué ne triche pas.** Le mode « sans micro » écrit `correct: null` : une auto-évaluation ne peut pas devenir une preuve, même par accident. C'est le genre de trou qui rend une app malhonnête sans que personne ne s'en aperçoive ; il a été trouvé et fermé.
+- **La recommandation dit pourquoi**, et **rien n'est verrouillé** : le plus mauvais message d'une app d'apprentissage, c'est « tu n'as pas le droit ». Ici un accord commencé n'est jamais réaffiché comme verrouillé, et un prérequis manquant est nommé.
+
+### 15.2 Ce qui reste faible (à dire franchement)
+- **Le cycle est incomplet, et c'est le cœur du module.** Découvrir, Construire, Vérifier : un élève peut former un accord, mais **pas l'enchaîner**. Or la musique commence au changement d'accord. En l'état, le module apprend une **forme**, pas encore une **chanson**.
+- **Le plaqué n'est pas écouté.** Six cordes ensemble, c'est précisément ce qu'un guitariste appelle « jouer l'accord ». L'étape 4 est donc une déclaration — honnête, mais ce n'est pas de la validation.
+- **« Appris » est plus faible que ce que j'avais annoncé** (§4.6) : il manque la pose à froid chronométrée. Un élève peut valider trois arpèges lents et ne pas savoir placer l'accord en trois secondes.
+- **Le mode arpège est une marche haute pour un vrai débutant** : il faut une guitare accordée, six cordes qu'on ne touche pas par erreur, et pincer proprement la corde grave. L'app diagnostique bien (corde étouffée, doigt trop loin de la frette, guitare désaccordée), mais elle demande beaucoup avant de donner un premier « c'est bon ». C'est le prix de la rigueur ; il faudra une porte de sortie (déclaration) **toujours visible**, ce qui est le cas.
+- **Une corde étouffée ne se distingue pas d'une corde non pincée** : l'app dit « rien n'a sonné », ce qui est vrai et utile, sans trancher la cause.
+- **Le détecteur reste fragile sur les signaux faibles** : un échantillon atténué et abaissé de 28 cents a été lu **+187 cents**. Le verdict devient alors `outside`, qui n'est pas compté comme une erreur — le comportement est sauf, mais je ne peux pas prétendre que la règle « note morte » a été démontrée sur un vrai signal. C'est le premier point à revoir avec une guitare dans les mains.
+- **Rien d'écouté, rien de joué** : pas de vraie guitare, pas de vrai micro, pas de vrai téléphone. Les 6/6 au micro simulé prouvent la chaîne, pas l'expérience.
+
+### 15.2 bis Revue de la vue accord (après ton signalement)
+La première version était **inutilisable sur téléphone**, et ce n'était pas un détail esthétique :
+- **l'en-tête se superposait** au sous-titre et au tag (quatre blocs dans une grille à trois colonnes) — le nom de l'accord se lisait mal ;
+- le **sélecteur d'étapes passait à la ligne** et repoussait « Construire » **sous la barre de navigation** : l'action principale était invisible et non cliquable au premier écran ;
+- la **boîte d'accord** vivait un écran plus bas, dans un panneau séparé, alors qu'elle est la raison d'être de l'étape « Découvrir » ;
+- la tablature affichait **plaqué + arpégé** dans un même score de **657 px** de haut, coupé à droite sur téléphone.
+
+Ce qui a changé : étapes en **une rangée de quatre boutons** (numéro + libellé, 46 px de haut), boîte **dans le même panneau** que les notes et à **S = 2** (chiffres de 14 px CSS — la même taille que dans la tablature : grossir la boîte n'ajoutait pas d'information, seulement des pixels), une seule zone d'écoute (plaqué / arpégé / construire), tablature **plaquée seule** en retour à la ligne. La page passe de **1 970 px à 1 311 px** sur téléphone, et l'action principale est **au-dessus** de la barre.
+
+**[AVIS PROF]** — la leçon sur laquelle on tombe décide si l'élève reste. Un écran où le bouton « continuer » est sous la barre de navigation, c'est un abandon au premier contact ; et une boîte d'accord reléguée un écran plus bas, c'est la meilleure idée de la phase rendue invisible. Le contenu était bon, la mise en page le annulait : c'est exactement le genre de défaut qu'aucun test unitaire ne voit, et que seule une capture à la taille réelle révèle.
+
+### 15.3 Propositions pédagogiques (impact ÷ effort décroissant)
+1. **Le rappel à froid chronométré (Fixer)** — *fort, moyen* — **4b**. L'accord est demandé sans aide, 8 s → 5 s → 3 s, un autre jour. Sans lui, « appris » reste une demi-promesse. C'est la proposition qui a le meilleur rapport valeur/effort du module, et elle ne demande aucune technique nouvelle : un chrono et l'écran déjà écrit.
+2. **Enchaîner deux accords, chronomètre en main** — *fort, moyen* — **4b** (mesure fiable en 5). « Em → Am, quatre temps chacun, à 60 BPM » : c'est la compétence musicale réelle, et c'est ce que les débutants ratent (pas la forme, le changement). Le modèle de nœuds `acc:transition:{a}>{b}` est déjà prévu ; `progressionToScore` existe depuis la 1b.
+3. **Voir les cordes à vide et étouffées dès le premier geste** — *moyen, très faible* — **fait dans la 4a** (corrigé après capture) : à l'étape Construire, seuls les doigts manquants sont masqués. Un débutant qui ne voit pas le X de la 6e corde gratte les six et croit que « ça sonne ». C'est un détail d'affichage qui change une leçon.
+4. **Dire quelle corde est la plus souvent étouffée, par accord** — *moyen, faible* — **4b** : les `missedStrings` sont déjà journalisés par tentative d'arpège. « Sur Am, c'est souvent la corde de Sol qui ne sonne pas » est la phrase qu'un prof dit au bout de trois cours. Même agrégation que le diagnostic par corde des gammes, autre libellé.
+5. **QCM « quel accord est-ce ? » et « quelles notes le composent ? »** — *moyen, faible* — **4b** : le brief le demande pour le mode sans matériel, et c'est le seul exercice d'accord possible dans le métro. Les données existent (forme, notes, degrés) ; il manque quatre distracteurs choisis intelligemment (Am vs C, Em vs G — les confusions réelles).
+
+**Ce que je ne recommande pas** : ajouter les paliers P5-P10 avant que le cycle des sept étapes soit complet. Empiler des accords qu'on ne sait ni enchaîner ni placer à froid donnerait l'illusion d'un curriculum large ; c'est la profondeur qui manque, pas la largeur.
