@@ -63,15 +63,15 @@ export function HubPage() {
 
   return (
     <main className="shell">
-      <header className="home-head">
-        <div className="home-head-main">
-          <h1 className="home-title">Fretwave</h1>
-          <p className="t-small t-dim">
-            {activity} / {DAILY_GOAL} activités aujourd’hui
-            {` · ${xp.total} XP`}
+      <header className="home-hero">
+        <p className="home-kicker t-label">Apprendre la guitare en tablature</p>
+        <div className="home-hero-bottom">
+          <h1 className="home-hero-title">Fretwave</h1>
+          <p className="home-hero-line">
+            {activity} / {DAILY_GOAL} activités aujourd’hui · {xp.total} XP
+            {st.days > 0 ? ` · ${st.days} j d’affilée` : ''}
           </p>
         </div>
-        {st.days > 0 && <span className="tag tag-on">{st.days} j d’affilée</span>}
       </header>
 
       <Panel

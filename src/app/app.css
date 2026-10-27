@@ -113,18 +113,18 @@ a { color: var(--cyan); }
     var(--bg) 100%
   );
 }
-/* poster : le décor reste visible sur toute la hauteur de l'affiche du hub */
+/* poster : le décor occupe TOUT l'écran (ciel, soleil, montagnes, grille) ; le voile ne fait que
+   garantir la lisibilité du texte posé dessus — il n'éteint plus l'image aux deux tiers de la hauteur */
 .scene-poster .scene-veil {
   background: linear-gradient(
     180deg,
     rgba(13, 2, 33, 0) 0%,
-    rgba(13, 2, 33, 0.03) 36%,
-    rgba(13, 2, 33, 0.06) 42%,
-    rgba(13, 2, 33, 0.2) 48%,
-    rgba(13, 2, 33, 0.66) 54%,
-    rgba(13, 2, 33, 0.95) 58%,
-    var(--bg) 64%,
-    var(--bg) 100%
+    rgba(13, 2, 33, 0.04) 34%,
+    rgba(13, 2, 33, 0.12) 46%,
+    rgba(13, 2, 33, 0.34) 58%,
+    rgba(13, 2, 33, 0.58) 72%,
+    rgba(13, 2, 33, 0.78) 86%,
+    rgba(13, 2, 33, 0.9) 100%
   );
 }
 .scene.scanlines::after {
@@ -821,7 +821,7 @@ table.kv td:first-child { color: var(--muted); }
   .shell > * { margin: 0; min-width: 0; }
   .shell > .hero,
   .shell > .page-head,
-  .shell > .home-head,
+  .shell > .home-hero,
   .shell > .home-foot,
   .shell > .next-step,
   .shell > .tabview,
@@ -1548,8 +1548,30 @@ table.kv td:first-child { color: var(--muted); }
 .adv-settings[open] > summary { margin-bottom: 8px; }
 
 /* ---- accueil simplifié et liste des positions (branche ui/simplification) ------------------------- */
-.home-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 12px; padding: 18px 0 0; }
-.home-head-main { min-width: 0; }
+/* affiche d'accueil : le soleil du décor passe DERRIÈRE le titre, comme dans la 1re version */
+.home-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 258px;
+  padding: 0 0 10px;
+}
+.home-hero-bottom { display: flex; flex-direction: column; gap: 2px; }
+.home-kicker { color: var(--cyan); margin: 0; }
+.home-hero-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 9vw, 44px);
+  line-height: 1.12;
+  color: #fff6ff;
+  text-shadow: 0 4px 0 rgba(6, 0, 15, 0.8), 0 0 26px rgba(255, 42, 109, 0.5);
+}
+.home-hero-line { margin: 2px 0 0; font-size: 13px; color: var(--text); text-shadow: 0 2px 0 rgba(6, 0, 15, 0.85); }
+@media (min-width: 900px) {
+  .home-hero { min-height: 300px; }
+  .home-hero-title { font-size: 46px; }
+}
 .home-title { margin: 2px 0 4px; font-family: var(--font-body); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
 .home-actions { margin: 12px 0 10px; }
 .home-actions .btn { flex: 1 1 150px; }
@@ -1649,3 +1671,15 @@ table.kv td:first-child { color: var(--muted); }
 .exercise-start { margin: 12px 0 8px; }
 .exercise-start .btn { flex: 1 1 140px; }
 @media (max-width: 519px) { .exercise-start .btn { flex: 1 1 100%; } }
+
+/* ombre portée derrière les en-têtes de page : le décor occupe tout l'écran, le titre reste lisible
+   au-dessus du soleil et des montagnes */
+.page-head { position: relative; isolation: isolate; }
+.page-head::before {
+  content: '';
+  position: absolute;
+  inset: -18px -14px -6px -14px;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(6, 0, 15, 0.92) 0%, rgba(6, 0, 15, 0.72) 55%, rgba(6, 0, 15, 0) 100%);
+  pointer-events: none;
+}

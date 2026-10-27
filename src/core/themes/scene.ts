@@ -123,11 +123,24 @@ function drawStars(s: Surface, t: SceneTokens, stars: readonly Star[], time: num
   }
 }
 
+/**
+ * Halo du soleil : un **disque** tracé ligne par ligne, jamais un carré.
+ * (Les deux `fillRect` d'origine posaient un rectangle aux bords nets : une fois le soleil remonté dans
+ * l'affiche d'accueil, ce carré se voyait comme un défaut de rendu.)
+ */
+function halo(s: Surface, cx: number, cy: number, radius: number, color: string, alpha: number): void {
+  for (let dy = -radius; dy <= radius; dy += 1) {
+    const half = Math.round(Math.sqrt(Math.max(0, radius * radius - dy * dy)));
+    if (half <= 0) continue;
+    s.fillRect(cx - half, cy + dy, half * 2, 1, color, alpha);
+  }
+}
+
 /** Soleil rayé : halo, disque en trois zones de couleur, fentes horizontales qui s'élargissent vers le bas. */
 function drawSun(s: Surface, t: SceneTokens, geo: SceneGeometry): void {
   const { cx, cy, r } = geo.sun;
-  s.fillRect(cx - r - 3, cy - r - 3, 2 * r + 7, 2 * r + 7, t.sunOuter, 0.07);
-  s.fillRect(cx - r - 1, cy - r - 1, 2 * r + 3, 2 * r + 3, t.sunOuter, 0.12);
+  halo(s, cx, cy, r + 4, t.sunOuter, 0.07);
+  halo(s, cx, cy, r + 2, t.sunOuter, 0.11);
   for (let dy = -r; dy <= r; dy++) {
     const y = cy + dy;
     if (y < 0 || y >= geo.horizon) continue;

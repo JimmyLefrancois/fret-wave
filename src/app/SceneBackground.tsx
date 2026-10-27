@@ -67,8 +67,10 @@ export function SceneBackground(props: {
       const lh = Math.ceil(cssH / S);
       // grand écran : horizon plus bas pour que le soleil passe SOUS le titre du hub
       const wide = cssW >= 900;
+      // le décor couvre tout l'écran : horizon bas, soleil dans la bande haute (l'affiche du hub, puis
+      // les en-têtes), grille en perspective jusqu'en bas — c'est l'image « synthwave » de la 1re version
       geo = variant === 'poster'
-        ? sceneGeometry(lw, lh, wide ? { horizonRatio: 0.5, sunRatio: 0.2 } : { horizonRatio: 0.38, sunRatio: 0.26 })
+        ? sceneGeometry(lw, lh, wide ? { horizonRatio: 0.34, sunRatio: 0.19 } : { horizonRatio: 0.33, sunRatio: 0.24 })
         : sceneGeometry(lw, lh, { horizonRatio: wide ? 0.34 : 0.3 });
       stars = makeStars(geo, variant === 'poster' ? 110 : 70);
 
