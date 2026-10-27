@@ -29,6 +29,9 @@ const SHORT_NAME: Record<string, string> = { nylon: 'GUITARE NYLON', electric: '
 const NAV: { route: RouteName; label: string; icon: IconName }[] = [
   { route: 'hub', label: 'Accueil', icon: 'home' },
   { route: 'gammes', label: 'Gammes', icon: 'scales' },
+  // les accords retrouvent leur onglet : ils étaient passés en lien de pied de page, ce qui les
+  // rendait invisibles alors que le module est complet depuis la 4b
+  { route: 'accords', label: 'Accords', icon: 'chords' },
   { route: 'tuner', label: 'Accordeur', icon: 'ear' },
   // La page « Son » (outil de contrôle de la 1c) sort de la barre : elle reste joignable depuis les réglages
   // et par son URL (#/audio). Cinq onglets en police pixel ne tiennent pas sur un téléphone de 390 px.
@@ -38,7 +41,7 @@ const NAV: { route: RouteName; label: string; icon: IconName }[] = [
 const ACTIVE: Record<RouteName, RouteName> = {
   hub: 'hub', gammes: 'gammes', scale: 'gammes', training: 'gammes', review: 'gammes',
   // le module Accords s'ouvre depuis le hub : aucun onglet supplémentaire (5 libellés pixel ne tiennent pas sur 390 px)
-  accords: 'hub', chord: 'hub', chordquiz: 'hub',
+  accords: 'accords', chord: 'accords', chordquiz: 'accords',
   tuner: 'tuner', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
 };
 

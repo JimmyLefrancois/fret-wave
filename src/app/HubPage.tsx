@@ -17,6 +17,8 @@ import { useSettings } from '../app/settings';
 import { Chip, Panel, PixelButton } from '../app/ui';
 import { positionLabel, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, type Accomplishment } from '../modules/gammes/accomplishments';
+import { chordProgress, learnedChordIds, nextChord } from '../modules/accords/recommend';
+import { fmtChord } from '../core/theory';
 import {
   dueNow, loadJournal, nodeIdOf, progressStore, streak, summarizeDay, xpSummary,
   type Attempt,
@@ -71,6 +73,10 @@ export function HubPage() {
   const due = useMemo(() => dueNow(journal, now.getTime()).filter((c) => !c.nodeId.startsWith('acc:')), [journal, now]);
   const activity = day.listens + day.exercises + day.selfAssessed;
   const feats = useMemo(() => accomplishments(journal, { limit: 10, notation: settings.noteNotation }), [journal, settings.noteNotation]);
+  // parcours d'accords : le compte et le prochain accord, calculés par le module Accords
+  const chordLearned = useMemo(() => learnedChordIds(journal), [journal]);
+  const chordCount = chordProgress(chordLearned);
+  const chordNext = useMemo(() => nextChord(chordLearned), [chordLearned]);
 
   const review = () => {
     const card = due[0];
@@ -123,6 +129,17 @@ export function HubPage() {
           <span className="door-kicker">Accorder</span>
           <span className="door-title">La guitare, corde par corde</span>
           <span className="door-sub">Au micro ou en USB, avant de jouer — une fausse note d’accordage fausse tout.</span>
+        </button>
+      </div>
+
+      <div className="span-12 home-door">
+        <button type="button" className="door" onClick={() => navigate('accords')}>
+          <span className="door-kicker">Accords</span>
+          <span className="door-title">Les plaquer, les enchaîner, les jouer en progression</span>
+          <span className="door-sub">
+            {chordCount.done} / {chordCount.total} appris · doigt par doigt au micro, puis corde par corde.
+            {chordNext ? ` Prochain : ${fmtChord(chordNext.chord, settings.chordNotation)} (palier ${chordNext.palier.id}).` : ''}
+          </span>
         </button>
       </div>
 
@@ -205,8 +222,6 @@ export function HubPage() {
 
       <p className="home-foot t-small t-dim">
         <button type="button" onClick={() => navigate('settings')}>Réglages</button>
-        <span aria-hidden="true">·</span>
-        <button type="button" onClick={() => navigate('accords')}>Accords</button>
         <span aria-hidden="true">·</span>
         <button type="button" onClick={() => navigate('audio')}>Crédits audio</button>
       </p>

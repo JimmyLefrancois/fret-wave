@@ -920,7 +920,11 @@ table.kv td:first-child { color: var(--muted); }
     height: 58px;
     align-items: center;
     justify-content: end;
-    grid-template-columns: repeat(4, 148px);
+    /* l'onglet ne doit pas être écrit en dur : il a fallu ajouter « Accords » et la 5e colonne
+       implicite avalait toute la largeur restante. Une colonne auto, de largeur fixe, quel que soit
+       le nombre d'onglets. */
+    grid-template-columns: none;
+    grid-auto-columns: 148px;
     gap: 4px;
     padding: 0 5vw;
     border-top: 0;
