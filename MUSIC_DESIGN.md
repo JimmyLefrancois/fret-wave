@@ -1,6 +1,6 @@
 # MUSIC_DESIGN.md — choix musicaux et pédagogiques
 
-Statut : **phase 0 validée ; phase 1a (théorie + voicings) commitée ; phase 1b (positions, écriture de la tablature, rythme, couleurs) commitée (`823fbbd`), tests verts**. Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la 1b : §2.1, §3.7, §4.3 (barrés), §10.
+Statut : **phase 0 validée ; 1a et 1b commitées ; phase 1c (moteur audio de sortie) construite et vérifiée, non commitée**. Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la 1c : §2 (lecture), **§11** (sources et licences des échantillons, hauteur et niveaux mesurés, règles de jeu, avis de prof).
 Auteur du raisonnement : rôle « dev + prof de guitare » du BRIEF.md. Les avis de prof sont marqués **[AVIS PROF]**, les hypothèses **[HYP]**, les points à trancher par toi **[À TRANCHER]**.
 
 Ce qui a été **vérifié par calcul** en phase 0 (script jetable, hors dépôt) : les 43 formes d'accord de la section 4.3 (notes réellement produites en accordage standard = notes de l'accord, basse correcte, orthographe correcte) et les 10 formes mobiles (barrés Mi/La × 5 qualités) sur 13 positions de fondamentale (cases 0 à 12) : **0 erreur**. Tout le reste est du raisonnement non exécuté.
@@ -76,6 +76,7 @@ Chiffrage romain : casse = qualité (I ii iii IV V vi vii° ; i ii° III iv v VI
 
 - 6 lignes par défaut, N selon l'accordage ; **corde aiguë en haut** ; étiquettes d'accordage à gauche selon l'accordage ET la notation choisie. En solfège les deux Mi se distinguent par la casse (`Mi` grave, `mi` aigu), comme `E`/`e` en anglo. **[HYP]**
 - Nombre = case (0 = vide, jusqu'à 24, 2 chiffres lisibles). `x` = corde étouffée/non jouée.
+- **Lecture audio (1c)** : le son est produit depuis la même forme que celle affichée ; tenue des notes, strum, accents et couches de vélocité : §11.5.
 - **Accord = pile verticale** (même colonne = même instant), nom au-dessus, flèches ↓↑ dessous. Deux écritures liées : **plaqué** et **arpégé** (grave→aigu). Le son joué est généré **depuis la même forme** que celle affichée (source unique : le TabScore).
 - **Répétition « simile »** : en lecture/jeu sur téléphone, la pile n'est dessinée qu'aux changements d'accord ; les frappes suivantes sont portées par la ligne de flèches. Mode « détaillé » (pile à chaque frappe) en option. **[HYP]** (sinon une mesure de croches fait 8 piles de 17 px logiques et sature l'écran portrait).
 - **Couleur = fonction d'intervalle**, identique dans tous les thèmes. Proposition : **la teinte porte le degré (1 2 3 4 5 6 7), l'altération porte la luminosité + une encoche sur la pastille** → ♭3 et 3 sont de la même famille mais distinguables ; ♯4 (famille 4) ≠ ♭5 (famille 5) même sur la même touche ; ♭3 ≠ ♯2. Un marqueur de forme (encoche/coin) double la couleur : indispensable pour les daltoniens (≈ 8 % des hommes). À valider par simulation daltonisme en phase 1.
@@ -475,3 +476,76 @@ Feedback explicatif : toujours une cause + une action (« Do tenu sur G7 frotte 
 4. **Deux modes côte à côte** *(moyen, faible)* : dorien et éolien sur la même position, seule la note qui change en glow (la 6te contre la ♭6). Le brief demande les deux façons de penser les modes ; le modèle porte déjà `characteristic`.
 5. **Le pont accord ↔ gamme dans CAGED** *(moyen, moyen)* : dans une position CAGED, superposer la pile de la forme d'accord correspondante (« ton Mi barré est ici, la gamme l'entoure »). Les données existent (fenêtres CAGED + formes mobiles) ; c'est le lien explicite que demande le brief entre les deux modules.
 
+---
+
+## 11. Phase 1c — le son : échantillons, hauteur, niveaux, jeu
+
+La 1c ne construit que le **moteur audio de sortie** (le hub, le thème et le module Gammes N1 passent en 1d). Tout ce qui suit est vérifié par test ou par mesure, sauf ce qui est explicitement marqué « non vérifié ».
+
+### 11.1 Sources d'échantillons : retenues et écartées
+
+| Banque | Source | Licence | Contenu utile | Poids |
+|---|---|---|---|---|
+| **nylon** (défaut) | FreePats, « Spanish Classical Guitar », version 2019-06-18, roberto@zenvoid.org | **CC0 1.0** | 48 FLAC mono 44,1 kHz, un échantillon par demi-ton (ou presque) de G1 à C6 | 5,3 Mo |
+| **electric** | Karoryfer Samples, « Emilyguitar » (D. Smolken), commit `b4920dc` | **CC0 1.0** | 90 FLAC mono 44,1 kHz, Ré♭2 → Ré6, une note sur trois environ (écarts de 2-3 demi-tons) ; couches p, mf (3 répétitions), f | 6,8 Mo |
+
+| Source écartée | Licence annoncée | Raison exacte |
+|---|---|---|
+| `tonejs-instruments` (guitares) | code MIT, échantillons **CC BY 3.0** | Chaîne d'attribution **invérifiable** : `sample-source-info.txt` cite « guitar ac — Iowa » (le jeu de l'université de l'Iowa ne contient pas de guitare) et « guitar ny — Freesound 11573 », page qui renvoie **404**. Une CC BY qu'on ne peut pas attribuer correctement n'est pas utilisable |
+| FluidR3_GM (`gleitz/midi-js-soundfonts`) | CC BY 3.0 annoncée par le dépôt | Aucun fichier de licence par instrument, provenance non documentée |
+| Musyng Kite, FatBoy | **CC BY-SA 3.0** | Partage à l'identique : contaminerait les ajouts ultérieurs |
+| FreePats « FSS Steel-String Acoustic » | **GPL v3** | Copyleft fort sur les échantillons |
+
+**Attribution** : inutile en CC0, affichée quand même (page Audio, « Crédits et licences ») — c'est la moindre des choses et ça garde la traçabilité pour la suite.
+
+Pour ajouter une banque : un dossier `public/samples/<id>/` avec les fichiers, `LICENSE.txt`, le lisez-moi de la source et un `manifest.json` (provenance, licence, modifications, et par fichier : taille, SHA-256, durée, **écart de hauteur mesuré**, gain de nivellement). `tools/build-samples.mjs` produit ce manifeste (mesures comprises) ; un test vérifie licence, empreintes, en-têtes FLAC, étiquetage des notes et couverture du manche sur 9 accordages.
+
+### 11.2 Le timbre : ce que je peux dire honnêtement
+Je n'ai **pas écouté** les banques (pas d'oreille ici). Ce que je sais par la documentation des sources : le nylon est une classique espagnole enregistrée au micro (attaque douce, médiums chauds) ; l'électrique est une caisse demi-caisse enregistrée en direct avec des cordes filets plats (son net, mordant, sans ampli). Conséquence probable, à confirmer par toi : le nylon convient mieux à l'écoute d'une gamme ou d'une couleur de mode ; l'électrique rend mieux le **rythme** d'un strum. D'où un choix d'instrument **en option**, pas une constante.
+
+### 11.3 La hauteur juste ne se suppose pas : elle se mesure
+Les enregistrements ne sont pas exactement au demi-ton : écarts mesurés par autocorrélation (±2 cents) de **−12,5 à +17,3 cents** selon le fichier, y compris entre variantes d'une même note (une attaque plus forte tend la corde, donc monte — c'est physiquement vrai). La lecture applique la correction de chaque échantillon (vitesse = 2^(cents/1200)).
+
+Pourquoi c'est non négociable : la phase 3 jugera la guitare de l'élève à quelques cents près. Une application qui joue elle-même 15 cents faux lui apprend à accorder faux. Le test vérifie que la vitesse de lecture reste dans [0,79 ; 1,27] sur toute la guitare standard, et le manifeste refuse un écart mesuré au-delà de ±25 cents (l'étiquette ou la mesure serait alors suspecte).
+
+### 11.4 Niveaux : mesurés, pas au jugé
+Rendu hors ligne dans le navigateur (même chaîne master, même échantillonneur, 48 kHz), réglages par défaut :
+
+| Essai | crête | RMS | RMS actif |
+|---|---|---|---|
+| nylon, progression ↓·↓↑·↑↓↑ | −4,0 | −16,6 | −16,1 |
+| nylon, pentatonique montée + descente | −4,5 | −18,6 | −18,1 |
+| nylon, accord arpégé | −6,2 | −20,7 | −18,9 |
+| électrique, progression | −3,8 | −18,4 | −17,9 |
+| électrique, gamme | −4,5 | −21,0 | −20,5 |
+| drone (La : fond + quinte + octave) | −15,3 | −26,9 | −26,8 |
+| métronome (par clic) | −11,3 | — | −27,7 |
+| cas extrême : tout à 1, accord de Fa barré à 170 BPM, humanisation max | **−1,2** | −15,4 | −10,8 |
+
+Lecture : 4-5 dB de marge sous le plafond en usage normal ; le drone est **10 dB sous la guitare** (on l'entend, il ne masque pas la gamme) ; le métronome reste 7 dB sous la crête de la guitare (audible, jamais plus fort que la musique) ; le cas extrême est borné.
+
+**Le limiteur seul ne suffisait pas** : `Tone.Limiter` (compresseur 20:1, attaque 3 ms) laisse passer les crêtes plus rapides que son attaque — mesuré à **+2,2 dBFS**. D'où le plafond dur qui suit (identité sous −3,1 dBFS, asymptote −1 dBFS, dérivée continue, suréchantillonnage 2×).
+
+### 11.5 Règles de jeu : ce que le son imite de la main
+- **Une voix par corde** : rejouer une corde coupe la précédente (25 ms). C'est le comportement de l'instrument, et ça évite d'empiler un accord sur lui-même.
+- **Strum** : écart moyen 14 ms par corde (4-40 réglable) qui **s'accélère en fin de geste** ; vélocité qui décroît du côté **d'où part la main** ; montant 12 % plus doux ; accent sur le début de mesure, puis le temps, puis le contretemps ; le balayage occupe au plus **35 %** de la durée de l'événement (à 200 BPM en croches il se resserre de lui-même).
+- **Humanisation déterministe** : gigue de ±20 % de l'écart et ±7 % de vélocité, graine = tick. Rejouer deux fois une mesure donne **exactement** le même son — indispensable pour comparer deux prises, et pour tester.
+- **Tenue** : accord et progression → les cordes sonnent **jusqu'à la fin de la mesure** (main gauche qui laisse sonner) ; arpège → deux fois la durée écrite (legato) ; gamme et position → étouffées à la fin de chaque note. Choix pédagogique : à l'arpège on doit entendre **la corde qui continue** ; à la gamme, **chaque hauteur séparément**.
+- **Couche de vélocité par événement** : toutes les cordes d'un même strum prennent la même couche — un strum ne mélange pas deux timbres. Le gain, lui, reste par note.
+- **Répétitions** : trois variantes mf sur l'électrique ; sinon désaccord de ±3 cents par note, pour qu'une note répétée ne soit pas un clone sonore.
+- **Drone** : fondamentale (Mi2-Ré♯3) + quinte + octave, **jamais la tierce** — le drone ne doit pas annoncer « majeur » ou « mineur » à la place de la gamme.
+- **Métronome** : un clic par temps, accent sur le premier temps ; un clic par **groupe de trois croches** en 6/8, 9/8, 12/8 (un clic par croche serait un marteau-pilon).
+
+Non modélisé à ce stade : techniques (h/p, slide, bend, vibrato), palm mute, différence de timbre médiator / doigts, résonance sympathique des cordes à vide, mise en valeur de la basse d'un accord slash.
+
+### 11.6 Ce qui n'est pas vérifié
+Le **timbre** (je n'écoute pas) ; **Safari et iOS** (décodage FLAC, interrupteur silencieux qui coupe le Web Audio, reprise du contexte après geste) ; **un vrai téléphone** ; la **latence acoustique** (compensation par la latence annoncée par le navigateur, 11 ms ici) ; l'absence de clic sur les vrais échantillons (mesurée sur un sinus de contrôle ; les fichiers ont par ailleurs un fondu de fin et commencent à −1,3 dB sous leur crête).
+
+### 11.7 Avis de prof sur cette phase, et propositions
+Le vrai gain de la 1c n'est pas « on a du son » : c'est que **ce qu'on entend est vérifié identique à ce qu'on voit** (le lecteur tient un journal des notes déclenchées, la page Audio compare corde par corde). Un élève apprend en faisant correspondre trois choses : la tab, le geste, le son. Si le son joue une autre note que la tab — voicing approximatif, corde décalée, échantillon mal transposé — tout l'apprentissage part de travers sans que personne ne le voie.
+
+1. **Compte à rebours d'une mesure** *(fort, faible)* : une mesure de clics avant la gamme. Démarrer en retard sur un temps est la première cause de décrochage rythmique.
+2. **Écouter la fondamentale seule d'abord** *(fort, faible)* : jouer la gamme avec seulement tonique et quinte audibles (le reste très atténué), puis tout. Réutilise `fn`.
+3. **Boucle sur un segment** *(fort, moyen)* : une corde, une mesure, tempo réduit ; prépare le chunking des niveaux 2-3.
+4. **Deux modes sur le même drone** *(moyen, faible)* : dorien puis éolien en alternance automatique, seule la note qui change est mise en évidence.
+5. **Mode « strum seul »** *(moyen, faible)* : flèches et son, sans pile ni hampes, pour ceux qui jouent leurs deux premiers accords (§10.1).

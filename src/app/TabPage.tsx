@@ -1,6 +1,7 @@
 /**
- * Page de contrôle de la phase 1b : générateurs (gamme, position, arpège, accord, progression) → TabScore → rendu pixel
- * + lecture provisoire sur Tone.Transport avec curseur synchronisé. Ce n'est pas l'UI finale (hub, thèmes : 1c).
+ * Page de contrôle : générateurs (gamme, position, arpège, accord, progression) → TabScore → rendu pixel
+ * + lecture sur Tone.Transport avec le son final de la phase 1c (guitare échantillonnée, drone, métronome) et
+ * curseur synchronisé. Ce n'est pas l'UI finale (hub, thèmes : suite de la phase 1).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -11,8 +12,10 @@ import {
   arpeggioToScore, chordToScore, defaultChordForScale, positionToScore, progressionToScore, scaleToScore, validateScore,
   STRUM_PATTERNS, type AnnotationKind, type Direction, type StrumPatternId, type TabScore,
 } from '../core/tab';
-import { TabPlayer } from '../core/audio/tabPlayer';
+import { TabPlayer, scoreTonic } from '../core/audio/tabPlayer';
+import { verifyTriggered } from '../core/audio/verify';
 import { VOICINGS } from '../data/voicings';
+import { InstrumentPicker, Mixer } from './AudioControls';
 import { TabView } from './TabView';
 
 type Kind = 'scale' | 'position' | 'arpeggio' | 'chord' | 'progression';
@@ -55,6 +58,8 @@ export function TabPage() {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [tempo, setTempo] = useState(80);
   const [loop, setLoop] = useState(false);
+  const [droneOn, setDroneOn] = useState(false);
+  const [metroOn, setMetroOn] = useState(false);
   const [transport, setTransport] = useState<'stopped' | 'playing' | 'paused'>('stopped');
   const playing = transport === 'playing';
   const [status, setStatus] = useState('arrêté');
@@ -111,6 +116,7 @@ export function TabPage() {
   if (player.current === null) player.current = new TabPlayer();
   const loaded = useRef<{ score: TabScore; loop: boolean } | null>(null);
   const score = 'score' in built ? built.score : null;
+  const droneAvailable = score !== null && scoreTonic(score) !== null;
 
   useEffect(() => {
     // changement de partition : on arrête
@@ -122,6 +128,12 @@ export function TabPage() {
     player.current?.setTempo(tempo);
   }, [tempo]);
   useEffect(() => {
+    player.current?.setDrone(droneOn);
+  }, [droneOn]);
+  useEffect(() => {
+    player.current?.setMetronome(metroOn);
+  }, [metroOn]);
+  useEffect(() => {
     const p = player.current!;
     return () => p.dispose();
   }, []);
@@ -130,15 +142,15 @@ export function TabPage() {
     if (!score) return;
     const p = player.current!;
     try {
-      setStatus('chargement de Tone…');
-      await p.init();
+      await p.init(); // en premier : reprend le contexte audio dans le geste de l'utilisateur
       if (!loaded.current || loaded.current.score !== score || loaded.current.loop !== loop) {
         await p.load({ ...score, tempo }, { loop });
         loaded.current = { score, loop };
       }
       p.onEnded = () => {
         setTransport('stopped');
-        setStatus('terminé');
+        const r = verifyTriggered(score, p.triggered);
+        setStatus(`terminé · ${r.played} notes jouées sur ${r.expected} écrites : ${r.ok ? 'identiques à la tablature' : 'ÉCART avec la tablature'}`);
       };
       await p.play();
       setTransport('playing');
@@ -167,7 +179,7 @@ export function TabPage() {
 
   return (
     <main className="wide">
-      <h1>Fretwave · tablature pixel (phase 1b)</h1>
+      <h1>Fretwave · tablature pixel</h1>
 
       <div className="card transport">
         <button onClick={onPlay} disabled={!score || playing}>{transport === 'paused' ? '▶ Reprendre' : '▶ Lecture'}</button>
@@ -184,7 +196,15 @@ export function TabPage() {
           <input type="checkbox" checked={reduceMotion} onChange={(e) => setReduceMotion(e.target.checked)} /> réduire les animations
         </label>
         <span className="small" data-testid="status">{status}</span>
-        <p className="small">Son provisoire : corde pincée Karplus-Strong de Tone.js, sans échantillons — le moteur audio final (échantillons guitare, mixage) arrive en 1c.</p>
+        <label className="inline" title={droneAvailable ? '' : 'Pas de fondamentale unique dans une progression'}>
+          <input type="checkbox" checked={droneOn && droneAvailable} disabled={!droneAvailable} onChange={(e) => setDroneOn(e.target.checked)} data-testid="drone" /> drone
+        </label>
+        <label className="inline">
+          <input type="checkbox" checked={metroOn} onChange={(e) => setMetroOn(e.target.checked)} data-testid="metronome" /> métronome
+        </label>
+        <InstrumentPicker />
+        <Mixer channels={['master', 'guitar', 'drone', 'metronome']} compact />
+        <p className="small">Son : guitare échantillonnée (CC0, voir la page Audio pour les licences). Le son joué est généré depuis les mêmes notes que celles de la tablature.</p>
       </div>
 
       {'error' in built ? (
