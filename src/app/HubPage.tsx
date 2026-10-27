@@ -1,8 +1,9 @@
 /**
- * Hub d'accueil (BRIEF.md §1, PROJECT.md §6.1). Trois choses seulement, mais vraies :
- *  1. l'objectif du jour, compté depuis le journal de pratique local (pas d'XP inventée) ;
- *  2. « reprendre » : la gamme laissée en cours, telle qu'elle a été choisie ;
- *  3. trois portes d'entrée pédagogiques + l'état franc des modules.
+ * Hub d'accueil — version phase 2. Trois choses seulement, mais **toutes calculées depuis le journal** :
+ *  1. ce qui a été fait aujourd'hui (écoutes et exercices réels, précision réelle) ;
+ *  2. ce qui est dû (Leitner) et ce que l'app propose de réviser maintenant ;
+ *  3. où on en est (XP plafonné par jour, série, formes apprises, badges).
+ * Aucun compteur décoratif : un chiffre affiché ici se retrouve dans `fretwave.attempts.v1`.
  */
 import { useMemo, useState } from 'react';
 import { navigate } from '../app/router';
@@ -12,10 +13,27 @@ import { Bar, Chip, Panel, PixelButton, PixelIcon } from '../app/ui';
 import { MODULES } from '../modules/registry';
 import { ENTRY_POINTS, type EntryPoint } from '../modules/gammes/content';
 import { positionLabel, resolveScale } from '../modules/gammes/resolve';
-import { practiceStore, readLog, summarizeDay } from '../core/progress/practiceLog';
 import { intervalStyle } from '../core/tab';
+import { fmtNote } from '../core/theory';
+import {
+  DAILY_XP_CAP, badgeStatus, cardsFrom, dueNow, loadJournal, nodeIdOf, progressStore, streak, stringWeakness,
+  summarizeDay, summarizeNodes, weakTonics, xpSummary, type Attempt, type NodeStats,
+} from '../core/progress';
+import { unseenTonic } from '../modules/gammes/transpose';
 
-/** Objectif proposé : 3 écoutes. Pas de réglage avant la phase 2 (répétition espacée). */
+/** Repère de lecture du diagnostic par corde (accordage standard, de la plus grave à la plus aiguë). */
+const STRING_LABEL_FR = ['Mi grave', 'La', 'Ré', 'Sol', 'Si', 'Mi aigu'];
+
+/** Échéance lisible ; jamais « dans 0 min ». */
+function dueIn(ts: number, now: number): string {
+  const minutes = Math.round((ts - now) / 60_000);
+  if (minutes < 60) return `dans ${Math.max(1, minutes)} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `dans ${hours} h`;
+  return `dans ${Math.round(hours / 24)} j`;
+}
+
+/** Objectif proposé : 3 activités (une écoute ou un exercice), pas 3 « clics ». */
 export const DAILY_GOAL = 3;
 
 function minutes(seconds: number): string {
@@ -38,17 +56,78 @@ export function openEntryPoint(p: EntryPoint): void {
   navigate('scale');
 }
 
+/** Rouvre une tentative (nœud) sur l'écran d'entraînement, à la bonne position. */
+export function openAttempt(a: Attempt): void {
+  const resolved = resolveScale({
+    scaleId: a.scaleId, tonic: a.tonic, tuningId: a.tuningId, system: a.system as never, positionIndex: 0,
+  });
+  const idx = resolved.positions.findIndex((p) => (p.formIndex ?? p.index) === a.formIndex);
+  setScaleSelection({
+    scaleId: a.scaleId,
+    tonic: resolved.tonic,
+    tuningId: resolved.tuning.id,
+    system: resolved.selection.system,
+    positionIndex: Math.max(0, idx),
+  });
+  navigate('training');
+}
+
+/** Ouvre la même **forme** dans une autre tonique (transposition, MUSIC_DESIGN §3.1). */
+export function openSameFormIn(node: NodeStats, tonic: string): void {
+  const resolved = resolveScale({
+    scaleId: node.scaleId, tonic, tuningId: 'standard', system: node.system as never, positionIndex: 0,
+  });
+  const idx = resolved.positions.findIndex((p) => (p.formIndex ?? p.index) === node.formIndex);
+  setScaleSelection({
+    scaleId: node.scaleId,
+    tonic: resolved.tonic,
+    tuningId: resolved.tuning.id,
+    system: resolved.selection.system,
+    positionIndex: Math.max(0, idx),
+  });
+  navigate('training');
+}
+
+/** Écrit une fausse tentative ? Jamais : le hub ne fabrique rien, il lit. */
 export function HubPage() {
   const settings = useSettings();
   const sel = useScaleSelection();
   const resolved = useMemo(() => resolveScale(sel, settings.noteNotation), [sel, settings.noteNotation]);
-  const [log] = useState(() => readLog(practiceStore()));
-  const day = useMemo(() => summarizeDay(log, new Date()), [log]);
+  const [journal] = useState<Attempt[]>(() => loadJournal(progressStore()));
+  const now = useMemo(() => new Date(), []);
+  const day = useMemo(() => summarizeDay(journal, now), [journal, now]);
+  const xp = useMemo(() => xpSummary(journal, now), [journal, now]);
+  const st = useMemo(() => streak(journal, now), [journal, now]);
+  const nodes = useMemo(() => summarizeNodes(journal), [journal]);
+  const learned = nodes.filter((n) => n.state === 'learned' || n.state === 'mastered').length;
+  const mastered = nodes.filter((n) => n.state === 'mastered').length;
+  const due = useMemo(() => dueNow(journal, now.getTime()), [journal, now]);
+  const allCards = useMemo(() => cardsFrom(journal), [journal]);
+  const nextDue = useMemo(() => allCards.filter((c) => c.due > now.getTime()).sort((a, b) => a.due - b.due)[0] ?? null, [allCards, now]);
+  const weak = useMemo(() => stringWeakness(journal)[0] ?? null, [journal]);
+  // une forme vue dans une seule zone du manche : on propose de la transposer, pas de la réviser à l'identique
+  const tonicGap = useMemo(() => {
+    const node = weakTonics(nodes)[0] ?? null;
+    if (!node) return null;
+    const tonic = unseenTonic(node.scaleId, node.tonics);
+    return tonic ? { node, tonic } : null;
+  }, [nodes]);
+  const badges = useMemo(() => badgeStatus(journal, now), [journal, now]);
+  const activity = day.listens + day.exercises;
+  const last = nodes[0] ?? null;
+
+  const review = () => {
+    const card = due[0];
+    if (!card) return;
+    const a = [...journal].reverse().find((x) => nodeIdOf(x) === card.nodeId && x.correct !== null);
+    if (a) openAttempt(a);
+    else navigate('training');
+  };
 
   return (
     <main className="shell">
       <header className="hero">
-        <p className="hero-kicker t-label">phase 1d · hub</p>
+        <p className="hero-kicker t-label">phase 2 · progression</p>
         <h1 className="hero-title">FRETWAVE</h1>
         <p className="hero-sub">
           <span>
@@ -57,26 +136,118 @@ export function HubPage() {
             EN TABLATURE
           </span>
         </p>
-        <p className="hero-hint t-label">↓ 31 gammes · 5 systèmes · N1</p>
+        <p className="hero-hint t-label">↓ 31 gammes · 5 systèmes · N1 à N3</p>
       </header>
 
-      <Panel className="span-5 panel-fill" accent="cyan" label="Objectif du jour" right={<span className="badge">{day.count} / {DAILY_GOAL}</span>}>
+      <Panel className="span-5 panel-fill" accent="cyan" label="Aujourd’hui" right={<span className="badge">{activity} / {DAILY_GOAL}</span>}>
         <p className="stat-line">
-          <strong>{day.distinct}</strong> gamme{day.distinct > 1 ? 's' : ''} écoutée{day.distinct > 1 ? 's' : ''}
+          <strong>{day.listens}</strong> écoute{day.listens > 1 ? 's' : ''} · <strong>{day.exercises}</strong> exercice{day.exercises > 1 ? 's' : ''}
           {day.seconds > 0 ? ` · ${minutes(day.seconds)}` : ''}
         </p>
-        <Bar value={Math.min(day.count, DAILY_GOAL)} max={DAILY_GOAL} accent="cyan" />
+        <Bar value={Math.min(activity, DAILY_GOAL)} max={DAILY_GOAL} accent="cyan" />
         <p className="t-small">
-          {day.count === 0
-            ? 'Rien d’enregistré aujourd’hui : une écoute complète compte pour une.'
-            : day.count >= DAILY_GOAL
-              ? 'Objectif atteint. Les niveaux 2 et 3 arrivent en phase 2.'
-              : `Encore ${DAILY_GOAL - day.count} écoute${DAILY_GOAL - day.count > 1 ? 's' : ''} pour l’objectif.`}
+          {activity === 0
+            ? 'Rien d’enregistré aujourd’hui : une écoute complète ou une série de trous compte pour une activité.'
+            : activity >= DAILY_GOAL
+              ? 'Objectif atteint. La suite utile, c’est la révision proposée à droite.'
+              : `Encore ${DAILY_GOAL - activity} activité${DAILY_GOAL - activity > 1 ? 's' : ''} pour l’objectif.`}
         </p>
+        {day.accuracy !== null && (
+          <p className="t-small">
+            Précision du jour : <strong>{Math.round(day.accuracy * 100)} %</strong> ({day.correct} / {day.holes} trous au premier essai).
+          </p>
+        )}
         <div className="panel-foot">
           <PixelButton variant="quiet" onClick={() => navigate('settings')}>Réglages</PixelButton>
           <PixelButton variant="quiet" onClick={() => navigate('audio')}>Crédits audio</PixelButton>
         </div>
+      </Panel>
+
+      <Panel
+        className="span-7"
+        accent="magenta"
+        label="Révision du jour"
+        right={<span className="badge">{due.length}</span>}
+      >
+        <p className="t-small">
+          Calculée par la répétition espacée (Leitner, 6 boîtes) à partir de tes tentatives réelles. Plafond de 8 cartes
+          par session : une absence ne crée pas de dette impossible.
+        </p>
+        {due.length === 0 ? (
+          <p className="t-body">
+            {journal.length === 0
+              ? 'Aucune carte : le journal est vide. Commence par une écoute (niveau 1) puis une série de trous (niveau 2).'
+              : 'Rien n’est dû maintenant. La prochaine échéance apparaîtra ici — en attendant, une nouvelle série est plus utile que de réviser à vide.'}
+          </p>
+        ) : (
+          <div className="review-list">
+            {due.slice(0, 3).map((card) => {
+              const lastA = [...journal].reverse().find((x) => nodeIdOf(x) === card.nodeId);
+              const r = lastA ? resolveScale({ scaleId: lastA.scaleId, tonic: lastA.tonic, tuningId: lastA.tuningId, system: lastA.system as never, positionIndex: 0 }) : null;
+              const idx = lastA && r ? r.positions.findIndex((p) => (p.formIndex ?? p.index) === lastA.formIndex) : -1;
+              return (
+                <div key={card.nodeId} className="review-row">
+                  <div className="review-body">
+                    <span className="review-title">{r ? r.title : card.nodeId}</span>
+                    <span className="t-small t-dim">
+                      {r && idx >= 0 ? positionLabel(r.positions[idx] ?? null, settings.noteNotation) : 'position'}
+                      {' · '}boîte {card.box} · dernière fois {Math.round(card.lastScore * 100)} %
+                    </span>
+                  </div>
+                  {lastA && (
+                    <Chip small onClick={() => openAttempt(lastA)}>ouvrir</Chip>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className="row">
+          <PixelButton variant="primary" onClick={review} disabled={due.length === 0}>Réviser maintenant</PixelButton>
+          <PixelButton variant="quiet" onClick={() => navigate('training')}>Nouvelle série</PixelButton>
+        </div>
+        {nextDue && (
+          <p className="t-small t-dim">
+            Prochaine échéance : {dueIn(nextDue.due, now.getTime())} (boîte {nextDue.box} sur 6).
+            La revoyure rapprochée est voulue : c’est elle qui fixe une forme apprise le soir même.
+          </p>
+        )}
+      </Panel>
+
+      <Panel className="span-5" accent="yellow" label="Niveau" right={<span className="tag">{st.days > 0 ? `${st.days} j${st.days > 1 ? 's' : ''} d’affilée` : 'série à lancer'}</span>}>
+        <p className="stat-line"><strong>{xp.total}</strong> XP au total · <strong>{xp.today}</strong> / {DAILY_XP_CAP} aujourd’hui</p>
+        <Bar value={xp.today} max={DAILY_XP_CAP} accent="yellow" />
+        <p className="t-small">
+          Seuls les exercices vérifiés rapportent de l’XP (10 par série de trous, 15 par rappel, +5 à ≥ 95 % de précision).
+          Une écoute ne rapporte rien : elle n’est pas vérifiée.
+        </p>
+        <p className="t-small">
+          <strong>{nodes.length}</strong> forme{nodes.length > 1 ? 's' : ''} travaillée{nodes.length > 1 ? 's' : ''} ·{' '}
+          <strong>{learned}</strong> apprise{learned > 1 ? 's' : ''} · <strong>{mastered}</strong> maîtrisée{mastered > 1 ? 's' : ''}
+          {last ? ` · la plus avancée : ${Math.round(last.mastery * 100)} %` : ''}
+        </p>
+        <p className="t-small t-dim">
+          « Apprise » = 2 réussites (≥ 80 %) sur 2 jours différents. « Maîtrisée » = apprise + révision tenue à 16 jours.
+        </p>
+        {weak && (
+          <p className="t-small">
+            Corde à travailler : <strong>{STRING_LABEL_FR[weak.string] ?? `corde ${weak.string + 1}`}</strong> —{' '}
+            {weak.misses} case{weak.misses > 1 ? 's' : ''} manquée{weak.misses > 1 ? 's' : ''} sur {weak.attempts} tentative{weak.attempts > 1 ? 's' : ''}.
+          </p>
+        )}
+        {tonicGap && (
+          <>
+            <p className="t-small">
+              Cette forme n’a encore été jouée qu’en {tonicGap.node.tonics.map((t) => fmtNote(t, settings.noteNotation)).join(', ')} :
+              la savoir, c’est savoir la <strong>transposer</strong>. Même motif, autre case.
+            </p>
+            <div className="row">
+              <PixelButton variant="quiet" onClick={() => openSameFormIn(tonicGap.node, tonicGap.tonic)}>
+                Même forme en {fmtNote(tonicGap.tonic, settings.noteNotation)}
+              </PixelButton>
+            </div>
+          </>
+        )}
       </Panel>
 
       <Panel
@@ -95,6 +266,7 @@ export function HubPage() {
           <PixelButton variant="primary" onClick={() => navigate('scale')}>
             ▶ Écouter
           </PixelButton>
+          <PixelButton onClick={() => navigate('training')}>Se tester</PixelButton>
           <PixelButton variant="quiet" onClick={() => navigate('gammes')}>
             Choisir une gamme
           </PixelButton>
@@ -102,7 +274,7 @@ export function HubPage() {
       </Panel>
 
       <div className="col-5">
-      <section className="section">
+        <section className="section">
           <h2 className="section-title t-label">Par où commencer</h2>
           <p className="t-small">Trois portes d’entrée, dans l’ordre où je les enseignerais.</p>
           <div className="entries">
@@ -119,6 +291,22 @@ export function HubPage() {
           </div>
         </section>
       </div>
+
+      <section className="section span-7">
+        <h2 className="section-title t-label">Badges</h2>
+        <p className="t-small">Chacun dit ce qu’il récompense ; il ne s’allume que si le journal le prouve.</p>
+        <div className="badges">
+          {badges.map((b) => (
+            <div key={b.id} className={`badge-item ${b.earned ? 'on' : ''}`} title={b.why}>
+              <span className="badge-item-dot" aria-hidden="true">{b.earned ? '★' : '·'}</span>
+              <span className="badge-item-body">
+                <span className="badge-item-title">{b.title}</span>
+                <span className="t-small t-dim">{b.why}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="section span-7">
         <h2 className="section-title t-label">Modules</h2>
@@ -157,9 +345,9 @@ export function HubPage() {
         </p>
         <div className="key-row">
           {['1', '2', '3', '4', '5', '6', '7'].map((fn) => {
-            const st = intervalStyle(fn);
+            const stl = intervalStyle(fn);
             return (
-              <span key={fn} className="key-pill" style={{ background: st.fill, color: st.digit }}>{fn}</span>
+              <span key={fn} className="key-pill" style={{ background: stl.fill, color: stl.digit }}>{fn}</span>
             );
           })}
         </div>
@@ -170,8 +358,8 @@ export function HubPage() {
       </section>
 
       <p className="t-small t-dim foot-note">
-        Seul le journal d’écoute est enregistré pour l’instant (localement, sur cet appareil).
-        XP, séries et répétition espacée arrivent en phase 2 — je n’affiche pas de compteurs décoratifs.
+        Journal local ({journal.length} tentative{journal.length > 1 ? 's' : ''}, plafond 2 000) : exportable et importable depuis les réglages.
+        Rien n’est envoyé sur un serveur. Les chiffres de ce hub sont recalculés à chaque ouverture depuis ce journal.
       </p>
     </main>
   );

@@ -20,7 +20,7 @@ import { filterPosition, fmtNote, type NoteNotation } from '../../core/theory';
 import { type AnnotationKind, type Direction, defaultChordForScale, positionToScore } from '../../core/tab';
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
 import { AudioEngine } from '../../core/audio/engine';
-import { logPractice, practiceStore } from '../../core/progress/practiceLog';
+import { appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts } from '../../core/progress';
 import { degreeName, fmtDegree, legendFor, positionLabel, resolveScale } from './resolve';
 import {
   COMPARISON_LABEL, counterpartPosition, differingDegrees, markDegrees, neighbourDef, neighbourMode, neighbourPositions,
@@ -162,13 +162,26 @@ export function ScaleDiscoveryPage() {
     const seconds = Math.round(consume() / 1000);
     playedMs.current = 0;
     if (seconds >= 3 && r.position) {
-      logPractice(practiceStore(), {
+      // une écoute est une tentative non vérifiée : elle compte pour la série et la durée, jamais pour l'XP
+      const formIndex = r.position.formIndex ?? r.position.index;
+      const node = nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex });
+      appendAttempt(progressStore(), {
+        id: newAttemptId(Date.now(), node, readAttempts(progressStore()).length),
         ts: Date.now(),
+        kind: 'listen',
         scaleId: r.def.id,
         tonic: r.tonic,
+        tuningId: r.tuning.id,
         system: r.selection.system,
         positionId: r.position.id,
+        formIndex,
+        level: 1,
+        strings: r.tuning.strings.length,
+        correct: null,
+        total: null,
         seconds,
+        fretMin: r.position.fretMin,
+        missedStrings: [],
       });
     }
   };
@@ -395,6 +408,13 @@ export function ScaleDiscoveryPage() {
         <p className="t-small t-dim">
           Tu lis la tablature, tu touches la note demandée. Les fonctions proposées sont celles qui sont affichées :
           active « Fondamentales » ou un découpage de cordes pour réduire la difficulté.
+        </p>
+        <div className="row">
+          <PixelButton variant="primary" onClick={() => navigate('training')}>Se tester · trous</PixelButton>
+        </div>
+        <p className="t-small t-dim">
+          Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature. Une tentative enregistrée là-bas
+          entre dans la répétition espacée ; une écoute ici ne compte pas comme une preuve.
         </p>
       </Panel>
 

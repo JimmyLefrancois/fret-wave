@@ -18,6 +18,7 @@ import { PixelIcon, type IconName } from './ui';
 import { installDevHooks } from './devHooks';
 import { ScaleDiscoveryPage } from '../modules/gammes/ScaleDiscoveryPage';
 import { ScaleSelectPage } from '../modules/gammes/ScaleSelectPage';
+import { ScaleTrainingPage } from '../modules/gammes/ScaleTrainingPage';
 
 const SHORT_NAME: Record<string, string> = { nylon: 'GUITARE NYLON', electric: 'GUITARE ÉLECTRIQUE' };
 
@@ -29,7 +30,7 @@ const NAV: { route: RouteName; label: string; icon: IconName }[] = [
 ];
 
 const ACTIVE: Record<RouteName, RouteName> = {
-  hub: 'hub', gammes: 'gammes', scale: 'gammes', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
+  hub: 'hub', gammes: 'gammes', scale: 'gammes', training: 'gammes', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
 };
 
 function Page({ route }: { route: RouteName }) {
@@ -37,6 +38,7 @@ function Page({ route }: { route: RouteName }) {
     case 'hub': return <HubPage />;
     case 'gammes': return <ScaleSelectPage />;
     case 'scale': return <ScaleDiscoveryPage />;
+    case 'training': return <ScaleTrainingPage />;
     case 'settings': return <SettingsPage />;
     case 'tab': return <TabPage />;
     case 'audio': return <AudioPage />;

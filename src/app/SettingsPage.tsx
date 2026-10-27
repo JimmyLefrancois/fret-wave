@@ -11,6 +11,9 @@ import { Panel, PixelButton, Segmented, Switch } from './ui';
 import { Mixer, InstrumentPicker } from './AudioControls';
 
 import { PRACTICE_KEY } from '../core/progress/practiceLog';
+import {
+  ATTEMPTS_KEY, exportFilename, exportText, loadJournal, mergeAttempts, parseImport, progressStore, writeAttempts,
+} from '../core/progress';
 import { THEME_LIST } from '../core/themes';
 import type { ChordNotation, NoteNotation } from '../core/theory';
 
@@ -18,10 +21,13 @@ export function SettingsPage() {
   const settings = useSettings();
   const [confirmWipe, setConfirmWipe] = useState(false);
   const [wiped, setWiped] = useState(false);
+  const [count, setCount] = useState(() => loadJournal(progressStore()).length);
+  const [dataMsg, setDataMsg] = useState<string | null>(null);
 
   const wipe = () => {
     try {
       localStorage.removeItem(PRACTICE_KEY);
+      localStorage.removeItem(ATTEMPTS_KEY);
       localStorage.removeItem(SCALE_SELECTION_KEY);
     } catch {
       /* stockage inaccessible : rien à effacer */
@@ -30,6 +36,44 @@ export function SettingsPage() {
     setScaleSelection({ ...DEFAULT_SELECTION });
     setConfirmWipe(false);
     setWiped(true);
+    setCount(0);
+    setDataMsg('journal effacé');
+  };
+
+  const doExport = () => {
+    const now = new Date();
+    const text = exportText(loadJournal(progressStore()), now);
+    try {
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = exportFilename(now);
+      a.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+      setDataMsg(`export : ${count} tentative${count > 1 ? 's' : ''}, ${(text.length / 1024).toFixed(1).replace('.', ',')} ko`);
+    } catch (e) {
+      setDataMsg(`export impossible : ${(e as Error).message}`);
+    }
+  };
+
+  const doImport = (file: File) => {
+    void file.text().then((text) => {
+      const parsed = parseImport(text);
+      if (parsed.error) {
+        setDataMsg(`import refusé : ${parsed.error}`);
+        return;
+      }
+      const current = loadJournal(progressStore());
+      const merged = mergeAttempts(current, parsed.attempts);
+      writeAttempts(progressStore(), merged);
+      setCount(merged.length);
+      setDataMsg(
+        `${parsed.attempts.length} tentative${parsed.attempts.length > 1 ? 's' : ''} lue${parsed.attempts.length > 1 ? 's' : ''}, `
+        + `${merged.length - current.length} ajoutée${merged.length - current.length > 1 ? 's' : ''}`
+        + (parsed.rejected ? ` · ${parsed.rejected} entrée${parsed.rejected > 1 ? 's' : ''} refusée${parsed.rejected > 1 ? 's' : ''}` : '')
+        + '. Rouvre le hub pour voir les chiffres à jour.',
+      );
+    });
   };
 
   return (
@@ -129,7 +173,31 @@ export function SettingsPage() {
 
       <Panel className="span-6" accent="orange" label="Données locales">
         <p className="t-small">
-          Journal d’écoute et sélection courante, conservés dans ce navigateur. Rien n’est envoyé sur un serveur.
+          Journal de progression et sélection courante, conservés dans ce navigateur. Rien n’est envoyé sur un serveur.
+        </p>
+        <p className="t-small">
+          <strong>{count}</strong> tentative{count > 1 ? 's' : ''} enregistrée{count > 1 ? 's' : ''} (plafond 2 000).
+        </p>
+        <div className="data-row">
+          <PixelButton onClick={doExport} disabled={count === 0}>Exporter en JSON</PixelButton>
+          <label className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+            Importer un fichier
+            <input
+              type="file"
+              accept="application/json,.json"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) doImport(f);
+                e.target.value = '';
+              }}
+            />
+          </label>
+        </div>
+        {dataMsg && <p className="t-small data-msg" role="status">{dataMsg}</p>}
+        <p className="t-small t-dim">
+          L’import fusionne par identifiant : importer deux fois le même fichier ne double rien. Un fichier d’une autre
+          version est refusé avec sa raison, pas appliqué à moitié.
         </p>
         {!confirmWipe ? (
           <PixelButton variant="danger" onClick={() => setConfirmWipe(true)}>Effacer les données locales</PixelButton>

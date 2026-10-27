@@ -35,6 +35,8 @@ export interface TabViewProps {
   hideRhythm?: boolean;
   /** Met en évidence toutes les pastilles d'une fonction (correction d'exercice). */
   highlightFn?: string;
+  /** Trou désigné dans un exercice de mémorisation (`${columnIndex}:${string}`). */
+  activeHoleKey?: string;
   /** Toucher une pastille (exercice « montre-moi la ♭3 »). */
   onPick?: (pick: TabPick) => void;
 }
@@ -43,6 +45,10 @@ export interface TabPick {
   fn: string;
   fret: number;
   string: number;
+  /** Rang de la colonne (événement) touchée : identifie un trou sans révéler sa case. */
+  columnIndex: number;
+  /** La pastille touchée est un trou (emplacement vide) : `fret` ne doit pas être affiché. */
+  hidden: boolean;
   /** Coordonnées logiques du centre de la pastille (repère du canvas). */
   x: number;
   y: number;
@@ -81,7 +87,7 @@ function describe(score: TabScore, notation: NoteNotation): string {
 }
 
 export function TabView(props: TabViewProps) {
-  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, onPick } = props;
+  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, activeHoleKey, onPick } = props;
   const playing = transport === 'playing';
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -120,9 +126,11 @@ export function TabView(props: TabViewProps) {
   const layout: ScoreLayout = useMemo(
     () => layoutScore(score, {
       mode, maxWidth: viewLogical, notes, chords, annotation, stacks: 'change',
-      emphasizeChordTones, hideRhythm, ...(highlightFn ? { highlightFn } : {}),
+      emphasizeChordTones, hideRhythm,
+      ...(highlightFn ? { highlightFn } : {}),
+      ...(activeHoleKey ? { activeHoleKey } : {}),
     }),
-    [score, mode, viewLogical, notes, chords, annotation, emphasizeChordTones, hideRhythm, highlightFn],
+    [score, mode, viewLogical, notes, chords, annotation, emphasizeChordTones, hideRhythm, highlightFn, activeHoleKey],
   );
 
   const cssW = layout.width * cssPerLogical;
@@ -273,6 +281,28 @@ export function TabView(props: TabViewProps) {
     };
   }, [layout, score, player, cssPerLogical, viewLogical]);
 
+  // crochet du mode exercice : la seule tablature qui contient des trous et accepte le toucher
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (!onPick) return;
+    if (!layout.columns.some((c) => c.pills.some((p) => p.hidden))) return;
+    (window as unknown as { __trainingTab?: unknown }).__trainingTab = {
+      layout,
+      cssPerLogical,
+      viewLogical,
+      /** Centre CSS d'une pastille (repère de la fenêtre), pour piloter un vrai clic souris. */
+      centerOf: (columnIndex: number, string: number) => {
+        const col = layout.columns[columnIndex];
+        const pill = col?.pills.find((p) => p.string === string);
+        const stage = stageRef.current;
+        if (!pill || !stage) return null;
+        const r = stage.getBoundingClientRect();
+        return { x: r.left + (pill.x + pill.w / 2) * cssPerLogical, y: r.top + (pill.y + pill.h / 2) * cssPerLogical, hidden: pill.hidden };
+      },
+      hiddenCount: () => layout.columns.flatMap((c) => c.pills).filter((p) => p.hidden).length,
+    };
+  }, [layout, onPick, cssPerLogical, viewLogical]);
+
   // --- toucher une pastille (exercice) : conversion CSS → pixels logiques, tolérance tactile
   const onPointer = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!onPick) return;
@@ -281,10 +311,18 @@ export function TabView(props: TabViewProps) {
     const r = stage.getBoundingClientRect();
     const lx = (e.clientX - r.left) / cssPerLogical;
     const ly = (e.clientY - r.top) / cssPerLogical;
-    const hit = layout.columns
-      .flatMap((c) => c.pills)
-      .find((p) => lx >= p.x - 4 && lx <= p.x + p.w + 4 && ly >= p.y - 3 && ly <= p.y + p.h + 3);
-    if (hit) onPick({ fn: hit.fn, fret: hit.fret, string: hit.string, x: hit.x + hit.w / 2, y: hit.y + hit.h / 2 });
+    // un trou (pastille de 11 px logiques) reçoit une marge plus large : cible tactile ≥ 44 px CSS à S=2
+    const inside = (p: { x: number; y: number; w: number; h: number }, mx: number, my: number) =>
+      lx >= p.x - mx && lx <= p.x + p.w + mx && ly >= p.y - my && ly <= p.y + p.h + my;
+    for (const c of layout.columns) {
+      const p = c.pills.find((q) => inside(q, q.hidden ? 7 : 4, q.hidden ? 6 : 3));
+      if (!p) continue;
+      onPick({
+        fn: p.fn, fret: p.fret, string: p.string, columnIndex: c.index, hidden: p.hidden,
+        x: p.x + p.w / 2, y: p.y + p.h / 2,
+      });
+      return;
+    }
   };
 
   return (

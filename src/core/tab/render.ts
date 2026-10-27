@@ -141,6 +141,12 @@ export function drawOverlay(s: Surface, layout: ScoreLayout, theme: TabTheme, st
   const a = state.reduceMotion ? 0.7 : PULSE[state.frame % PULSE.length]!;
   for (const c of layout.columns) {
     for (const p of c.pills) {
+      if (p.active) {
+        // trou désigné : anneau du curseur, visible même sur un emplacement vide
+        ring(s, p, 1, theme.cursorCore, 0.95);
+        ring(s, p, 2, theme.cursor, 0.55);
+        if (p.hidden) continue;
+      }
       if (p.hidden || p.muted) continue;
       if (p.highlight) {
         // exercice « montre-moi la ♭3 » : anneau blanc continu, indépendant du mode

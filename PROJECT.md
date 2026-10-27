@@ -1,13 +1,42 @@
 # PROJECT.md — Fretwave (nom de travail) : apprendre la guitare, en tablature, en pixel art
 
-**Statut : phases 0, 1a, 1b, 1c et 1d terminées · 1d = hub + thème Synthwave + module Gammes N1 + positions + annotations · D1-D23 tranchées (D13 écartée, D7 remplacée par D14) · aucune décision en attente · 314 tests.**
+**Statut : phases 0, 1a, 1b, 1c, 1d et 2 terminées · 2 = progression unifiée (journal de tentatives, maîtrise, Leitner) + XP / série / badges + niveaux 2 (trous) et 3 (rappel) du module Gammes + export/import JSON · D1-D30 tranchées (D13 écartée, D7 remplacée par D14) · aucune décision en attente · 359 tests.**
 Documents liés : `BRIEF.md` (cahier des charges), `MUSIC_DESIGN.md` (conventions musicales, curriculum, avis de prof).
-**Repères** : *État exact* juste en dessous · **hypothèses** §8 (1-49) et §8 bis (ce qui a changé) · **plan des phases** §9 · **décisions** §10 (D1-D23) · **prochaine étape** §12. Pages de l'app (hash) : `#/hub`, `#/gammes`, `#/gammes/jouer`, `#/reglages`, plus les outils de contrôle `#/tab`, `#/audio`, `#/theorie`. `npm run dev` → http://localhost:5173/ (un seul serveur à la fois : deux instances Vite sur le même port servent une version périmée du CSS).
+**Repères** : *État exact* juste en dessous · **hypothèses** §8 (1-58) et §8 bis (ce qui a changé) · **plan des phases** §9 · **décisions** §10 (D1-D30) · **prochaine étape** §12. Pages de l'app (hash) : `#/hub`, `#/gammes`, `#/gammes/jouer`, `#/gammes/entrainement`, `#/reglages`, plus les outils de contrôle `#/tab`, `#/audio`, `#/theorie`. `npm run dev` → http://localhost:5173/ (un seul serveur à la fois : deux instances Vite sur le même port servent une version périmée du CSS).
 Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** décision qui t'appartient · **[RISQUE]** voir section 7.
 
 ---
 
-## État exact (dernière mise à jour : après la phase 1d)
+## État exact (dernière mise à jour : après la phase 2)
+
+**Git** (branche `master`) : `183eacc` Phase 0 · `5797333` Phase 1a · `823fbbd` Phase 1b · `971be8c` Phase 1c · commit de la 1d · commit de la 2 en fin de phase. **359 tests (358 verts, 1 ignoré), `tsc --noEmit` propre, `vite build` OK.** Aucun remote.
+
+**Fait et vérifié (2 — progression, répétition espacée, niveaux 2-3)**
+- **Journal de tentatives** (`src/core/progress/journal.ts`) : un événement par tentative — `id`, `ts`, `kind` (`listen` / `holes` / `recall`), gamme, tonique, accordage, système, position, `formIndex`, `level`, `strings`, **`correct`/`total` au premier essai**, `seconds`, `fretMin` (zone du manche), **`missedStrings`** (cordes où une case a été manquée). Clé `fretwave.attempts.v1`, **plafond 2 000** (D25), lecture tolérante (`normalizeAttempt` borne et écarte), **migration unique du journal d'écoute de la 1d** (la clé d'origine n'est pas effacée).
+- **Maîtrise** (`mastery.ts`) : nœud = `gam:lecture:{gamme}:{système}:{formIndex}` — **la forme et le mode, jamais la tonique** (une même forme se révise une fois, pas douze : la tonique est une preuve séparée, D28). États disponible → en apprentissage → apprise → maîtrisée ; réussite = ≥ 80 % au premier essai ; **apprise = 2 réussites sur 2 jours différents** ; maîtrisée = apprise + boîte de Leitner ≥ 5 + dernière tentative réussie. Score de maîtrise = 0,5 × meilleure + 0,3 × moyenne des 3 dernières + 0,2 × couverture des jours.
+- **Répétition espacée** (`scheduler.ts`) : **Leitner à 6 boîtes** (10 min, 1 j, 3 j, 7 j, 16 j, 35 j) derrière une interface `Scheduler` ; réussite nette +1 boîte, réussite lente sur place, échec −2 ; **gigue ±15 % déterministe** (hachage du nœud, pas de `Math.random` : le calcul est rejouable) ; **cartes recalculées depuis le journal** (aucun état dupliqué, on peut changer d'algorithme sans perdre l'historique) ; **plafond 8 cartes dues** par session.
+- **XP, série, badges** (`rewards.ts`) : XP = 10 × précision (trous) ou 15 × précision (rappel), **+5 seulement à ≥ 95 %** ; **une écoute ne rapporte aucun XP** (non vérifiée) ; **plafond 120 XP par jour** ; série = jours consécutifs d'activité, vivante tant que la veille compte ; 8 badges, chacun dérivé du journal et affiché avec sa raison.
+- **Niveau 2 « trous »** : ~35 % des notes masquées, **au moins 2, jamais toutes** (un exercice à un trou ne prouve rien) ; **niveau 3 « rappel »** : toutes les notes, chronomètre au premier geste. Cinq découpages : 1 corde / 2 / 3 / position entière / aller-retour. Saisie **au pavé numérique pixel (48 px de haut, ≥ 44 px partout) ou au clavier physique** ; validation par case ; **2ᵉ erreur sur un trou = case révélée** (comptée fausse) ; le trou désigné reçoit l'anneau du curseur (visible même vide) ; une case trouvée **reprend sa couleur de fonction** (la pastille cesse d'être en pointillés).
+- **Écrans** : `#/gammes/entrainement` (nouveau), hub refondu (« Aujourd'hui », « Révision du jour » + prochaine échéance, « Niveau » avec XP/série/maîtrise/corde à travailler/**transposition suggérée**, badges), réglages avec **export / import JSON** (fusion par identifiant), bouton « Se tester » depuis le niveau 1 et depuis la sélection.
+- **Diagnostic pédagogique** : corde la plus coûteuse (« La — 1 case manquée sur 1 tentative ») et **proposition de la même forme dans une tonique jamais vue** (`transpose.ts`, orthographe décidée par `tonicSpellings`).
+- **Vérifié dans Chromium piloté par CDP (390×844 @3 et 1440×900 @1)** : clic réel sur un trou → pavé → validation → série terminée → **tentative écrite** ; rechargement → hub à jour (1 écoute · 3 exercices, 64 XP, maîtrise 87 %) ; **révision** : carte due affichée avec sa boîte et son score, « Réviser maintenant » ouvre la bonne gamme **et la bonne position** ; **transposition** : « Même forme en Do » ouvre « Do dorien · Position 7 · cases 6–11 » ; **export/import** : aller-retour de 2 tentatives, import par le champ fichier (+1), réimport sans doublon (0 ajoutée) ; N3 masque **toutes** les notes du segment ; chemin d'erreur (2ᵉ essai → révélation + message) ; écoute du niveau 1 journalisée (`kind: listen`, 15 s) sans XP ; aucun débordement horizontal.
+
+**Mesures de la 2**
+- Pavé numérique : **102 × 48 px CSS** à 390 (48 px de haut partout), **159 × 48** à 1 440 ; panneau collant sous 900 px (reste à 0–384 px pendant qu'on lit la tablature).
+- Tablature en mode exercice : **347 px** de large à 390, **1 040 px** centrée à 1 440 (hauteur 242 px).
+- Panneaux à 1 440 : colonne **1 296 px**, 528 / 748 px, **hauteurs de rangée identiques** (253/253, 301/301).
+- `dist` : `index` **438,1 ko (139,2 ko gzip)** — +40,9 ko (+12,5 ko gzip) pour tout le module de progression, le chunk Tone inchangé (340,8 ko / 79,4 gzip) et le CSS à **25,1 ko (5,9 gzip)**.
+- Journal : une tentative pèse ≈ 190 octets de JSON → **2 000 tentatives ≈ 380 ko** (mesuré sur le journal réel produit par les essais ci-dessus).
+
+**Pas fait (2)**
+- **Pas de tempo ni de métronome dans les exercices** : les étoiles ★★/★★★ ne dépendent que de la précision (MUSIC_DESIGN §3.4 prévoit un ★★ au tempo cible — il viendra avec la rythmique).
+- **IndexedDB non utilisée** (D25) : localStorage plafonné ; à revoir quand l'entrée audio produira beaucoup plus d'événements (phase 3).
+- Pas de page « Progression » (heatmap des formes / toniques), pas de badges de transitions, pas de révision mélangée entre formes.
+- Le diagnostic par corde **ne distingue pas les accordages** (index de corde seulement) ; un accordage alternatif fausse la lecture du nom affiché.
+- Toujours non vérifiés : le timbre (pas d'écoute), Safari / iOS, un vrai téléphone, la latence acoustique.
+- Niveaux 4 (improvisation) : phase 7. Doigtés d'accords : phase 4.
+
+## État exact de la phase 1d (rappel, après le commit de la 1d)
 
 **Git** (branche `master`) : `183eacc` Phase 0 · `5797333` Phase 1a · `823fbbd` Phase 1b · `971be8c` Phase 1c · `5818e8b` + `a5d9e18` docs · commit de la 1d en fin de phase. **314 tests (313 verts, 1 ignoré), `tsc --noEmit` propre, `vite build` OK.** Aucun remote.
 
@@ -44,7 +73,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 - **Vue manche optionnelle** : toujours proposée, toujours pas implémentée (contraire au brief tel qu'écrit ; attend un accord explicite).
 - **Doigtés** : heuristique par corde, non relue position par position ; les doigtés d'accords restent vides (phase 4).
 - Boîte d'accord (D1, phase 4).
-- XP, séries, répétition espacée, badges, heatmap : phase 2. Le hub n'affiche **que** le journal réel.
+- XP, séries, répétition espacée, badges, heatmap : phase 2 pour les quatre premiers (**livrés**), heatmap en phase 8.
 - PWA (manifest, service worker), i18n, défilement des scores très longs.
 
 ## État exact de la phase 1c (rappel, après le commit `971be8c`)
@@ -111,7 +140,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 - Hub, thème Synthwave complet (scène, parallaxe), module Gammes N1, routeur et réglages globaux (→ **1d**, D18). La page Audio et l'écran de chargement, eux, sont livrés.
 - **Doigtés** (aucun n'est généré : la donnée est vide, la rangée « doigté » n'affiche que ce qui existe) ; marqueur de **basse** des accords slash ; doigt du barré affiché (seuls « B1 » et le repère le sont) ; boîte d'accord (D1 : phase 4).
 - Tempo **par mesure** (modélisé et validé, pas joué) ; triolets : rendu et lecture sur fixture, **aucun générateur** ne les produit ; techniques (h p / \ b ~) modélisées, pas dessinées.
-- Saisie sur la tab (cases cliquables, pavé numérique : phase 2) ; défilement des scores très longs (garde-fou `tooWide` > 16 000 px de canvas, pas de découpage en tuiles) ; test sur appareil réel et Safari iOS.
+- Saisie sur la tab (cases cliquables, pavé numérique) : **livrée en phase 2** ; défilement des scores très longs (garde-fou `tooWide` > 16 000 px de canvas, pas de découpage en tuiles) ; test sur appareil réel et Safari iOS.
 - Persistance, progression, SRS, entrée audio, PWA, i18n, routeur : phases suivantes.
 
 **Écarts entre ce document (rédigé en phase 0 / 1a) et la réalité**
@@ -139,7 +168,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 | Audio sortie | Web Audio + Tone.js ; **deux banques CC0** (nylon FreePats, électrique Karoryfer) + repli Karplus-Strong ; hauteur et niveaux mesurés ; attribution affichée quand même (D14). |
 | Pitch mono | `pitchy` (McLeod) dans un AudioWorklet, fenêtre adaptée à l'accordage. |
 | Polyphonique | **Moteur maison « accord attendu »** (peignes d'harmoniques + soustraction), **pas essentia.js (AGPL-3.0)**, pas de chromagramme seul. Verdict = **niveau de confiance**, jamais binaire. |
-| Persistance | IndexedDB (journal d'événements) + localStorage (réglages) + export/import JSON ; `navigator.storage.persist()`. |
+| Persistance | localStorage (réglages, journal) + export/import JSON. *(Phase 0 prévoyait IndexedDB : révisé en phase 2, D25 ; `navigator.storage.persist()` pas encore demandé.)* |
 | Modules | `Gammes` et `Accords` au MVP ; **un module `Fondations` (onboarding, accordeur) en plus** ; `Rythmique` préparé dès le modèle. |
 | Écart majeur avec le brief | Gammes débutent par la **pentatonique mineure**, pas la majeure ; Am n'est **pas** un accord à 1-2 doigts ; le **verdict par corde en strum est irréaliste** ; **boîte d'accord** : D1 = B (étapes Découvrir/Construire seulement, §7.1 de `MUSIC_DESIGN.md`). |
 
@@ -177,7 +206,7 @@ Le brief propose Gammes + Accords. **Je garde ces deux modules**, avec ces écar
 ## 3. Stack et justifications
 
 ### 3.1 Versions (npm au moment de la phase 0)
-**Installées (`package.json`)** : Vite 8.3.5 · React / React DOM 19.3.1 · TypeScript 7.0.2 · Vitest 5.0.5 · `@vitejs/plugin-react` 6.1.2 · `tonal` 6.5.1 · **Tone 15.1.22 (1b, import dynamique)** · types React 19.3.0 · `@types/node` 24 · Node 24.22.1 (système : v18, trop ancien). **Outils hors runtime ajoutés en 1c** : ffmpeg 9.0.1, 7z, curl pour `tools/build-samples.mjs` (génération des échantillons, jamais exécutée par `npm test`). **Contenu ajouté** : `public/samples/` 12,1 Mo (CC0, pas une dépendance npm). **À installer plus tard** : pitchy 4.1.0 · idb 8.0.4 · vite-plugin-pwa 2.0.0 (versions relevées par `npm view` en phase 0).
+**Installées (`package.json`)** : Vite 8.3.5 · React / React DOM 19.3.1 · TypeScript 7.0.2 · Vitest 5.0.5 · `@vitejs/plugin-react` 6.1.2 · `tonal` 6.5.1 · **Tone 15.1.22 (1b, import dynamique)** · types React 19.3.0 · `@types/node` 24 · Node 24.22.1 (système : v18, trop ancien). **Outils hors runtime ajoutés en 1c** : ffmpeg 9.0.1, 7z, curl pour `tools/build-samples.mjs` (génération des échantillons, jamais exécutée par `npm test`). **Contenu ajouté** : `public/samples/` 12,1 Mo (CC0, pas une dépendance npm). **À installer plus tard** : pitchy 4.1.0 (phase 3) · vite-plugin-pwa 2.0.0 (phase 8). **`idb` 8.0.4 écarté** : journal en localStorage (D25).
 
 ### 3.2 React vs Svelte
 **React 19.** Raison : écosystème de test et d'accessibilité, familiarité, et surtout **le framework est presque neutre ici** : les parties critiques (audio, tab, pitch) sont des modules TS purs sans dépendance au framework. Svelte serait plus léger ; le gain ne justifie pas de changer d'outil pour un projet solo. État global léger (Zustand ou équivalent) ; routage minimal par hash (compatible PWA hors ligne). **[HYP]**
@@ -227,7 +256,7 @@ Principe retenu (cf. `MUSIC_DESIGN.md` §6) : puisqu'on connaît l'accord demand
 Pour les cordes graves en croches rapides (fenêtre courte), on s'appuie sur les harmoniques 2-4 (ex. 2·E2 vs 2·F2 = 9,8 Hz d'écart) car la fondamentale n'est plus résolue.
 
 ### 3.8 Persistance
-IndexedDB via `idb` (ISC) : stores `attempts` (journal d'événements, source de vérité), `nodes` (agrégats recalculables), `settings`, `meta`. Export/import JSON. `navigator.storage.persist()` demandé après la première session réussie. Raison : sans backend, **perdre l'historique est le pire risque produit** (voir R7).
+*(Tel que construit en phase 2 : une seule clé `fretwave.attempts.v1` en localStorage, source de vérité unique — les agrégats sont **recalculés**, jamais stockés. IndexedDB et `navigator.storage.persist()` restent la cible si le journal dépasse quelques dizaines de milliers d'événements : D25.*) Sans backend, **perdre l'historique est le pire risque produit** (voir R7) : d'où l'export JSON.
 
 ### 3.9 PWA et tests
 `vite-plugin-pwa` (Workbox) ; échantillons en cache (deux banques statiques de 12,1 Mo, téléchargées au premier lancement ; pas de jeu « haute qualité » séparé en 1c). Tests : Vitest (logique pure), tests de propriétés sur la théorie (orthographe, voicings), tests de signaux synthétiques pour l'audio, captures d'écran pour le rendu (phase 1+).
@@ -249,7 +278,7 @@ guitare/
       tab/       model (TabScore) · generators/ · layout/ · render/ · cursor · slots (saisie)
       audio/     engine · mixer · instruments (guitare, basse, batterie, pads) · strum · backing/ · sfx/ · metronome
       input/     mic · worklets/ · pitch (mono) · poly (accord attendu) · onset · calibration · tuner · mapper
-      progress/  model · store(idb) · srs/Scheduler · xp · streaks · badges · recommender
+      progress/  journal · mastery · srs/Scheduler · xp · streaks · badges · exportData   (localStorage, D25)
       themes/    tokens · registry · scene (parallaxe) · particles
       ui/        composants pixel · pavé numérique · accessibilité
     modules/
@@ -665,12 +694,28 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 48. **Polices** : sous-ensemble latin de Google Fonts, OFL 1.1, auto-hébergées (46,3 ko au total), provenance et licences dans `public/fonts/README.md`.
 49. La **signature rythmique** est écrite en petit (`4/4`) en tête de portée, et non en deux chiffres de 15 px au milieu des cordes.
 
+**Prises en phase 2**
+50. **Journal en localStorage plafonné à 2 000 tentatives** (≈ 380 ko mesurés), pas en IndexedDB (D25) : la promesse du `idb` de la phase 0 est **écartée sciemment**, pas oubliée.
+51. **Un nœud = une forme × un mode, jamais une tonique** (D28) : la tonique est une preuve séparée (`tonics`, `zones`) qui sert à proposer la transposition, pas à multiplier les cartes.
+52. **Leitner 6 boîtes** avec gigue déterministe ±15 %, échec −2 boîtes, plafond **8 cartes dues** (D26) ; seuils **80 %** de réussite, **2 jours distincts** pour « apprise », boîte ≥ 5 pour « maîtrisée ».
+53. **XP** 10 × précision (trous) / 15 × précision (rappel), +5 à ≥ 95 %, **plafond 120/jour** ; **écoute = 0 XP** (D27).
+54. **Série** = jours consécutifs d'activité (écoute comprise), **vivante tant que la veille compte** : la série ne casse pas à minuit avant que l'utilisateur ait joué (D27).
+55. **Niveau 2 = ~35 % de trous, minimum 2, jamais toutes** ; niveau 3 = toutes les notes du segment (D29). Le découpage se fait par cordes, pas par mesures.
+56. **2ᵉ erreur sur un trou = case révélée**, comptée fausse ; la tentative est enregistrée quand même (D29).
+57. **Le pavé numérique reste collant sous 900 px** : sur téléphone, il faut voir la tablature **et** les touches sans faire défiler deux fois.
+58. **Diagnostic par corde** = index de corde, **tous accordages confondus**, avec un nom affiché en accordage standard. **[HYP fragile]** : deux accordages différents dans le même compteur.
+
+**Hypothèses les plus fragiles** (ce qui pourrait encore bouger — rien n'est verrouillé) :
 **Hypothèses les plus fragiles** (ce qui pourrait encore bouger — rien n'est verrouillé) :
 - **32-35 et 38** (vélocité de base, strum, tenue, humanisation, niveaux) sont réglées **par calcul et par mesure, pas par écoute** : un ajustement à ton oreille est probable, et c'est normal.
 - **22** (CAGED maison, D12) : définition non comparée à une source ; ta relecture de Do, Sol, La conditionne son exposition.
 - **15** (difficultés 1-5 des voicings) : heuristique non calibrée, à corriger avec des données réelles en phase 4.
 - **18** (mode parent à 7 altérations) : **traité en 1d** — l'UI l'affiche comme une information (« couleur à écouter, pas une tonalité jouable »).
-- **42** (objectif de 3 écoutes) et **46** (doigtés heuristiques) : réglés par raisonnement, pas par usage réel ; à revoir après quelques sessions.
+- **42** (objectif de 3 activités) et **46** (doigtés heuristiques) : réglés par raisonnement, pas par usage réel ; à revoir après quelques sessions.
+- **52** (intervalles de Leitner et seuils 80 %/2 jours) : ce sont les valeurs classiques, **non calibrées sur un vrai débutant**. Un élève qui rate trois soirs de suite sort de « en apprentissage » sans progression visible : à mesurer.
+- **55-56** (35 % de trous, révélation à la 2ᵉ erreur) : choix de prof, pas de mesure. Le bon chiffre dépend de la forme (une box à 2 notes par corde se lit, une position 3NPS de 18 notes non).
+- **58** (diagnostic par corde) : index de corde seul, accordages mélangés — honnête pour le standard, faux dès qu'on change d'accordage.
+- **50** (localStorage) : quota et purge iOS non testés sur un vrai appareil ; la perte silencieuse d'une écriture (quota plein) n'a pas d'alerte dans l'UI.
 - **Composition du poster** (soleil à 26 % de la largeur, titre hors du disque) : calibrée pour 390×844 ; à revoir sur un vrai téléphone en portrait étroit (360 px) et en paysage.
 
 ---
@@ -682,6 +727,9 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | Échantillons | `tonejs-instruments` (CC BY, licences à vérifier) | deux banques **CC0** mesurées (D14) |
 | Chargement audio | à la première lecture | **au démarrage**, avec écran de chargement (D15) |
 | Phase 1 | 1a / 1b / 1c | 1a / 1b / 1c (audio) + **1d** (écrans, D18) |
+| Progression | journal d'écoute local, hub sans XP | **journal de tentatives** + maîtrise + Leitner + XP plafonné + badges (phase 2) |
+| Persistance | « localStorage/IndexedDB » (brief) | **localStorage plafonné** (D25) ; IndexedDB différée |
+| Niveaux Gammes | N1 seul | **N1 (écoute) + N2 (trous) + N3 (rappel)** |
 | Boîte d'accord | à trancher | **D1 = B** (Découvrir/Construire) |
 | Feuille de route | « son final + hub + thème + module » en 1c | 1c = audio seul ; les écrans en 1d |
 
@@ -695,7 +743,7 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | **1b** ✔ `823fbbd` | Positions (3NPS, boxes, CAGED, symétriques, blues, bebop), `TabScore`, générateurs, layout, police bitmap, rendu pixel, curseur synchronisé sur Tone.Transport (son provisoire) | Captures lisibles à S=2 sur 390×844 ; chiffres à 2 chiffres nets ; piles d'accords nettes ; 7 cordes, solfège / anglo, Drop D ; daltonisme ; coût de rendu — **atteint** (204 tests, mesures dans « État exact ») |
 | **1c** ✔ `971be8c` | Moteur audio de sortie : échantillons CC0 (nylon, électrique) + repli synthèse, choix/couches/round-robin, bus master (compresseur + plafond), drone, métronome, volumes mémorisés, préchargement, page Audio | « Son = tablature » vérifié (6 types de score), drone, métronome, plafond tenu, page Audio — **atteint** (274 tests, mesures dans « État exact ») |
 | **1d** ✔ (commit en fin de phase) | Hub + routeur par hash, thème Synthwave (tokens, scène, parallaxe, scanlines), module Gammes N1 (sélection, annotations, calque d'accord), positions CAGED / 3NPS / boxes, réglages globaux, journal de pratique local | Choisir une gamme, la voir et l'entendre avec le son final ; captures 390×844 **et** 1440×900 — **atteint** (314 tests, mesures dans « État exact ») |
-| 2 | Gammes N2/N3 (saisie), progression unifiée persistante, XP, SRS | Journal + export/import |
+| **2** ✔ (commit en fin de phase) | Journal de tentatives, maîtrise par forme, Leitner 6 boîtes, XP/série/badges, Gammes N2 (trous) et N3 (rappel) avec pavé numérique, diagnostic par corde, transposition suggérée, export/import JSON | Faire une série de trous, voir la maîtrise bouger, fermer l'onglet et retrouver son état ; export/import vérifié — **atteint** (359 tests, mesures dans « État exact ») |
 | 3 | Entrée mono, calibration, accordeur, affichage live | Test sur guitare réelle |
 | 4 | Accords A : curriculum, tab accords, leçon guidée, QCM/auto-éval, validation arpège, recommandation | Parcours P0-P4 jouable |
 | 5 | Polyphonique, onset, timing, transitions | Résultats chiffrés publiés |
@@ -733,8 +781,15 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | D21 | Où vivent les tokens | **En TypeScript** (`core/themes/*.ts`), posés en variables CSS par `applyTheme` : un thème = un fichier, testable (contrastes) et sans hex dupliqués dans le CSS |
 | D22 | Progression en 1d | **Journal d'écoute local seulement** (gamme, tonique, système, position, secondes, plafond 400). **Pas de XP, pas de série, pas de compteur décoratif** : ces chiffres arrivent avec la répétition espacée (phase 2) |
 | D23 | Notes de l'accord superposables | **Calque qui estompe les notes étrangères** (mélange avec le panneau, jamais d'alpha), activable en N1 ; sur La m pent + Am7, seules les 4tes s'effacent |
+| D24 | Typographie (1d) | **Silkscreen** (capitales épaisses) pour les étiquettes de panneau, badges, tags et onglets ; **sans-serif système** pour les titres, le texte, les boutons et les segments ; Press Start 2P pour le mot-symbole seul. Une police pixel à 10-23 px perd ses accents et sa hauteur d'x : l'identité passe par le décor et la tablature bitmap, pas par le paragraphe (MUSIC_DESIGN §12.1) |
+| D25 | Où vit le journal de progression (2) | **localStorage, `fretwave.attempts.v1`, plafond 2 000** (≈ 380 ko mesurés), migration unique du journal d'écoute de la 1d. **IndexedDB écartée** : la contrainte du brief est « localStorage/IndexedDB », le gain d'un `idb` asynchrone ne paie pas pour 2 000 événements, et la purge iOS vise IndexedDB. À rouvrir en phase 3 (entrée audio = beaucoup plus d'événements) |
+| D26 | Modèle de maîtrise et de révision (2) | **Leitner 6 boîtes** (10 min / 1 / 3 / 7 / 16 / 35 j), gigue déterministe, échec −2, plafond 8 cartes dues. « Apprise » = 2 réussites ≥ 80 % sur **2 jours distincts** ; « maîtrisée » = apprise + boîte ≥ 5 + dernière tentative réussie |
+| D27 | XP, série (2) | **XP seulement sur les exercices vérifiés** (10 / 15 × précision, +5 à ≥ 95 %), **plafond 120/jour** ; une écoute vaut 0 XP mais compte pour la série ; série = jours consécutifs, vivante si la veille compte |
+| D28 | Identité d'un nœud de progression (2) | **Forme × mode × système**, indépendante de la tonique (`formIndex`) : une forme se révise une fois, la tonique est une preuve séparée qui déclenche la proposition de transposition |
+| D29 | Niveaux 2 et 3 (2) | N2 : ~35 % de trous, **min 2, jamais toutes** ; N3 : tout. Cinq découpages par cordes ; **révélation après 2 erreurs** (comptée fausse) ; tentative enregistrée une fois la série finie, avec les trous justes **au premier essai** |
+| D30 | Diagnostic par corde (2) | `Attempt.missedStrings` (index de corde) plutôt qu'un journal de chaque réponse : même valeur pédagogique, 20 fois moins d'octets. Nom affiché en accordage standard, limite documentée |
 
-**D1-D23 tranchées** (D13 écartée ; D7 remplacée par D14 ; D18 tranchée). **Aucune décision en attente** : la suite (phase 2) est décrite au §12.
+**D1-D30 tranchées** (D13 écartée ; D7 remplacée par D14 ; D18 tranchée ; **D24 = la typographie de la 1d**, ajoutée au journal). **Aucune décision en attente** : la suite (phase 3) est décrite au §12.
 
 ---
 
@@ -746,23 +801,24 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 - **Phase 1c** (terminée, commit `971be8c` ; échantillons compris, 12,1 Mo) : moteur audio de sortie seul (périmètre redéfini par toi) — détail dans « État exact ». 274 tests verts, `tsc` propre, build OK. Vérifié dans Chromium piloté par CDP (390×844 @3) : chargement (48 puis 90 fichiers), son = tablature sur 6 types de score, curseur 639,6 ticks/s (résidu 1,1 tick hors démarrage), métronome 18 clics / 10 s, drone activé et coupé en pause, boucle sans doublon, matrice de clics sur sinus de contrôle, erreur réseau puis « Réessayer », plafond tenu sur un strum extrême (−1,2 dBFS). **Trouvé en route** : 6 défauts (clic à la reprise de corde, rappel d'événement en double par Tone, couche de vélocité qui basculait, limiteur qui laissait passer +2,2 dBFS, écart de 6-7 dB entre banques, Tone chargé trop tard), tous corrigés par un test ou une mesure. **Non vérifié** : le timbre (pas d'écoute), Safari/iOS, téléphone réel, latence acoustique.
 - **Phase 1d** (terminée, commit en fin de phase) : thème par tokens, scène pixel (poster/calm), polices auto-hébergées, hub, réglages, routeur par hash, sélection de gamme, N1 Découverte, doigtés, calque d'accord, journal de pratique — détail dans « État exact ». **314 tests** (313 verts, 1 ignoré), `tsc` propre, build OK. **Trouvé en route, corrigé** : (1) la légende marquait **toutes** les fonctions comme « caractéristique » (jeu de degrés complet au lieu des seules notes du mode) ; (2) la signature rythmique était dessinée **au milieu des cordes** en gros chiffres → petite, en tête de portée ; (3) le calque d'accord était calculé mais **invisible** (estompage à 55 % → 78 %) ; (4) **deux serveurs Vite** sur le même port servaient un CSS périmé (cause des « mes modifications ne s'appliquent pas ») ; (5) le soleil passait **derrière le titre** sur grand écran (rayon borné par la hauteur) ; (6) la grille en rayons verticaux faisait une **hachure** à 195 px logiques → horizontales seules ; (7) la barre de navigation s'étalait sur 1 440 px → bornée à 620 px et centrée ; (8) `degreeName` recevait des glyphes (« ♭3 ») et renvoyait « ♭3 » au lieu de « tierce mineure » → normalisation ASCII ; (9) la mise en évidence de l'exercice ne s'appliquait pas (comparaison `b7` vs `♭7`) → cibles en ASCII, affichage en glyphes ; (10) le crochet de vérification `__fretwave` était écrasé par les tablatures de comparaison → seule l'instance qui joue l'installe. **Non vérifié** : le timbre (pas d'écoute), Safari/iOS, vrai téléphone, latence acoustique.
 - **Mise à jour d'état (après le commit)** : ligne Git et santé du dépôt, bloc « Repères » en tête, §0 et §1 (décisions désormais tranchées : boîte d'accord D1, échantillons D14, découpage 1d), R10, D10-D12 (l'écran des positions et CAGED passent en 1d), « hypothèses les plus fragiles » et tableau « ce qui a changé depuis la phase 0 ».
+- **Phase 2** (terminée, commit en fin de phase) : journal de tentatives, maîtrise par forme, Leitner 6 boîtes, XP/série/badges, niveaux 2 et 3 (trous, rappel) avec pavé numérique, diagnostic par corde, transposition suggérée, export/import — détail dans « État exact ». **359 tests** (358 verts, 1 ignoré), `tsc` propre, build OK. Vérifié dans Chromium (390×844 @3, 1440×900 @1) : trou touché au clic réel, pavé, validation, série terminée, tentative écrite, rechargement, hub à jour ; révision qui rouvre la bonne position ; export → import → réimport sans doublon ; écoute du niveau 1 journalisée sans XP. **Trouvé en route, corrigé** : (1) un exercice à **1 trou** (35 % de 4 notes = 1,4) ne testait rien → minimum 2 trous, jamais tous ; (2) le libellé du pavé affichait **la fonction de la note** visée (« tierce mineure ») — c'est-à-dire une partie de la réponse → retiré ; (3) le pavé sortait de l'écran dès qu'on lisait la tablature sur téléphone → panneau collant sous 900 px ; (4) le résultat annonçait « 0 XP : il faut 80 % » alors que l'XP est proportionnel (60 % = 6 XP) → texte corrigé ; (5) un exercice masqué gardait son **annotation** dans le modèle de layout (le rendu la supprimait, le test non) → vérifié par test pixel. **Non vérifié** : timbre, Safari/iOS, vrai téléphone, latence ; claviers physiques testés par événement DOM, pas par frappe CDP.
 - **Mise à jour de ce document (après 1c)** : « État exact » (bloc 1c, mesures, pas fait, écarts), §3.1 (outils de build), §3.5 (échantillons et échantillonneur maison), §4.1 (arborescence), §4.7 (pipeline tel que construit), R4 et R12 (traités / mesurés), hypothèses 31-41, plan (1c fait, 1d proposée), décisions **D14-D18** (D7 remplacée), journal, §12 « Prochaine étape ».
 
 ---
 
-## 12. Prochaine étape : phase 2 (Gammes N2/N3, progression persistante, XP, SRS)
+## 12. Prochaine étape : phase 3 (entrée audio monophonique, calibration, accordeur)
 
-**Objectif** : transformer le journal d'écoute en **progression** — ce qui est vu, ce qui est su, ce qui revient.
+**Objectif** : faire passer la validation de la **saisie au pavé** à la **guitare réelle** — une note isolée, puis une corde d'accord, avec un diagnostic par corde.
 
 **Livrables**
-1. **Modèle unifié** (`core/progress/`) : nœuds, axes, états (verrouillée → disponible → en apprentissage → apprise → maîtrisée), journal `attempts` dans IndexedDB (`idb`), agrégats recalculables.
-2. **Répétition espacée** derrière une interface `Scheduler` (Leitner 6 boîtes d'abord), plafond de dû par session.
-3. **Niveau 2 (trous)** et **niveau 3 (rappel)** dans le module Gammes : saisie sur la tablature (cases cliquables + pavé numérique pixel), et non plus seulement l'écoute. Découpage « 1 corde → 2 cordes → montée → montée+descente » (MUSIC_DESIGN §3.4).
-4. **XP, séries, badges** — et le hub qui les affiche, avec la même exigence d'honnêteté que le journal actuel.
-5. **Export / import JSON** des données locales (R7).
+1. `getUserMedia` avec choix du périphérique, `echoCancellation/noiseSuppression/autoGainControl` désactivés, plage de détection **dérivée de l'accordage** (E2 82,41 Hz → ~73 Hz en Drop D, ~62 Hz pour un Si1 de 7 cordes, haut de plage à la case 24).
+2. `pitchy` (McLeod) dans un AudioWorklet, note + écart en cents, **désambiguïsation corde/case** selon la position active (une hauteur existe à plusieurs endroits).
+3. Écran de calibration (niveau d'entrée, seuil de bruit, latence mesurée) + accordeur ; réglages séparés micro / interface USB.
+4. **Validation d'une corde** dans les niveaux 2-3 : le pavé devient un secours, la note détectée remplit le trou — la tentative enregistrée garde le même format (`kind`, `correct`, `total`, `missedStrings`).
+5. Gestion propre : permission refusée, aucun périphérique, note qui s'éteint, bend/vibrato, mode casque recommandé.
 
-**« Terminé » =** jouer une gamme de mémoire avec des trous, voir son score de maîtrise progresser, fermer l'onglet et retrouver son état ; export/import vérifié.
+**« Terminé » =** jouer quelques notes d'une position sur une vraie guitare et voir la tablature se remplir correctement, avec un diagnostic par corde et une tentative journalisée ; calibration et accordeur vérifiés sur au moins deux sources (micro intégré, interface USB).
 
-**Points à surveiller** : IndexedDB sur iOS (purge après 7 jours si non installé), taille de la tablature en mode saisie (cible tactile 44 px : zoom d'édition S+1 + pavé DOM), et le risque de transformer l'apprentissage en jeu de compteurs.
+**Points à surveiller** : octave fausse sur les deux cordes graves au micro de téléphone (peu d'énergie < 100 Hz), latence acoustique **non mesurable** sans micro de référence, et un journal qui grossit vite (rouvrir D25 : IndexedDB probable).
 
-**Dette technique assumée à reprendre** : doigtés non relus, mode « débutant » (hampes masquées), vue manche optionnelle, `#/tab` encore en page de contrôle.
+**Dette technique assumée à reprendre** : doigtés non relus position par position, vue manche optionnelle (attend un accord explicite), page « Progression » (heatmap), tempo/rythmique dans les exercices, `#/tab` encore en page de contrôle.

@@ -238,3 +238,32 @@ describe('couche animée', () => {
     expect(s.pixel(p.x - 1, p.y + 5)).not.toBe(up(T.panel));
   });
 });
+
+describe('trou désigné (exercice de mémorisation)', () => {
+  it('anneau du curseur autour de l’emplacement vide, sans révéler la case', () => {
+    const sc = single(7, '5', 1, { hidden: true });
+    const L = layoutScore(sc, { ...base, annotation: 'degree', activeHoleKey: '0:1' });
+    const p = L.columns[0]!.pills[0]!;
+    expect(p.active).toBe(true);
+    expect(p.hidden).toBe(true);
+    const s = new BufferSurface(L.width, L.height, T.panel);
+    drawScore(s, L, T);
+    drawOverlay(s, L, T, { tick: null, frame: 0 });
+    // l'anneau est bien autour (pas dedans) et l'intérieur reste en pointillés
+    expect(s.pixel(p.x - 1, p.y)).not.toBe(up(T.panel));
+    expect(s.pixel(p.x - 2, p.y - 2)).not.toBe(up(T.panel));
+    expect(s.count(up(intervalStyle('5').fill), p.x, p.y, p.w, p.h)).toBe(0);
+    expect(s.count(up(T.textMuted), p.x, p.y, p.w, p.h)).toBeGreaterThan(8);
+  });
+
+  it('aucun anneau quand aucun trou n’est désigné', () => {
+    const sc = single(7, '5', 1, { hidden: true });
+    const L = layoutScore(sc, { ...base, annotation: 'degree' });
+    const p = L.columns[0]!.pills[0]!;
+    const s = new BufferSurface(L.width, L.height, T.panel);
+    drawScore(s, L, T);
+    drawOverlay(s, L, T, { tick: null, frame: 0 });
+    expect(p.active).toBeUndefined();
+    expect(s.pixel(p.x - 1, p.y)).toBe(up(T.panel));
+  });
+});

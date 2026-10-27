@@ -1,6 +1,6 @@
 # MUSIC_DESIGN.md — choix musicaux et pédagogiques
 
-Statut : **phases 0, 1a, 1b, 1c et 1d terminées** (1d = hub, thème, module Gammes N1). Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la 1d : **§3.8** (doigtés de position), **§3.9** (ce que montre le niveau 1 et pourquoi), **§12** (bilan de la 1d, avis de prof et propositions).
+Statut : **phases 0, 1a, 1b, 1c, 1d et 2 terminées** (2 = progression, répétition espacée, niveaux 2-3). Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la phase 2 : **§3.4** (niveaux 2 et 3 tels qu'ils sont construits, étoiles sans tempo), **§5** (Leitner réalisé : rejouable, borné), **§13** (bilan de la phase 2, avis de prof et propositions).
 Auteur du raisonnement : rôle « dev + prof de guitare » du BRIEF.md. Les avis de prof sont marqués **[AVIS PROF]**, les hypothèses **[HYP]**, les points à trancher par toi **[À TRANCHER]**.
 
 Ce qui a été **vérifié par calcul** en phase 0 (script jetable, hors dépôt) : les 43 formes d'accord de la section 4.3 (notes réellement produites en accordage standard = notes de l'accord, basse correcte, orthographe correcte) et les 10 formes mobiles (barrés Mi/La × 5 qualités) sur 13 positions de fondamentale (cases 0 à 12) : **0 erreur**. Tout le reste est du raisonnement non exécuté.
@@ -172,6 +172,15 @@ Le moteur expose `systemsFor(scale): PositionSystem[]` ; l'UI n'affiche que cett
 3. **Rappel** : tab vide, tout de mémoire, chrono. [AVIS PROF] **Ne jamais exiger les 36 notes d'une position complète d'un bloc au pavé numérique** : 36 saisies = abandon. Découpage « 1 corde → 2 cordes → montée → montée+descente » ; bonus de vitesse **uniquement si précision ≥ 95 %**.
 4. **Improvisation** : voir 8. Prérequis : niveaux 1-3 d'au moins une forme *et* connaître l'accord de la 1re mesure de la progression (pas pour jouer — pour l'entendre).
 **Étoiles** : ★ précision, ★★ précision + tempo cible, ★★★ + sans aide (annotation masquée).
+
+**Tel que construit en phase 2** (`modules/gammes/exercise.ts`, `ScaleTrainingPage.tsx`) — écarts assumés :
+- **Le niveau 2 masque ~35 % des notes, avec un minimum de 2 et jamais toute la position.** Calcul : une box à 2 notes par corde = 4 notes, 35 % → 1,4 → un trou ; un exercice à un trou ne prouve rien et se devine. Cinq découpages : **1 corde / 2 cordes / 3 cordes / position entière / aller-retour** — c'est le chunking demandé, appliqué aux **cordes** (l'unité de lecture d'une position), pas aux mesures.
+- **Le niveau 3 masque toutes les notes du segment** ; la tablature garde les cordes, les mesures et le rythme (rythme masqué par défaut, cohérent avec le §3.9). L'élève écrit des **cases**, pas des couples corde+case : le nombre de notes est donc donné par les emplacements. **[HYP]** C'est plus facile qu'un rappel total ; c'est le compromis qui rend l'exercice faisable sur un téléphone au pavé.
+- **Validation par case, une note à la fois** ; une case trouvée du deuxième coup compte comme **fausse** (« reconnue, pas sue »), et **la 2ᵉ erreur révèle la case** (elle reprend sa couleur de fonction). Aucune punition bloquante : la série se termine toujours et la tentative est enregistrée.
+- **Pas de temps, pas de métronome dans l'exercice** : les étoiles sont ★ ≥ 80 %, ★★ ≥ 95 %, ★★★ **sans une erreur ni une révélation**. Le ★★ « au tempo cible » du plan ci-dessus suppose un moteur rythmique qui n'existe pas encore : l'app ne le prétend pas.
+- **L'annotation est celle du réglage** (notes, degrés, intervalles, doigtés), sauf sur les trous où **rien ne fuit** (ni chiffre, ni couleur, ni annotation, ni nom de fonction dans le libellé du pavé — la fonction est aussi une partie de la réponse).
+
+**Ce que la tentative enregistre** : gamme, tonique, accordage, système, position, `formIndex`, niveau, nombre de cordes du segment, **trous justes au premier essai / total**, durée, première case (zone du manche) et **cordes fautives** — pas chaque réponse. Le détail des erreurs note par note n'a pas de valeur supplémentaire pour un débutant et coûte 20 fois plus d'octets.
 
 ### 3.5 Exercices de technique (tous en tab, générés par `TabScore`)
 Séquences (par 3, par 4, tierces, quartes), motifs, alternate picking, legato (h/p dans le modèle), « tempo ladder » : montée de 4-5 BPM quand précision ≥ 95 % sur 2 passes. Ces exercices sont des *générateurs* de TabScore, pas des écrans spécifiques.
@@ -418,6 +427,8 @@ Seuils configurables (N, jours, secondes). **[AVIS PROF]** : 3 arpèges propres 
 Derrière une interface `Scheduler` pour pouvoir passer à FSRS (MIT, `ts-fsrs`) si les données le justifient : **SM-2 est un compromis historique** ; pour quelques centaines d'éléments et des gestes moteurs, un Leitner honnête suffit.
 **Journal** : chaque tentative est un événement horodaté (jamais seulement des agrégats) ; les agrégats se recalculent → on peut changer d'algorithme sans perdre l'historique.
 
+**Tel que construit en phase 2** (`core/progress/scheduler.ts`) : le journal est la seule source ; **les cartes ne sont pas stockées, elles se recalculent** en rejouant les tentatives vérifiées dans l'ordre chronologique (`cardsFrom`). Trois conséquences vérifiées par test : même journal → mêmes échéances ; un import de journal restaure exactement les échéances ; changer d'algorithme (`Scheduler`) ne perd rien. La gigue ±15 % est **déterministe** (hachage du nœud et du rang de révision) : sans cela, deux calculs successifs donneraient deux dates et aucun test ne pourrait rien affirmer. Échec = −2 boîtes (pas de retour brutal à zéro), réussite lente = sur place, **plafond 8 cartes dues par session**. Le diagnostic par corde (`Attempt.missedStrings`) alimente le hub (« La — 1 case manquée sur 1 tentative »).
+
 ---
 
 ## 6. Validation audio : ce qui est réaliste (vue du prof)
@@ -615,3 +626,41 @@ Les cinq propositions ont été **implémentées dans la même phase** (testées
 3. **Positions par morceaux** *(fort, moyen)* — fait (2 / 3 / 4 cordes) — la même position en 2 cordes, puis 3, puis entière. Réduit 12 notes à 4, prépare le niveau 3 sans nouveau code de théorie.
 4. **Mode « débutant » de la tablature** *(moyen, faible)* — fait (rythme masqué par défaut) — masquer hampes, ligatures et silences, ne garder que les pastilles et l'annotation. Réglage global, une ligne de layout.
 5. **Deux modes côte à côte** *(moyen, faible)* — fait (5 paires, même forme, note qui change en glow) — dorien et éolien sur la même position, seule la note qui change pulse. Le modèle porte déjà `characteristic` et le brief demande les deux lectures des modes.
+
+---
+
+## 13. Bilan de la phase 2 — avis de prof et propositions
+
+### 13.1 Ce qui marche vraiment
+- **La chaîne complète est honnête de bout en bout** : l'élève touche une case, l'app enregistre **un fait** (trous justes au premier essai, durée, corde fautive), et tout le reste — maîtrise, boîte de révision, XP, badges, série — est **recalculé** à chaque ouverture. On peut changer la formule de maîtrise demain sans perdre un seul essai, et un import de fichier restaure exactement les mêmes échéances. C'est la propriété que la plupart des apps de pratique n'ont pas : elles incrémentent un compteur et ne savent plus remonter au geste.
+- **« Apprise » veut enfin dire quelque chose** : deux réussites à 80 % sur deux jours différents, pas un sans-faute un soir de chance. La consolidation nocturne est dans le modèle, pas seulement dans le discours. Et la revoyure à 10 minutes (boîte 1) est exactement ce qu'on fait en cours : on reprend l'accord avant de ranger la guitare.
+- **Le trou comme unité d'exercice** est le bon geste pédagogique : il garde le contexte (la forme entière reste lisible en N2) tout en forçant la récupération active. C'est la différence entre relire une tablature et la savoir.
+- **La révélation après deux erreurs** évite les deux écueils opposés : l'acharnement (l'élève bloque sur une case et abandonne) et le mensonge (valider faux pour avancer). La case révélée reprend sa **couleur de fonction** : l'erreur devient une leçon de lecture.
+- **Le découpage par cordes** est ce que je fais à l'oral : « juste les deux cordes graves, on ajoute après ». 4 notes au lieu de 12 change tout sur un écran de téléphone.
+- **La transposition suggérée** (« cette forme n'a été jouée qu'en Ré — même forme en Do ») est la première fonction de l'app qui enseigne quelque chose que l'élève ne savait pas qu'il devait apprendre : le motif se transpose, la tonique se repère. C'est le cœur du module Gammes.
+- **Le diagnostic par corde** donne une phrase de prof que l'app peut dire sans micro : « tu rates la corde de La ».
+
+### 13.2 Ce qui reste faible (à dire franchement)
+- **Pas de tempo : la moitié du métier manque.** Savoir écrire une case n'est pas savoir la jouer en mesure. Les étoiles ★★/★★★ ne dépendent que de la précision, et un élève peut être « maîtrisé » sans avoir jamais tenu un rythme. Le métronome existe depuis la 1c : c'est l'exercice qui manque, pas le moteur.
+- **Un exercice écrit peut se tricher.** En N2, les notes visibles autour d'un trou permettent de **compter les cases** (une note voisine à la case 7 donne le trou à 8) sans savoir la forme. En N3 le problème disparaît — c'est pourquoi le N3 est le vrai test, et pourquoi le score de maîtrise devrait peser davantage le N3 que le N2. Actuellement les deux comptent pareil.
+- **Le taux de 35 % est un choix, pas une mesure.** Sur une position 3NPS de 18 notes, 35 % fait 6 trous : c'est beaucoup pour un débutant et peu pour un élève avancé. Le réglage (20 / 35 / 50 %) serait plus juste que la constante.
+- **La maîtrise ne mesure ni la vitesse ni la musicalité** : uniquement la justesse au premier essai. Un élève lent et juste vaut mieux qu'un élève rapide et faux, mais l'inverse existe aussi (celui qui « sait » mais ne sait plus sous les doigts, en temps réel).
+- **Le diagnostic par corde reste grossier** : il ne dit pas *quelle case* de la corde est ratée (le haut de la forme ? la note qui demande un écart de 3 cases ?). `missedStrings` perd cette information pour économiser 20 fois moins d'octets — le compromis est bon pour le MVP, insuffisant pour un vrai bilan.
+- **Les accordages sont mélangés** dans ce compteur (index de corde seul) : en Drop D, « corde 1 » n'est plus la même note.
+- **Rien n'est vérifié à l'oreille** : ni le timbre (inchangé depuis la 1c), ni la lecture sur un vrai téléphone, ni Safari/iOS. La lisibilité du pavé et de la tablature a été mesurée en CSS (48 px, pas de débordement), pas jugée dans la main.
+
+### 13.3 Propositions — état après la phase 2
+Les trois premières sont **implémentées dans cette phase** (testées, visibles au hub) :
+
+1. **Diagnostic par corde** *(fort, faible)* — fait — `missedStrings` + agrégation : « La — 1 case manquée sur 1 tentative ». C'est la première phrase de prof que l'app dit d'elle-même.
+2. **Prochaine échéance affichée** *(fort, faible)* — fait — « dans 6 min (boîte 1 sur 6) ». La revoyure rapprochée cesse d'être une théorie : l'élève voit quand revenir.
+3. **Transposition suggérée** *(fort, faible)* — fait — la même forme dans une tonique jamais vue, orthographe décidée par le moteur. Corrige l'erreur n°2 du débutant : connaître une forme sans savoir la déplacer.
+
+Restent ouvertes, par impact décroissant :
+
+4. **Exercice au métronome, ★★ au tempo cible** *(fort, moyen)* — brancher le métronome de la 1c sur l'exercice : la série se joue en mesures, la validation reste par case mais un **bonus de tempo** n'est accordé que si la série est finie dans la durée de la grille (à 60 BPM d'abord). C'est la seule façon de faire passer « savoir écrire » à « savoir jouer », et le brief le demande explicitement.
+5. **Révision mélangée (interleaving)** *(fort, moyen)* — une session de révision qui alterne 3 à 5 formes **différentes** (positions et gammes mêlées) au lieu de rejouer la même. La littérature sur l'apprentissage moteur est claire : l'entrelacement coûte plus cher sur le moment et retient mieux. Le plafond de 8 cartes existe déjà ; il manque l'ordre mêlé et l'écran qui enchaîne sans revenir au hub.
+6. **Peser le N3 plus que le N2 dans la maîtrise** *(moyen, faible)* — un trou trouvé par comptage ne vaut pas une case écrite de mémoire. Une pondération 1 / 1,5 sur les scores suffirait, et se testerait en rejouant les journaux.
+7. **Réglage du taux de trous (20 / 35 / 50 %)** *(moyen, faible)* — une constante à exposer plutôt qu'à deviner ; utile dès qu'un élève avancé utilise le N2 comme échauffement.
+
+À trancher plus tard, hors de cette phase : la **vue manche optionnelle** (toujours la vraie réponse à « je ne vois pas la forme », toujours contraire au brief tel qu'il est écrit) et la **relève des doigtés** position par position.

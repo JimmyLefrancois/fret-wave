@@ -57,6 +57,8 @@ export interface LayoutOptions {
    * (elles doivent porter `chordTone`, sinon rien n'est estompé).
    */
   emphasizeChordTones?: boolean;
+  /** Trou actuellement désigné dans un exercice de mémorisation (`${columnIndex}:${string}`). */
+  activeHoleKey?: string;
 }
 
 export const DEFAULT_LAYOUT: LayoutOptions = {
@@ -89,6 +91,8 @@ export interface PillLayout {
   dim?: boolean;
   /** Mise en évidence par un exercice (anneau blanc). */
   highlight?: boolean;
+  /** Trou désigné par l'utilisateur dans l'exercice de mémorisation (anneau du curseur). */
+  active?: boolean;
 }
 
 export type RhythmItem =
@@ -489,6 +493,7 @@ function buildColumn(
         characteristic: !!n.characteristic, passing: !!n.passing,
         ...(o.emphasizeChordTones && n.chordTone === false ? { dim: true } : {}),
         ...(o.highlightFn && n.fn === o.highlightFn ? { highlight: true } : {}),
+        ...(o.activeHoleKey && `${index}:${n.string}` === o.activeHoleKey ? { active: true } : {}),
       });
       if (c.ev.notes.length >= 2 && o.annotation !== 'none') {
         const text = annotationText(n, o.annotation, o.notes);

@@ -40,7 +40,7 @@ export function ScaleSelectPage() {
           <h1 className="page-title">Gammes</h1>
           <p className="t-small t-dim">Choisis, écoute, repère la tonique</p>
         </div>
-        <span className="tag tag-on">N1</span>
+        <span className="tag tag-on">N1 → N3</span>
       </header>
 
       <Panel className="span-7" accent="magenta" label="1 · Gamme">
@@ -164,6 +164,9 @@ export function ScaleSelectPage() {
       <div className="cta-block">
         <PixelButton variant="primary" className="wide" onClick={() => navigate('scale')}>
           ▶ Écouter cette gamme
+        </PixelButton>
+        <PixelButton className="wide" onClick={() => navigate('training')}>
+          Se tester · trous et rappel (N2 / N3)
         </PixelButton>
       </div>
     </main>

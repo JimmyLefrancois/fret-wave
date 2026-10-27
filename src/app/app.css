@@ -976,3 +976,140 @@ table.kv td:first-child { color: var(--muted); }
   .col-5 { grid-column: span 5; display: grid; gap: 20px; align-content: start; min-width: 0; }
   .col-5 > .section { margin: 0; }
 }
+
+/* ===========================================================================
+   Phase 2 — entraînement (trous / rappel), pavé numérique, badges, révision
+   =========================================================================== */
+
+/* --- pavé numérique : cibles ≥ 44 px, comme un pavé de téléphone --- */
+.numpad-entry {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  border: var(--bw) solid var(--line);
+  background: var(--bg);
+}
+.numpad-label {
+  font-family: var(--font-label);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+.numpad-digits {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--cyan);
+  text-shadow: 0 0 10px var(--cyan);
+  min-width: 2ch;
+  text-align: right;
+}
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.key {
+  min-height: 48px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--text);
+  background: var(--surface);
+  border: var(--bw) solid var(--line);
+  box-shadow: 3px 3px 0 var(--bg-deep);
+  cursor: pointer;
+}
+.key:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--bg-deep); }
+.key:disabled { opacity: 0.35; cursor: default; box-shadow: none; }
+.key:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.key-ok { border-color: var(--green); color: var(--green); }
+.key-alt { border-color: var(--line-soft); color: var(--muted); }
+.numpad-feedback { margin-top: 8px; }
+.numpad-feedback.ok { color: var(--ok); }
+.numpad-feedback.no { color: var(--danger); }
+
+/* --- résultat d'une série --- */
+.result-stars {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.12em;
+  color: var(--yellow);
+  text-shadow: 0 0 12px var(--yellow);
+  margin-bottom: 6px;
+}
+
+.linkish {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--cyan);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* --- révision du jour (hub) --- */
+.review-list { display: grid; gap: 6px; margin: 8px 0; }
+.review-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: var(--bw) solid var(--line-soft);
+  background: var(--bg);
+}
+.review-body { display: grid; gap: 2px; min-width: 0; }
+.review-title { font-size: 15.5px; font-weight: 600; color: var(--text); }
+
+/* --- badges (hub) --- */
+.badges {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.badge-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: var(--bw) dashed var(--line-soft);
+  background: rgba(21, 10, 51, 0.5);
+  opacity: 0.62;
+}
+.badge-item.on {
+  border-style: solid;
+  border-color: var(--yellow);
+  background: rgba(255, 210, 63, 0.08);
+  opacity: 1;
+}
+.badge-item-dot {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--dim);
+  border: 2px solid var(--line-soft);
+}
+.badge-item.on .badge-item-dot { color: var(--yellow); border-color: var(--yellow); }
+.badge-item-body { display: grid; gap: 1px; min-width: 0; }
+.badge-item-title { font-family: var(--font-body); font-weight: 600; font-size: 14.5px; color: var(--text); }
+
+/* --- export / import des données locales --- */
+.data-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.data-msg { margin-top: 6px; color: var(--cyan); }
+
+/* Téléphone : le pavé reste accessible pendant qu'on lit la tablature */
+@media (max-width: 899px) {
+  .numpad-panel {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    box-shadow: 0 6px 18px rgba(6, 0, 15, 0.75);
+  }
+}
