@@ -33,11 +33,12 @@ import { fmtNote } from '../../core/theory';
 import { positionToScore } from '../../core/tab';
 import { TabPlayer } from '../../core/audio/tabPlayer';
 import {
-  appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, xpForAttempt,
+  appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, streak, summarizeDay, xpForAttempt, xpSummary,
   type Attempt, type AttemptLevel,
 } from '../../core/progress';
 import { degreeName, fmtDegree, positionLabel, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
+import { Celebration } from './Celebration';
 import {
   SEGMENTS, buildExercise, holeKey, insideGrid, mulberry32, nearClick, segmentPlan, starsFor, tempoGrid, withRevealed,
   type GridOutcome, type Segment,
@@ -83,6 +84,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const [now, setNow] = useState(() => Date.now());
   const [result, setResult] = useState<Result | null>(null);
   const [journal, setJournal] = useState<Attempt[]>(() => readAttempts(progressStore()));
+  /** Panneau de réussite : ouvert à la fin d'une série, refermé par « Continuer » ou Échap. */
+  const [celebrate, setCelebrate] = useState(false);
 
   // --- grille rythmique
   const [grid, setGrid] = useState<'off' | 'running' | 'over'>('off');
@@ -271,6 +274,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       grid: gridOutcome,
     };
     setResult(res);
+    // réussite = au moins une étoile ; en dessous, le panneau de résultat dit la vérité sans fête
+    if (res.stars > 0) setCelebrate(true);
   }, [exercise, plan, r, level, startedAt, grid, settings.trainingTempo, stopGrid]);
 
   /** Réponse juste : la pastille reprend sa couleur, le curseur passe au trou suivant. */
@@ -605,6 +610,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     ? `${fmtNote(r.tuning.strings[activeHole.string]!.replace(/-?\d+$/, ''), settings.noteNotation)} ${activeHole.string === 0 ? '(grave)' : activeHole.string === r.tuning.strings.length - 1 ? '(aiguë)' : ''}`.trim()
     : null;
   const gridSpec = tempoGrid(total, settings.trainingTempo);
+  // XP total et XP du jour : recalculés depuis le journal, comme partout ailleurs
+  const totals = useMemo(() => xpSummary(journal, new Date()), [journal]);
+  const streakDays = useMemo(() => streak(journal, new Date()).days, [journal]);
+  const sessionsToday = useMemo(() => summarizeDay(journal, new Date()).exercises, [journal]);
 
   return (
     <main className="shell">
@@ -828,6 +837,26 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             L’annotation sous la tablature reste celle de ton réglage (notes, degrés, intervalles, doigtés) — elle est masquée sur les trous.
           </p>
         </Panel>
+      )}
+
+      {result && celebrate && result.stars > 0 && (
+        <Celebration
+          title={r.title}
+          position={positionLabel(r.position, settings.noteNotation)}
+          stars={result.stars}
+          accuracy={result.accuracy}
+          seconds={result.seconds}
+          revealed={result.revealed}
+          errors={result.errors}
+          earned={result.xp}
+          totalXp={totals.total}
+          todayXp={totals.today}
+          cap={totals.cap}
+          streakDays={streakDays}
+          sessionsToday={sessionsToday}
+          readonly={settings.reduceMotion}
+          onClose={() => setCelebrate(false)}
+        />
       )}
 
       <div className="pos-nav">
