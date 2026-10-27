@@ -133,12 +133,19 @@ export function Bar(props: { value: number; max: number; accent?: Accent }) {
   );
 }
 
-export function Switch(props: { checked: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) {
-  const { checked, onChange, label, hint } = props;
+export function Switch(props: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  hint?: string;
+  /** Libellé et précision sur la même ligne (au lieu de deux) : pour un réglage court et explicite. */
+  inline?: boolean;
+}) {
+  const { checked, onChange, label, hint, inline = false } = props;
   return (
     <button
       type="button"
-      className={`switch ${checked ? 'on' : ''}`}
+      className={`switch ${checked ? 'on' : ''} ${inline ? 'inline' : ''}`}
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}

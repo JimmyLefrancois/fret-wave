@@ -296,7 +296,7 @@ export function ScaleDiscoveryPage() {
           </div>
         </div>
         <div className="toggle-grid">
-          <Switch checked={drone && droneAvailable} onChange={setDrone} label="Drone" hint="fond. + quinte" />
+          <Switch checked={drone && droneAvailable} onChange={setDrone} label="Drone" hint="fond. + quinte" inline />
           <Switch checked={metro} onChange={setMetro} label="Métronome" />
           <Switch checked={loop} onChange={setLoop} label="Boucle" />
         </div>

@@ -381,6 +381,13 @@ a { color: var(--cyan); }
   color: var(--dim);
   margin-top: -2px;
 }
+/* libellé + précision sur une seule ligne (ex. « Drone · fond. + quinte ») */
+.switch.inline { grid-template-columns: 22px auto minmax(0, 1fr); }
+.switch.inline .switch-hint { grid-column: 3; margin-top: 0; white-space: nowrap; }
+.switch.inline .switch-hint::before { content: '· '; }
+/* dans une grille à deux colonnes, un réglage « inline » prend toute la largeur : à 163 px la
+   précision repassait à la ligne (le libellé et sa précision doivent tenir ensemble) */
+.toggle-grid > .switch.inline { grid-column: 1 / -1; }
 
 /* --- en-tête des écrans ----------------------------------------------------- */
 
