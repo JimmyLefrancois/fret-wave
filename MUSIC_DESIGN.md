@@ -1,6 +1,6 @@
 # MUSIC_DESIGN.md — choix musicaux et pédagogiques
 
-Statut : **phase 0 validée ; phase 1a (théorie + voicings) commitée ; phase 1b (positions, écriture de la tablature, rythme, couleurs) terminée, tests verts, non commitée**. Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la 1b : §2.1, §3.7, §4.3 (barrés), §10.
+Statut : **phase 0 validée ; phase 1a (théorie + voicings) commitée ; phase 1b (positions, écriture de la tablature, rythme, couleurs) commitée (`823fbbd`), tests verts**. Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la 1b : §2.1, §3.7, §4.3 (barrés), §10.
 Auteur du raisonnement : rôle « dev + prof de guitare » du BRIEF.md. Les avis de prof sont marqués **[AVIS PROF]**, les hypothèses **[HYP]**, les points à trancher par toi **[À TRANCHER]**.
 
 Ce qui a été **vérifié par calcul** en phase 0 (script jetable, hors dépôt) : les 43 formes d'accord de la section 4.3 (notes réellement produites en accordage standard = notes de l'accord, basse correcte, orthographe correcte) et les 10 formes mobiles (barrés Mi/La × 5 qualités) sur 13 positions de fondamentale (cases 0 à 12) : **0 erreur**. Tout le reste est du raisonnement non exécuté.

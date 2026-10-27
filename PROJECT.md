@@ -1,14 +1,14 @@
 # PROJECT.md — Fretwave (nom de travail) : apprendre la guitare, en tablature, en pixel art
 
-**Statut : phase 0 validée · phase 1a terminée et commitée (`5797333`) · phase 1b (positions, TabScore, rendu pixel, curseur synchronisé sur Tone.Transport) terminée, **non commitée**, en attente de ta validation · 1c pas commencée.**
+**Statut : phases 0, 1a et 1b validées et commitées (`183eacc`, `5797333`, `823fbbd`) · D1-D12 tranchées, D13 écartée · phase 1c (audio final, hub, thème Synthwave, module Gammes N1) pas commencée, en attente de ton feu vert.**
 Documents liés : `BRIEF.md` (cahier des charges), `MUSIC_DESIGN.md` (conventions musicales, curriculum, avis de prof).
 Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** décision qui t'appartient · **[RISQUE]** voir section 7.
 
 ---
 
-## État exact (dernière mise à jour : fin de la phase 1b)
+## État exact (dernière mise à jour : après le commit de la phase 1b)
 
-**Git** (branche `master`) : `183eacc` Phase 0 · `5797333` Phase 1a · **la phase 1b n'est pas commitée** (`git status` : fichiers modifiés et nouveaux, dont ce document). Aucun remote.
+**Git** (branche `master`) : `183eacc` Phase 0 · `5797333` Phase 1a · `823fbbd` Phase 1b. Arbre propre après le commit 1b (seule cette mise à jour du document est en attente). Aucun remote.
 
 **Fait et vérifié (1b)**
 - **Positions** (`src/core/theory/positions.ts`) : 3 notes par corde (7), boxes pentatoniques (5), CAGED (5), motifs symétriques (période 2 / 3 / 4), blues (box + note de blues), bebop (3NPS + note de passage). Générique sur l'accordage et le nombre de cordes ; CAGED seulement si les 6 cordes aiguës sont en standard (refus avec raison). Option `register` (+12 cases), `formIndex` (identité de forme indépendante du mode), étiquettes « Position 3 · cases 7–10 ». Règles exactes : `MUSIC_DESIGN.md` §3.7.
@@ -562,7 +562,7 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | Phase | Contenu | « Terminé » = |
 |---|---|---|
 | **1a** ✔ `5797333` | Moteur de théorie (gammes, accords, orthographe, enharmoniques, conversion solfège), accordages/nb de cordes, base de voicings + tests | Tous les tests de `MUSIC_DESIGN.md` verts ; couverture des 13+13 tonalités — **atteint** (61 tests) |
-| **1b** ✔ (non commitée) | Positions (3NPS, boxes, CAGED, symétriques, blues, bebop), `TabScore`, générateurs, layout, police bitmap, rendu pixel, curseur synchronisé sur Tone.Transport (son provisoire) | Captures lisibles à S=2 sur 390×844 ; chiffres à 2 chiffres nets ; piles d'accords nettes ; 7 cordes, solfège / anglo, Drop D ; daltonisme ; coût de rendu — **atteint** (204 tests, mesures dans « État exact ») |
+| **1b** ✔ `823fbbd` | Positions (3NPS, boxes, CAGED, symétriques, blues, bebop), `TabScore`, générateurs, layout, police bitmap, rendu pixel, curseur synchronisé sur Tone.Transport (son provisoire) | Captures lisibles à S=2 sur 390×844 ; chiffres à 2 chiffres nets ; piles d'accords nettes ; 7 cordes, solfège / anglo, Drop D ; daltonisme ; coût de rendu — **atteint** (204 tests, mesures dans « État exact ») |
 | **1c** (prochaine) | Moteur audio + échantillons (remplace le son provisoire), hub, thème Synthwave, module Gammes N1, page debug audio | Écoute montante/descendante + drone, curseur synchronisé, page debug audio |
 | 2 | Gammes N2/N3 (saisie), progression unifiée persistante, XP, SRS | Journal + export/import |
 | 3 | Entrée mono, calibration, accordeur, affichage live | Test sur guitare réelle |
@@ -589,15 +589,11 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | D8 | Affichage des accords | **`Am7` (anglo)** — *changé par toi* (ma reco était `Lam7`) ; solfège/jazz en option |
 | D9 | Solveur de voicings (accordages alternatifs) | **Plus tard**, après P4 |
 | D10 | Phase 1 | **Découpée en 1a / 1b / 1c** |
+| D11 | Numérotation des positions (1b) | **Par degré de départ** (Position 1 = la tonique, même forme dans toutes les tonalités) ; les cases sont toujours affichées ; l'écran 1c peut trier par cases |
+| D12 | Définition de CAGED (1b) | **Fenêtre de 5 cases autour de la forme d'accord** (générique). **Condition : tu relis 3 tonalités (Do, Sol, La) avant que 1c expose CAGED dans l'UI** |
+| D13 | Daltonisme : « aide daltonisme » (1b) | **Écartée** : pas de réglage dédié ; forme de la fondamentale, encoche ♭/♯ et rangée de degrés optionnelle restent les seules aides (limite assumée, `MUSIC_DESIGN.md` §2.1) |
 
-**Décisions D1-D12 : tranchées.** D11 et D12 (phase 1b) acceptées avec ma recommandation ; D13 écartée par toi :
-
-| # | Question | Ma recommandation |
-|---|---|---|
-| D11 ✔ | Numérotation des positions : par **degré de départ** (actuel : Position 1 = tonique) ou par **ordre sur le manche** ? | Garder l'actuel (la forme est stable d'une tonalité à l'autre) et **toujours afficher les cases** ; l'écran 1c pourra trier par cases. |
-| D12 ✔ | **CAGED** : définition par fenêtre de 5 cases autour de la forme d'accord (actuelle, générique) ou positions CAGED saisies à la main (5 formes × doigtés, fidèles à tes sources) ? | Garder la définition par fenêtre, et que **tu relises 3 tonalités** (Do, Sol, La) avant que 1c n'expose CAGED dans l'UI. |
-| D13 ✘ écartée | **Daltonisme** : la couleur seule ne suffit pas (capture 11). Réglage « aide visuelle » : rangée de degrés toujours affichée, ou **degré écrit dans la pastille à la place de la case** ? | Rangée de degrés forcée + motif par famille (hachure) dans un réglage « aide daltonisme » ; à faire en 1c avec les réglages. |
-
+**Toutes les décisions sont tranchées** (D1-D12 ; D13 écartée). Aucune décision en attente.
 
 ---
 
@@ -605,7 +601,7 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 
 - **Phase 0** (terminée, commit `183eacc`) : lecture complète de `BRIEF.md` (40 513 octets) ; versions/licences de paquets vérifiées via `npm view` ; calculs de fenêtres FFT, harmoniques et périodes ; vérification par script de 43 voicings et 10 formes mobiles (0 erreur) ; rédaction de `PROJECT.md` et `MUSIC_DESIGN.md`. Validée par l'utilisateur : D1-D10 acceptées, **D8 changée en `Am7`**.
 - **Phase 1a** (terminée, commit `5797333`) : projet Vite + React + TypeScript + Vitest ; moteur de théorie, base de voicings et page de contrôle (détail dans « État exact »). 61 tests verts, `tsc` propre, build OK, rendu vérifié dans un navigateur. Corrections de la documentation trouvées par les tests : règle de coût d'orthographe « coût égal → les deux » ; `dim` = triade / `dim7` à part.
-- **Phase 1b** (terminée, **non commitée**) : positions, `TabScore`, générateurs, layout, police, rendu, lecteur Tone, page de contrôle (détail dans « État exact »). 204 tests verts, `tsc` propre, build OK. Vérifié dans Chromium piloté par CDP à 3 viewports : lecture, boucle, tempo en direct, curseur exact au pixel, défilement et retour à la ligne, DPR 2,625. **Trouvé en route** : (1) `transport.stop(time)` dans l'événement de fin rejoue le tick 0 (une note parasite) → arrêt par minuterie ; (2) contraste chiffre / pastille insuffisant sur les couleurs de bémols (3,6-4,0) → chiffre blanc automatique ; (3) les tests ont corrigé `MUSIC_DESIGN.md` §3.2 (box 3 de La m = cases 9-13) ; (4) onglet de test masqué : `requestAnimationFrame` s'arrête (le curseur ne bouge pas) — sans effet pour l'utilisateur, mais le banc de mesure doit mettre la page au premier plan ; (5) simulation de daltonisme : voir D13.
+- **Phase 1b** (terminée, commit `823fbbd`, validée : D11 et D12 acceptées, D13 écartée) : positions, `TabScore`, générateurs, layout, police, rendu, lecteur Tone, page de contrôle (détail dans « État exact »). 204 tests verts, `tsc` propre, build OK. Vérifié dans Chromium piloté par CDP à 3 viewports : lecture, boucle, tempo en direct, curseur exact au pixel, défilement et retour à la ligne, DPR 2,625. **Trouvé en route** : (1) `transport.stop(time)` dans l'événement de fin rejoue le tick 0 (une note parasite) → arrêt par minuterie ; (2) contraste chiffre / pastille insuffisant sur les couleurs de bémols (3,6-4,0) → chiffre blanc automatique ; (3) les tests ont corrigé `MUSIC_DESIGN.md` §3.2 (box 3 de La m = cases 9-13) ; (4) onglet de test masqué : `requestAnimationFrame` s'arrête (le curseur ne bouge pas) — sans effet pour l'utilisateur, mais le banc de mesure doit mettre la page au premier plan ; (5) simulation de daltonisme : voir D13.
 - **Mise à jour de ce document** : section « État exact », décisions D1-D12 tranchées (D13 écartée), hypothèses 1-30, section 12 « Prochaine étape ».
 
 ---
@@ -619,7 +615,7 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 2. **Drone** de la fondamentale et accord de référence (couleur du mode).
 3. **Thème Synthwave** (tokens, scène pixel, parallaxe 30 images/s, scanlines désactivables) ; panneau de tab opaque (déjà en place).
 4. **Hub** minimal + routeur par hash ; réglages globaux (notations, thème, volumes, « réduire les animations »). *Pas d'« aide daltonisme » (D13 écartée) : la limite constatée en 1b est assumée.*
-5. **Module Gammes niveau 1** : sélection (gamme, tonique avec parent affiché — hypothèse 18, système compatible, position), lecture montée / descente, drone, arpège superposable, notes caractéristiques en évidence.
+5. **Module Gammes niveau 1** : sélection (gamme, tonique avec parent affiché — hypothèse 18, système compatible — **CAGED masqué tant que tu n'as pas relu D12** —, position), lecture montée / descente, drone, arpège superposable, notes caractéristiques en évidence.
 6. **Page debug audio** (chaque son, volumes mémorisés).
 
 **« Terminé » =** écoute montante / descendante + drone, curseur synchronisé (mesure comme en 1b, avec le son final), page debug audio, captures du module sur 390×844.
