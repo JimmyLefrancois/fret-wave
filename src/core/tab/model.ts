@@ -42,6 +42,12 @@ export interface TabNote {
   characteristic?: boolean;
   /** Note ajoutée (blue note, passage chromatique). */
   passing?: boolean;
+  /**
+   * Note appartenant à l'accord du contexte (1-3-5-7). Renseigné par le générateur quand l'option
+   * `markChordTones` est active : le rendu peut alors estomper les autres notes pour montrer
+   * « où habitent les notes de l'accord » dans la position (niveau 1 Découverte).
+   */
+  chordTone?: boolean;
 }
 
 export interface StrumMark {

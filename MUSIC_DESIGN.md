@@ -1,6 +1,6 @@
 # MUSIC_DESIGN.md — choix musicaux et pédagogiques
 
-Statut : **phase 0 validée ; 1a et 1b commitées ; phase 1c (moteur audio de sortie) commitée (`971be8c`)**. Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la 1c : §2 (lecture), **§11** (sources et licences des échantillons, hauteur et niveaux mesurés, règles de jeu, avis de prof).
+Statut : **phases 0, 1a, 1b, 1c et 1d terminées** (1d = hub, thème, module Gammes N1). Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la 1d : **§3.8** (doigtés de position), **§3.9** (ce que montre le niveau 1 et pourquoi), **§12** (bilan de la 1d, avis de prof et propositions).
 Auteur du raisonnement : rôle « dev + prof de guitare » du BRIEF.md. Les avis de prof sont marqués **[AVIS PROF]**, les hypothèses **[HYP]**, les points à trancher par toi **[À TRANCHER]**.
 
 Ce qui a été **vérifié par calcul** en phase 0 (script jetable, hors dépôt) : les 43 formes d'accord de la section 4.3 (notes réellement produites en accordage standard = notes de l'accord, basse correcte, orthographe correcte) et les 10 formes mobiles (barrés Mi/La × 5 qualités) sur 13 positions de fondamentale (cases 0 à 12) : **0 erreur**. Tout le reste est du raisonnement non exécuté.
@@ -193,11 +193,44 @@ Une position = des couples (corde, case) lus **corde grave → aiguë, cases cro
 | **Symétriques** | période du motif (2 tons entiers, 3 diminuée, 4 augmentée) ; un motif par case de la période ; fenêtre de 5 cases | 2 / 3 / 4 positions |
 
 - Exemples de fenêtres CAGED (cases) : **Do majeur** C 0-4 · A 2-6 · G 5-9 · E 7-10 · D 9-13 ; **Sol majeur** G 0-4 · E 2-5 · D 4-8 · C 7-11 · A 9-13.
+- **Relecture de prof (condition D12, faite en 1d)** sur Do, Sol et La majeur, forme par forme : la fenêtre contient **la triade complète**, **≤ 3 notes par corde**, et la fondamentale tombe sur la corde de la forme. **La** : A 0-3 · G 2-6 · E 4-7 · D 6-10 · C 9-13. Les 15 fenêtres sont cohérentes avec les formes barrées correspondantes (ex. Do, forme de G : 8-7-5-5-5-8, donc fenêtre 5-9 avec la tonique en 6/8, 3/5 et 1/8). **Aucune correction demandée** ; la seule réserve pédagogique est celle du nom : « forme de Mi » désigne la forme d'accord qui **ancre** la fenêtre, pas l'endroit de la tonique, qui change de corde d'une forme à l'autre. À dire à l'élève, sinon il cherche la tonique au mauvais endroit.
 - CAGED n'est calculé que si les 6 cordes aiguës sont en standard (Mi La Ré Sol Si mi) : 7 et 8 cordes standard : oui (la corde grave supplémentaire est incluse dans la fenêtre) ; Drop D, DADGAD, Open G… : **refusé, avec la raison affichable**.
 - **`formIndex`** : identité de la forme indépendante du mode — rang de départ dans la gamme **parente** : la position 2 de Ré dorien (départ Mi) a le même `formIndex` et les mêmes cases que la position 3 de Do majeur. C'est la clé des nœuds « forme » de §3.1.
 - **Numéro d'une position** = rang du degré de départ : « Position 1 » = la tonique sur la corde grave, quel que soit l'endroit du manche. Un même numéro désigne donc la même *forme* dans toutes les tonalités ; pour savoir *où*, on lit « cases a–b ».
 
 ---
+
+### 3.8 Doigtés de position (implémentés en 1d)
+
+Règle appliquée, **corde par corde** (`core/theory/fingerings.ts`, testé sur toutes les positions du catalogue) :
+
+| Cas sur une corde | Doigtés |
+|---|---|
+| 1 note | 1 |
+| 2 notes, écart 1 / 2 / ≥ 3 cases | 1-2 / 1-3 / 1-4 |
+| 3 notes, cluster (≤ 2 cases au total) | 1-2-3 |
+| 3 notes, 2e note collée à l'index (`1+1`) | 1-2-4 |
+| 3 notes, 2e note collée à l'auriculaire (`2+1`) | 1-3-4 |
+| 3 notes, écart symétrique | 1-3-4 |
+| 4 notes | 1-2-3-4 |
+| **5 notes et plus** | **aucun doigté** (démanché nécessaire) |
+
+**[AVIS PROF]** J'ai choisi une règle **par corde** et non « une case = un doigt sur toute la position ». La seconde est séduisante mais fausse dès qu'une fenêtre fait 5 cases (CAGED) : elle réclame un cinquième doigt ou décale tout. La règle par corde reproduit exactement les doigtés qu'on enseigne : box 1 de La mineur pentatonique = 1-4 sur les cordes 1 et 2, 1-3 ailleurs ; 3NPS 5-7-8 = 1-3-4 ; 5-6-8 = 1-2-4. Elle ne prétend pas remplacer un prof : elle ne gère **ni les démanchés, ni les variantes 1-2-4 sur les grands écarts, ni les doigtés d'accords** (phase 4). C'est une aide à la lecture, pas une vérité — d'où l'annotation **optionnelle** et l'absence de doigté plutôt qu'un doigté inventé.
+
+### 3.9 Niveau 1 « Découverte » : ce que l'écran montre, et pourquoi
+
+| Choix | Raison pédagogique |
+|---|---|
+| **Annotation par défaut = degrés** (`1 ♭3 4 5 ♭7`) | À ce stade, le nom de la note ne sert à rien : c'est la **fonction** qu'on apprend. « Notes » et « intervalles » restent à un tap. |
+| **Couleur = fonction**, identique partout | ♭3 et 3 ne partagent pas la couleur ; ♯4 et ♭5 non plus. L'élève apprend une **carte de fonctions**, pas un nuancier. |
+| **Légende nommée en français** (« tierce mineure ») | Relier la couleur au **mot** qu'utilisera le prof, et au son entendu avec le drone. |
+| **Drone par défaut, jamais de tierce** | On entend la couleur du mode contre une tonique stable ; une tierce dans le drone déciderait majeur/mineur à la place de la gamme. |
+| **Note caractéristique en glow** | Elle désigne ce qui **définit** le mode (6te du dorien, ♭2 du phrygien, ♯4 du lydien, ♭5 du locrien…). |
+| **Calque « notes de l'accord »** (estompe les étrangères) | Montre où habitent 1-3-5-7 **dans la forme** : c'est le pont entre la gamme et l'accord. Sur La m pent + Am7, seule la 4te s'éteint — visuellement, la gamme « contient » l'accord. |
+| **Position précédente / suivante** (Box 1 → 5) | Le chaînage des boxes est la compétence suivante (§3.2, G1.3). Le compteur « 1 / 5 » rend la progression visible. |
+| **Pas de score, pas de « validé »** | Le brief prévoit une validation auto-déclarée au niveau 1. L'app **journalise l'écoute** (durée réelle) et ne prétend rien de plus. Un niveau 1 « validé » sans preuve serait un mensonge. |
+
+**Ce qui reste trop lourd en N1** [AVIS PROF] : les hampes et ligatures du rythme. Un débutant qui écoute sa première pentatonique n'a aucune raison de lire des croches : trois couches (pastilles, annotation, rythme) pour une seule information utile. Je propose un **mode « débutant »** qui masque la ligne rythmique (proposition 4 du §12).
 
 ## 4. Module Accords — plan pédagogique
 
@@ -549,3 +582,28 @@ Le vrai gain de la 1c n'est pas « on a du son » : c'est que **ce qu'on entend 
 3. **Boucle sur un segment** *(fort, moyen)* : une corde, une mesure, tempo réduit ; prépare le chunking des niveaux 2-3.
 4. **Deux modes sur le même drone** *(moyen, faible)* : dorien puis éolien en alternance automatique, seule la note qui change est mise en évidence.
 5. **Mode « strum seul »** *(moyen, faible)* : flèches et son, sans pile ni hampes, pour ceux qui jouent leurs deux premiers accords (§10.1).
+
+---
+
+## 12. Bilan de la phase 1d — avis de prof et propositions
+
+### 12.1 Ce qui marche
+- **L'app ne peut plus mentir sur la gamme choisie** : les orthographes alternatives apparaissent quand le coût est égal, les systèmes incompatibles sont grisés **avec leur raison**, le mode parent est nommé (« mode parent : Do majeur (2e degré) ») et jamais présenté comme une tonalité. C'est exactement là que les apps de gammes se cassent, et c'est invisible quand c'est bien fait.
+- **Le calque d'accord est la meilleure idée de la phase** : il transforme « voici 12 notes » en « voici la gamme, et voilà où est l'accord dedans ». Sur une pentatonique mineure, une seule note s'éteint — et cette note est justement la 4te, celle qui « frotte ». On peut l'enseigner en 10 secondes avec cet écran.
+- **Les doigtés remplissent une rangée qui était vide depuis la 1b**, avec des valeurs qui sont celles qu'on enseigne vraiment (1-3 / 1-4 / 1-2-4 / 1-3-4), et **rien** quand la position demanderait un démanché.
+- **Les chiffres du hub sont vrais.** « 1 gamme écoutée · 10 s » vient d'une lecture réelle mesurée, pas d'un décor. C'est la base de confiance dont la phase 2 aura besoin.
+- **Le poster fait son travail** : identité immédiate, typographie lisible, et le décor s'efface dès qu'on entre dans un écran de travail (variante `calm`).
+
+### 12.2 Ce qui reste faible
+- **La tablature seule ne montre toujours pas la forme.** Une box à 2 notes par corde se lit ; une position 3NPS se lit comme une liste. La vue manche optionnelle reste la vraie réponse, et elle n'existe pas. Le compteur de positions et la légende de couleurs compensent en partie, pas complètement.
+- **Le niveau 1 est une écoute, pas un apprentissage vérifié.** Rien n'est encore évalué : c'est conforme au brief, mais il ne faut pas appeler ça « appris ».
+- **Le rythme dans la tablature est du bruit en N1** (voir §3.9).
+- **Le timbre n'a pas été écouté** (comme en 1c) et rien n'a été testé sur un vrai téléphone : la lisibilité a été jugée sur captures 390×844, pas dans la main.
+- **Doigtés heuristiques** : justes sur les formes usuelles, non relus position par position.
+
+### 12.3 Propositions (impact ÷ effort décroissant)
+1. **« Fondamentales d'abord »** *(fort, faible)* — un mode qui n'allume que 1 et 5 dans la position, l'élève nomme la tonique à voix haute. Corrige l'erreur n°1 : connaître la forme sans savoir où elle habite.
+2. **« Montre-moi la ♭3 »** *(fort, moyen)* — lecture avec drone, l'élève touche la pastille d'une fonction demandée. Transforme la couleur en son au lieu d'un décor ; c'est de l'ear training **sur la tablature elle-même**.
+3. **Positions par morceaux** *(fort, moyen)* — la même position en 2 cordes, puis 3, puis entière. Réduit 12 notes à 4, prépare le niveau 3 sans nouveau code de théorie.
+4. **Mode « débutant » de la tablature** *(moyen, faible)* — masquer hampes, ligatures et silences, ne garder que les pastilles et l'annotation. Réglage global, une ligne de layout.
+5. **Deux modes côte à côte** *(moyen, faible)* — dorien et éolien sur la même position, seule la note qui change pulse. Le modèle porte déjà `characteristic` et le brief demande les deux lectures des modes.

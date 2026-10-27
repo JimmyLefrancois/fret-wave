@@ -29,6 +29,8 @@ export interface TabViewProps {
   transport: 'stopped' | 'playing' | 'paused';
   /** Position du curseur (fraction de la largeur visible) en défilement continu. */
   cursorAnchor?: number;
+  /** Calque « notes de l'accord » : estompe les notes qui n'appartiennent pas à l'accord. */
+  emphasizeChordTones?: boolean;
 }
 
 export interface TabMetrics {
@@ -64,7 +66,7 @@ function describe(score: TabScore, notation: NoteNotation): string {
 }
 
 export function TabView(props: TabViewProps) {
-  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3 } = props;
+  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false } = props;
   const playing = transport === 'playing';
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -101,8 +103,8 @@ export function TabView(props: TabViewProps) {
   const viewLogical = Math.max(60, Math.floor(box.w / cssPerLogical));
 
   const layout: ScoreLayout = useMemo(
-    () => layoutScore(score, { mode, maxWidth: viewLogical, notes, chords, annotation, stacks: 'change' }),
-    [score, mode, viewLogical, notes, chords, annotation],
+    () => layoutScore(score, { mode, maxWidth: viewLogical, notes, chords, annotation, stacks: 'change', emphasizeChordTones }),
+    [score, mode, viewLogical, notes, chords, annotation, emphasizeChordTones],
   );
 
   const cssW = layout.width * cssPerLogical;

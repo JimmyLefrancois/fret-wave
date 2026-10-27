@@ -4,8 +4,8 @@
  *  - `drawOverlay` : couche animée (glow des notes caractéristiques, notes passées estompées, curseur).
  * Aucune opération de lissage : seulement des rectangles entiers.
  */
-import { intervalStyle, type TabTheme } from './colors';
-import { drawGlyph, drawText, drawTextScaled, glyph, sprite, textWidth } from './font';
+import { intervalStyle, mix, type TabTheme } from './colors';
+import { drawGlyph, drawText, glyph, sprite, textWidth } from './font';
 import { METRICS, cursorAt, type ColumnLayout, type PillLayout, type ScoreLayout, type TextRole } from './layout';
 import type { Surface } from './surface';
 
@@ -33,10 +33,14 @@ export function drawPill(s: Surface, theme: TabTheme, p: PillLayout): void {
     return;
   }
   const st = intervalStyle(p.fn);
+  // Calque « notes de l'accord » : les notes étrangères s'effacent dans le panneau (pas d'alpha :
+  // on mélange avec la couleur de fond, ce qui reste net en pixel art). Assez fort pour que la
+  // différence se voie sur un téléphone : le chiffre reste lisible, la pastille perd sa couleur.
+  const fade = (c: string, k: number) => (p.dim ? mix(c, theme.panel, k) : c);
   const c = st.root ? 2 : 1;
-  steppedRect(s, p.x, p.y, p.w, p.h, c, theme.outline);
-  steppedRect(s, p.x + 1, p.y + 1, p.w - 2, p.h - 2, c - 1, st.fill);
-  drawText(s, p.x + 3, p.y + 3, p.text, st.digit);
+  steppedRect(s, p.x, p.y, p.w, p.h, c, fade(theme.outline, 0.7));
+  steppedRect(s, p.x + 1, p.y + 1, p.w - 2, p.h - 2, c - 1, fade(st.fill, 0.78));
+  drawText(s, p.x + 3, p.y + 3, p.text, fade(st.digit, 0.62));
   // encoche d'altération : bémol en bas à droite, dièse en haut à droite ; double = les deux côtés
   const right = p.x + p.w - 3;
   const left = p.x + 1;
@@ -100,9 +104,10 @@ export function drawScore(s: Surface, layout: ScoreLayout, theme: TabTheme): voi
     }
     for (const t of sys.texts) drawText(s, t.x, t.y, t.text, TEXT_COLOR[t.role](theme));
     if (sys.timeSig) {
-      s.fillRect(sys.timeSig.x - 1, sys.timeSig.y - 1, textWidth(String(Math.max(sys.timeSig.num, sys.timeSig.den))) * 2 + 2, 31, theme.panel);
-      drawTextScaled(s, sys.timeSig.x, sys.timeSig.y, String(sys.timeSig.num), theme.text, 2);
-      drawTextScaled(s, sys.timeSig.x, sys.timeSig.y + 15, String(sys.timeSig.den), theme.text, 2);
+      // signature rythmique : petite, en tête de portée (première ligne), pas au milieu des cordes
+      const label = `${sys.timeSig.num}/${sys.timeSig.den}`;
+      s.fillRect(sys.timeSig.x - 1, sys.timeSig.y - 1, textWidth(label) + 2, METRICS.glyphH + 2, theme.panel);
+      drawText(s, sys.timeSig.x, sys.timeSig.y, label, theme.textMuted);
     }
     for (const r of sys.rhythm) {
       if (r.kind === 'rect') s.fillRect(r.x, r.y, r.w, r.h, theme.stem);

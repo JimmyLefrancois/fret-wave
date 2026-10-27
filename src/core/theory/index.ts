@@ -8,3 +8,4 @@ export * from './chords';
 export * from './systems';
 export * from './voicings';
 export * from './positions';
+export * from './fingerings';

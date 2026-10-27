@@ -3,6 +3,7 @@
  * Aucun rendu ici : le résultat est consommé à l'identique par le layout et par la lecture audio.
  */
 import { interpretChord, CHORD_QUALITIES, type ChordInfo } from '../theory/chords';
+import { fingeringsForPosition, noteKey } from '../theory/fingerings';
 import { fretToMidi } from '../theory/fretboard';
 import { defaultSystem, generatePositions, type Position, type PositionNote } from '../theory/positions';
 import { getScale } from '../theory/scales';
@@ -13,7 +14,7 @@ import type { DegreeLabel, NoteName } from '../theory/types';
 import { Interval } from 'tonal';
 import {
   PPQ, measureTicksFor,
-  type Measure, type MeasureLabel, type TabEvent, type TabNote, type TabScore,
+  type FingerMark, type Measure, type MeasureLabel, type TabEvent, type TabNote, type TabScore,
 } from './model';
 
 const EIGHTH = PPQ / 2;
@@ -126,10 +127,15 @@ function makeScore(
 // Gamme et position
 // ---------------------------------------------------------------------------
 
-function tabNoteFromPosition(pn: PositionNote, characteristic: ReadonlySet<DegreeLabel>): TabNote {
+function tabNoteFromPosition(
+  pn: PositionNote, characteristic: ReadonlySet<DegreeLabel>,
+  extra?: { finger?: FingerMark; chordPcs?: ReadonlySet<number> },
+): TabNote {
   const n: TabNote = { string: pn.string, fret: pn.fret, midi: pn.midi, note: pn.note, fn: pn.degree };
   if (characteristic.has(pn.degree)) n.characteristic = true;
   if (pn.passing) n.passing = true;
+  if (extra?.finger !== undefined) n.finger = extra.finger;
+  if (extra?.chordPcs) n.chordTone = extra.chordPcs.has(((pn.midi % 12) + 12) % 12);
   return n;
 }
 
@@ -141,13 +147,24 @@ export interface PositionScoreOptions extends BaseOptions {
   chord?: string;
   /** Étiquette de la position affichée (« cases 5–8 »). */
   labelText?: string;
+  /** Doigtés conventionnels de la position (heuristique `fingeringsForPosition`, MUSIC_DESIGN §3.8). */
+  fingers?: boolean;
+  /** Marque chaque note comme note de l'accord ou non (`chordTone`) pour le calque « notes de l'accord ». */
+  markChordTones?: boolean;
 }
 
 /** Position de gamme → tablature, en montée et/ou en descente, une note par temps de croche. */
 export function positionToScore(pos: Position, tuning: Tuning, opts: PositionScoreOptions = {}): TabScore {
   const def = getScale(pos.scaleId);
   const chars = new Set(def.characteristic ?? []);
-  const notes = orderDirection(pos.notes, opts.direction ?? 'up').map((n) => tabNoteFromPosition(n, chars));
+  const fingers = opts.fingers ? fingeringsForPosition(pos) : null;
+  const chordPcs = opts.markChordTones && opts.chord ? chordPitchClasses(opts.chord) : null;
+  const notes = orderDirection(pos.notes, opts.direction ?? 'up').map((n) =>
+    tabNoteFromPosition(n, chars, {
+      ...(fingers ? { finger: fingers.get(noteKey(n.string, n.fret)) } : {}),
+      ...(chordPcs ? { chordPcs } : {}),
+    }),
+  );
   const dur = opts.noteTicks ?? EIGHTH;
   const text = opts.labelText ?? (pos.fretMin === pos.fretMax ? `case ${pos.fretMin}` : `cases ${pos.fretMin}–${pos.fretMax}`);
   return makeScore(
@@ -198,6 +215,11 @@ export function defaultChordForScale(scaleId: string, tonic: NoteName): string |
 
 function chordFnByPc(info: ChordInfo): Map<number, { fn: DegreeLabel; note: NoteName }> {
   return new Map(info.pitchClasses.map((pc, i) => [pc, { fn: info.degrees[i]!, note: info.notes[i]! }]));
+}
+
+/** Classes de hauteur des notes d'un accord (calque « notes de l'accord » d'une position). */
+function chordPitchClasses(symbol: string): Set<number> {
+  return new Set(interpretChord(symbol).pitchClasses.map((pc) => ((pc % 12) + 12) % 12));
 }
 
 /**

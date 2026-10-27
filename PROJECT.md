@@ -1,13 +1,50 @@
 # PROJECT.md — Fretwave (nom de travail) : apprendre la guitare, en tablature, en pixel art
 
-**Statut : phases 0, 1a et 1b validées et commitées (`183eacc`, `5797333`, `823fbbd`) · 1c (moteur audio de sortie) commitée (`971be8c`) · D1-D17 tranchées, D13 écartée, D7 remplacée par D14 · décision en attente : D18 (découpage 1d = hub + thème + module Gammes N1).**
+**Statut : phases 0, 1a, 1b, 1c et 1d terminées · 1d = hub + thème Synthwave + module Gammes N1 + positions + annotations · D1-D23 tranchées (D13 écartée, D7 remplacée par D14) · aucune décision en attente · 304 tests.**
 Documents liés : `BRIEF.md` (cahier des charges), `MUSIC_DESIGN.md` (conventions musicales, curriculum, avis de prof).
-**Repères** : *État exact* juste en dessous · **hypothèses** §8 (1-41) et §8 bis (ce qui a changé) · **plan des phases** §9 · **décisions** §10 (D1-D18) · **prochaine étape** §12. **Une seule décision t'attend : D18.** Pages de l'app : `#tab` (tablature), `#audio` (debug audio), `#theorie` ; `npm run dev` → http://localhost:5173/.
+**Repères** : *État exact* juste en dessous · **hypothèses** §8 (1-49) et §8 bis (ce qui a changé) · **plan des phases** §9 · **décisions** §10 (D1-D23) · **prochaine étape** §12. Pages de l'app (hash) : `#/hub`, `#/gammes`, `#/gammes/jouer`, `#/reglages`, plus les outils de contrôle `#/tab`, `#/audio`, `#/theorie`. `npm run dev` → http://localhost:5173/ (un seul serveur à la fois : deux instances Vite sur le même port servent une version périmée du CSS).
 Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** décision qui t'appartient · **[RISQUE]** voir section 7.
 
 ---
 
-## État exact (dernière mise à jour : après le commit de la phase 1c, `971be8c`)
+## État exact (dernière mise à jour : après la phase 1d)
+
+**Git** (branche `master`) : `183eacc` Phase 0 · `5797333` Phase 1a · `823fbbd` Phase 1b · `971be8c` Phase 1c · `5818e8b` + `a5d9e18` docs · commit de la 1d en fin de phase. **304 tests (303 verts, 1 ignoré), `tsc --noEmit` propre, `vite build` OK.** Aucun remote.
+
+**Fait et vérifié (1d — hub, thème, module Gammes N1)**
+- **Thème par design tokens** (`src/core/themes/`) : `tokens.ts` (contrat : palette, scène, panneau de tab, polices, UI), `synthwave.ts` (un fichier = un thème), `registry.ts` (`applyTheme` pose 22 variables CSS + `data-theme` sur `<html>`, thème par défaut sans attribut), `scene.ts` (dessin pur, testable sans canvas). **Aucun hex n'est recopié dans `app.css`** : la feuille ne contient qu'une palette de secours `:root` pour le premier rendu. Les **couleurs d'intervalle restent hors thème** (`core/tab/colors.ts`).
+- **Scène pixel** : ciel en bandes avec tramage, étoiles déterministes (graines fixes) qui scintillent, soleil rayé à trois zones, deux crêtes de montagne, horizon lumineux, **lignes de grille horizontales qui avancent** (14 lignes, perspective en d², 30 img/s). Deux variantes : **`poster`** (hub, horizon à 38 %, soleil 26 % de la largeur borné à 11 % de la hauteur) et **`calm`** (écrans de travail : ciel + étoiles seulement). Parallaxe = décalage vertical borné à 40 px au défilement. Échelle **2 px CSS par pixel logique** (3 au-delà de 1 500 px), `image-rendering: pixelated`.
+- **Rayons verticaux de la grille : non dessinés** (D19). Mesuré : à 195 px logiques de large, 17 rayons convergent en une hachure de 3 px autour du point de fuite ; à 9 rayons le fan reste un pâté de 30 px. Les horizontales qui se resserrent portent la perspective.
+- **Polices auto-hébergées** (`public/fonts/`, 46,3 ko au total) : Press Start 2P (titres), Silkscreen 400/700 (étiquettes), VT323 (texte), sous-ensemble latin de Google Fonts, **OFL 1.1** avec les trois `OFL-*.txt` et un `README.md` de provenance. La tablature n'en utilise aucune (police bitmap maison 5×7).
+- **Hub** (`#/hub`) : poster + objectif du jour + « reprendre » + trois portes d'entrée + état des quatre modules. Les chiffres viennent du **journal de pratique local** (D22), pas d'un compteur décoratif : « 1 / 3 · 1 gamme écoutée · 10 s » après une écoute réelle.
+- **Réglages** (`#/reglages`) : notation des notes (solfège/anglo), des accords (`Am7`/`Lam7`/`A-7`), ambiance (un thème en 1d), « réduire les animations », scanlines, rangée de degrés, instrument, mixeur 4 canaux, accès aux outils de contrôle, **effacement des données locales** avec confirmation.
+- **Module Gammes — sélection** (`#/gammes`) : 5 familles, 31 gammes, **tonique avec les deux orthographes quand le coût est égal** (Ré♯/Mi♭), mode parent affiché (« mode parent : Do majeur (2e degré) », « mêmes notes que Do majeur », « 6 transpositions distinctes »), 9 accordages, **table de compatibilité gamme ↔ systèmes** (5 systèmes listés, les incompatibles grisés **avec leur raison**), positions.
+- **Module Gammes — niveau 1 Découverte** (`#/gammes/jouer`) : montée / descente / aller-retour, 4 annotations (notes, degrés, intervalles, doigtés), sens, tempo (40-200 par pas de 5), drone (par défaut), métronome, boucle, position précédente/suivante, **légende des couleurs par fonction** avec le nom français de l'intervalle, note caractéristique signalée, phrase de prof par gamme (31 textes rédigés), instrument.
+- **Calque « notes de l'accord »** (D23) : `TabNote.chordTone` renseigné par le générateur (`markChordTones`), `LayoutOptions.emphasizeChordTones`, `PillLayout.dim`, rendu par **mélange avec la couleur du panneau** (pas d'alpha : net en pixel art) à 78 % pour le fond, 62 % pour le chiffre. Vérifié : sur La mineure pentatonique + Am7, **seules les 4tes sont estompées** (`dim = ['4','4','4','4']`), les 1, ♭3, 5, ♭7 restent vives.
+- **Doigtés** (D20) : `core/theory/fingerings.ts` — règle par corde (index sur la note la plus basse, auriculaire sur la plus haute, 1-2 / 1-3 / 1-4 à deux notes, 1-2-4 / 1-3-4 à trois notes selon l'espacement, 1-2-3-4 à quatre, **aucun doigté au-delà**). Testé sur **toutes les positions du catalogue** (31 gammes × 12 toniques × systèmes compatibles, > 1 000 positions) : ≤ 4 doigts, aucun croisement, index toujours sur la note la plus grave de la corde.
+- **CAGED exposé** dans l'UI (ta demande en 1d vaut feu vert) et **relu sur Do, Sol, La** (condition D12) : pour chaque forme, la fenêtre contient la triade, ≤ 3 notes par corde, et la fondamentale tombe sur la corde de la forme. Do majeur : C 0-4 · A 2-6 · G 5-9 · E 7-10 · D 9-13. Sol : G 0-4 · E 2-5 · D 4-8 · C 7-11 · A 9-13. La : A 0-3 · G 2-6 · E 4-7 · D 6-10 · C 9-13. **Aucune correction** ; limite assumée : « forme de Mi » nomme la forme d'accord qui ancre la fenêtre, pas l'endroit de la tonique (elle change de corde d'une forme à l'autre).
+- **Signature rythmique réparée** : elle était dessinée **au milieu des cordes** en deux chiffres de 15 px ; elle est maintenant petite (`4/4`), **en tête de portée**, sur la première ligne, avec un fond de panneau. Testé (`timeSig.y = stringYs[0] - 3`).
+- **Routeur par hash** (`#/hub`, `#/gammes`, `#/gammes/jouer`, `#/reglages`) avec **compatibilité des anciennes URLs** (`#tab`, `#audio`, `#theorie`) et repli sur le hub pour une URL inconnue — testé. Les pages de contrôle de 1a-1c restent joignables depuis les réglages.
+- **Vérifié dans Chromium piloté par CDP (390×844 @2-3, 1440×900 @1)** : poster du hub (soleil, montagnes, grille), sélection (31 gammes, table de compatibilité), N1 (tablature, 4 annotations, légende), calque d'accord, réglages, et **lecture réelle** : un geste souris vrai (`Runtime.evaluate` avec `userGesture`) démarre le contexte audio, **23 notes déclenchées pour 12 notes aller-retour**, état « terminé », **entrée de journal écrite** (`~10 s`), hub à « 1 / 3 ».
+- **Poids** : `dist` — `index` **397,2 ko (126,7 ko gzip)** + chunk Tone **340,8 ko (79,4 ko gzip)** + CSS **18,0 ko (4,4 ko gzip)** + polices 46,3 ko + échantillons 12,1 Mo.
+
+**Mesures de la 1d**
+- Contraste des tokens (test) : texte et texte atténué ≥ **4,5** sur `bg`, `surface` et `surfaceHi` (le plus faible : texte atténué sur `surface` = 8,2 ; texte atténué sur `surface-hi` = 6,3).
+- Tablature N1 (La mineure pentatonique, box 1, aller-retour) : **181 × 420 px logiques**, 3 systèmes, 24 colonnes, **840 px CSS** de haut à S=2 ; pastille **22 px CSS** de large (11 logiques × 2).
+- Scène : canvas **390 × 844 CSS** (195 × 422 logiques) sur téléphone, **1440 × 900** sur bureau (720 × 450 logiques) ; couche animée 14 lignes + 16 étoiles, une passe de dessin par image, **30 img/s**.
+- Journal : une entrée `{scaleId, tonic, system, positionId, seconds}`, plafond **400 entrées**, résumé du jour en secondes et gammes distinctes.
+
+**Pas fait (1d)**
+- **Aucune écoute du timbre** ni vérification sur vrai téléphone / Safari iOS (inchangé depuis 1c).
+- **Thème unique** : l'architecture accepte un fichier de plus, mais les ambiances Cyber City / Lo-fi / Arcade sont en phase 8.
+- **Niveaux 2 à 4** du module Gammes (trous, rappel, improvisation) : phases 2 et 7 ; les onglets ne sont pas affichés du tout (pas de faux boutons).
+- **Rythme dans la tablature** : les hampes et ligatures restent affichées en N1 ; un mode « débutant » qui les masque est proposé (§ MUSIC_DESIGN 12).
+- **Doigtés** : heuristique par corde, non relue position par position ; les doigtés d'accords restent vides (phase 4).
+- Vue manche optionnelle (proposée, non implémentée) ; boîte d'accord (D1, phase 4).
+- XP, séries, répétition espacée, badges, heatmap : phase 2. Le hub n'affiche **que** le journal réel.
+- PWA (manifest, service worker), i18n, défilement des scores très longs.
+
+## État exact de la phase 1c (rappel, après le commit `971be8c`)
 
 **Git** (branche `master`) : `183eacc` Phase 0 · `5797333` Phase 1a · `823fbbd` Phase 1b · `971be8c` Phase 1c (174 fichiers : 11 fichiers de `core/audio/`, 5 fichiers de test, `public/samples/` 12,1 Mo, `tools/`) · `5818e8b` docs. La mise à jour ci-dessous est le commit courant. **Arbre propre, 274 tests verts, `tsc` propre, build OK.** Aucun remote.
 
@@ -615,11 +652,23 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 40. **« Continuer sans le son »** plutôt que blocage : si les échantillons ne se chargent pas, l'app s'ouvre et la lecture est silencieuse (erreur affichée et conservée dans le moteur).
 41. **Statut des phases** : l'ancienne phase 1c du plan est découpée — **1c = moteur audio** (fait, commité), **1d = hub + thème + module Gammes N1** (proposé, D18).
 
+**Prises en phase 1d**
+42. **Objectif du jour = 3 écoutes**, non réglable avant la phase 2 (aucun écran de réglage de série/objectif).
+43. Une **écoute** est journalisée si la lecture réelle dépasse **3 s** ; la durée est mesurée entre « lecture » et pause / stop / fin, jamais estimée.
+44. La sélection de gamme est **mémorisée et normalisée** : gamme inconnue, tonique mal orthographiée, système indisponible ou position hors plage retombent sur une valeur valide — l'écran ne jette jamais.
+45. **CAGED exposé en 1d** (ta demande vaut feu vert pour la condition D12) ; fenêtre = forme d'accord ± 1 case (Do/Sol : de 3 cases sous la fondamentale à 1 au-dessus) ; relu sur Do, Sol, La sans correction.
+46. **Doigtés** : heuristique par corde (D20) ; une corde à 5 notes ou plus n'a **aucun** doigté affiché (démanché nécessaire) plutôt qu'un doigté faux.
+47. **Scène** : échelle 2 px CSS par pixel logique (3 au-delà de 1 500 px), horizon à 38 % (poster) / 30 % (calme), soleil borné à 11 % de la hauteur, parallaxe ≤ 40 px, 30 img/s. Pas de garde `document.hidden` sur l'intervalle : le navigateur limite déjà les onglets masqués, et la garde laissait la couche animée vide au retour.
+48. **Polices** : sous-ensemble latin de Google Fonts, OFL 1.1, auto-hébergées (46,3 ko au total), provenance et licences dans `public/fonts/README.md`.
+49. La **signature rythmique** est écrite en petit (`4/4`) en tête de portée, et non en deux chiffres de 15 px au milieu des cordes.
+
 **Hypothèses les plus fragiles** (ce qui pourrait encore bouger — rien n'est verrouillé) :
 - **32-35 et 38** (vélocité de base, strum, tenue, humanisation, niveaux) sont réglées **par calcul et par mesure, pas par écoute** : un ajustement à ton oreille est probable, et c'est normal.
 - **22** (CAGED maison, D12) : définition non comparée à une source ; ta relecture de Do, Sol, La conditionne son exposition.
 - **15** (difficultés 1-5 des voicings) : heuristique non calibrée, à corriger avec des données réelles en phase 4.
-- **18** (mode parent à 7 altérations) : à filtrer dans l'UI de la 1d — le moteur le renvoie tel quel.
+- **18** (mode parent à 7 altérations) : **traité en 1d** — l'UI l'affiche comme une information (« couleur à écouter, pas une tonalité jouable »).
+- **42** (objectif de 3 écoutes) et **46** (doigtés heuristiques) : réglés par raisonnement, pas par usage réel ; à revoir après quelques sessions.
+- **Composition du poster** (soleil à 26 % de la largeur, titre hors du disque) : calibrée pour 390×844 ; à revoir sur un vrai téléphone en portrait étroit (360 px) et en paysage.
 
 ---
 
@@ -642,7 +691,7 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | **1a** ✔ `5797333` | Moteur de théorie (gammes, accords, orthographe, enharmoniques, conversion solfège), accordages/nb de cordes, base de voicings + tests | Tous les tests de `MUSIC_DESIGN.md` verts ; couverture des 13+13 tonalités — **atteint** (61 tests) |
 | **1b** ✔ `823fbbd` | Positions (3NPS, boxes, CAGED, symétriques, blues, bebop), `TabScore`, générateurs, layout, police bitmap, rendu pixel, curseur synchronisé sur Tone.Transport (son provisoire) | Captures lisibles à S=2 sur 390×844 ; chiffres à 2 chiffres nets ; piles d'accords nettes ; 7 cordes, solfège / anglo, Drop D ; daltonisme ; coût de rendu — **atteint** (204 tests, mesures dans « État exact ») |
 | **1c** ✔ `971be8c` | Moteur audio de sortie : échantillons CC0 (nylon, électrique) + repli synthèse, choix/couches/round-robin, bus master (compresseur + plafond), drone, métronome, volumes mémorisés, préchargement, page Audio | « Son = tablature » vérifié (6 types de score), drone, métronome, plafond tenu, page Audio — **atteint** (274 tests, mesures dans « État exact ») |
-| **1d** (prochaine, D18) | Hub + routeur par hash, thème Synthwave (tokens, scène, parallaxe, scanlines), module Gammes N1, réglages globaux | Choisir une gamme, la voir et l'entendre avec le son final ; captures 390×844 du module |
+| **1d** ✔ (commit en fin de phase) | Hub + routeur par hash, thème Synthwave (tokens, scène, parallaxe, scanlines), module Gammes N1 (sélection, annotations, calque d'accord), positions CAGED / 3NPS / boxes, réglages globaux, journal de pratique local | Choisir une gamme, la voir et l'entendre avec le son final ; captures 390×844 **et** 1440×900 — **atteint** (304 tests, mesures dans « État exact ») |
 | 2 | Gammes N2/N3 (saisie), progression unifiée persistante, XP, SRS | Journal + export/import |
 | 3 | Entrée mono, calibration, accordeur, affichage live | Test sur guitare réelle |
 | 4 | Accords A : curriculum, tab accords, leçon guidée, QCM/auto-éval, validation arpège, recommandation | Parcours P0-P4 jouable |
@@ -675,9 +724,14 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | D15 | Chargement de Tone (1c) | **Au démarrage** (préchargement), et non au premier « Lecture » : +79,4 ko gzip avant l'écran d'accueil, en échange d'une lecture instantanée ensuite |
 | D16 | Échec de chargement (1c) | **Écran d'erreur avec « Réessayer » et « Continuer sans le son »** : jamais de blocage de l'app |
 | D17 | Règles de jeu (1c) | **Tenue automatique par type de score** (fin de mesure pour accords/progressions, legato pour arpèges, étouffé pour gammes), **humanisation déterministe**, couche de vélocité choisie **par événement** |
-| D18 | Découpage du reste de la 1c | **[À TRANCHER]** le hub, le thème Synthwave et le module Gammes N1 passent en **1d** ; la 1c ne contient que le moteur audio |
+| D18 | Découpage du reste de la 1c | **Tranchée** : 1c = moteur audio ; **1d = hub + thème + module Gammes N1** (livrée) |
+| D19 | Grille de la scène (1d) | **Pas de rayons verticaux** : à 195 px logiques, ils convergent en hachure. Horizontales animées seules. Deux variantes de décor : `poster` (hub) et `calm` (écrans de travail) |
+| D20 | Doigtés de position (1d) | **Heuristique par corde** (index sur la note la plus basse, auriculaire sur la plus haute, 1-2-4 / 1-3-4 à trois notes), testée sur toutes les positions ; **aucun doigté** au-delà de 4 notes par corde. Non relue position par position |
+| D21 | Où vivent les tokens | **En TypeScript** (`core/themes/*.ts`), posés en variables CSS par `applyTheme` : un thème = un fichier, testable (contrastes) et sans hex dupliqués dans le CSS |
+| D22 | Progression en 1d | **Journal d'écoute local seulement** (gamme, tonique, système, position, secondes, plafond 400). **Pas de XP, pas de série, pas de compteur décoratif** : ces chiffres arrivent avec la répétition espacée (phase 2) |
+| D23 | Notes de l'accord superposables | **Calque qui estompe les notes étrangères** (mélange avec le panneau, jamais d'alpha), activable en N1 ; sur La m pent + Am7, seules les 4tes s'effacent |
 
-**D1-D17 tranchées** (D13 écartée ; D7 remplacée par D14). **Une décision t'attend : D18** (découpage de la suite).
+**D1-D23 tranchées** (D13 écartée ; D7 remplacée par D14 ; D18 tranchée). **Aucune décision en attente** : la suite (phase 2) est décrite au §12.
 
 ---
 
@@ -687,25 +741,25 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 - **Phase 1a** (terminée, commit `5797333`) : projet Vite + React + TypeScript + Vitest ; moteur de théorie, base de voicings et page de contrôle (détail dans « État exact »). 61 tests verts, `tsc` propre, build OK, rendu vérifié dans un navigateur. Corrections de la documentation trouvées par les tests : règle de coût d'orthographe « coût égal → les deux » ; `dim` = triade / `dim7` à part.
 - **Phase 1b** (terminée, commit `823fbbd`, validée : D11 et D12 acceptées, D13 écartée) : positions, `TabScore`, générateurs, layout, police, rendu, lecteur Tone, page de contrôle (détail dans « État exact »). 204 tests verts, `tsc` propre, build OK. Vérifié dans Chromium piloté par CDP à 3 viewports : lecture, boucle, tempo en direct, curseur exact au pixel, défilement et retour à la ligne, DPR 2,625. **Trouvé en route** : (1) `transport.stop(time)` dans l'événement de fin rejoue le tick 0 (une note parasite) → arrêt par minuterie ; (2) contraste chiffre / pastille insuffisant sur les couleurs de bémols (3,6-4,0) → chiffre blanc automatique ; (3) les tests ont corrigé `MUSIC_DESIGN.md` §3.2 (box 3 de La m = cases 9-13) ; (4) onglet de test masqué : `requestAnimationFrame` s'arrête (le curseur ne bouge pas) — sans effet pour l'utilisateur, mais le banc de mesure doit mettre la page au premier plan ; (5) simulation de daltonisme : voir D13.
 - **Phase 1c** (terminée, commit `971be8c` ; échantillons compris, 12,1 Mo) : moteur audio de sortie seul (périmètre redéfini par toi) — détail dans « État exact ». 274 tests verts, `tsc` propre, build OK. Vérifié dans Chromium piloté par CDP (390×844 @3) : chargement (48 puis 90 fichiers), son = tablature sur 6 types de score, curseur 639,6 ticks/s (résidu 1,1 tick hors démarrage), métronome 18 clics / 10 s, drone activé et coupé en pause, boucle sans doublon, matrice de clics sur sinus de contrôle, erreur réseau puis « Réessayer », plafond tenu sur un strum extrême (−1,2 dBFS). **Trouvé en route** : 6 défauts (clic à la reprise de corde, rappel d'événement en double par Tone, couche de vélocité qui basculait, limiteur qui laissait passer +2,2 dBFS, écart de 6-7 dB entre banques, Tone chargé trop tard), tous corrigés par un test ou une mesure. **Non vérifié** : le timbre (pas d'écoute), Safari/iOS, téléphone réel, latence acoustique.
-- **Mise à jour d'état (après le commit)** : ligne Git et santé du dépôt (arbre propre, 274 tests), bloc « Repères » en tête, §0 et §1 (décisions désormais tranchées : boîte d'accord D1, échantillons D14, découpage 1d), R10, D10-D12 (l'écran des positions et CAGED passent en 1d), « hypothèses les plus fragiles » et tableau « ce qui a changé depuis la phase 0 ».
+- **Phase 1d** (terminée, commit en fin de phase) : thème par tokens, scène pixel (poster/calm), polices auto-hébergées, hub, réglages, routeur par hash, sélection de gamme, N1 Découverte, doigtés, calque d'accord, journal de pratique — détail dans « État exact ». **304 tests** (303 verts, 1 ignoré), `tsc` propre, build OK. **Trouvé en route, corrigé** : (1) la légende marquait **toutes** les fonctions comme « caractéristique » (jeu de degrés complet au lieu des seules notes du mode) ; (2) la signature rythmique était dessinée **au milieu des cordes** en gros chiffres → petite, en tête de portée ; (3) le calque d'accord était calculé mais **invisible** (estompage à 55 % → 78 %) ; (4) **deux serveurs Vite** sur le même port servaient un CSS périmé (cause des « mes modifications ne s'appliquent pas ») ; (5) le soleil passait **derrière le titre** sur grand écran (rayon borné par la hauteur) ; (6) la grille en rayons verticaux faisait une **hachure** à 195 px logiques → horizontales seules ; (7) la barre de navigation s'étalait sur 1 440 px → bornée à 620 px et centrée. **Non vérifié** : le timbre (pas d'écoute), Safari/iOS, vrai téléphone, latence acoustique.
+- **Mise à jour d'état (après le commit)** : ligne Git et santé du dépôt, bloc « Repères » en tête, §0 et §1 (décisions désormais tranchées : boîte d'accord D1, échantillons D14, découpage 1d), R10, D10-D12 (l'écran des positions et CAGED passent en 1d), « hypothèses les plus fragiles » et tableau « ce qui a changé depuis la phase 0 ».
 - **Mise à jour de ce document (après 1c)** : « État exact » (bloc 1c, mesures, pas fait, écarts), §3.1 (outils de build), §3.5 (échantillons et échantillonneur maison), §4.1 (arborescence), §4.7 (pipeline tel que construit), R4 et R12 (traités / mesurés), hypothèses 31-41, plan (1c fait, 1d proposée), décisions **D14-D18** (D7 remplacée), journal, §12 « Prochaine étape ».
 
 ---
 
-## 12. Prochaine étape : phase 1d (à confirmer — D18)
+## 12. Prochaine étape : phase 2 (Gammes N2/N3, progression persistante, XP, SRS)
 
-**Objectif** : un premier module jouable de bout en bout — choisir une gamme, la voir et l'entendre avec le son final. Le moteur audio est fait ; reste l'écran.
+**Objectif** : transformer le journal d'écoute en **progression** — ce qui est vu, ce qui est su, ce qui revient.
 
 **Livrables**
-1. **Hub minimal + routeur par hash** (compatible PWA hors ligne) et **réglages globaux** : notations (notes / accords), thème, volumes (déjà branchés sur `AudioEngine.settings`), « réduire les animations ».
-2. **Thème Synthwave** complet : tokens, scène pixel (soleil rayé, grille en perspective, montagnes, étoiles), parallaxe légère à 30 img/s, scanlines désactivables, panneau de tab opaque (déjà en place).
-3. **Module Gammes niveau 1** : sélection (gamme, tonique avec mode parent affiché, système compatible, position), montée / descente, drone, arpège superposable, notes caractéristiques en évidence.
-4. **CAGED** : ne l'exposer qu'après **ta relecture de Do, Sol, La** (D12).
+1. **Modèle unifié** (`core/progress/`) : nœuds, axes, états (verrouillée → disponible → en apprentissage → apprise → maîtrisée), journal `attempts` dans IndexedDB (`idb`), agrégats recalculables.
+2. **Répétition espacée** derrière une interface `Scheduler` (Leitner 6 boîtes d'abord), plafond de dû par session.
+3. **Niveau 2 (trous)** et **niveau 3 (rappel)** dans le module Gammes : saisie sur la tablature (cases cliquables + pavé numérique pixel), et non plus seulement l'écoute. Découpage « 1 corde → 2 cordes → montée → montée+descente » (MUSIC_DESIGN §3.4).
+4. **XP, séries, badges** — et le hub qui les affiche, avec la même exigence d'honnêteté que le journal actuel.
+5. **Export / import JSON** des données locales (R7).
 
-**Ouvert (à décider au fil de la 1d)** : compte à rebours d'une mesure avant lecture, bus backing et SFX, écran « accordeur de référence » (La réglable, `tuningCents` déjà présent dans l'échantillonneur).
+**« Terminé » =** jouer une gamme de mémoire avec des trous, voir son score de maîtrise progresser, fermer l'onglet et retrouver son état ; export/import vérifié.
 
-**« Terminé » =** choisir une gamme, la voir et l'entendre avec le son final, captures du module sur 390×844, 274 + tests verts.
+**Points à surveiller** : IndexedDB sur iOS (purge après 7 jours si non installé), taille de la tablature en mode saisie (cible tactile 44 px : zoom d'édition S+1 + pavé DOM), et le risque de transformer l'apprentissage en jeu de compteurs.
 
-**Points à surveiller** : poids du premier chargement (5,3 Mo d'échantillons + 79,4 ko de Tone) sur réseau mobile ; iOS/Safari (R3) ; taille des pastilles (28×34 px CSS à S=2, sous les 44 px recommandés en saisie).
-
-**Ensuite** : phase 2 (Gammes N2/N3 : saisie sur la tab, progression persistante, XP, SRS).
+**Dette technique assumée à reprendre** : doigtés non relus, mode « débutant » (hampes masquées), vue manche optionnelle, `#/tab` encore en page de contrôle.

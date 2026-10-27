@@ -48,6 +48,11 @@ export interface LayoutOptions {
   stacks: 'change' | 'all';
   /** Pixels logiques par noire (espacement proportionnel au temps). */
   pxPerQuarter?: number;
+  /**
+   * Calque « notes de l'accord » : estompe les notes qui ne sont pas des notes de l'accord
+   * (elles doivent porter `chordTone`, sinon rien n'est estompé).
+   */
+  emphasizeChordTones?: boolean;
 }
 
 export const DEFAULT_LAYOUT: LayoutOptions = {
@@ -76,6 +81,8 @@ export interface PillLayout {
   hidden: boolean;
   characteristic: boolean;
   passing: boolean;
+  /** Estompée : la note n'est pas une note de l'accord alors que le calque « accord » est actif. */
+  dim?: boolean;
 }
 
 export type RhythmItem =
@@ -429,8 +436,8 @@ export function layoutScore(score: TabScore, options: LayoutOptions = DEFAULT_LA
       buildRhythm(score, p.index, colLayouts, sys, sy + rhythmY, anyTuplet);
       if (p.tsW > 0) {
         const ts = timeSigOf(score, p.index);
-        const mid = (stringYs[0]! + stringYs[N - 1]!) / 2;
-        sys.timeSig = sys.timeSig ?? { x: mx + 1 + METRICS.barPadL, y: Math.round(mid) - 14, num: ts[0], den: ts[1] };
+        // en tête de portée (première ligne), pas au milieu des cordes
+        sys.timeSig = sys.timeSig ?? { x: mx + 1 + METRICS.barPadL, y: stringYs[0]! - 3, num: ts[0], den: ts[1] };
       }
       mx = endX;
     });
@@ -470,6 +477,7 @@ function buildColumn(
         x: cx - (pw - 1) / 2, y: yc - 6, w: pw, h: METRICS.pillH, string: n.string, fret: n.fret,
         text: pillText(n), fn: n.fn, muted: !!n.muted, hidden: !!n.hidden,
         characteristic: !!n.characteristic, passing: !!n.passing,
+        ...(o.emphasizeChordTones && n.chordTone === false ? { dim: true } : {}),
       });
       if (c.ev.notes.length >= 2 && o.annotation !== 'none') {
         const text = annotationText(n, o.annotation, o.notes);
