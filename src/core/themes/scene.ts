@@ -219,4 +219,53 @@ export function drawSceneMotion(s: Surface, tokens: SceneTokens, geo: SceneGeome
   }
   // scintillement : quelques étoiles seulement (les autres sont dans la couche immobile)
   drawStars(s, tokens, makeStars(geo).filter((_, k) => k % 7 === 0), time);
+  drawComets(s, tokens, geo, time);
+}
+
+/** Secondes entre deux passages de comète (moyenne : un toutes les 7 s environ) et durée d'une traversée. */
+export const COMET_SLOT_S = 7;
+export const COMET_TRAVEL_S = 1.15;
+
+/**
+ * Comètes : une traînée fine qui traverse le ciel de temps en temps, **jamais deux à la fois**.
+ *
+ * La fonction est **pure** : tout vient de `time` et d'un tirage déterministe par créneau
+ * (`mulberry32(i)`), donc deux rendus au même instant donnent la même image et aucun état ne traîne
+ * entre les images. Un seul créneau peut déborder sur le suivant, d'où la boucle sur `i0 - 1`.
+ *
+ * Le thème qui n'a pas de jeton `comet` (ciel clair) n'en reçoit jamais : c'est une propriété du ciel,
+ * pas un réglage global.
+ */
+function drawComets(s: Surface, tokens: SceneTokens, geo: SceneGeometry, time: number): void {
+  const color = tokens.comet;
+  if (!color) return;
+  const i0 = Math.floor(time / COMET_SLOT_S);
+  for (const slot of [i0 - 1, i0]) {
+    if (slot < 0) continue;
+    const rnd = mulberry32(0x9e3779b9 ^ slot);
+    const start = slot * COMET_SLOT_S + rnd() * (COMET_SLOT_S - COMET_TRAVEL_S);
+    const p = (time - start) / COMET_TRAVEL_S;
+    if (p < 0 || p > 1) continue;
+
+    const toRight = rnd() > 0.3;
+    const y0 = Math.round(4 + rnd() * (geo.horizon * 0.55));
+    const travel = Math.round(geo.width * 0.62);
+    const x = Math.round((toRight ? -12 : geo.width + 12) + (toRight ? 1 : -1) * p * travel);
+    const y = Math.round(y0 + p * travel * 0.55);
+    const tail = 10 + Math.round(rnd() * 14);
+    // la traînée part derrière la tête : vers la gauche si la comète file à droite, et inversement,
+    // toujours un peu au-dessus (elle descend)
+    const dir = toRight ? -1 : 1;
+
+    for (let k = 0; k < tail; k += 1) {
+      const px = Math.round(x + dir * k);
+      const py = Math.round(y - 0.55 * k);
+      if (px < 0 || px >= geo.width || py < 0 || py >= geo.horizon) continue;
+      const a = Math.pow(1 - k / tail, 1.7) * 0.9;
+      s.fillRect(px, py, 1, 1, color, a);
+    }
+    if (x >= 0 && x < geo.width && y >= 0 && y < geo.horizon) {
+      s.fillRect(x, y, 2, 2, color, 0.95);
+    }
+  }
 }

@@ -139,9 +139,80 @@ describe('scène synthwave (dessin pur, pixels logiques)', () => {
     drawSceneMotion(m1, SYNTHWAVE.scene, geo, 0.6);
     let diff = 0;
     for (let y = 0; y < geo.horizon; y++) for (let x = 0; x < geo.width; x++) if (m0.pixel(x, y) !== m1.pixel(x, y)) diff++;
-    expect(diff).toBeLessThan(200); // seulement quelques étoiles qui scintillent, pas la scène entière
+    // scintillement + éventuelle comète (une traînée fait moins de 120 pixels), jamais la scène entière
+    expect(diff).toBeLessThan(900);
     let below = 0;
     for (let y = geo.horizon; y < geo.height; y++) for (let x = 0; x < geo.width; x++) if (m0.pixel(x, y) !== m1.pixel(x, y)) below++;
     expect(below).toBeGreaterThan(100);
   });
+
+  it('une comète traverse le ciel sombre, jamais deux à la fois', () => {
+    // un rendu « sans comète » sert de référence : la différence entre les deux EST la traînée
+    const withComet = (t: number) => {
+      const buf = new BufferSurface(geo.width, geo.height, '#000000');
+      drawSceneMotion(buf, SYNTHWAVE.scene, geo, t);
+      return buf;
+    };
+    const without = (t: number) => {
+      const buf = new BufferSurface(geo.width, geo.height, '#000000');
+      drawSceneMotion(buf, { ...SYNTHWAVE.scene, comet: undefined }, geo, t);
+      return buf;
+    };
+
+    const lit: number[] = [];
+    const heads: number[] = [];
+    for (let t = 0; t < 40; t += 0.05) {
+      const a = withComet(t);
+      const b = without(t);
+      const n = cometPixels(a, b, geo).count;
+      if (n >= 6) {
+        lit.push(t);
+        heads.push(cometPixels(a, b, geo).firstX);
+      } else if (lit.length > 0) {
+        break;
+      }
+    }
+    expect(lit.length).toBeGreaterThan(3);     // un passage dure ~1,15 s
+    expect(new Set(heads).size).toBeGreaterThan(1); // la tête avance, elle ne clignote pas sur place
+  });
+
+  it('sans jeton de comète, le ciel n’en dessine aucune', () => {
+    // c'est la règle qui protège le thème clair : le ciel décide, pas un réglage global
+    expect(THEMES.dawn?.scene.comet).toBeUndefined();
+    const plain = { ...SYNTHWAVE.scene, comet: undefined };
+    // un instant où le ciel sombre a une comète…
+    let cometTime: number | null = null;
+    for (let t = 0; t < 40 && cometTime === null; t += 0.05) {
+      const a = new BufferSurface(geo.width, geo.height, '#000000');
+      const b = new BufferSurface(geo.width, geo.height, '#000000');
+      drawSceneMotion(a, SYNTHWAVE.scene, geo, t);
+      drawSceneMotion(b, plain, geo, t);
+      if (cometPixels(a, b, geo).count >= 6) cometTime = t;
+    }
+    expect(cometTime).not.toBeNull();
+    // …au même instant, retirer le jeton ne laisse rien : c'est lui, et lui seul, qui la dessine
+    const withToken = new BufferSurface(geo.width, geo.height, '#000000');
+    const withoutToken = new BufferSurface(geo.width, geo.height, '#000000');
+    drawSceneMotion(withToken, SYNTHWAVE.scene, geo, cometTime!);
+    drawSceneMotion(withoutToken, plain, geo, cometTime!);
+    expect(cometPixels(withToken, withoutToken, geo).count).toBeGreaterThan(5);
+    // et deux rendus sans jeton sont identiques à l'instant de la comète
+    const again = new BufferSurface(geo.width, geo.height, '#000000');
+    drawSceneMotion(again, plain, geo, cometTime!);
+    expect(cometPixels(withoutToken, again, geo).count).toBe(0);
+  });
 });
+
+/** Pixels du ciel qui diffèrent entre un rendu avec comète et le même sans : la traînée. */
+function cometPixels(a: BufferSurface, b: BufferSurface, g: { horizon: number; width: number }): { count: number; firstX: number } {
+  let count = 0;
+  let firstX = -1;
+  for (let y = 0; y < g.horizon; y++) {
+    for (let x = 0; x < g.width; x++) {
+      if (a.pixel(x, y) === b.pixel(x, y)) continue;
+      count += 1;
+      if (firstX < 0) firstX = x;
+    }
+  }
+  return { count, firstX };
+}

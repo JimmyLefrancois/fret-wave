@@ -27,6 +27,11 @@ export interface SceneTokens {
   mountainRim: Hex;
   star: Hex;
   starAccent: Hex;
+  /**
+   * Couleur des **comètes** qui traversent le ciel, ou `undefined` : un ciel clair n'en reçoit pas
+   * (une traînée lumineuse sur du papier se lit comme une rayure). Le thème décide, pas le code.
+   */
+  comet?: Hex;
 }
 
 export interface UiTokens {

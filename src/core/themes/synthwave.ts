@@ -45,6 +45,8 @@ export const SYNTHWAVE: ThemeTokens = {
     mountainRim: '#8A3BC9',
     star: '#F6EEFF',
     starAccent: '#05D9E8',
+    // traînée pâle : elle doit se voir sur le ciel profond sans jamais concurrencer la tablature
+    comet: '#BFF7FF',
   },
   tab: THEME_SYNTHWAVE,
   fonts: {
