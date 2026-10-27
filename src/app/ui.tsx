@@ -62,7 +62,7 @@ export function PixelButton(props: {
   );
 }
 
-export interface Option<T extends string> {
+export interface Option<T extends string | number> {
   value: T;
   label: string;
   /** Raison affichée quand l'option est indisponible. */
@@ -71,7 +71,7 @@ export interface Option<T extends string> {
 }
 
 /** Segments qui défilent horizontalement (téléphone) : une seule ligne, jamais de retour à la ligne. */
-export function Segmented<T extends string>(props: {
+export function Segmented<T extends string | number>(props: {
   options: readonly Option<T>[];
   value: T;
   onChange: (v: T) => void;

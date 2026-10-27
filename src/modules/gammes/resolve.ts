@@ -22,9 +22,14 @@ export function fmtDegree(fn: string): string {
 
 const NUMBER_NAME = ['unisson', 'seconde', 'tierce', 'quarte', 'quinte', 'sixte', 'septième'];
 
-/** Nom français d'une fonction d'intervalle : « b3 » → « tierce mineure ». */
+/** Ramène les glyphes d'altération à l'ASCII du modèle : « ♭3 » → « b3 ». */
+export function toAsciiDegree(fn: string): string {
+  return fn.replace(/𝄫/g, 'bb').replace(/𝄪/g, '##').replace(/♭/g, 'b').replace(/♯/g, '#');
+}
+
+/** Nom français d'une fonction d'intervalle : « b3 » ou « ♭3 » → « tierce mineure ». */
 export function degreeName(fn: string): string {
-  const p = parseFn(fn as DegreeLabel);
+  const p = parseFn(toAsciiDegree(fn) as DegreeLabel);
   if (!p) return fn;
   const base = NUMBER_NAME[p.family - 1] ?? fn;
   const perfect = p.family === 1 || p.family === 4 || p.family === 5;

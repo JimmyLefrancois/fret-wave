@@ -1,10 +1,11 @@
 /**
  * Module Gammes — niveau 1 « Découverte » (BRIEF.md §2, PROJECT.md §6.3).
  * La gamme est écrite en tablature (montée / descente / aller-retour) avec :
- *  - les couleurs de fonction d'intervalle (identiques dans tous les thèmes) et le glow des notes
- *    caractéristiques du mode ;
+ *  - les couleurs de fonction d'intervalle et le glow des notes caractéristiques du mode ;
  *  - quatre annotations au choix (note, degré, intervalle, doigté) ;
  *  - un calque « notes de l'accord » qui estompe les notes étrangères ;
+ *  - le mode « fondamentales d'abord » et le découpage par nombre de cordes (chunking) ;
+ *  - l'exercice « montre-moi la ♭3 » (toucher la pastille) et la comparaison de deux modes voisins ;
  *  - le son final de la 1c (échantillons CC0), un drone de fondamentale, un métronome.
  * Chaque écoute complète est écrite dans le journal local : le hub affiche des chiffres vrais.
  */
@@ -12,15 +13,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
 import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
 import { useSettings } from '../../app/settings';
-import { TabView } from '../../app/TabView';
+import { TabView, type TabPick } from '../../app/TabView';
+import { InstrumentPicker } from '../../app/AudioControls';
 import { Panel, PixelButton, PixelIcon, Segmented, Switch } from '../../app/ui';
-import { fmtNote, type NoteNotation } from '../../core/theory';
-import { type AnnotationKind, type Direction, positionToScore } from '../../core/tab';
+import { filterPosition, fmtNote, type NoteNotation } from '../../core/theory';
+import { type AnnotationKind, type Direction, defaultChordForScale, positionToScore } from '../../core/tab';
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
 import { AudioEngine } from '../../core/audio/engine';
 import { logPractice, practiceStore } from '../../core/progress/practiceLog';
-import { InstrumentPicker } from '../../app/AudioControls';
-import { legendFor, positionLabel, resolveScale } from './resolve';
+import { degreeName, fmtDegree, legendFor, positionLabel, resolveScale } from './resolve';
+import {
+  COMPARISON_LABEL, counterpartPosition, differingDegrees, markDegrees, neighbourDef, neighbourMode, neighbourPositions,
+} from './compare';
 
 const DIRECTION_LABEL: Record<Direction, string> = { up: 'Montée', down: 'Descente', updown: 'Aller-retour' };
 
@@ -30,6 +34,9 @@ const ANNOTATIONS: { value: AnnotationKind; label: string }[] = [
   { value: 'interval', label: 'Intervalles' },
   { value: 'finger', label: 'Doigtés' },
 ];
+
+/** Sous-ensembles de cordes du découpage : on commence par les cordes graves (début de la montée). */
+type StringLimit = 0 | 2 | 3 | 4;
 
 export function ScaleDiscoveryPage() {
   const settings = useSettings();
@@ -44,26 +51,82 @@ export function ScaleDiscoveryPage() {
   const [drone, setDrone] = useState(true);
   const [metro, setMetro] = useState(false);
   const [chordLayer, setChordLayer] = useState(false);
+  const [rootsOnly, setRootsOnly] = useState(false);
+  const [stringLimit, setStringLimit] = useState<StringLimit>(0);
+  const [showRhythm, setShowRhythm] = useState(false);
+  const [compare, setCompare] = useState(false);
   const [transport, setTransport] = useState<'stopped' | 'playing' | 'paused'>('stopped');
   const [status, setStatus] = useState('');
   const playing = transport === 'playing';
 
-  const score = useMemo(() => {
+  // --- exercice « montre-moi la … »
+  const [quiz, setQuiz] = useState(false);
+  const [target, setTarget] = useState<string | null>(null);
+  const [reveal, setReveal] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [score, setScore] = useState({ right: 0, wrong: 0 });
+  const timers = useRef<number[]>([]);
+  const clearTimers = () => {
+    timers.current.forEach((t) => window.clearTimeout(t));
+    timers.current = [];
+  };
+  useEffect(() => () => clearTimers(), []);
+
+  // --- position affichée (fondamentales seules, sous-ensemble de cordes)
+  const shownPos = useMemo(() => {
     if (!r.position) return null;
+    let p = r.position;
+    if (rootsOnly) p = filterPosition(p, (n) => n.degree === '1' || n.degree === '5');
+    if (stringLimit) p = filterPosition(p, (n) => n.string < stringLimit);
+    return p.notes.length ? p : r.position;
+  }, [r.position, rootsOnly, stringLimit]);
+
+  // degrés en ASCII (modèle) : l'affichage passe par fmtDegree, la mise en évidence par n.fn
+  const availableDegrees = useMemo(() => [...new Set((shownPos?.notes ?? []).map((n) => n.degree))], [shownPos]);
+  const targetLabel = target ? fmtDegree(target) : null;
+
+  const scoreTab = useMemo(() => {
+    if (!shownPos) return null;
     try {
-      return positionToScore(r.position, r.tuning, {
+      return positionToScore(shownPos, r.tuning, {
         direction,
         tempo,
         fingers: true,
         markChordTones: true,
-        labelText: positionLabel(r.position, settings.noteNotation),
+        labelText: positionLabel(shownPos, settings.noteNotation),
         ...(r.chord ? { chord: r.chord } : {}),
       });
     } catch {
       return null;
     }
-  }, [r.position, r.tuning, direction, tempo, r.chord, settings.noteNotation]);
+  }, [shownPos, r.tuning, direction, tempo, r.chord, settings.noteNotation]);
 
+  // --- comparaison avec le mode voisin (même tonique, même système, même forme)
+  const neighbourId = neighbourMode(r.def.id);
+  const neighbour = neighbourId ? neighbourDef(neighbourId) : null;
+  const comparison = useMemo(() => {
+    if (!compare || !neighbourId || !neighbour || !r.position) return null;
+    try {
+      const positions = neighbourPositions(neighbourId, r.tonic, r.tuning, r.selection.system);
+      const pos = counterpartPosition(positions, r.position);
+      if (!pos) return null;
+      const diff = differingDegrees(r.def, neighbour);
+      const otherChord = defaultChordForScale(neighbourId, r.tonic);
+      const other = positionToScore(pos, r.tuning, {
+        direction, tempo, fingers: true,
+        ...(otherChord ? { chord: otherChord } : {}),
+      });
+      const mine = positionToScore(shownPos ?? r.position, r.tuning, {
+        direction, tempo, fingers: true,
+        ...(r.chord ? { chord: r.chord } : {}),
+      });
+      return { def: neighbour, pos, diff, score: markDegrees(other, diff.onlyB), mine: markDegrees(mine, diff.onlyA) };
+    } catch {
+      return null;
+    }
+  }, [compare, neighbourId, neighbour, r.position, r.tonic, r.tuning, r.selection.system, r.def, r.chord, direction, tempo, shownPos]);
+
+  // --- lecture audio
   const player = useRef<TabPlayer | null>(null);
   if (player.current === null) player.current = new TabPlayer();
   const loaded = useRef<{ score: unknown; loop: boolean } | null>(null);
@@ -77,7 +140,7 @@ export function ScaleDiscoveryPage() {
     startedAt.current = 0;
     setTransport('stopped');
     setStatus('');
-  }, [score]);
+  }, [scoreTab]);
   useEffect(() => player.current?.setTempo(tempo), [tempo]);
   useEffect(() => player.current?.setDrone(drone), [drone]);
   useEffect(() => player.current?.setMetronome(metro), [metro]);
@@ -86,7 +149,7 @@ export function ScaleDiscoveryPage() {
     return () => p.dispose();
   }, []);
 
-  const droneAvailable = score !== null && scoreTonic(score) !== null;
+  const droneAvailable = scoreTab !== null && scoreTonic(scoreTab) !== null;
 
   const consume = (): number => {
     if (startedAt.current) {
@@ -111,13 +174,13 @@ export function ScaleDiscoveryPage() {
   };
 
   const onPlay = async () => {
-    if (!score) return;
+    if (!scoreTab) return;
     const p = player.current!;
     try {
       await p.init(); // en premier : reprend le contexte audio dans le geste
-      if (!loaded.current || loaded.current.score !== score || loaded.current.loop !== loop) {
-        await p.load({ ...score, tempo }, { loop });
-        loaded.current = { score, loop };
+      if (!loaded.current || loaded.current.score !== scoreTab || loaded.current.loop !== loop) {
+        await p.load({ ...scoreTab, tempo }, { loop });
+        loaded.current = { score: scoreTab, loop };
       }
       p.onEnded = () => {
         logPlayed();
@@ -149,11 +212,42 @@ export function ScaleDiscoveryPage() {
   const gotoPosition = (delta: number) => {
     const n = r.positions.length;
     if (n === 0) return;
-    const next = (r.selection.positionIndex + delta + n) % n;
-    setScaleSelection({ positionIndex: next });
+    setScaleSelection({ positionIndex: (r.selection.positionIndex + delta + n) % n });
   };
 
-  const characteristic = (r.def.characteristic ?? []).map((c) => c.replace(/bb/g, '𝄫').replace(/b/g, '♭').replace(/#/g, '♯'));
+  // --- exercice : choix de la cible et réponse
+  const pickTarget = () => {
+    const pool = availableDegrees.filter((d) => d !== target);
+    const list = pool.length ? pool : availableDegrees;
+    setTarget(list[Math.floor(Math.random() * list.length)] ?? null);
+    setReveal(null);
+    setFeedback(null);
+  };
+
+  const onPick = (pick: TabPick) => {
+    if (!target) return;
+    const ok = pick.fn === target;
+    setFeedback({ ok, text: ok ? 'juste' : `non, c’était la ${fmtDegree(target)}` });
+    setScore((s) => ({ right: s.right + (ok ? 1 : 0), wrong: s.wrong + (ok ? 0 : 1) }));
+    if (ok) {
+      timers.current.push(window.setTimeout(pickTarget, 900));
+    } else {
+      setReveal(target);
+      timers.current.push(window.setTimeout(() => setReveal(null), 1800));
+    }
+  };
+
+  const toggleQuiz = (on: boolean) => {
+    setQuiz(on);
+    setScore({ right: 0, wrong: 0 });
+    setFeedback(null);
+    setReveal(null);
+    if (on) pickTarget();
+    else setTarget(null);
+  };
+
+  const characteristic = (r.def.characteristic ?? []).map(fmtDegree);
+  const tuningLabel = r.tuning.strings.map((s) => fmtNote(s.replace(/-?\d+$/, ''), settings.noteNotation)).join(' ');
 
   return (
     <main className="shell">
@@ -161,20 +255,14 @@ export function ScaleDiscoveryPage() {
         <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour à la sélection">‹</button>
         <div>
           <h1 className="page-title">{r.title}</h1>
-          <p className="t-small t-dim">{positionLabel(r.position, settings.noteNotation)} · {r.tuning.nameFr}</p>
+          <p className="t-small t-dim">{positionLabel(r.position, settings.noteNotation)} · {r.tuning.strings.length} cordes</p>
         </div>
         <span className="tag tag-on">N1</span>
       </header>
 
       <Panel accent="magenta" label="Écoute" right={<span className="badge">{r.formula}</span>}>
         <div className="transport-row">
-          <PixelButton
-            variant="primary"
-            onClick={onPlay}
-            disabled={!score || playing}
-            ariaLabel="Lecture"
-            className="play"
-          >
+          <PixelButton variant="primary" onClick={onPlay} disabled={!scoreTab || playing} ariaLabel="Lecture" className="play">
             <PixelIcon name="play" size={18} /> {transport === 'paused' ? 'Reprendre' : 'Écouter'}
           </PixelButton>
           <PixelButton variant="quiet" onClick={onPause} disabled={!playing} ariaLabel="Pause">
@@ -192,13 +280,14 @@ export function ScaleDiscoveryPage() {
             <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.min(200, t + 5))} aria-label="Plus vite">+</button>
           </div>
         </div>
-
         <div className="toggle-grid">
           <Switch checked={drone && droneAvailable} onChange={setDrone} label="Drone" hint="fond. + quinte" />
           <Switch checked={metro} onChange={setMetro} label="Métronome" />
           <Switch checked={loop} onChange={setLoop} label="Boucle" />
         </div>
+      </Panel>
 
+      <Panel accent="violet" label="Lecture">
         <div className="field">
           <span className="t-label">Sens</span>
           <Segmented
@@ -219,18 +308,50 @@ export function ScaleDiscoveryPage() {
             options={ANNOTATIONS.map((a) => ({ value: a.value, label: a.label }))}
           />
         </div>
-        <Switch
-          checked={chordLayer}
-          onChange={setChordLayer}
-          label={`Notes de l'accord${r.chord ? ` (${r.chord})` : ''}`}
-          hint="estompe les notes étrangères"
-        />
+        <details className="more-opts">
+          <summary className="t-label">Plus d’options · cordes, accord, fondamentales, rythme</summary>
+          <div className="field">
+            <span className="t-label">Cordes (découpage)</span>
+            <Segmented<StringLimit>
+              size="sm"
+              label="Nombre de cordes affichées"
+              value={stringLimit}
+              onChange={setStringLimit}
+              options={[
+                { value: 0, label: 'toutes' },
+                { value: 2, label: '2 graves' },
+                { value: 3, label: '3' },
+                { value: 4, label: '4' },
+              ]}
+            />
+          </div>
+          <div className="toggle-grid">
+            <Switch checked={chordLayer} onChange={setChordLayer} label={`Accord${r.chord ? ` (${r.chord})` : ''}`} hint="estompe les autres notes" />
+            <Switch checked={rootsOnly} onChange={setRootsOnly} label="Fondamentales" hint="1 et 5 seulement" />
+          </div>
+          <Switch checked={showRhythm} onChange={setShowRhythm} label="Rythme" hint="hampes et ligatures" />
+          {stringLimit !== 0 && (
+            <p className="t-small t-dim">Découpage : les {stringLimit} cordes graves d’abord, puis on ajoute les suivantes.</p>
+          )}
+        </details>
         {status && <p className="t-small t-dim status">{status}</p>}
       </Panel>
 
-      {score ? (
+      {quiz && (
+        <div className={`quiz-strip ${feedback ? (feedback.ok ? 'ok' : 'no') : ''}`} role="status">
+          <span className="quiz-q">
+            Touche la <strong>{targetLabel ?? '—'}</strong>
+            {target ? <em> · {degreeName(target)}</em> : null}
+          </span>
+          <span className="quiz-score">
+            {feedback ? feedback.text : `${score.right} juste${score.right > 1 ? 's' : ''} · ${score.wrong} erreur${score.wrong > 1 ? 's' : ''}`}
+          </span>
+        </div>
+      )}
+
+      {scoreTab ? (
         <TabView
-          score={score}
+          score={scoreTab}
           notes={settings.noteNotation}
           chords={settings.chordNotation}
           annotation={annotation}
@@ -240,6 +361,9 @@ export function ScaleDiscoveryPage() {
           player={player.current}
           transport={transport}
           emphasizeChordTones={chordLayer}
+          hideRhythm={!showRhythm}
+          {...(reveal ? { highlightFn: reveal } : {})}
+          {...(quiz ? { onPick } : {})}
         />
       ) : (
         <Panel accent="yellow">
@@ -249,16 +373,71 @@ export function ScaleDiscoveryPage() {
       )}
 
       <div className="pos-nav">
-        <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>
-          ‹ Position
-        </PixelButton>
-        <span className="t-label pos-count">
-          {r.selection.positionIndex + 1} / {r.positions.length}
-        </span>
-        <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2}>
-          Position ›
-        </PixelButton>
+        <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>‹ Position</PixelButton>
+        <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
+        <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2}>Position ›</PixelButton>
       </div>
+
+      <Panel accent="green" label="Exercice" right={<span className="tag">{quiz ? `${score.right}/${score.right + score.wrong}` : 'sans matériel'}</span>}>
+        <Switch
+          checked={quiz}
+          onChange={toggleQuiz}
+          label="Montre-moi la note"
+          hint="l’app demande une fonction, tu touches la pastille"
+        />
+        <p className="t-small t-dim">
+          Tu lis la tablature, tu touches la note demandée. Les fonctions proposées sont celles qui sont affichées :
+          active « Fondamentales » ou un découpage de cordes pour réduire la difficulté.
+        </p>
+      </Panel>
+
+      {neighbourId && neighbour && (
+        <Panel accent="cyan" label={`Comparer à ${neighbour.nameFr.toLowerCase()}`}>
+          <Switch
+            checked={compare}
+            onChange={setCompare}
+            label="Deux modes côte à côte"
+            hint={COMPARISON_LABEL[neighbourId] ? `la différence : ${COMPARISON_LABEL[neighbourId]}` : 'une seule note change'}
+          />
+          {compare && comparison && (
+            <>
+              <p className="t-small">
+                {r.title} et {fmtNote(r.tonic, settings.noteNotation)} {comparison.def.nameFr.toLowerCase()}, <strong>même forme au même endroit</strong>.
+                {comparison.diff.onlyA.length > 0 && (
+                  <> Ce qui change : {comparison.diff.onlyA.join(' / ')} d’un côté, {comparison.diff.onlyB.join(' / ')} de l’autre (glow).</>
+                )}
+              </p>
+              <p className="t-label comp-label">{r.title} · {comparison.diff.onlyA.join(' ') || '—'}</p>
+              <TabView
+                score={comparison.mine}
+                notes={settings.noteNotation}
+                chords={settings.chordNotation}
+                annotation={annotation}
+                mode="wrap"
+                scale="auto"
+                reduceMotion
+                player={null}
+                transport="stopped"
+                hideRhythm
+              />
+              <p className="t-label comp-label">{fmtNote(r.tonic, settings.noteNotation)} {comparison.def.nameFr.toLowerCase()} · {comparison.diff.onlyB.join(' ') || '—'}</p>
+              <TabView
+                score={comparison.score}
+                notes={settings.noteNotation}
+                chords={settings.chordNotation}
+                annotation={annotation}
+                mode="wrap"
+                scale="auto"
+                reduceMotion
+                player={null}
+                transport="stopped"
+                hideRhythm
+              />
+            </>
+          )}
+          {compare && !comparison && <p className="t-small t-dim">Pas de position équivalente pour cette comparaison.</p>}
+        </Panel>
+      )}
 
       <Panel accent="violet" label="Couleurs = fonctions">
         <div className="legend">
@@ -292,7 +471,7 @@ export function ScaleDiscoveryPage() {
         <PixelButton variant="quiet" onClick={() => navigate('hub')}>Hub</PixelButton>
       </div>
       <p className="t-small t-dim foot-note">
-        Niveaux 2 (trous), 3 (rappel) et 4 (improvisation) : phases 2 et 7. Notations et thème : {noteSummary(settings.noteNotation)}.
+        Niveaux 2 (trous), 3 (rappel) et 4 (improvisation) : phases 2 et 7. Cordes {tuningLabel} · notation {noteSummary(settings.noteNotation)}.
         Son : {AudioEngine.get().settings.instrument === 'nylon' ? 'nylon' : 'électrique'} (CC0, crédits dans la page Audio).
       </p>
     </main>
@@ -300,5 +479,5 @@ export function ScaleDiscoveryPage() {
 }
 
 function noteSummary(n: NoteNotation): string {
-  return n === 'fr' ? 'solfège' : `anglo-saxonne (${fmtNote('A', 'en')})`;
+  return n === 'fr' ? 'solfège' : 'anglo-saxonne';
 }

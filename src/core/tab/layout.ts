@@ -48,6 +48,10 @@ export interface LayoutOptions {
   stacks: 'change' | 'all';
   /** Pixels logiques par noire (espacement proportionnel au temps). */
   pxPerQuarter?: number;
+  /** Mode débutant : masque hampes, ligatures et silences (la tablature ne garde que les pastilles). */
+  hideRhythm?: boolean;
+  /** Fonction d'intervalle à mettre en évidence (exercice « montre-moi la ♭3 »). */
+  highlightFn?: string;
   /**
    * Calque « notes de l'accord » : estompe les notes qui ne sont pas des notes de l'accord
    * (elles doivent porter `chordTone`, sinon rien n'est estompé).
@@ -83,6 +87,8 @@ export interface PillLayout {
   passing: boolean;
   /** Estompée : la note n'est pas une note de l'accord alors que le calque « accord » est actif. */
   dim?: boolean;
+  /** Mise en évidence par un exercice (anneau blanc). */
+  highlight?: boolean;
 }
 
 export type RhythmItem =
@@ -142,8 +148,10 @@ export interface SystemLayout {
   stringYs: number[];
   tabTop: number;
   tabBottom: number;
-  /** Rangée de rythme : ordonnée du haut de la hampe. */
+  /** Rangée de rythme : ordonnée du haut de la hampe (ou bas de la tab si le rythme est masqué). */
   rhythmY: number;
+  /** Mode « débutant » : aucune rangée de rythme dessinée. */
+  noRhythm?: boolean;
   measures: MeasureLayout[];
   bars: BarLine[];
   texts: TextItem[];
@@ -327,8 +335,10 @@ export function layoutScore(score: TabScore, options: LayoutOptions = DEFAULT_LA
     arrowsY = y + 2;
     y = arrowsY + METRICS.arrowH;
   }
-  const rhythmY = y + 2;
-  y = rhythmY + METRICS.rhythmH + (anyTuplet ? METRICS.tupletH : 0);
+  // mode « débutant » : ni hampes, ni ligatures, ni silences
+  const noRhythm = !!o.hideRhythm;
+  const rhythmY = noRhythm ? y : y + 2;
+  if (!noRhythm) y = rhythmY + METRICS.rhythmH + (anyTuplet ? METRICS.tupletH : 0);
   let annotationY: number | null = null;
   if (anySingleAnn) {
     annotationY = y + 1;
@@ -380,7 +390,7 @@ export function layoutScore(score: TabScore, options: LayoutOptions = DEFAULT_LA
     const stringYs = stringYsRel.map((v) => sy + v); // ligne 0 = corde la plus aiguë (haut)
     const sys: SystemLayout = {
       index: si, y: sy, height: systemH, x0, width: 0, stringYs,
-      tabTop: sy + tabTop, tabBottom: sy + tabBottom, rhythmY: sy + rhythmY,
+      tabTop: sy + tabTop, tabBottom: sy + tabBottom, rhythmY: sy + rhythmY, ...(noRhythm ? { noRhythm: true } : {}),
       measures: [], bars: [], texts: [], rhythm: [],
     };
 
@@ -433,7 +443,7 @@ export function layoutScore(score: TabScore, options: LayoutOptions = DEFAULT_LA
       };
       sys.measures.push(ml);
       allMeasures.push(ml);
-      buildRhythm(score, p.index, colLayouts, sys, sy + rhythmY, anyTuplet);
+      if (!noRhythm) buildRhythm(score, p.index, colLayouts, sys, sy + rhythmY, anyTuplet);
       if (p.tsW > 0) {
         const ts = timeSigOf(score, p.index);
         // en tête de portée (première ligne), pas au milieu des cordes
@@ -478,6 +488,7 @@ function buildColumn(
         text: pillText(n), fn: n.fn, muted: !!n.muted, hidden: !!n.hidden,
         characteristic: !!n.characteristic, passing: !!n.passing,
         ...(o.emphasizeChordTones && n.chordTone === false ? { dim: true } : {}),
+        ...(o.highlightFn && n.fn === o.highlightFn ? { highlight: true } : {}),
       });
       if (c.ev.notes.length >= 2 && o.annotation !== 'none') {
         const text = annotationText(n, o.annotation, o.notes);

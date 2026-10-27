@@ -31,6 +31,21 @@ export interface TabViewProps {
   cursorAnchor?: number;
   /** Calque « notes de l'accord » : estompe les notes qui n'appartiennent pas à l'accord. */
   emphasizeChordTones?: boolean;
+  /** Mode « débutant » : masque hampes, ligatures et silences. */
+  hideRhythm?: boolean;
+  /** Met en évidence toutes les pastilles d'une fonction (correction d'exercice). */
+  highlightFn?: string;
+  /** Toucher une pastille (exercice « montre-moi la ♭3 »). */
+  onPick?: (pick: TabPick) => void;
+}
+
+export interface TabPick {
+  fn: string;
+  fret: number;
+  string: number;
+  /** Coordonnées logiques du centre de la pastille (repère du canvas). */
+  x: number;
+  y: number;
 }
 
 export interface TabMetrics {
@@ -66,7 +81,7 @@ function describe(score: TabScore, notation: NoteNotation): string {
 }
 
 export function TabView(props: TabViewProps) {
-  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false } = props;
+  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, onPick } = props;
   const playing = transport === 'playing';
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -103,8 +118,11 @@ export function TabView(props: TabViewProps) {
   const viewLogical = Math.max(60, Math.floor(box.w / cssPerLogical));
 
   const layout: ScoreLayout = useMemo(
-    () => layoutScore(score, { mode, maxWidth: viewLogical, notes, chords, annotation, stacks: 'change', emphasizeChordTones }),
-    [score, mode, viewLogical, notes, chords, annotation, emphasizeChordTones],
+    () => layoutScore(score, {
+      mode, maxWidth: viewLogical, notes, chords, annotation, stacks: 'change',
+      emphasizeChordTones, hideRhythm, ...(highlightFn ? { highlightFn } : {}),
+    }),
+    [score, mode, viewLogical, notes, chords, annotation, emphasizeChordTones, hideRhythm, highlightFn],
   );
 
   const cssW = layout.width * cssPerLogical;
@@ -247,19 +265,36 @@ export function TabView(props: TabViewProps) {
   // --- crochets de vérification (développement uniquement)
   useEffect(() => {
     if (!import.meta.env.DEV) return;
+    // une seule instance de référence : celle qui joue (les tablatures de comparaison ont player = null)
+    if (!player) return;
     (window as unknown as { __fretwave?: unknown }).__fretwave = {
       layout, score, player, metrics: () => ({ ...metrics.current }), cursorAt: (t: number) => cursorAt(layout, t), cssPerLogical,
       viewLogical,
     };
   }, [layout, score, player, cssPerLogical, viewLogical]);
 
+  // --- toucher une pastille (exercice) : conversion CSS → pixels logiques, tolérance tactile
+  const onPointer = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!onPick) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const r = stage.getBoundingClientRect();
+    const lx = (e.clientX - r.left) / cssPerLogical;
+    const ly = (e.clientY - r.top) / cssPerLogical;
+    const hit = layout.columns
+      .flatMap((c) => c.pills)
+      .find((p) => lx >= p.x - 4 && lx <= p.x + p.w + 4 && ly >= p.y - 3 && ly <= p.y + p.h + 3);
+    if (hit) onPick({ fn: hit.fn, fret: hit.fret, string: hit.string, x: hit.x + hit.w / 2, y: hit.y + hit.h / 2 });
+  };
+
   return (
     <div
       ref={wrapRef}
-      className={`tabview ${mode}`}
-      role="img"
+      className={`tabview ${mode} ${onPick ? 'pickable' : ''}`}
+      role={onPick ? 'group' : 'img'}
       aria-label={describe(score, notes)}
       style={{ height: cssH }}
+      onClick={onPointer}
     >
       <div ref={stageRef} className="tabview-stage" style={{ width: cssW, height: cssH }}>
         <canvas ref={staticRef} className="pix" style={{ width: cssW, height: cssH }} />

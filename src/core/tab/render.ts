@@ -141,7 +141,14 @@ export function drawOverlay(s: Surface, layout: ScoreLayout, theme: TabTheme, st
   const a = state.reduceMotion ? 0.7 : PULSE[state.frame % PULSE.length]!;
   for (const c of layout.columns) {
     for (const p of c.pills) {
-      if (!p.characteristic || p.hidden || p.muted) continue;
+      if (p.hidden || p.muted) continue;
+      if (p.highlight) {
+        // exercice « montre-moi la ♭3 » : anneau blanc continu, indépendant du mode
+        ring(s, p, 1, theme.glow, 0.95);
+        ring(s, p, 2, theme.glow, 0.5);
+        continue;
+      }
+      if (!p.characteristic) continue;
       const color = intervalStyle(p.fn).fill;
       ring(s, p, 1, color, a);
       ring(s, p, 2, color, a * 0.45);
@@ -154,7 +161,7 @@ export function drawOverlay(s: Surface, layout: ScoreLayout, theme: TabTheme, st
   for (const sys of layout.systems) {
     if (sys.index > cur.systemIndex) break;
     const y = sys.tabTop;
-    const h = sys.rhythmY + METRICS.rhythmH - y;
+    const h = (sys.noRhythm ? sys.rhythmY : sys.rhythmY + METRICS.rhythmH) - y;
     const x = sys.x0 + 1;
     const w = sys.index < cur.systemIndex ? sys.width - x - 1 : Math.round(cur.x) - x - 1;
     if (w > 0) s.fillRect(x, y, w, h, theme.panel, 0.5);

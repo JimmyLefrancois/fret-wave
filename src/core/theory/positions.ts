@@ -344,6 +344,18 @@ export function fmtPositionLabel(p: Position, notation: NoteNotation = 'fr'): st
   }
 }
 
+/**
+ * Sous-ensemble d'une position (mêmes cordes, mêmes cases, notes filtrées) : sert au mode
+ * « fondamentales d'abord » et au découpage par nombre de cordes (MUSIC_DESIGN §12).
+ * Les notes restent dans l'ordre de lecture ; `fretMin`/`fretMax` sont recalculés.
+ */
+export function filterPosition(pos: Position, keep: (n: PositionNote) => boolean): Position {
+  const notes = pos.notes.filter(keep);
+  if (notes.length === 0) return { ...pos, notes: [], fretMin: 0, fretMax: 0 };
+  const frets = notes.map((n) => n.fret);
+  return { ...pos, notes, fretMin: Math.min(...frets), fretMax: Math.max(...frets), id: `${pos.id}:sub` };
+}
+
 /** Nombre maximal de notes d'une même corde dans la position. */
 export function maxNotesPerString(p: Position): number {
   const c = new Map<number, number>();

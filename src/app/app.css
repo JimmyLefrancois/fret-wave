@@ -783,3 +783,39 @@ table.kv td:first-child { color: var(--muted); }
   .btn { transition: none; }
   .btn:active { transform: none; }
 }
+
+/* --- exercice « montre-moi la note » --------------------------------------- */
+
+.tabview.pickable { cursor: crosshair; }
+.quiz-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: var(--bw) solid var(--green);
+  background: rgba(124, 255, 107, 0.08);
+}
+.quiz-strip.ok { background: rgba(124, 255, 107, 0.2); }
+.quiz-strip.no { border-color: var(--danger); background: rgba(255, 92, 122, 0.14); }
+.quiz-q { font-family: var(--font-label); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.quiz-q strong { color: var(--green); }
+.quiz-strip.no .quiz-q strong { color: var(--danger); }
+.quiz-q em { font-style: normal; font-family: var(--font-body); font-size: 15px; text-transform: none; color: var(--muted); letter-spacing: 0; }
+.quiz-score { font-family: var(--font-body); font-size: 16px; color: var(--text); white-space: nowrap; }
+.comp-label { margin: 10px 0 2px; color: var(--cyan); }
+
+/* --- options repliées (le niveau 1 doit tenir sur un écran) ---------------- */
+
+.more-opts { margin-top: 10px; border-top: 1px solid var(--line-soft); padding-top: 8px; }
+.more-opts > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 8px 0;
+  color: var(--cyan);
+}
+.more-opts > summary::-webkit-details-marker { display: none; }
+.more-opts > summary::before { content: '▸ '; color: var(--magenta); }
+.more-opts[open] > summary::before { content: '▾ '; }
+.more-opts[open] { padding-bottom: 4px; }

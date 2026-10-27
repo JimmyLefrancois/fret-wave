@@ -229,8 +229,13 @@ Règle appliquée, **corde par corde** (`core/theory/fingerings.ts`, testé sur 
 | **Calque « notes de l'accord »** (estompe les étrangères) | Montre où habitent 1-3-5-7 **dans la forme** : c'est le pont entre la gamme et l'accord. Sur La m pent + Am7, seule la 4te s'éteint — visuellement, la gamme « contient » l'accord. |
 | **Position précédente / suivante** (Box 1 → 5) | Le chaînage des boxes est la compétence suivante (§3.2, G1.3). Le compteur « 1 / 5 » rend la progression visible. |
 | **Pas de score, pas de « validé »** | Le brief prévoit une validation auto-déclarée au niveau 1. L'app **journalise l'écoute** (durée réelle) et ne prétend rien de plus. Un niveau 1 « validé » sans preuve serait un mensonge. |
+| **Mode « fondamentales »** (1 et 5 seulement) | Ancrer la tonique **dans** la forme avant les autres notes : l'erreur n°1 est de connaître la forme sans savoir où elle habite. Option, un tap. |
+| **Découpage par cordes** (2 → 3 → 4 → toutes) | Chunking : 4 notes à lire au lieu de 12. Prépare le niveau 3 sans nouveau code de théorie. Les cordes **graves** d'abord (début de la montée). |
+| **Exercice « montre-moi la … »** | L'app demande une fonction, l'élève **touche la pastille**. La couleur devient une réponse, pas un décor ; en cas d'erreur, **toutes** les pastilles de la fonction visée s'allument (anneau blanc) pendant 1,8 s. Les cibles se limitent à ce qui est affiché : avec « fondamentales » actif, il n'y a que 1 et 5. |
+| **Comparaison de deux modes voisins** | Dorien vs éolien (6 / ♭6), ionien vs lydien (4 / ♯4), mixolydien vs ionien (7 / ♭7), phrygien vs éolien (♭2 / 2), locrien vs phrygien (♭5 / 5), pentatonique vs blues (ajout de la ♭5). **Même tonique, même système, même forme**, seule la note qui change pulse des deux côtés. |
+| **Rythme masqué par défaut** | Le niveau 1 ne garde que les pastilles et l'annotation ; un interrupteur rend hampes et ligatures. Un débutant n'a rien à faire de croches le premier jour. |
 
-**Ce qui reste trop lourd en N1** [AVIS PROF] : les hampes et ligatures du rythme. Un débutant qui écoute sa première pentatonique n'a aucune raison de lire des croches : trois couches (pastilles, annotation, rythme) pour une seule information utile. Je propose un **mode « débutant »** qui masque la ligne rythmique (proposition 4 du §12).
+**Traité en 1d** : le rythme est **masqué par défaut** en N1 (switch « Rythme ») et les options secondaires (cordes, accord, fondamentales) sont repliées : l'écran tient en deux panneaux avant la tablature. **Reste faible** : la forme de la main (vue manche optionnelle, non implémentée) et les niveaux 2-4.
 
 ## 4. Module Accords — plan pédagogique
 
@@ -601,9 +606,11 @@ Le vrai gain de la 1c n'est pas « on a du son » : c'est que **ce qu'on entend 
 - **Le timbre n'a pas été écouté** (comme en 1c) et rien n'a été testé sur un vrai téléphone : la lisibilité a été jugée sur captures 390×844, pas dans la main.
 - **Doigtés heuristiques** : justes sur les formes usuelles, non relus position par position.
 
-### 12.3 Propositions (impact ÷ effort décroissant)
-1. **« Fondamentales d'abord »** *(fort, faible)* — un mode qui n'allume que 1 et 5 dans la position, l'élève nomme la tonique à voix haute. Corrige l'erreur n°1 : connaître la forme sans savoir où elle habite.
-2. **« Montre-moi la ♭3 »** *(fort, moyen)* — lecture avec drone, l'élève touche la pastille d'une fonction demandée. Transforme la couleur en son au lieu d'un décor ; c'est de l'ear training **sur la tablature elle-même**.
-3. **Positions par morceaux** *(fort, moyen)* — la même position en 2 cordes, puis 3, puis entière. Réduit 12 notes à 4, prépare le niveau 3 sans nouveau code de théorie.
-4. **Mode « débutant » de la tablature** *(moyen, faible)* — masquer hampes, ligatures et silences, ne garder que les pastilles et l'annotation. Réglage global, une ligne de layout.
-5. **Deux modes côte à côte** *(moyen, faible)* — dorien et éolien sur la même position, seule la note qui change pulse. Le modèle porte déjà `characteristic` et le brief demande les deux lectures des modes.
+### 12.3 Propositions — état après la seconde passe de 1d
+Les cinq propositions ont été **implémentées dans la même phase** (testées : `tests/learning.test.ts`). Détail de ce qu'elles font réellement dans le §3.9. Ce qui reste ouvert : la **vue manche optionnelle** (contraire au brief tel qu'il est écrit, elle attend ton accord) et la **relève des doigtés** position par position.
+
+1. **« Fondamentales d'abord »** *(fort, faible)* — fait — un mode qui n'allume que 1 et 5 dans la position, l'élève nomme la tonique à voix haute. Corrige l'erreur n°1 : connaître la forme sans savoir où elle habite.
+2. **« Montre-moi la ♭3 »** *(fort, moyen)* — fait (toucher la pastille, correction par anneau blanc) — lecture avec drone, l'élève touche la pastille d'une fonction demandée. Transforme la couleur en son au lieu d'un décor ; c'est de l'ear training **sur la tablature elle-même**.
+3. **Positions par morceaux** *(fort, moyen)* — fait (2 / 3 / 4 cordes) — la même position en 2 cordes, puis 3, puis entière. Réduit 12 notes à 4, prépare le niveau 3 sans nouveau code de théorie.
+4. **Mode « débutant » de la tablature** *(moyen, faible)* — fait (rythme masqué par défaut) — masquer hampes, ligatures et silences, ne garder que les pastilles et l'annotation. Réglage global, une ligne de layout.
+5. **Deux modes côte à côte** *(moyen, faible)* — fait (5 paires, même forme, note qui change en glow) — dorien et éolien sur la même position, seule la note qui change pulse. Le modèle porte déjà `characteristic` et le brief demande les deux lectures des modes.
