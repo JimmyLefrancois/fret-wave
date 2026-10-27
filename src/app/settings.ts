@@ -24,6 +24,11 @@ export interface AppSettings {
   holeRate: HoleRate;
   /** Tempo de la grille de l'exercice (un clic par trou), en BPM. */
   trainingTempo: number;
+  /**
+   * Boîte d'accord dans les étapes « Découvrir » et « Construire » du module Accords (D1 = B).
+   * Désactivable : la tablature seule reste la règle par défaut du brief.
+   */
+  showChordBox: boolean;
 }
 
 /** Taux de trous du niveau 2 : trois crans, pas un curseur continu. */
@@ -41,6 +46,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showDegreeRow: true,
   holeRate: 0.35,
   trainingTempo: 50,
+  showChordBox: true,
 };
 
 const NOTATIONS: NoteNotation[] = ['fr', 'en'];
@@ -59,6 +65,7 @@ export function loadAppSettings(store: KeyValueStore | null): AppSettings {
     if (typeof o.reduceMotion === 'boolean') out.reduceMotion = o.reduceMotion;
     if (typeof o.scanlines === 'boolean') out.scanlines = o.scanlines;
     if (typeof o.showDegreeRow === 'boolean') out.showDegreeRow = o.showDegreeRow;
+    if (typeof o.showChordBox === 'boolean') out.showChordBox = o.showChordBox;
     if (HOLE_RATES.includes(o.holeRate as HoleRate)) out.holeRate = o.holeRate as HoleRate;
     if (typeof o.trainingTempo === 'number' && Number.isFinite(o.trainingTempo)) {
       out.trainingTempo = Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, Math.round(o.trainingTempo)));

@@ -135,6 +135,12 @@ export function TabView(props: TabViewProps) {
 
   const cssW = layout.width * cssPerLogical;
   const cssH = layout.height * cssPerLogical;
+  /**
+   * Score court en défilement continu (un accord = une mesure) : le champ se rétrécit à la largeur du
+   * score et se centre. Sans cela la tablature restait collée à gauche d'un panneau de 1 300 px, et
+   * centrer la seule scène décalait la colonne d'étiquettes de cordes (qui est un canvas à part).
+   */
+  const narrowScroll = mode === 'scroll' && cssW < box.w;
 
   // --- couche statique
   useEffect(() => {
@@ -331,7 +337,7 @@ export function TabView(props: TabViewProps) {
       className={`tabview ${mode} ${onPick ? 'pickable' : ''}`}
       role={onPick ? 'group' : 'img'}
       aria-label={describe(score, notes)}
-      style={{ height: cssH }}
+      style={narrowScroll ? { height: cssH, width: cssW, marginLeft: 'auto', marginRight: 'auto' } : { height: cssH }}
       onClick={onPointer}
     >
       <div ref={stageRef} className="tabview-stage" style={{ width: cssW, height: cssH }}>

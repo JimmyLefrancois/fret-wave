@@ -34,6 +34,11 @@ export const STATE_LABEL: Readonly<Record<NodeState, string>> = {
 
 export interface NodeStats {
   nodeId: string;
+  /** Module du nœud (les deux modules partagent le même modèle de maîtrise). */
+  module: 'gammes' | 'accords';
+  /** Voicing du nœud quand `module === 'accords'`. */
+  chordId: string | null;
+  /** Gamme du nœud (module Gammes) ; chaîne vide pour un accord. */
   scaleId: string;
   system: string;
   formIndex: number;
@@ -86,11 +91,20 @@ function weightedRecent(scores: readonly number[], weights: readonly number[]): 
   return recent.reduce((s, v, i) => s + v * (w[i] ?? 1), 0) / wSum;
 }
 
+/**
+ * Nombre de vérifications propres exigées pour déclarer un accord « appris » (MUSIC_DESIGN §4.6) :
+ * trois arpèges propres sur deux jours différents. Moins, c'est valider un hasard — un accord peut
+ * tomber juste une fois par chance de doigté.
+ */
+export const CHORD_SUCCESSES = 3;
+
 export function stateOf(opts: {
   attempts: number; successes: number; successDays: number; last: number; box: number | null;
+  /** Seuil de réussites exigé (2 pour une forme de gamme, 3 pour un accord). */
+  minSuccesses?: number;
 }): NodeState {
   if (opts.attempts === 0) return 'available';
-  const learned = opts.successes >= 2 && opts.successDays >= 2;
+  const learned = opts.successes >= (opts.minSuccesses ?? 2) && opts.successDays >= 2;
   if (!learned) return 'learning';
   if (opts.box !== null && opts.box >= 5 && opts.last >= PASS) return 'mastered';
   return 'learned';
@@ -116,8 +130,11 @@ export function summarizeNodes(attempts: readonly Attempt[]): NodeStats[] {
     const first = sorted[0]!;
     const last = sorted[sorted.length - 1]!;
     const card: Card | null = cards.get(nodeId) ?? null;
+    const isChord = nodeId.startsWith('acc:');
     const stats: NodeStats = {
       nodeId,
+      module: isChord ? 'accords' : 'gammes',
+      chordId: isChord ? nodeId.slice('acc:accord:'.length) : null,
       scaleId: first.scaleId,
       system: first.system,
       formIndex: first.formIndex,
@@ -137,7 +154,15 @@ export function summarizeNodes(attempts: readonly Attempt[]): NodeStats[] {
       due: card ? card.due : null,
       lastLevel: last.level,
     };
-    stats.state = stateOf({ attempts: stats.attempts, successes: stats.successes, successDays, last: stats.last, box: stats.box });
+    stats.state = stateOf({
+      attempts: stats.attempts,
+      successes: stats.successes,
+      successDays,
+      last: stats.last,
+      box: stats.box,
+      // un accord exige 3 vérifications propres sur 2 jours (MUSIC_DESIGN §4.6) ; une forme de gamme 2
+      ...(isChord ? { minSuccesses: CHORD_SUCCESSES } : {}),
+    });
     out.push(stats);
   }
   return out.sort((a, b) => b.mastery - a.mastery);

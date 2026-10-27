@@ -16,8 +16,17 @@ export { dayKey } from './practiceLog';
 export const ATTEMPTS_KEY = 'fretwave.attempts.v1';
 export const ATTEMPT_CAP = 2000;
 
-export type AttemptKind = 'listen' | 'holes' | 'recall';
-export const ATTEMPT_KINDS: readonly AttemptKind[] = ['listen', 'holes', 'recall'];
+/**
+ * Genres de tentative. `listen` est une écoute (non vérifiée), `holes` / `recall` sont les exercices du
+ * module Gammes, `arpeggio` la vérification corde par corde du module Accords (phase 4a) et `strum`
+ * l'auto-évaluation d'un accord plaqué — **déclarée, jamais vérifiée** tant que la phase 5 n'a pas
+ * l'analyse polyphonique.
+ */
+export type AttemptKind = 'listen' | 'holes' | 'recall' | 'arpeggio' | 'strum';
+export const ATTEMPT_KINDS: readonly AttemptKind[] = ['listen', 'holes', 'recall', 'arpeggio', 'strum'];
+
+/** Module d'appartenance d'une tentative. Absent = module Gammes (tentatives des phases 2-3). */
+export type AttemptModule = 'gammes' | 'accords';
 
 /** Niveaux du module Gammes (MUSIC_DESIGN §3.4) : 1 découverte, 2 mémorisation, 3 rappel. */
 export type AttemptLevel = 1 | 2 | 3;
@@ -52,6 +61,13 @@ export interface Attempt {
   missedStrings: number[];
   /** La grille rythmique a-t-elle été tenue (série finie dans le temps du métronome) ? */
   tempoOk: boolean;
+  /** Module d'appartenance (absent = gammes, compatibilité avec les tentatives des phases 2-3). */
+  module?: AttemptModule;
+  /**
+   * Voicing de l'accord travaillé (module Accords) : c'est l'identité du nœud de progression
+   * (`acc:accord:{chordId}`). Une forme d'accord se révise une fois, quelle que soit la session.
+   */
+  chordId?: string;
 }
 
 export function zoneOf(fret: number): number {
@@ -59,8 +75,19 @@ export function zoneOf(fret: number): number {
 }
 
 /** Nœud de progression : une **forme lue dans un mode**, indépendante de la tonique. */
-export function nodeIdOf(a: Pick<Attempt, 'scaleId' | 'system' | 'formIndex'>): string {
+export function nodeIdOf(a: Pick<Attempt, 'scaleId' | 'system' | 'formIndex'> & { chordId?: string; module?: AttemptModule }): string {
+  if (a.module === 'accords' || a.chordId) return `acc:accord:${a.chordId ?? a.scaleId}`;
   return `gam:lecture:${a.scaleId}:${a.system}:${a.formIndex}`;
+}
+
+/** Le nœud appartient-il au module Accords ? (le hub et les écrans de gamme filtrent dessus) */
+export function isChordNode(nodeId: string): boolean {
+  return nodeId.startsWith('acc:');
+}
+
+/** Voicing d'un nœud d'accord, ou `null`. */
+export function chordIdOfNode(nodeId: string): string | null {
+  return nodeId.startsWith('acc:accord:') ? nodeId.slice('acc:accord:'.length) : null;
 }
 
 /** Part d'un nœud qui reste à expliquer : la tonique (preuve séparée). */
@@ -136,6 +163,8 @@ export function normalizeAttempt(v: unknown): Attempt | null {
       ? [...new Set(a.missedStrings.filter((s): s is number => typeof s === 'number' && Number.isInteger(s) && s >= 0 && s < 8))]
       : [],
     tempoOk: a.tempoOk === true,
+    ...(a.module === 'accords' || a.module === 'gammes' ? { module: a.module } : {}),
+    ...(typeof a.chordId === 'string' && a.chordId ? { chordId: a.chordId } : {}),
   };
 }
 
@@ -228,6 +257,8 @@ export interface DaySummary {
   nodes: number;
   /** Précision du jour (0-1), `null` sans exercice vérifié. */
   accuracy: number | null;
+  /** Accords plaqués **auto-déclarés** (non vérifiés) : une activité, jamais une preuve. */
+  selfAssessed: number;
 }
 
 export function summarizeDay(attempts: readonly Attempt[], now: Date): DaySummary {
@@ -244,6 +275,7 @@ export function summarizeDay(attempts: readonly Attempt[], now: Date): DaySummar
     seconds: mine.reduce((s, a) => s + a.seconds, 0),
     nodes: new Set(mine.map(nodeIdOf)).size,
     accuracy: holes > 0 ? correct / holes : null,
+    selfAssessed: mine.filter((a) => a.kind === 'strum').length,
   };
 }
 

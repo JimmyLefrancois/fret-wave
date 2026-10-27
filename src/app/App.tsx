@@ -20,6 +20,8 @@ import { installDevHooks } from './devHooks';
 import { ScaleDiscoveryPage } from '../modules/gammes/ScaleDiscoveryPage';
 import { ScaleSelectPage } from '../modules/gammes/ScaleSelectPage';
 import { ScaleTrainingPage } from '../modules/gammes/ScaleTrainingPage';
+import { ChordsPage } from '../modules/accords/ChordsPage';
+import { ChordLessonPage } from '../modules/accords/ChordLessonPage';
 
 const SHORT_NAME: Record<string, string> = { nylon: 'GUITARE NYLON', electric: 'GUITARE ÉLECTRIQUE' };
 
@@ -33,7 +35,10 @@ const NAV: { route: RouteName; label: string; icon: IconName }[] = [
 ];
 
 const ACTIVE: Record<RouteName, RouteName> = {
-  hub: 'hub', gammes: 'gammes', scale: 'gammes', training: 'gammes', review: 'gammes', tuner: 'tuner', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
+  hub: 'hub', gammes: 'gammes', scale: 'gammes', training: 'gammes', review: 'gammes',
+  // le module Accords s'ouvre depuis le hub : aucun onglet supplémentaire (5 libellés pixel ne tiennent pas sur 390 px)
+  accords: 'hub', chord: 'hub',
+  tuner: 'tuner', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
 };
 
 function Page({ route }: { route: RouteName }) {
@@ -44,6 +49,9 @@ function Page({ route }: { route: RouteName }) {
     // clés distinctes : sans elles, React réutilise l'instance et la session mélangée ne démarre pas
     case 'training': return <ScaleTrainingPage key="training" />;
     case 'review': return <ScaleTrainingPage key="review" initialMixed />;
+    case 'accords': return <ChordsPage />;
+    // clé distincte : changer d'accord ne doit pas réutiliser l'état de la leçon précédente
+    case 'chord': return <ChordLessonPage />;
     case 'tuner': return <TunerPage />;
     case 'settings': return <SettingsPage />;
     case 'tab': return <TabPage />;

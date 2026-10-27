@@ -21,6 +21,8 @@ import {
 } from '../core/progress';
 import { unseenTonic } from '../modules/gammes/transpose';
 import { buildReviewQueue } from '../modules/gammes/review';
+import { chordProgress, learnedChordIds, nextChord } from '../modules/accords/recommend';
+import { fmtChord } from '../core/theory';
 
 /** Repère de lecture du diagnostic par corde (accordage standard, de la plus grave à la plus aiguë). */
 const STRING_LABEL_FR = ['Mi grave', 'La', 'Ré', 'Sol', 'Si', 'Mi aigu'];
@@ -99,10 +101,17 @@ export function HubPage() {
   const day = useMemo(() => summarizeDay(journal, now), [journal, now]);
   const xp = useMemo(() => xpSummary(journal, now), [journal, now]);
   const st = useMemo(() => streak(journal, now), [journal, now]);
-  const nodes = useMemo(() => summarizeNodes(journal), [journal]);
+  const allNodes = useMemo(() => summarizeNodes(journal), [journal]);
+  // le hub des gammes ne compte que les nœuds de gammes : les accords ont leur propre panneau
+  const nodes = useMemo(() => allNodes.filter((n) => n.module === 'gammes'), [allNodes]);
   const learned = nodes.filter((n) => n.state === 'learned' || n.state === 'mastered').length;
   const mastered = nodes.filter((n) => n.state === 'mastered').length;
-  const due = useMemo(() => dueNow(journal, now.getTime()), [journal, now]);
+  // même règle pour les cartes dues : une carte d'accord ne s'ouvre pas sur un écran de gamme
+  const due = useMemo(() => dueNow(journal, now.getTime()).filter((c) => !c.nodeId.startsWith('acc:')), [journal, now]);
+  const chordDue = useMemo(() => dueNow(journal, now.getTime()).filter((c) => c.nodeId.startsWith('acc:')), [journal, now]);
+  const chordLearned = useMemo(() => learnedChordIds(journal), [journal]);
+  const chordNext = useMemo(() => nextChord(chordLearned), [chordLearned]);
+  const chordCount = chordProgress(chordLearned);
   const allCards = useMemo(() => cardsFrom(journal), [journal]);
   const nextDue = useMemo(() => allCards.filter((c) => c.due > now.getTime()).sort((a, b) => a.due - b.due)[0] ?? null, [allCards, now]);
   const weak = useMemo(() => stringWeakness(journal)[0] ?? null, [journal]);
@@ -115,7 +124,8 @@ export function HubPage() {
     return tonic ? { node, tonic } : null;
   }, [nodes]);
   const badges = useMemo(() => badgeStatus(journal, now), [journal, now]);
-  const activity = day.listens + day.exercises;
+  // une déclaration (« je l'ai plaqué ») est une activité, jamais une preuve : elle compte ici, pas dans l'XP
+  const activity = day.listens + day.exercises + day.selfAssessed;
   const last = nodes[0] ?? null;
 
   const review = () => {
@@ -129,7 +139,7 @@ export function HubPage() {
   return (
     <main className="shell">
       <header className="hero">
-        <p className="hero-kicker t-label">phase 2 · progression</p>
+        <p className="hero-kicker t-label">gammes &amp; accords · progression</p>
         <h1 className="hero-title">FRETWAVE</h1>
         <p className="hero-sub">
           <span>
@@ -138,12 +148,13 @@ export function HubPage() {
             EN TABLATURE
           </span>
         </p>
-        <p className="hero-hint t-label">↓ 31 gammes · 5 systèmes · N1 à N3</p>
+        <p className="hero-hint t-label">↓ 31 gammes · 5 systèmes · N1 à N3 · accords corde par corde</p>
       </header>
 
       <Panel className="span-5 panel-fill" accent="cyan" label="Aujourd’hui" right={<span className="badge">{activity} / {DAILY_GOAL}</span>}>
         <p className="stat-line">
           <strong>{day.listens}</strong> écoute{day.listens > 1 ? 's' : ''} · <strong>{day.exercises}</strong> exercice{day.exercises > 1 ? 's' : ''}
+          {day.selfAssessed > 0 ? ` · ${day.selfAssessed} déclaration${day.selfAssessed > 1 ? 's' : ''}` : ''}
           {day.seconds > 0 ? ` · ${minutes(day.seconds)}` : ''}
         </p>
         <Bar value={Math.min(activity, DAILY_GOAL)} max={DAILY_GOAL} accent="cyan" />
@@ -284,6 +295,31 @@ export function HubPage() {
         </div>
       </Panel>
 
+      <Panel className="span-5" accent="cyan" label="Accords" right={<span className="badge">{chordCount.done} / {chordCount.total}</span>}>
+        {chordNext ? (
+          <>
+            <h3 className="card-title">{fmtChord(chordNext.chord, settings.chordNotation)}</h3>
+            <p className="t-small">palier {chordNext.palier.id} · {chordNext.why}</p>
+            <p className="t-small t-dim">Pourquoi : {chordNext.reason}.</p>
+            <div className="row">
+              <PixelButton variant="primary" onClick={() => navigate('chord')}>Reprendre cette leçon</PixelButton>
+              <PixelButton variant="quiet" onClick={() => navigate('accords')}>Le parcours</PixelButton>
+            </div>
+            {chordDue.length > 0 && (
+              <p className="t-small t-dim">{chordDue.length} accord{chordDue.length > 1 ? 's' : ''} dont la révision est due.</p>
+            )}
+          </>
+        ) : (
+          <>
+            <p className="t-body">Le parcours d’accords ouvert est terminé : place aux transitions et au tempo (4b, phase 5).</p>
+            <div className="row"><PixelButton onClick={() => navigate('accords')}>Voir le parcours</PixelButton></div>
+          </>
+        )}
+        <p className="t-small t-dim">
+          Chaque corde est vérifiée au micro, une par une. Un accord plaqué déclaré n’est jamais certifié : c’est la phase 5 qui saura l’écouter.
+        </p>
+      </Panel>
+
       <div className="col-5">
         <Panel accent="cyan" label="Par où commencer">
           <p className="t-small">Trois portes d’entrée, dans l’ordre où je les enseignerais.</p>
@@ -318,7 +354,7 @@ export function HubPage() {
       </Panel>
 
       <Panel className="span-7" accent="violet" label="Modules">
-        <p className="t-small">Un module jouable aujourd’hui, trois déclarés — l’état est écrit, pas suggéré.</p>
+        <p className="t-small">Deux modules jouables, deux déclarés — l’état est écrit, pas suggéré.</p>
         <div className="modules">
           {MODULES.map((m) => (
             <article key={m.id} className={`module ${m.status}`} style={{ ['--accent' as never]: `var(--${m.accent})` }}>

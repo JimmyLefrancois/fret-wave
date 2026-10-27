@@ -183,6 +183,12 @@ export function SettingsPage() {
           label="Rangée de degrés"
           hint="aide à la lecture (daltonisme)"
         />
+        <Switch
+          checked={settings.showChordBox}
+          onChange={(v) => setSettings({ showChordBox: v })}
+          label="Boîte d’accord"
+          hint="module Accords, étapes Découvrir et Construire (décision D1)"
+        />
       </Panel>
 
       <Panel className="span-7" accent="yellow" label="Son">

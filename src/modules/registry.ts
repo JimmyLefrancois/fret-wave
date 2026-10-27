@@ -19,12 +19,13 @@ export const MODULES: readonly LearningModule[] = [
   {
     id: 'accords',
     title: 'Accords',
-    tagline: 'De zéro : formes ouvertes puis barrés',
+    tagline: 'De zéro : formes ouvertes, doigt par doigt',
     icon: 'chords',
     accent: 'cyan',
-    status: 'planned',
-    statusLabel: 'Phase 4',
-    facts: ['43 formes déjà vérifiées par test', 'Leçon guidée, arpège validé au micro'],
+    status: 'available',
+    statusLabel: 'Phase 4a — 4 étapes',
+    route: 'accords',
+    facts: ['13 accords ouverts · 5 paliers', 'Doigtés saisis et relus · arpège validé au micro'],
   },
   {
     id: 'rythmique',

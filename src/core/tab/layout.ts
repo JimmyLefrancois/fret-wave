@@ -246,7 +246,10 @@ function planColumns(score: TabScore, o: LayoutOptions): MeasurePlan[] {
     const ts = timeSigOf(score, mi);
     const prevTs = mi > 0 ? timeSigOf(score, mi - 1) : null;
     if (mi === 0 || (prevTs && (prevTs[0] !== ts[0] || prevTs[1] !== ts[1]))) {
-      tsW = Math.max(textWidth(String(ts[0])), textWidth(String(ts[1]))) * 2 + 2;
+      // Largeur réservée à la signature : la signature est dessinée **empilée** (numérateur au-dessus
+      // du dénominateur), donc un chiffre de large. Une signature écrite « 4/4 » horizontalement
+      // débordait sur la pastille du premier accord (défaut vu sur capture, phase 4a).
+      tsW = Math.max(textWidth(String(ts[0])), textWidth(String(ts[1]))) + 2;
     }
     const cols: ColPlan[] = m.events.map((ev, ei) => {
       const isStackEvent = ev.kind === 'notes' && ev.notes.length >= 2;

@@ -5,4 +5,5 @@ export * from './font';
 export * from './surface';
 export * from './layout';
 export * from './render';
+export * from './chordBox';
 export * from './playback';

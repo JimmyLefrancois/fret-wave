@@ -5,7 +5,7 @@
  * Aucune opération de lissage : seulement des rectangles entiers.
  */
 import { intervalStyle, mix, type TabTheme } from './colors';
-import { drawGlyph, drawText, glyph, sprite, textWidth } from './font';
+import { GLYPH_H, drawGlyph, drawText, glyph, sprite, textWidth } from './font';
 import { METRICS, cursorAt, type ColumnLayout, type PillLayout, type ScoreLayout, type TextRole } from './layout';
 import type { Surface } from './surface';
 
@@ -104,10 +104,14 @@ export function drawScore(s: Surface, layout: ScoreLayout, theme: TabTheme): voi
     }
     for (const t of sys.texts) drawText(s, t.x, t.y, t.text, TEXT_COLOR[t.role](theme));
     if (sys.timeSig) {
-      // signature rythmique : petite, en tête de portée (première ligne), pas au milieu des cordes
-      const label = `${sys.timeSig.num}/${sys.timeSig.den}`;
-      s.fillRect(sys.timeSig.x - 1, sys.timeSig.y - 1, textWidth(label) + 2, METRICS.glyphH + 2, theme.panel);
-      drawText(s, sys.timeSig.x, sys.timeSig.y, label, theme.textMuted);
+      // Signature rythmique **empilée** (4 au-dessus de 4), comme sur une portée : un chiffre de large,
+      // donc elle ne mord jamais sur la première pastille d'un accord. Petite, en tête de portée.
+      const num = String(sys.timeSig.num);
+      const den = String(sys.timeSig.den);
+      const w = Math.max(textWidth(num), textWidth(den));
+      s.fillRect(sys.timeSig.x - 1, sys.timeSig.y - 1, w + 2, GLYPH_H * 2 + 3, theme.panel);
+      drawText(s, sys.timeSig.x, sys.timeSig.y, num, theme.textMuted);
+      drawText(s, sys.timeSig.x, sys.timeSig.y + GLYPH_H + 1, den, theme.textMuted);
     }
     for (const r of sys.rhythm) {
       if (r.kind === 'rect') s.fillRect(r.x, r.y, r.w, r.h, theme.stem);

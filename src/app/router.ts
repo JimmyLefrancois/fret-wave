@@ -3,7 +3,7 @@
  * Une route = un écran ; l'état fin (gamme choisie, position) vit dans les magasins, pas dans l'URL.
  */
 
-export type RouteName = 'hub' | 'gammes' | 'scale' | 'training' | 'review' | 'tuner' | 'settings' | 'tab' | 'audio' | 'theory';
+export type RouteName = 'hub' | 'gammes' | 'scale' | 'training' | 'review' | 'accords' | 'chord' | 'tuner' | 'settings' | 'tab' | 'audio' | 'theory';
 
 export const ROUTE_HREF: Readonly<Record<RouteName, string>> = {
   hub: '#/hub',
@@ -11,6 +11,8 @@ export const ROUTE_HREF: Readonly<Record<RouteName, string>> = {
   scale: '#/gammes/jouer',
   training: '#/gammes/entrainement',
   review: '#/gammes/revision',
+  accords: '#/accords',
+  chord: '#/accords/lecon',
   tuner: '#/accordeur',
   settings: '#/reglages',
   tab: '#/tab',
@@ -43,6 +45,11 @@ export function parseRoute(hash: string): RouteName {
       return 'training';
     case 'gammes/revision':
       return 'review';
+    case 'accords':
+      return 'accords';
+    case 'accords/lecon':
+    case 'accords/lecon-accord':
+      return 'chord';
     case 'accordeur':
     case 'tuner':
       return 'tuner';
