@@ -27,6 +27,11 @@ describe('thème : tokens', () => {
           expect(contrastRatio(c, bg), `${t.id} ${name} sur ${bgName} = ${contrastRatio(c, bg).toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
         }
       }
+      // le texte secondaire doit rester confortable en 14-15 px sur téléphone : 7:1 pour `muted`, 5,5:1 pour `dim`
+      for (const [bgName, bg] of Object.entries({ bg: t.palette.bg, surface: t.palette.surface, surfaceHi: t.palette.surfaceHi })) {
+        expect(contrastRatio(t.palette.muted, bg), `${t.id} muted sur ${bgName}`).toBeGreaterThanOrEqual(7);
+        expect(contrastRatio(t.palette.dim, bg), `${t.id} dim sur ${bgName}`).toBeGreaterThanOrEqual(5.5);
+      }
       // le texte est plus clair que le fond, et le fond plus sombre que la surface
       expect(relativeLuminance(t.palette.text)).toBeGreaterThan(relativeLuminance(t.palette.bg));
       expect(relativeLuminance(t.palette.surface)).toBeGreaterThan(relativeLuminance(t.palette.bg));

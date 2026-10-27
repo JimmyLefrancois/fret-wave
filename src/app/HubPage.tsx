@@ -285,8 +285,7 @@ export function HubPage() {
       </Panel>
 
       <div className="col-5">
-        <section className="section">
-          <h2 className="section-title t-label">Par où commencer</h2>
+        <Panel accent="cyan" label="Par où commencer">
           <p className="t-small">Trois portes d’entrée, dans l’ordre où je les enseignerais.</p>
           <div className="entries">
             {ENTRY_POINTS.map((p, i) => (
@@ -300,11 +299,10 @@ export function HubPage() {
               </button>
             ))}
           </div>
-        </section>
+        </Panel>
       </div>
 
-      <section className="section span-7">
-        <h2 className="section-title t-label">Badges</h2>
+      <Panel className="span-7" accent="yellow" label="Badges">
         <p className="t-small">Chacun dit ce qu’il récompense ; il ne s’allume que si le journal le prouve.</p>
         <div className="badges">
           {badges.map((b) => (
@@ -317,10 +315,9 @@ export function HubPage() {
             </div>
           ))}
         </div>
-      </section>
+      </Panel>
 
-      <section className="section span-7">
-        <h2 className="section-title t-label">Modules</h2>
+      <Panel className="span-7" accent="violet" label="Modules">
         <p className="t-small">Un module jouable aujourd’hui, trois déclarés — l’état est écrit, pas suggéré.</p>
         <div className="modules">
           {MODULES.map((m) => (
@@ -346,10 +343,9 @@ export function HubPage() {
             </article>
           ))}
         </div>
-      </section>
+      </Panel>
 
-      <section className="section span-5 colour-key">
-        <h2 className="section-title t-label">Le code couleur</h2>
+      <Panel className="span-5 colour-key" accent="green" label="Le code couleur">
         <p className="t-small">
           La couleur d’une pastille donne la <strong>fonction</strong> de la note, jamais sa place sur le manche — et elle ne change
           pas d’une ambiance à l’autre.
@@ -366,7 +362,7 @@ export function HubPage() {
           Un bémol assombrit la pastille et pose une encoche en bas ; un dièse l’éclaircit et pose l’encoche en haut. Ainsi ♭3 et 3
           ne se confondent pas, et ♯4 et ♭5 non plus : ce ne sont pas les mêmes fonctions.
         </p>
-      </section>
+      </Panel>
 
       <p className="t-small t-dim foot-note">
         Journal local ({journal.length} tentative{journal.length > 1 ? 's' : ''}, plafond 2 000) : exportable et importable depuis les réglages.

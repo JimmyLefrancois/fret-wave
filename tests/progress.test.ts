@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ATTEMPTS_KEY, ATTEMPT_CAP, appendAttempt, loadJournal, newAttemptId, nodeIdOf, normalizeAttempt, readAttempts,
-  scoreOf, summarizeDay, zoneOf, type Attempt,
+  scoreOf, summarizeDay, writeAttempts, zoneOf, type Attempt,
 } from '../src/core/progress/journal';
 import { PRACTICE_KEY, logPractice } from '../src/core/progress/practiceLog';
 import { BOX_INTERVALS_MS, cardsFrom, dueNow, leitner, outcomeFor } from '../src/core/progress/scheduler';
@@ -69,7 +69,8 @@ describe('journal de tentatives', () => {
     appendAttempt(s, attempt());
     appendAttempt(s, attempt({ kind: 'recall', level: 3 }));
     expect(readAttempts(s).length).toBe(2);
-    for (let i = 0; i < ATTEMPT_CAP + 5; i++) appendAttempt(s, attempt());
+    // le plafond se teste en une écriture (2 000 ajouts un par un = 2 000 re-sérialisations, test lent et inutile)
+    writeAttempts(s, Array.from({ length: ATTEMPT_CAP + 5 }, (_, i) => attempt({ id: `cap-${i}` })));
     expect(readAttempts(s).length).toBe(ATTEMPT_CAP);
     expect(JSON.parse(s.data[ATTEMPTS_KEY]!).v).toBe(1);
   });

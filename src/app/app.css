@@ -41,8 +41,8 @@
   --line: #3a1c71;
   --line-soft: #28124f;
   --text: #f6eeff;
-  --muted: #b3a3d9;
-  --dim: #8c7cb8;
+  --muted: #c4b6e4;
+  --dim: #a99bcf;
   --magenta: #ff2a6d;
   --cyan: #05d9e8;
   --orange: #ff9e3d;
@@ -471,8 +471,8 @@ a { color: var(--cyan); }
   width: 100%;
   padding: 10px;
   text-align: left;
-  background: rgba(21, 10, 51, 0.72);
-  border: var(--bw) solid var(--line-soft);
+  background: var(--surface-hi);
+  border: var(--bw) solid var(--line);
   cursor: pointer;
 }
 .entry:hover, .entry:focus-visible { border-color: var(--magenta); outline: none; }
@@ -488,15 +488,17 @@ a { color: var(--cyan); }
   grid-template-columns: 30px 1fr;
   gap: 10px;
   padding: 10px;
-  background: var(--surface);
+  background: var(--surface-hi);
   border: var(--bw) solid var(--line);
+  /* l'accent du module reste lisible comme repère latéral ; le titre, lui, doit se lire (contraste) */
+  border-left: 4px solid var(--accent, var(--line));
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
 }
-.module.planned { border-style: dashed; border-color: var(--line-soft); background: rgba(21, 10, 51, 0.55); }
+.module.planned { border-style: dashed; border-color: var(--line-soft); background: var(--bg); }
 .module.planned h3 { color: var(--muted); }
 .module-body { display: grid; gap: 4px; min-width: 0; }
 .module-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.module h3 { font-family: var(--font-body); font-weight: 650; font-size: 15.5px; color: var(--accent); }
+.module h3 { font-family: var(--font-body); font-weight: 650; font-size: 15.5px; color: var(--text); }
 .module-facts { list-style: none; padding: 0; display: grid; gap: 1px; }
 .module-facts li::before { content: '· '; color: var(--accent); }
 .module .btn { margin-top: 6px; }
@@ -513,8 +515,8 @@ a { color: var(--cyan); }
   gap: 2px 8px;
   padding: 8px 10px;
   text-align: left;
-  background: var(--bg);
-  border: var(--bw) solid var(--line-soft);
+  background: var(--surface-hi);
+  border: var(--bw) solid var(--line);
   cursor: pointer;
 }
 .scale-row:hover { border-color: var(--cyan); }
@@ -555,8 +557,8 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   gap: 10px;
   padding: 8px 10px;
   text-align: left;
-  background: var(--bg);
-  border: var(--bw) solid var(--line-soft);
+  background: var(--surface-hi);
+  border: var(--bw) solid var(--line);
   cursor: pointer;
 }
 .system-row.on { border-color: var(--violet); background: rgba(168, 107, 255, 0.1); }
@@ -645,8 +647,8 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border: var(--bw) solid var(--line-soft);
-  background: var(--bg);
+  border: var(--bw) solid var(--line);
+  background: var(--surface-hi);
 }
 .theme-row.on { border-color: var(--magenta); }
 .theme-swatch {
@@ -973,8 +975,10 @@ table.kv td:first-child { color: var(--muted); }
 
 /* colonne de gauche du hub : deux blocs empilés, hauteur libre */
 @media (min-width: 900px) {
-  .col-5 { grid-column: span 5; display: grid; gap: 20px; align-content: start; min-width: 0; }
+  /* une seule colonne ici : la carte se tend à la hauteur de la rangée, comme sa voisine */
+  .col-5 { grid-column: span 5; display: grid; gap: 20px; align-content: stretch; min-width: 0; }
   .col-5 > .section { margin: 0; }
+  .col-5 > .panel { margin: 0; }
 }
 
 /* ===========================================================================
@@ -1018,7 +1022,7 @@ table.kv td:first-child { color: var(--muted); }
   font-family: var(--font-display);
   font-size: 15px;
   color: var(--text);
-  background: var(--surface);
+  background: var(--surface-hi);
   border: var(--bw) solid var(--line);
   box-shadow: 3px 3px 0 var(--bg-deep);
   cursor: pointer;
@@ -1058,8 +1062,8 @@ table.kv td:first-child { color: var(--muted); }
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border: var(--bw) solid var(--line-soft);
-  background: var(--bg);
+  border: var(--bw) solid var(--line);
+  background: var(--surface-hi);
 }
 .review-body { display: grid; gap: 2px; min-width: 0; }
 .review-title { font-size: 15.5px; font-weight: 600; color: var(--text); }
@@ -1076,14 +1080,12 @@ table.kv td:first-child { color: var(--muted); }
   gap: 8px;
   padding: 8px 10px;
   border: var(--bw) dashed var(--line-soft);
-  background: rgba(21, 10, 51, 0.5);
-  opacity: 0.62;
+  background: var(--bg);
 }
 .badge-item.on {
   border-style: solid;
   border-color: var(--yellow);
-  background: rgba(255, 210, 63, 0.08);
-  opacity: 1;
+  background: var(--surface-hi);
 }
 .badge-item-dot {
   flex: none;
