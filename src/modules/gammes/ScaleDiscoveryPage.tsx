@@ -286,13 +286,14 @@ export function ScaleDiscoveryPage() {
           <PixelButton variant="quiet" onClick={onStop} ariaLabel="Stop">
             <PixelIcon name="stop" size={12} />
           </PixelButton>
-        </div>
-        <div className="tempo-row">
-          <span className="t-label">Tempo</span>
-          <div className="tempo">
-            <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.max(40, t - 5))} aria-label="Moins vite">−</button>
-            <span className="tempo-val">♩ {tempo}</span>
-            <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.min(200, t + 5))} aria-label="Plus vite">+</button>
+          {/* le tempo est un réglage de lecture : il vit sur la même ligne que le transport, à droite */}
+          <div className="tempo-group">
+            <span className="t-label">Tempo</span>
+            <div className="tempo">
+              <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.max(40, t - 5))} aria-label="Moins vite">−</button>
+              <span className="tempo-val">♩ {tempo}</span>
+              <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.min(200, t + 5))} aria-label="Plus vite">+</button>
+            </div>
           </div>
         </div>
         <div className="toggle-grid">

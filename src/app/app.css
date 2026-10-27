@@ -385,9 +385,13 @@ a { color: var(--cyan); }
 .switch.inline { grid-template-columns: 22px auto minmax(0, 1fr); }
 .switch.inline .switch-hint { grid-column: 3; margin-top: 0; white-space: nowrap; }
 .switch.inline .switch-hint::before { content: '· '; }
-/* dans une grille à deux colonnes, un réglage « inline » prend toute la largeur : à 163 px la
-   précision repassait à la ligne (le libellé et sa précision doivent tenir ensemble) */
-.toggle-grid > .switch.inline { grid-column: 1 / -1; }
+/* téléphone seulement : dans la grille à deux colonnes, 163 px ne suffisent pas pour « Drone · fond. +
+   quinte » sur une ligne — le réglage prend donc la largeur, et les deux autres restent côte à côte
+   en dessous. Au-delà, la grille passe à trois colonnes et les trois commutateurs tiennent sur une
+   seule ligne : on ne force plus l'étalement. */
+@media (max-width: 519px) {
+  .toggle-grid > .switch.inline { grid-column: 1 / -1; }
+}
 
 /* --- en-tête des écrans ----------------------------------------------------- */
 
@@ -598,6 +602,9 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 /* --- niveau 1 (découverte) --------------------------------------------------- */
 
 .transport-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* tempo à droite du transport (écoute / pause / stop) ; sur téléphone il passe à la ligne mais reste
+   collé au bord droit plutôt que de comprimer les boutons de lecture */
+.tempo-group { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .tempo-row {
   display: flex;
   align-items: center;
