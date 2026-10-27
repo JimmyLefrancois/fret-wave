@@ -36,7 +36,7 @@ import {
   appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, streak, summarizeDay, xpForAttempt, xpSummary,
   type Attempt, type AttemptLevel,
 } from '../../core/progress';
-import { degreeName, fmtDegree, positionLabel, resolveScale } from './resolve';
+import { degreeName, fmtDegree, positionLabel, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
 import { Celebration } from './Celebration';
 import {
@@ -621,7 +621,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         <button type="button" className="back" onClick={() => navigate(mixed ? 'hub' : 'gammes')} aria-label="Retour">‹</button>
         <div>
           <h1 className="page-title">{r.title}</h1>
-          <p className="t-small t-dim">{positionLabel(r.position, settings.noteNotation)} · {plan.label}</p>
+          <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {plan.label}</p>
         </div>
         <span className="tag tag-on">{mixed && queue.length > 0 ? `Session ${qIndex + 1} / ${queue.length}` : `N${level}`}</span>
       </header>
@@ -692,7 +692,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             ? `${Math.round(settings.holeRate * 100)} % des notes masquées (au moins 2, jamais toutes) : ici ${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes}. `
               + (micOn
                 ? 'Joue la note à la guitare : elle remplit l’emplacement. Le pavé reste un secours.'
-                : 'Touche un emplacement vide, tape la case au pavé, valide.')
+                : 'Touche un emplacement vide, tape son numéro au pavé, valide.')
             : `${exercise.notes} cases à écrire de mémoire : seules les cordes, les mesures et le rythme restent visibles.`
               + (micOn ? ' Joue-les dans l’ordre que tu veux.' : '')}
         </p>
@@ -781,7 +781,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           </p>
           <div className="row">
             <PixelButton variant="primary" onClick={startMixed}>Nouvelle session</PixelButton>
-            <PixelButton variant="quiet" onClick={() => navigate('hub')}>Hub</PixelButton>
+            <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
           </div>
         </Panel>
       ) : result ? (
@@ -813,7 +813,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
                 <PixelButton variant="primary" onClick={() => restart()}>Rejouer</PixelButton>
                 <PixelButton onClick={() => restart(level === 2 ? 3 : 2, segment)}>{level === 2 ? 'Passer au rappel (N3)' : 'Revenir aux trous (N2)'}</PixelButton>
                 <PixelButton variant="quiet" onClick={() => navigate('gammes')}>Changer de gamme</PixelButton>
-                <PixelButton variant="quiet" onClick={() => navigate('hub')}>Hub</PixelButton>
+                <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
               </>
             )}
           </div>
@@ -830,7 +830,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             elle est reconnue. Le score d’aujourd’hui déplace la case dans la file de révision, il ne la certifie pas.
           </p>
           <p className="t-small t-dim">
-            Campagne de {total} trou{total > 1 ? 's' : ''} sur {exercise.notes} note{exercise.notes > 1 ? 's' : ''} ({plan.strings} corde{plan.strings > 1 ? 's' : ''}).
+            Série de {total} trou{total > 1 ? 's' : ''} sur {exercise.notes} note{exercise.notes > 1 ? 's' : ''} ({plan.strings} corde{plan.strings > 1 ? 's' : ''}).
             {journal.length > 0 ? ` ${journal.length} tentative${journal.length > 1 ? 's' : ''} déjà enregistrée${journal.length > 1 ? 's' : ''} sur cet appareil.` : ' Aucune tentative enregistrée pour l’instant.'}
           </p>
           <p className="t-small t-dim">
@@ -867,7 +867,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
       <p className="t-small t-dim foot-note">
         Niveau 1 (découverte, avec le son) : <button type="button" className="linkish" onClick={() => navigate('scale')}>écran d’écoute</button>.
-        Niveau 4 (improvisation) : phase 7. Une note masquée n’est jamais jouée par l’app avant d’être trouvée.
+        Le niveau 4 (improvisation) n’est pas encore ouvert. Une note masquée n’est jamais jouée par l’app avant d’être trouvée.
       </p>
     </main>
   );

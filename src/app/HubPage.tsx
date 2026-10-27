@@ -15,7 +15,7 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { useSettings } from '../app/settings';
 import { Chip, Panel, PixelButton } from '../app/ui';
-import { positionLabel, resolveScale } from '../modules/gammes/resolve';
+import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, type Accomplishment } from '../modules/gammes/accomplishments';
 import { chordProgress, learnedChordIds, nextChord } from '../modules/accords/recommend';
 import { fmtChord } from '../core/theory';
@@ -106,7 +106,7 @@ export function HubPage() {
         right={<Chip small onClick={() => navigate('gammes')}>Changer</Chip>}
       >
         <h2 className="home-title">{resolved.title}</h2>
-        <p className="t-small">{positionLabel(resolved.position, settings.noteNotation)}{resolved.formula ? ` · ${resolved.formula}` : ''}</p>
+        <p className="t-small">{positionLabelPlain(resolved.position, settings.noteNotation)}{resolved.formula ? ` · ${resolved.formula}` : ''}</p>
         <div className="row home-actions">
           <PixelButton variant="primary" onClick={() => navigate('scale')}>▶ Découvrir</PixelButton>
           <PixelButton onClick={() => navigate('training')}>S’exercer au micro</PixelButton>
@@ -128,7 +128,7 @@ export function HubPage() {
         <button type="button" className="door" onClick={() => navigate('tuner')}>
           <span className="door-kicker">Accorder</span>
           <span className="door-title">La guitare, corde par corde</span>
-          <span className="door-sub">Au micro ou en USB, avant de jouer — une fausse note d’accordage fausse tout.</span>
+          <span className="door-sub">Au micro ou en USB, avant de jouer : une guitare désaccordée fait échouer des notes justes.</span>
         </button>
       </div>
 
@@ -137,7 +137,7 @@ export function HubPage() {
           <span className="door-kicker">Accords</span>
           <span className="door-title">Les plaquer, les enchaîner, les jouer en progression</span>
           <span className="door-sub">
-            {chordCount.done} / {chordCount.total} appris · doigt par doigt au micro, puis corde par corde.
+            {chordCount.done} / {chordCount.total} appris · doigt par doigt, puis corde par corde au micro.
             {chordNext ? ` Prochain : ${fmtChord(chordNext.chord, settings.chordNotation)} (palier ${chordNext.palier.id}).` : ''}
           </span>
         </button>
@@ -157,7 +157,7 @@ export function HubPage() {
                   <div className="review-body">
                     <span className="review-title">{r ? r.title : card.nodeId}</span>
                     <span className="t-small t-dim">
-                      {r && idx >= 0 ? positionLabel(r.positions[idx] ?? null, settings.noteNotation) : 'position'}
+                      {r && idx >= 0 ? positionLabelPlain(r.positions[idx] ?? null, settings.noteNotation) : 'position'}
                       {' · '}boîte {card.box}
                     </span>
                   </div>
@@ -215,7 +215,7 @@ export function HubPage() {
           </ul>
         )}
         <p className="t-small t-dim">
-          Calculés depuis le journal, jamais comptés à part : une série ne compte qu’au-dessus de 80 % de trous
+          Calculés depuis tes tentatives enregistrées, jamais comptés à part : une série ne compte qu’au-dessus de 80 % de trous
           justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
         </p>
       </Panel>

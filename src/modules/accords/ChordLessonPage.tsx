@@ -782,7 +782,8 @@ export function ChordLessonPage() {
           <Panel className="span-7" accent="cyan" label="Le geste complet">
             <p className="t-body">
               Un accord plaqué, c’est six cordes qui sonnent ensemble. L’app ne sait pas encore l’écouter :
-              l’analyse polyphonique arrive en phase 5. Ici, tu déclares — et le journal garde la distinction.
+              l’app ne sait pas encore écouter plusieurs cordes à la fois. Ici, tu déclares — et la tentative
+              garde la distinction.
             </p>
             <div className="row">
               <PixelButton variant="primary" onClick={() => void play(scoreStrum)}>▶ Écouter plaqué</PixelButton>

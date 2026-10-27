@@ -40,7 +40,7 @@ export const LESSON_STEPS: readonly { id: LessonStep; num: string; title: string
  * contraire serait la même malhonnêteté qu'un chiffre inventé.
  */
 export const CYCLE_LIMITS =
-  'Deux limites assumées : l’accord plaqué n’est pas encore écouté (analyse polyphonique en phase 5), et l’enchaînement mesure la basse, pas les six cordes.';
+  'Deux limites assumées : l’accord plaqué n’est pas encore écouté (l’app ne sait pas analyser plusieurs cordes à la fois), et l’enchaînement mesure une note repère, pas les six cordes.';
 
 // ---------------------------------------------------------------------------
 // Liste de vérification en mode arpège

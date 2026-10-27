@@ -60,8 +60,7 @@ export function ChordsPage() {
 
       <p className="t-small span-12">
         Un accord s’apprend doigt par doigt, puis corde par corde, puis <strong>en changement</strong>. Chaque
-        corde est vérifiée au micro — c’est la seule chose que l’entrée audio monophonique sache faire
-        honnêtement.
+        corde est vérifiée au micro — c’est ce qu’un micro peut vérifier honnêtement.
       </p>
 
       <Panel
@@ -91,7 +90,7 @@ export function ChordsPage() {
           </>
         )}
         <Bar value={progress.done} max={Math.max(1, progress.total)} accent="cyan" />
-        <p className="t-small t-dim">{progress.done} accord{progress.done > 1 ? 's' : ''} appris sur {progress.total} — les sept étapes du cycle sont là. Les barrés mobiles (P8) et les voicings avancés (P10) arrivent en phase 6.</p>
+        <p className="t-small t-dim">{progress.done} accord{progress.done > 1 ? 's' : ''} appris sur {progress.total} — les sept étapes du cycle sont là. Les barrés mobiles et les doigtés avancés arrivent plus tard.</p>
         <p className="t-small t-dim">
           « Appris » = 3 vérifications propres en mode arpège sur au moins 2 jours différents <strong>et</strong> une
           pose à froid réussie (étape Fixer). Une lecture d’accord ou un plaqué déclaré ne compte pas.
@@ -103,7 +102,7 @@ export function ChordsPage() {
           <li className="t-small">Découvrir — nom, notes, degrés, écoute plaquée et arpégée</li>
           <li className="t-small">Construire — un doigt à la fois, dans l’ordre, validé au micro</li>
           <li className="t-small">Vérifier — corde par corde (étouffée, fausse, trop basse)</li>
-          <li className="t-small">Plaquer — le geste complet, <strong>déclaré</strong> (la phase 5 l’écoutera)</li>
+          <li className="t-small">Plaquer — le geste complet, <strong>déclaré</strong> (l’app ne l’écoute pas encore)</li>
           <li className="t-small">Fixer — pose à froid chronométrée (8 s → 5 s → 3 s)</li>
           <li className="t-small">Enchaîner — changement mesuré entre deux accords</li>
           <li className="t-small">Intégrer — quatre accords en mesure, avec un motif de strum</li>
@@ -163,7 +162,7 @@ export function ChordsPage() {
                     <div className="chord-side">
                       <span className={`tag ${card.status === 'learned' ? 'tag-on' : ''}`}>{STATUS_LABEL[card.status]}</span>
                       {card.transitions > 0 && <span className="t-small t-dim">{card.transitions} transition{card.transitions > 1 ? 's' : ''}</span>}
-                      <Chip small onClick={() => open(card.voicing.id)}>{card.status === 'learned' ? 'revoir' : 'ouvrir'}</Chip>
+                      <Chip small onClick={() => open(card.voicing.id)}>{card.status === 'learned' ? 'revoir' : 'entrer'}</Chip>
                     </div>
                   </article>
                 );
@@ -174,7 +173,7 @@ export function ChordsPage() {
       })}
 
       {chordNodes.length > 0 && (
-        <Panel className="span-12" accent="green" label="Ton journal d’accords">
+        <Panel className="span-12" accent="green" label="Tes accords, un par un">
           <p className="t-small">
             {chordNodes.length} accord{chordNodes.length > 1 ? 's' : ''} vérifié{chordNodes.length > 1 ? 's' : ''} au micro ·
             {' '}{chordNodes.filter((n) => n.state === 'learned' || n.state === 'mastered').length} appris.

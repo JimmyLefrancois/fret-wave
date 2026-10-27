@@ -126,8 +126,7 @@ export function ChordQuizPage() {
 
       <p className="t-small span-12">
         Six questions sur ce qu’un accord <strong>écrit</strong> veut dire. C’est le seul entraînement du module qui
-        ne demande ni instrument ni micro — et il ne vaut pas une preuve de jeu : il travaille la lecture et
-        l’oreille interne.
+        ne demande ni instrument ni micro — et il ne vaut pas une preuve de jeu : il travaille la lecture, pas le geste.
       </p>
 
       <Panel className="span-7" accent="cyan" label={finished ? 'Résultat' : KIND_LABEL[q.kind]}>
@@ -246,7 +245,7 @@ export function ChordQuizPage() {
           différentes ne posent pas les mêmes questions.
         </p>
         <p className="t-small t-dim">
-          Nœuds de savoir suivis : <strong>{savoirs.length}</strong>
+          Notions de lecture travaillées : <strong>{savoirs.length}</strong>
           {savoirs.length > 0 ? ` · ${savoirs.filter((n) => n.state === 'learned' || n.state === 'mastered').length} su${savoirs.filter((n) => n.state === 'learned' || n.state === 'mastered').length > 1 ? 's' : ''} avec deux bonnes réponses sur deux jours` : ''}.
         </p>
       </Panel>

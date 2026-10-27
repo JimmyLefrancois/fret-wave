@@ -168,7 +168,7 @@ export function SettingsPage() {
           </div>
           <p className="t-small t-dim">
             Le métronome ne joue aucune note. Au pavé, ce tempo mesure la rapidité à écrire une case ; avec le micro
-            (interrupteur sur l’écran d’entraînement), il mesure le moment où la note est jouée, latence retranchée.
+            (bouton « Ouvrir le micro » de l’écran d’exercice), il mesure le moment où la note est jouée, latence retranchée.
           </p>
         </div>
       </Panel>
@@ -196,7 +196,7 @@ export function SettingsPage() {
           checked={settings.showChordBox}
           onChange={(v) => setSettings({ showChordBox: v })}
           label="Boîte d’accord"
-          hint="module Accords, étapes Découvrir et Construire (décision D1)"
+          hint="module Accords, étapes Découvrir et Construire"
         />
       </Panel>
 
@@ -229,7 +229,7 @@ export function SettingsPage() {
 
       <Panel className="span-6" label="Outils de vérification">
         <p className="t-small t-dim">
-          Pages de contrôle des phases 1a-1c : tous les générateurs, les accordages, les mesures audio.
+          Pages de contrôle du développement : générateurs de tablature, accordages, mesures audio.
         </p>
         <div className="row">
           <PixelButton onClick={() => navigate('tab')}>Tablature</PixelButton>
@@ -240,7 +240,7 @@ export function SettingsPage() {
 
       <Panel className="span-6" accent="orange" label="Données locales">
         <p className="t-small">
-          Journal de progression et sélection courante, conservés dans ce navigateur. Rien n’est envoyé sur un serveur.
+          Ta progression et ta gamme en cours, conservées dans ce navigateur. Rien n’est envoyé sur un serveur.
         </p>
         <p className="t-small">
           <strong>{count}</strong> tentative{count > 1 ? 's' : ''} enregistrée{count > 1 ? 's' : ''} (plafond 2 000).

@@ -148,8 +148,15 @@ export function nextChord(learned: ReadonlySet<string>, opts: { branch?: boolean
       const parts: string[] = [];
       if (entry.prereq.length) parts.push(`s’appuie sur ${entry.prereq.map(chordLabel).join(' et ')} (déjà connu)`);
       if (withKnown.length) parts.push(`${withKnown.length} transition${withKnown.length > 1 ? 's' : ''} déjà en place`);
-      if (!entry.prereq.length && !withKnown.length) parts.push('le plus simple qui reste dans ce palier');
-      if (palier.entries[0]?.voicingId === entry.voicingId) parts.push(`ouvre le palier ${palier.id} « ${palier.title} »`);
+      const first = palier.entries[0]?.voicingId === entry.voicingId;
+      // une seule clause de contexte : « le plus simple qui reste » ET « ouvre l'étape » se répétaient
+      if (!entry.prereq.length && !withKnown.length) {
+        parts.push(first
+          ? `premier accord de l’étape ${palier.id} « ${palier.title} »`
+          : 'le plus simple qui reste dans cette étape');
+      } else if (first) {
+        parts.push(`ouvre l’étape ${palier.id} « ${palier.title} »`);
+      }
       return {
         voicingId: entry.voicingId,
         chord: chordLabel(entry.voicingId),

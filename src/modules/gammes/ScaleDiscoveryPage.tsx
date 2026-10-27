@@ -21,7 +21,7 @@ import { type AnnotationKind, type Direction, defaultChordForScale, positionToSc
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
 import { AudioEngine } from '../../core/audio/engine';
 import { appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts } from '../../core/progress';
-import { degreeName, fmtDegree, legendFor, positionLabel, resolveScale } from './resolve';
+import { degreeName, fmtDegree, legendFor, positionLabel, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
 import {
   COMPARISON_LABEL, counterpartPosition, differingDegrees, markDegrees, neighbourDef, neighbourMode, neighbourPositions,
@@ -270,7 +270,7 @@ export function ScaleDiscoveryPage() {
         <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour à la sélection">‹</button>
         <div>
           <h1 className="page-title">{r.title}</h1>
-          <p className="t-small t-dim">{positionLabel(r.position, settings.noteNotation)} · {r.tuning.strings.length} cordes</p>
+          <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {r.tuning.strings.length} cordes</p>
         </div>
         <span className="tag tag-on">N1</span>
       </header>
@@ -409,12 +409,17 @@ export function ScaleDiscoveryPage() {
           ▶ S’exercer sur cette position, au micro
         </PixelButton>
         <p className="t-small t-dim">
-          Le micro valide chaque note : tu la joues sur ta guitare, elle se remplit. Sans micro, le pavé numérique
+          Le micro valide chaque note : tu la joues, la case se remplit. Sans micro, le pavé numérique
           prend le relais.
         </p>
       </div>
 
-      <Panel className="span-5" accent="green" label="Sans instrument" right={<span className="tag">{quiz ? `${score.right}/${score.right + score.wrong}` : 'sans matériel'}</span>}>
+      <Panel
+        className="span-5"
+        accent="green"
+        label="Sans instrument"
+        right={quiz ? <span className="tag">{score.right}/{score.right + score.wrong}</span> : undefined}
+      >
         <Switch
           checked={quiz}
           onChange={toggleQuiz}
@@ -423,14 +428,14 @@ export function ScaleDiscoveryPage() {
         />
         <p className="t-small t-dim">
           Tu lis la tablature, tu touches la note demandée. Les fonctions proposées sont celles qui sont affichées :
-          active « Fondamentales » ou un découpage de cordes pour réduire la difficulté.
+          active « Fondamentales » dans « Plus d’options » pour réduire la difficulté.
         </p>
         <div className="row">
-          <PixelButton variant="primary" onClick={() => navigate('training')}>Se tester · trous</PixelButton>
+          <PixelButton variant="primary" onClick={() => navigate('training')}>S’exercer · trous</PixelButton>
         </div>
         <p className="t-small t-dim">
-          Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature. Une tentative enregistrée là-bas
-          entre dans la répétition espacée ; une écoute ici ne compte pas comme une preuve.
+          Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature. Une tentative enregistrée dans l’exercice
+          sert à la révision ; une écoute ici ne prouve rien.
         </p>
       </Panel>
 
@@ -482,7 +487,7 @@ export function ScaleDiscoveryPage() {
           {!compare && (
             <p className="t-small t-dim">
               Active l’interrupteur : les deux gammes s’affichent l’une sous l’autre sur la <strong>même forme</strong>, et la note
-              qui les sépare pulse des deux côtés.
+              qui les sépare clignote des deux côtés.
             </p>
           )}
         </Panel>
@@ -517,10 +522,10 @@ export function ScaleDiscoveryPage() {
 
       <div className="row span-7">
         <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
-        <PixelButton variant="quiet" onClick={() => navigate('hub')}>Hub</PixelButton>
+        <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
       </div>
       <p className="t-small t-dim foot-note">
-        Niveaux 2 (trous), 3 (rappel) et 4 (improvisation) : phases 2 et 7. Cordes {tuningLabel} · notation {noteSummary(settings.noteNotation)}.
+        Niveaux 2 (trous) et 3 (rappel) ; le niveau 4 (improvisation) n’est pas encore ouvert. Cordes {tuningLabel} · notation {noteSummary(settings.noteNotation)}.
         Son : {AudioEngine.get().settings.instrument === 'nylon' ? 'nylon' : 'électrique'} (CC0, crédits dans la page Audio).
       </p>
     </main>

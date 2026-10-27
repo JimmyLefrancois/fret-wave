@@ -16,15 +16,11 @@ import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
 import { useSettings } from '../../app/settings';
 import { Chip, Panel, Segmented } from '../../app/ui';
 import {
-  TUNINGS, degreeLabels, fmtNote, getScale, tonicSpellings, type Position, type PositionSystem,
+  TUNINGS, degreeLabels, fmtNote, getScale, tonicSpellings, type PositionSystem,
 } from '../../core/theory';
 import { SCALE_GROUPS } from './content';
-import { fmtDegree, positionLabel, resolveScale, scaleTitle } from './resolve';
+import { fmtDegree, positionLabelPlain, resolveScale, scaleTitle } from './resolve';
 
-/** « Box 1 · cases 5–8 » → « Position 1 · cases 5–8 » : un débutant cherche une position, pas une « box ». */
-function rowLabel(p: Position, notation: 'fr' | 'en'): string {
-  return positionLabel(p, notation).replace(/^Box (\d+)/, 'Position $1').replace(/^Motif (\d+)/, 'Position $1');
-}
 
 const SYSTEM_LABEL: Record<PositionSystem, string> = {
   '3nps': '3 notes par corde',
@@ -54,7 +50,7 @@ export function ScaleSelectPage() {
         <button type="button" className="back" onClick={() => navigate('hub')} aria-label="Retour à l’accueil">‹</button>
         <div>
           <h1 className="page-title">Gammes</h1>
-          <p className="t-small t-dim">La gamme, puis la position.</p>
+          <p className="t-small t-dim">Choisis la gamme, puis la position à travailler.</p>
         </div>
       </header>
 
@@ -125,8 +121,8 @@ export function ScaleSelectPage() {
                 <li key={p.id} className={`pos-item ${i === r.selection.positionIndex ? 'on' : ''}`}>
                   <span className="pos-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
                   <span className="pos-body">
-                    <span className="pos-label">{rowLabel(p, settings.noteNotation)}</span>
-                    <span className="t-small t-dim">départ {fmtDegree(p.notes[0]?.degree ?? '1')} · {p.notes.length} notes</span>
+                    <span className="pos-label">{positionLabelPlain(p, settings.noteNotation)}</span>
+                    <span className="t-small t-dim">départ sur le {fmtDegree(p.notes[0]?.degree ?? '1')} · {p.notes.length} notes</span>
                   </span>
                   <span className="pos-acts">
                     <button type="button" className="pos-act" onClick={() => open(i, 'scale')}>Découvrir</button>

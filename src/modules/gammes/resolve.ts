@@ -168,3 +168,12 @@ export function resolveScale(sel: ScaleSelection, notation: NoteNotation = 'fr')
 export function positionLabel(p: Position | null, notation: NoteNotation = 'fr'): string {
   return p ? fmtPositionLabel(p, notation) : 'aucune position';
 }
+
+/**
+ * Même position, sans le vocabulaire du système : « Box 1 · cases 5–8 » → « Position 1 · cases 5–8 ».
+ * Un débutant cherche une position sur le manche, pas une « box ». Le nom du système reste dans
+ * l'étiquette du panneau, où il est expliqué.
+ */
+export function positionLabelPlain(p: Position | null, notation: NoteNotation = 'fr'): string {
+  return positionLabel(p, notation).replace(/^Box (\d+)/, 'Position $1').replace(/^Motif (\d+)/, 'Position $1');
+}

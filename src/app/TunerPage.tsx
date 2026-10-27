@@ -378,7 +378,7 @@ export function TunerPage() {
           <li>Accorde-toi (l’accordeur ci-contre) : une guitare à −20 cents fait échouer des notes justes.</li>
           <li>Mesure le silence deux secondes, applique le seuil suggéré.</li>
           <li>Mesure la latence, puis joue sur la grille : le chronomètre est corrigé.</li>
-          <li>Dans l’exercice, bascule « Micro » : la case se remplit à la note jouée.</li>
+          <li>Dans l’exercice, ouvre le micro : la case se remplit à la note jouée.</li>
         </ol>
       </Panel>
 

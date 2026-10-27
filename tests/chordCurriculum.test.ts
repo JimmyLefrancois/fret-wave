@@ -82,7 +82,7 @@ describe('recommandation du prochain accord', () => {
     const next = nextChord(learned());
     expect(next?.voicingId).toBe('Em-022000');
     expect(next?.palier.id).toBe('P1');
-    expect(next?.reason).toContain('palier P1');
+    expect(next?.reason).toContain('étape P1');
   });
 
   it('après Em, le suivant est Em7 (+1 doigt), pas C', () => {
@@ -101,7 +101,7 @@ describe('recommandation du prochain accord', () => {
     const next = nextChord(learned(...p1));
     expect(next?.voicingId).toBe('Am-x02210');
     expect(next?.palier.id).toBe('P2');
-    expect(next?.reason).toContain('ouvre le palier P2');
+    expect(next?.reason).toContain('ouvre l’étape P2');
   });
 
   it('la branche rock ne sort que si on la demande', () => {
@@ -111,7 +111,7 @@ describe('recommandation du prochain accord', () => {
     // avec la branche demandée, le premier power chord devient la proposition — et il dit pourquoi
     const withBranch = nextChord(learned(...p1p2), { branch: true });
     expect(withBranch?.voicingId).toBe('E5-022xxx');
-    expect(withBranch?.reason).toContain('ouvre le palier P2b');
+    expect(withBranch?.reason).toContain('ouvre l’étape P2b');
   });
 
   it('quand tout est appris, l’app ne propose rien plutôt que d’inventer', () => {
