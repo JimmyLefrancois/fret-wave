@@ -35,7 +35,8 @@ import { useInputSettings } from '../../core/input/settings';
 import { readTuningRecord, tuningFreshness } from '../../core/input/tuningGuide';
 import { ensureInputEngine, inputEngineIfAny, windowFor } from '../../app/inputSession';
 import { chordToScore, type TabScore } from '../../core/tab';
-import { STRUM_PATTERNS, type StrumPatternId } from '../../core/tab/generators';
+import type { StrumPatternId } from '../../core/tab/generators';
+import { PATTERN_LABEL, arrowsOf } from '../../app/strumLabel';
 import { fingerSteps, FINGER_NAME } from '../../core/theory/chordFingers';
 import { fmtChord, fmtDegree, fmtNote, fmtStringLabel } from '../../core/theory';
 import { interpretChord } from '../../core/theory/chords';
@@ -1114,9 +1115,9 @@ export function ChordLessonPage() {
                 onChange={setProgPattern}
                 label="Motif de strumming"
                 options={[
-                  { value: 'quarters', label: '↓ (noires)' },
-                  { value: 'eighths', label: '↓↑ (croches)' },
-                  { value: 'universal', label: '↓ · ↓↑ · ↑↓↑' },
+                  { value: 'quarters', label: PATTERN_LABEL.quarters },
+                  { value: 'eighths', label: PATTERN_LABEL.eighths },
+                  { value: 'universal', label: PATTERN_LABEL.universal },
                 ]}
               />
               <input
@@ -1130,8 +1131,7 @@ export function ChordLessonPage() {
                 aria-label="Tempo de la progression"
               />
               <p className="t-small t-dim">
-                {STRUM_PATTERNS[progPattern].map(([dir]) => (dir === 'D' ? '↓' : '↑')).join(' ')} · les réglages
-                s’appliquent au prochain ▶
+                {arrowsOf(progPattern)} · les réglages s’appliquent au prochain ▶
               </p>
             </div>
             {status && <p className="t-small t-dim">{status}</p>}

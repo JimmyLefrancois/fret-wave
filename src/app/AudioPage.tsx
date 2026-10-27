@@ -13,6 +13,7 @@ import { chordToScore, scaleToScore, type TabScore } from '../core/tab';
 import { TUNINGS, fretToMidi, tonicSpellings, getScale, fmtNote } from '../core/theory';
 import { VOICINGS } from '../data/voicings';
 import { INSTRUMENT_LABEL, InstrumentPicker, Mixer, fmtDb, useEngine } from './AudioControls';
+import { arrowsOf } from './strumLabel';
 
 const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const midiLabel = (m: number) => `${NAMES[((m % 12) + 12) % 12]}${Math.floor(m / 12) - 1}`;
@@ -292,8 +293,8 @@ export function AudioPage() {
               {['Em-022000', 'G-320003', 'C-x32010', 'D-xx0232', 'Am-x02210', 'F-133211'].map((id) => <option key={id} value={id}>{id}</option>)}
             </select>
           </label>
-          <button onClick={() => chordTest('Plaqué ↓ ↓ ↓ ↓', 'quarters', 'strum')} data-testid="chord-quarters">▶ ↓ ↓ ↓ ↓</button>
-          <button onClick={() => chordTest('Plaqué ↓↑ croches', 'eighths', 'strum')}>▶ ↓↑ en croches</button>
+          <button onClick={() => chordTest(`Plaqué ${arrowsOf('quarters')}`, 'quarters', 'strum')} data-testid="chord-quarters">▶ {arrowsOf('quarters')}</button>
+          <button onClick={() => chordTest(`Plaqué ${arrowsOf('eighths', '')} croches`, 'eighths', 'strum')}>▶ {arrowsOf('eighths', '')} en croches</button>
           <button onClick={() => chordTest('Plaqué motif universel', 'universal', 'strum')} data-testid="chord-universal">▶ motif universel</button>
           <button onClick={() => chordTest('Arpégé', 'quarters', 'arpeggio')} data-testid="chord-arp">▶ arpégé</button>
           <button onClick={limiterTest}>Test du limiteur</button>

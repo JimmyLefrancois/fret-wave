@@ -17,6 +17,7 @@ import { verifyTriggered } from '../core/audio/verify';
 import { VOICINGS } from '../data/voicings';
 import { InstrumentPicker, Mixer } from './AudioControls';
 import { TabView } from './TabView';
+import { DOWN, UP, PATTERN_LABEL, arrowsOf } from './strumLabel';
 
 type Kind = 'scale' | 'position' | 'arpeggio' | 'chord' | 'progression';
 
@@ -337,7 +338,7 @@ export function TabPage() {
             <label>Motif de strum</label>
             <select value={pattern} onChange={(e) => setPattern(e.target.value as StrumPatternId)}>
               {(Object.keys(STRUM_PATTERNS) as StrumPatternId[]).map((p) => (
-                <option key={p} value={p}>{p === 'quarters' ? '↓ ↓ ↓ ↓ (noires)' : p === 'eighths' ? '↓↑ en croches' : '↓ · ↓ ↑ · ↑ ↓ ↑'}</option>
+                <option key={p} value={p}>{p === 'quarters' ? `${arrowsOf(p, ' ')} (noires)` : p === 'eighths' ? `${DOWN}${UP} en croches` : PATTERN_LABEL.universal}</option>
               ))}
             </select>
           </div>

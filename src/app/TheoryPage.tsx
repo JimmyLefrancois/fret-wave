@@ -21,7 +21,7 @@ export function TheoryPage() {
   const sys = systemsFor(scaleId);
 
   return (
-    <main>
+    <main className="wide">
       <h1>Fretwave · moteur de théorie (phase 1a)</h1>
 
       <div className="card">

@@ -154,8 +154,8 @@ a { color: var(--cyan); }
 .t-label {
   font-family: var(--font-label);
   font-weight: 700;
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
   line-height: 1.6;
@@ -231,8 +231,8 @@ a { color: var(--cyan); }
 .tag {
   font-family: var(--font-label);
   font-weight: 700;
-  font-size: 9.5px;
-  letter-spacing: 0.05em;
+  font-size: 11px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 3px 6px;
   border: 1px solid var(--line);
@@ -386,10 +386,16 @@ a { color: var(--cyan); }
 
 .page-head {
   display: grid;
-  grid-template-columns: 44px 1fr auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 16px 0 4px;
+}
+/* sur téléphone, l'étiquette passe SOUS le titre : à trois colonnes, un tag large (« JAMAIS
+   VÉRIFIÉ ») réduisait le sous-titre à deux lignes (« P1 · mineur · Mi – Sol – / Si »). */
+@media (max-width: 520px) {
+  .page-head { grid-template-columns: 44px minmax(0, 1fr); align-items: start; row-gap: 4px; }
+  .page-head > .tag { grid-column: 2; justify-self: start; }
 }
 .back {
   width: 44px;
@@ -454,7 +460,7 @@ a { color: var(--cyan); }
 .hero-hint {
   margin-top: auto;
   color: var(--cyan);
-  font-size: 10px;
+  font-size: 11px;
   padding: 5px 8px;
   background: rgba(6, 0, 15, 0.66);
   border: 1px solid var(--line);
@@ -522,8 +528,8 @@ a { color: var(--cyan); }
 .scale-row:hover { border-color: var(--cyan); }
 .scale-row.on { border-color: var(--magenta); background: rgba(255, 42, 109, 0.1); }
 .scale-name { grid-area: name; font-size: 15.5px; font-weight: 500; color: var(--text); }
-.scale-deg { grid-area: deg; font-family: var(--font-label); font-weight: 400; font-size: 10.5px; color: var(--dim); letter-spacing: 0.06em; }
-.scale-n { grid-area: n; font-family: var(--font-label); font-weight: 400; font-size: 9.5px; color: var(--dim); }
+.scale-deg { grid-area: deg; font-family: var(--font-label); font-weight: 400; font-size: 11px; color: var(--dim); letter-spacing: 0.05em; }
+.scale-n { grid-area: n; font-family: var(--font-label); font-weight: 400; font-size: 11px; color: var(--dim); }
 .scale-row.on .scale-n { color: var(--magenta); }
 
 .tonics { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -572,7 +578,7 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 .system-row.on .radio { background: var(--violet); border-color: var(--violet); }
 .system-body { display: grid; gap: 2px; }
 .system-name { font-size: 15.5px; font-weight: 500; color: var(--text); }
-.system-name em { font-style: normal; text-transform: none; font-family: var(--font-label); font-size: 10px; color: var(--dim); }
+.system-name em { font-style: normal; text-transform: none; font-family: var(--font-label); font-size: 11px; color: var(--dim); }
 .system-note { font-size: 13px; color: var(--dim); line-height: 1.4; }
 
 .positions { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -658,7 +664,7 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 }
 .theme-swatch i { flex: 1; }
 .theme-name { font-size: 15.5px; }
-.theme-name em { font-style: normal; font-family: var(--font-label); font-size: 9px; color: var(--green); margin-left: 6px; }
+.theme-name em { font-style: normal; font-family: var(--font-label); font-size: 11px; color: var(--green); margin-left: 6px; }
 
 /* --- barre de navigation ---------------------------------------------------- */
 
@@ -740,7 +746,7 @@ label { display: block; margin: 8px 0 2px; color: var(--muted); }
 .transport { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
 .transport button, .loading-actions button, .mixer button, .card .row button, .card > button {
   font-family: var(--font-label);
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   padding: 10px 12px;
   background: var(--bg);
@@ -771,7 +777,8 @@ canvas.pix-loading { display: block; image-rendering: pixelated; }
 .mix-row input[type='range'] { width: 100%; }
 .mix-name { color: var(--muted); }
 .mix-db { text-align: right; }
-table.kv { border-collapse: collapse; margin-top: 8px; font-size: 15px; }
+table.kv { border-collapse: collapse; margin-top: 8px; font-size: 15px; width: 100%; table-layout: fixed; }
+table.kv td, table.kv th { overflow-wrap: anywhere; }
 table.kv td, table.kv th { padding: 2px 12px 2px 0; text-align: left; vertical-align: top; }
 table.kv td:first-child { color: var(--muted); }
 .samples-table { max-height: 260px; overflow: auto; }
@@ -843,7 +850,7 @@ table.kv td:first-child { color: var(--muted); }
     padding-top: 12px;
     border-top: 1px solid var(--line-soft);
   }
-  .panel-foot .btn { min-height: 36px; font-size: 10px; }
+  .panel-foot .btn { min-height: 36px; font-size: 11px; }
 
   .hero { min-height: min(46vh, 420px); padding: 8px 0 0; }
   .hero-title { font-size: clamp(40px, 3.4vw, 58px); }
@@ -864,9 +871,12 @@ table.kv td:first-child { color: var(--muted); }
   .t-body { font-size: 21px; }
   .t-small { font-size: 17px; }
 
+  /* la tablature et la barre de positions occupent la largeur de leur contenant : le plafond de
+     1 040 px les laissait plus étroites que le panneau qui les porte, ce qui se voit tout de suite
+     (le panneau fait 1 256 px, la tab 1 040). La largeur de lecture est désormais celle du panneau. */
   .tabview,
   .quiz-strip,
-  .pos-nav { width: 100%; max-width: 1040px; margin-left: auto; margin-right: auto; }
+  .pos-nav { width: 100%; max-width: none; margin-left: 0; margin-right: 0; }
 
   .entry { padding: 13px 16px; }
   .scale-row { padding: 11px 14px; }
@@ -1010,7 +1020,7 @@ table.kv td:first-child { color: var(--muted); }
 }
 .numpad-label {
   font-family: var(--font-label);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.04em;
   color: var(--muted);
   text-transform: uppercase;
@@ -1378,7 +1388,7 @@ table.kv td:first-child { color: var(--muted); }
    « 02 ». L'identité pixel reste dans le décor, la tablature et le mot-symbole. */
 .step-btn .step-num {
   font-family: var(--font-body);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
@@ -1510,3 +1520,26 @@ table.kv td:first-child { color: var(--muted); }
 }
 .guide-note { font-size: 22px; color: var(--text); }
 .guide-hz { font-size: 13px; color: var(--dim); }
+
+/* --- la tablature prend la largeur de son panneau, padding compris (téléphone) --------------------- */
+@media (max-width: 899px) {
+  /* à S = 2, une mesure de quatre accords demande 179 px logiques : avec les 12 px de padding du
+     panneau, le dessin dépassait de 24 px et la fin de mesure était coupée. La tablature s'aligne donc
+     sur le bord intérieur du panneau — la portée occupe le panneau, le texte garde sa marge. */
+  .panel > .tabview { margin-left: -12px; margin-right: -12px; }
+}
+
+/* réglages fins repliés (accordeur) : la page s'appelle « Accordeur », l'accordeur doit être en haut */
+.adv-settings { margin: 10px 0 4px; }
+.adv-settings > summary {
+  cursor: pointer;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  color: var(--cyan);
+  list-style: none;
+}
+.adv-settings > summary::-webkit-details-marker { display: none; }
+.adv-settings > summary::before { content: '▸ '; }
+.adv-settings[open] > summary::before { content: '▾ '; }
+.adv-settings[open] > summary { margin-bottom: 8px; }

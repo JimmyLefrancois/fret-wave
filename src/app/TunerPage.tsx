@@ -223,6 +223,8 @@ export function TunerPage() {
         )}
         {engine?.warning && <p className="t-small calib-warn">{engine.warning}</p>}
 
+        <details className="adv-settings">
+          <summary className="t-label">Réglages d’entrée · source, seuil, tolérance, La</summary>
         <div className="field">
           <span className="t-label">Source</span>
           <Segmented<InputSource>
@@ -334,7 +336,13 @@ export function TunerPage() {
           </div>
         </div>
 
+        </details>
+
         {msg && <p className="t-small calib-msg" role="status">{msg}</p>}
+      </Panel>
+
+      <Panel className="span-6" accent="yellow" label="Accordeur">
+        <TunerList engine={engine} tuning={tuning} notation={settings.noteNotation} a4={input.a4} />
       </Panel>
 
       <Panel className="span-5" accent="violet" label="Latence" right={<span className="badge">{latencyMs > 0 ? `${latencyMs} ms` : '—'}</span>}>
@@ -398,9 +406,7 @@ export function TunerPage() {
         {!listening && <p className="t-small t-dim">Active l’écoute (panneau « Entrée ») avant de commencer l’accordage guidé.</p>}
       </Panel>
 
-      <Panel className="span-6" accent="yellow" label="Accordeur">
-        <TunerList engine={engine} tuning={tuning} notation={settings.noteNotation} a4={input.a4} />
-      </Panel>
+      
 
       <Panel className="span-6" accent="orange" label="Ce que le micro ne sait pas faire">
         <p className="t-body">

@@ -385,12 +385,18 @@ export function layoutScore(score: TabScore, options: LayoutOptions = DEFAULT_LA
 
   groups.forEach((group, si) => {
     const isLast = si === groups.length - 1;
-    // largeur naturelle puis justification (lignes non finales en mode wrap)
+    // largeur naturelle, puis étirement à la largeur demandée (mode wrap). Le bloc de tablature occupe
+    // la largeur de son panneau : la **dernière** ligne est donc étirée elle aussi quand c'est la seule
+    // (un accord = une ligne ; sans cela la tablature s'arrêtait aux trois quarts du panneau et le reste
+    // du cadre restait vide). Une ligne finale courte, elle, reste à sa largeur naturelle — c'est ce que
+    // fait une portée gravée.
     const natural = x0 + group.reduce((s, p) => s + p.width, 0) + 1;
     const colWidths = group.flatMap((p) => p.cols.map((c) => c.w));
+    const endPad = isLast ? 4 : 1;
+    const room = maxW - natural - (endPad - 1);
     let widths = colWidths;
-    if (o.mode === 'wrap' && !isLast && natural < maxW && colWidths.length > 0) {
-      widths = distribute(colWidths, maxW - natural);
+    if (o.mode === 'wrap' && room > 0 && colWidths.length > 0 && (!isLast || groups.length === 1 || natural >= maxW * 0.5)) {
+      widths = distribute(colWidths, room);
     }
     let wi = 0;
 
@@ -460,7 +466,7 @@ export function layoutScore(score: TabScore, options: LayoutOptions = DEFAULT_LA
     });
     // barre de fin de ligne
     sys.bars.push(isLast ? { x: mx, kind: 'thick' } : { x: mx, kind: 'thin' });
-    sys.width = mx + (isLast ? 4 : 1);
+    sys.width = widths === colWidths ? mx + endPad : Math.min(mx + endPad, maxW);
     systems.push(sys);
     sy += systemH + (isLast ? 0 : METRICS.systemGap);
   });

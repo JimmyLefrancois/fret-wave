@@ -148,7 +148,7 @@ export function HubPage() {
             EN TABLATURE
           </span>
         </p>
-        <p className="hero-hint t-label">↓ 31 gammes · 5 systèmes · N1 à N3 · accords corde par corde</p>
+        <p className="hero-hint t-label">▼ 31 gammes · 5 systèmes · N1 à N3 · accords corde par corde</p>
       </header>
 
       <Panel className="span-5 panel-fill" accent="cyan" label="Aujourd’hui" right={<span className="badge">{activity} / {DAILY_GOAL}</span>}>
