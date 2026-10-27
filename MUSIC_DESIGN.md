@@ -798,3 +798,6 @@ La tentative qui fait passer une forme à « apprise » ou « maîtrisée » ne 
 
 ### 17.4 Ce que la récompense ne mesure pas
 Elle ne dit rien du **timing** (le micro valide une hauteur, pas un placement), rien du **doigté**, rien de la **qualité du son** (un accord sale peut passer une série de trous). Le panneau le rappelle d'une ligne : « la tentative déplace la forme dans la file de révision, elle ne la certifie pas ». C'est la limite assumée de la phase 3-4, et elle s'écrit là où l'élève lit ses étoiles.
+
+### 17.5 Une ambiance ne change pas ce qui s'apprend
+Le thème clair (« Aube », D60) change le décor et l'encre, **jamais les couleurs d'intervalle** : la tonique reste jaune, la tierce mineure rose, la quinte verte, la ♭5 assombrie avec son encoche. C'est une règle d'apprentissage, pas d'esthétique : un élève qui change d'ambiance le soir doit retrouver le même code le lendemain, sinon la couleur cesse d'être un repère et redevient une décoration. Le seul élément qui suit l'ambiance dans la tablature est le **panneau** (papier ou nuit) et l'encre qui s'y pose ; le chiffre dans la pastille garde son contraste calculé (`digitColorFor`).
