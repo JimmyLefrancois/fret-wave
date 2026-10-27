@@ -1,13 +1,62 @@
 # PROJECT.md — Fretwave (nom de travail) : apprendre la guitare, en tablature, en pixel art
 
-**Statut : phases 0, 1a, 1b, 1c, 1d et 2 terminées · 2 = progression unifiée (journal de tentatives, maîtrise, Leitner) + XP / série / badges + niveaux 2 (trous) et 3 (rappel) + grille rythmique + session mélangée + export/import JSON · D1-D34 tranchées (D13 écartée, D7 remplacée par D14) · aucune décision en attente · 371 tests.**
+**Statut : phases 0, 1a, 1b, 1c, 1d, 2 et 3 terminées · 3 = entrée audio monophonique (`pitchy` dans un AudioWorklet), note stabilisée, appariement hauteur → case, seuil de bruit mesuré, **latence mesurée**, accordeur 6 cordes, validation au micro dans les niveaux 2-3 · D1-D38 tranchées (D13 écartée, D7 remplacée par D14) · aucune décision en attente · 431 tests (430 verts, 1 ignoré).**
 Documents liés : `BRIEF.md` (cahier des charges), `MUSIC_DESIGN.md` (conventions musicales, curriculum, avis de prof).
-**Repères** : *État exact* juste en dessous · **hypothèses** §8 (1-62) et §8 bis (ce qui a changé) · **plan des phases** §9 · **décisions** §10 (D1-D34) · **prochaine étape** §12. Pages de l'app (hash) : `#/hub`, `#/gammes`, `#/gammes/jouer`, `#/gammes/entrainement`, `#/gammes/revision`, `#/reglages`, plus les outils de contrôle `#/tab`, `#/audio`, `#/theorie`. `npm run dev` → http://localhost:5173/ (un seul serveur à la fois : deux instances Vite sur le même port servent une version périmée du CSS).
+**Repères** : *État exact* juste en dessous · **hypothèses** §8 (1-70) et §8 bis (ce qui a changé) · **plan des phases** §9 · **décisions** §10 (D1-D38) · **prochaine étape** §12. Pages de l'app (hash) : `#/hub`, `#/gammes`, `#/gammes/jouer`, `#/gammes/entrainement`, `#/gammes/revision`, `#/accordeur`, `#/reglages`, plus les outils de contrôle `#/tab`, `#/audio`, `#/theorie` (la page « Son » a quitté la barre de navigation en phase 3 : elle reste joignable depuis les réglages). `npm run dev` → http://localhost:5173/ (un seul serveur à la fois : deux instances Vite sur le même port servent une version périmée du CSS).
 Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** décision qui t'appartient · **[RISQUE]** voir section 7.
 
 ---
 
-## État exact (dernière mise à jour : après la phase 2)
+## État exact (dernière mise à jour : après la phase 3)
+
+**Git** (branche `master`) : `183eacc` Phase 0 · `5797333` 1a · `823fbbd` 1b · `971be8c` 1c · `ee0f82e`…`264b7d9` 1d · `d76e78a` + `3a9e049` Phase 2 · `688aff7` lisibilité · **phase 3 (commit en fin de phase)**. **431 tests (430 verts, 1 ignoré), `tsc --noEmit` propre, `vite build` OK.** Aucun remote, arbre propre.
+
+**Fait et vérifié (3 — entrée audio monophonique, calibration, accordeur)**
+- **Détection** (`src/core/input/pitch.ts`) : `pitchy` 4.1.0 (MPM de McLeod) sur une fenêtre **dérivée de l'accordage** (`pitchWindowSize` : 2048 en standard, 4096 dès une corde sous ~100 Hz). Deux couches maison : `PitchTracker` (mesure + seuils) et **`NoteStabilizer`** — une note n'est « reconnue » qu'après **3 fenêtres consécutives** dans la même demi-teinte, écartées de ≤ 40 cents. C'est ce qui empêche une corde qui s'éteint de remplir des cases au hasard.
+- **Piège de `pitchy` documenté et corrigé** : son `minVolumeDecibels` est en **amplitude au carré** (`10^(db/10)` comparé à un RMS), pas en dBFS. Un seuil de −42 dBFS doit lui être passé −21 : sans conversion, le seuil réel était **100 fois trop bas** (trouvé par le test de seuil). La conversion vit dans `dbfsToPitchy`.
+- **Capture** (`public/worklets/fretwave-input.js`, JS pur, 100 lignes) : anneau glissant, RMS par bloc, **détection d'attaque** (montée × 2,2 sur le niveau lissé, réfractaire 90 ms) ; un message par `hop` de 1024 échantillons (**21 ms**, 47 fenêtres/s) avec la fenêtre ordonnée en transfert. **L'attaque est mémorisée jusqu'au prochain envoi** : un bloc intermédiaire ne la perd plus (défaut trouvé par le test du worklet).
+- **Moteur navigateur** (`src/core/input/engine.ts`) : `getUserMedia` avec **echoCancellation / noiseSuppression / autoGainControl désactivés**, lecture de `track.getSettings()` pour **dire** quand le navigateur les a gardés (R3) ; nœud worklet relié à la sortie **par un gain à zéro** (dans le graphe, jamais audible → pas de larsen) ; une seule source à la fois, `track.stop()` explicite ; erreurs typées (`denied`, `insecure`, `unavailable`, `busy`, `failed`) avec message et marche à suivre.
+- **Contexte natif** : Tone 15 renvoie un `AudioContext` de `standardized-audio-context`, qui **refuse** `new AudioWorkletNode(...)` (`parameter 1 is not of type 'BaseAudioContext'`, constaté au navigateur). Le moteur d'entrée reprend donc le contexte natif enveloppé (`nativeContextOf`) : même horloge, même matériel, pas de second contexte à réveiller.
+- **Appariement** (`src/core/input/match.ts`, pur) : verdicts `fill` / `tuning` / `octave` / `wrong` / `outside` / `empty`. Règles de prof : une note juste à ±tolerance remplit ; **au-delà de la tolérance mais dans la même demi-teinte, c'est un problème d'accord** (aucune erreur comptée, renvoi vers l'accordeur) ; **une octave d'écart n'est pas une faute** ; au-delà de **2 demi-tons**, ce n'est plus une tentative (une autre note du segment, ou une fausse route).
+- **Ce que le micro ne peut pas faire, écrit dans le code et dans l'UI** : il donne une **hauteur**, jamais une **corde**. La3 existe en 4 endroits du manche ; l'app valide donc la **case attendue** et ne prétend jamais faire un diagnostic par corde à partir du son.
+- **Niveaux 2-3 au micro** (`ScaleTrainingPage.tsx`) : interrupteur « Micro (jouer pour valider) » ; la case se remplit à la note jouée, **le pavé reste un secours complet**. Une note **visible** du segment (ou déjà trouvée) jouée par erreur **ne compte jamais comme une erreur** — c'est ainsi qu'un élève se repère (défaut trouvé par le micro simulé, voir plus bas). Tentative enregistrée **au même format qu'en phase 2** (`kind`, `correct`, `total`, `missedStrings`, `tempoOk`).
+- **Tempo enfin mesuré au jeu** : quand le micro est actif, l'instant retenu est celui de l'**attaque de la dernière note**, **latence mesurée retranchée**, et non plus le clic sur un pavé. Les clics du métronome sont **masqués ± 90 ms** (`nearClick`) : sans cela, le métronome de l'app remplirait des cases tout seul.
+- **Calibration** (`src/core/input/calibration.ts`, pur) : plancher de bruit = **médiane** des niveaux RMS au silence (la moyenne se laisse déplacer par une chaise), seuil suggéré = plancher + 12 dB borné, **latence = médiane des écarts entre le clic programmé et son retour**, écart-type implicite par rejet à ±30 ms de la médiane. **Moins de 3 mesures sur 5 retenues → rien n'est mémorisé** et l'écran le dit (le périphérique simulé n'entend pas les clics : exactement ce cas).
+- **Accordeur** (`#/accordeur`) : niveau + seuil réglable, périphérique, source **micro / interface USB** (seuils et latences **mémorisés par source**), plancher de bruit mesuré en 2 s, latence en 5 clics, **La de référence** 415-445 Hz lu par la détection, et les cordes de l'accordage courant : corde entendue allumée, écart signé, verdict (juste / trop bas / trop haut / très loin), aiguille. Le numéro de corde est affiché (1 = aiguë) : en police pixel, « mi » et « Mi » se confondent.
+- **Réglages** : nouveau panneau « Entrée audio » (seuil, tolérance, La, latence) et lien vers l'accordeur ; le paragraphe de la grille dit maintenant que le tempo est mesuré au jeu **avec** le micro, au pavé sans.
+- **Navigation** : 4 onglets (Hub, Gammes, **Accordeur**, Réglages). La page « Son » (outil de contrôle de la 1c) **sort de la barre** : cinq libellés en police pixel ne tiennent pas sur 390 px sans ellipse (« ACCOR… » mesuré) ; elle reste joignable depuis les réglages et par `#/audio`.
+
+**Mesures de la 3**
+- **Justesse de la détection** (48 kHz, signaux synthétiques à réponse connue) : **écart ≤ 0,3 cent sur tout le manche** (E2 82,41 Hz → E6 1 318,5 Hz, 49 hauteurs) ; fondamentale **affaiblie** (×0,2) ou **absente** : pas de saut d'octave (Mi2 lu 82,41 Hz) ; désaccord +25 cents lu +25,0 ; bruit seul et silence → **aucune note**.
+- **Jusqu'à la tablature, avec de vrais échantillons** : un WAV construit à partir de la banque **nylon CC0** (A2, C3, D3, E3, puis la box entière) est donné à Chromium comme micro (`--use-file-for-fake-audio-capture`). Notes lues : **110,1 / 131,1 / 147,2 / 165,1 / 263,0 / 294,9 / 330,0 / 392,7 Hz** (écart maximal **+9 cents**), cases remplies, message « Mi · 5 (quinte juste) · +21 ¢ — juste », **tentative journalisée** (`correct: 2/2`, ★★★, 15 XP) sur **3 essais sur 3**.
+- **Chemin d'erreur** (faire jouer Fa3 quand Mi3 est attendu) : « tu joues Fa · non — réessaie », puis « tu joues Fa · c'était 7 (case révélée) », tentative `correct: 1/2`, `revealed: 1`, **`missedStrings: [1]`**, ★.
+- **Chemin « note déjà écrite »** : jouer une note visible du segment ne compte aucune erreur (« Ré est déjà écrite dans ce segment ») — vérifié avant et après correction du défaut.
+- **Coût de la détection** : **0,17 ms** par fenêtre de 2048, **0,37 ms** par fenêtre de 4096 (500 mesures, Node) → ≈ 1,7 % d'un cœur à 47 fenêtres/s. Le fil audio ne fait que copier des échantillons et calculer un RMS.
+- **Poids** : `index` **487,2 ko (155,9 ko gzip)** — **+40,7 ko (+14,1 ko gzip)** pour `pitchy`, le moteur d'entrée, l'accordeur et l'UI ; chunk Tone inchangé (340,8 / 79,4) ; CSS **29,0 ko (6,6 gzip)**.
+- **Lisibilité et mise en page** (mesuré par `tools/layout-check.mjs`, 6 pages × 2 tailles) : **aucun débordement horizontal** à 390 ni à 1 440 ; contraste minimal **5,5:1** sur l'accordeur, 5,2 ailleurs, **aucun texte sous 4,5** ; cibles tactiles ≥ 32 px (curseurs portés à 44 px).
+- **Worklet** : testé hors navigateur (`node:vm`) — nom d'enregistrement, une fenêtre par saut, taille, **ordre du plus ancien au plus récent** (une rampe reste croissante), niveau, et **règle d'attaque identique bloc par bloc** à `onsetStep` (les deux copies ne peuvent pas diverger en silence).
+
+**Pas fait (3)** — à dire tel quel
+- **Aucune vraie guitare, aucun vrai micro** : tout est vérifié sur signaux synthétiques et sur un **périphérique simulé** qui rejoue des échantillons de guitare. La « définition de terminé » du plan (« jouer quelques notes sur une vraie guitare ») **n'est donc pas atteinte par moi** : elle demande 2 minutes avec l'instrument branché.
+- **Latence jamais mesurée en vrai** : le chemin de mesure existe, la valeur reste à obtenir casque et haut-parleurs (le périphérique simulé n'entend pas les clics de l'app → 1 mesure sur 5, non mémorisée, ce qui est le comportement voulu).
+- **Chemin `grid: kept` au micro non exercé** : la fixture joue à son propre rythme, donc la grille est manquée (`missed`, ★). La règle reste testée unitairement (`insideGrid`, `nearClick`) ; la démonstration « tempo tenu au jeu » demande un guitariste.
+- **Polyphonie absente** (phase 5) : pas de validation d'accord plaqué, pas de diagnostic par corde d'un accord.
+- Toujours non vérifiés : le **timbre** (je n'écoute pas), **Safari / iOS** (reprise du contexte, `getUserMedia` sur mobile, `AudioWorklet` dans une PWA), un **vrai téléphone**, le **bruit d'une pièce réelle** (les seuils par défaut sont raisonnés, pas calibrés).
+- Pas de réglage de **périphérique par nom** avant autorisation (limitation des navigateurs, dite à l'écran) ; pas de détection de **bend/vibrato** (une note tenue qui glisse sort de la retenue et redéclenche) ; pas de **mode casque** automatique.
+
+**Trouvé en route, corrigé (3)**
+1. **L'ouverture du micro s'annulait elle-même** : `start()` prenait son jeton *avant* `stop()`, qui l'incrémente → la garde `token !== this.token` refermait le flux juste après `getUserMedia` (état bloqué à « requesting », puis « idle »). Trouvé par le harnais micro, pas par les tests unitaires.
+2. **`AudioWorkletNode` refusé** par le contexte de Tone (`standardized-audio-context`) → passage au contexte natif enveloppé.
+3. **Le seuil de `pitchy` était 100 fois trop bas** (dBFS vs dB d'amplitude²) : le détecteur analysait du bruit.
+4. **Jouer une note visible comptait comme une erreur** : la garde « déjà écrite » ne couvrait que le verdict `outside`, pas `wrong` (une note du segment à 2 demi-tons d'un trou passait pour une faute) → test sur le score **affiché**, avant tout verdict d'erreur.
+5. **Une attaque pouvait être perdue** entre deux envois du worklet (bloc non final) → attaque mémorisée jusqu'au prochain message.
+6. **La barre de navigation passait à la ligne** avec 5 onglets, puis tronquait « ACCORDEUR » → onglet « Son » retiré de la barre, grille `auto-flow: column`, libellés à 9,5 px (mesuré : aucun `scrollWidth > clientWidth`).
+7. **« corde de Ré3 · 198 cents bas » pour un Do3** : la corde la plus proche était nommée jusqu'à 7 demi-tons. Bornée à 0,6 demi-ton dans l'interface (0,75 dans l'accordeur).
+8. **Une latence non concluante était mémorisée** (209 ms sur 1 mesure) → moins de 3 mesures sur 5, rien n'est écrit.
+9. **`**par source**` s'affichait littéralement** dans le JSX (et le même défaut existait depuis la phase 2 dans le texte de la grille) → balises `<strong>`.
+10. **La rangée de cordes affichait « MI » deux fois** (Silkscreen est en capitales : `mi`/`Mi` s'y confondent) → numéro de corde à gauche.
+
+## État exact de la phase 2 (rappel, après le commit `688aff7`)
 
 **Git** (branche `master`) : `183eacc` Phase 0 · `5797333` Phase 1a · `823fbbd` Phase 1b · `971be8c` Phase 1c · `ee0f82e` + `a7cb1bd` + `354d20a` + 4 commits de mise en page (1d, jusqu'à `264b7d9`) · **`d76e78a` Phase 2** + `3a9e049` seconde passe (grille, session mélangée, pondération) + `688aff7` lisibilité (panneaux, cartes opaques). **371 tests (370 verts, 1 ignoré), `tsc --noEmit` propre, `vite build` OK.** Aucun remote, arbre propre.
 
@@ -173,10 +222,10 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 | Tablature | **Moteur maison** (modèle `TabScore` + layout pur + rendu canvas). **alphaTab écarté** pour le rendu (justification 3.3). |
 | Théorie | `tonal` + couche guitare maison ; **une seule couche d'affichage** anglo↔solfège. |
 | Audio sortie | Web Audio + Tone.js ; **deux banques CC0** (nylon FreePats, électrique Karoryfer) + repli Karplus-Strong ; hauteur et niveaux mesurés ; attribution affichée quand même (D14). |
-| Pitch mono | `pitchy` (McLeod) dans un AudioWorklet, fenêtre adaptée à l'accordage. |
+| Pitch mono | `pitchy` (McLeod), fenêtre adaptée à l'accordage ; **capture dans un AudioWorklet, analyse sur le fil principal** (D35, 0,17-0,37 ms par fenêtre) ; note stabilisée sur 3 fenêtres ; **latence mesurée**, pas estimée. |
 | Polyphonique | **Moteur maison « accord attendu »** (peignes d'harmoniques + soustraction), **pas essentia.js (AGPL-3.0)**, pas de chromagramme seul. Verdict = **niveau de confiance**, jamais binaire. |
 | Persistance | localStorage (réglages, journal) + export/import JSON. *(Phase 0 prévoyait IndexedDB : révisé en phase 2, D25 ; `navigator.storage.persist()` pas encore demandé.)* |
-| Modules | `Gammes` et `Accords` au MVP ; **un module `Fondations` (onboarding, accordeur) en plus** ; `Rythmique` préparé dès le modèle. |
+| Modules | `Gammes` (N1-N3 livrés) et `Accords` (phase 4) au MVP ; **l'accordeur est un écran de premier rang** (`#/accordeur`, phase 3) plutôt qu'un module `Fondations` séparé ; `Rythmique` préparé dès le modèle. |
 | Écart majeur avec le brief | Gammes débutent par la **pentatonique mineure**, pas la majeure ; Am n'est **pas** un accord à 1-2 doigts ; le **verdict par corde en strum est irréaliste** ; **boîte d'accord** : D1 = B (étapes Découvrir/Construire seulement, §7.1 de `MUSIC_DESIGN.md`). |
 
 ---
@@ -245,6 +294,9 @@ McLeod (MPM), pur JS, MIT. Exécuté **dans un AudioWorklet** (anneau de 128 éc
 | A1 (baryton) | 55,00 Hz | 873 | 2 618 | 4 096 |
 
 Haut de plage : E6 = 1 318,5 Hz (période 36 éch.) : sans problème. Garde-fous : seuil de clarté, **continuité temporelle** (anti-sauts d'octave), vérification d'énergie à f₀/2 pour les basses sur micro de téléphone.
+
+**Tel que construit en phase 3 — écart assumé avec le plan (D35)** : `pitchy` tourne sur le **fil principal**, pas dans le worklet. Un module AudioWorklet est chargé par `addModule()` et **n'est pas passé par le bundler** : on ne peut pas y importer un paquet ESM, sinon il faudrait une étape de build séparée dont le résultat peut se périmer en développement (même piège que le CSS servi par un vieux serveur Vite, rencontré deux fois). Répartition retenue : le worklet fait le travail par bloc (**anneau, RMS, attaque**, 128 échantillons ≈ 2,7 ms) et envoie une fenêtre toutes les 1024 échantillons (21 ms) ; le fil principal fait la FFT/NSDF, mesurée à **0,17 ms (2048)** et **0,37 ms (4096)**, soit ≈ 1,7 % d'un cœur à 47 fenêtres/s. Conséquence honnête : la détection dépend du fil principal (une image longue la retarde, aucune n'est perdue pour autant — les fenêtres arrivent dans l'ordre).
+Garde-fous effectivement livrés : seuil de volume (corrigé de la convention `pitchy`, D35), **clarté minimale**, **retenue de note sur 3 fenêtres**, et le cas **octave** traité comme « douteux » (aucune erreur comptée) plutôt que deviné.
 
 ### 3.7 Entrée audio polyphonique : options comparées
 
@@ -385,16 +437,20 @@ Métronome (clic sinus court) ────────────────�
 - **Compte à rebours, backing, SFX** : pas en 1c (voir §12).
 - **Prévu pour la suite** (phase 7) : bus **backing** (basse, batterie, pads) et bus **SFX** branchés sur le même `mix` ; séquencement par `Tone.Transport`, lignes de basse et voicings avec conduite de voix, motifs de strumming par style **en données** — la chaîne actuelle les accepte sans modification.
 
-### 4.8 Pipeline audio d'entrée
+### 4.8 Pipeline audio d'entrée — *tel que construit en 3* (`src/core/input/`)
 ```
-getUserMedia({ deviceId, echoCancellation:false, noiseSuppression:false, autoGainControl:false, channelCount:1 })
-  → vérifier track.getSettings() (certains navigateurs mobiles ignorent les contraintes → avertir)
-  → AudioWorklet « capture » : anneau + RMS + détection d'attaque
-        ├─ pitch mono (pitchy, fenêtre adaptée) → mapper f→(corde,case) avec désambiguïsation par la position attendue
-        └─ blocs transférés (postMessage, pas de SharedArrayBuffer : COOP/COEP non garantis) → Worker « accord attendu »
-  → calibration : niveau, seuil de bruit, **latence mesurée en jouant sur des clics** (décalage médian), seuils séparés mic/USB
+getUserMedia({ deviceId?, echoCancellation:false, noiseSuppression:false, autoGainControl:false, channelCount:1 })
+  → track.getSettings() relu : si le navigateur a gardé l'AGC ou la réduction de bruit, l'écran l'affiche (R3)
+  → AudioContext NATIF (celui que Tone enveloppe) : un AudioWorkletNode n'accepte pas l'enveloppe
+  → AudioWorklet « fretwave-input » (JS pur, public/worklets/) : anneau windowSize + RMS par bloc + attaque
+        └─ un message par hop de 1024 éch. (21 ms) : fenêtre ordonnée (transfert), rms, peak, t, onset, onsetT
+  → fil principal : pitchy (fenêtre 2048/4096 selon l'accordage) → clarté ≥ seuil → NoteStabilizer (3 fenêtres)
+  → matchPitch(hauteur, cibles non remplies) : fill / tuning / octave / wrong (≤ 2 demi-tons) / outside
+  → calibration : seuil sur le plancher de bruit MÉDIAN · latence = médiane clic programmé → retour entendu (5 clics)
 ```
-Casque recommandé pour le Défi (le micro capterait le backing).
+Pas de Worker séparé : l'analyse polyphonique (« accord attendu ») est l'objet de la phase 5, et rien n'a été
+construit pour elle. Casque recommandé dès qu'un son de l'app est joué (le micro le reprend), et **clics du
+métronome masqués ± 90 ms** pour qu'ils ne remplissent pas de cases.
 
 ### 4.9 Rendu pixel et tablature
 **Un seul pixel logique pour toute l'app.** Facteur d'échelle entier `S` (CSS px par pixel logique), `canvas.width = largeur_css × dpr` arrondie à un multiple de `S × k` quand c'est possible ; rendu à `image-rendering: pixelated`, `imageSmoothingEnabled = false`.
@@ -612,8 +668,8 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | # | Risque | P | I | Mitigation |
 |---|---|---|---|---|
 | R1 | **Détection polyphonique** insuffisante (faux positifs Em/E, sus/add, harmoniques de basses, micro de téléphone) | 3 | 3 | Mode arpège = référence ; strum = confiance + bandes ; soustraction d'harmoniques ; **tests sur signaux synthétiques d'abord**, chiffrés (7.2) ; validation manuelle de secours |
-| R2 | **Latence** entrée/sortie sur Android/Bluetooth ; timing Défi injuste | 3 | 2 | Casque filaire conseillé ; latence **mesurée** par calibration (jeu sur clics, décalage médian) ; fenêtres de tolérance réglables ; Bluetooth déconseillé (profil mains-libres dégrade le micro) |
-| R3 | **iOS/Safari** : contexte audio suspendu, interrupteur silencieux qui coupe le Web Audio, contraintes de capture ignorées | 2 | 3 | Démarrage sur geste ; session audio « playback » ou astuce `<audio>` silencieux (**à tester sur appareil**) ; avertir si `getSettings()` révèle un AGC/NS actif |
+| R2 | **Latence** entrée/sortie sur Android/Bluetooth ; timing Défi injuste | 3 | 2 | **Chemin de mesure livré (3)** : 5 clics joués, retour entendu, médiane + rejet à ±30 ms, mémorisé par source ; moins de 3 mesures retenues → rien n'est écrit. Retranchée du chronomètre de la grille. **Valeur réelle non obtenue** (pas de matériel ici) ; Bluetooth déconseillé |
+| R3 | **iOS/Safari** : contexte audio suspendu, interrupteur silencieux qui coupe le Web Audio, contraintes de capture ignorées | 2 | 3 | Démarrage sur geste ; session audio « playback » ou astuce `<audio>` silencieux (**à tester sur appareil**) ; **livré (3)** : avertissement explicite quand `getSettings()` révèle un AGC/NS actif, message dédié si le contexte n'est pas sécurisé. Safari toujours non testé |
 | R4 | **Échantillons** : qualité « studio » inatteignable avec les packs libres ; licences | 2 | 2 | **Traité en 1c (D14)** : deux banques CC0 documentées, attribution affichée quand même, repli Karplus-Strong, hauteur et niveau mesurés. Reste : le timbre jugé à l'oreille, pas par moi |
 | R5 | **Pixels inégaux** (DPR non entier, redimensionnement) | 2 | 2 | Échelle entière sur pixel physique ; test de rendu à 5-6 DPR ; captures de non-régression |
 | R6 | **Moteur de layout de tab** (rythme : ligatures, triolets, doubles croches, piles) plus long que prévu | 2 | 3 | Périmètre incrémental : noires/croches/doubles d'abord, triolets ensuite ; layout pur testé ; modèle complet dès le départ |
@@ -621,7 +677,7 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | R8 | **Perf mobile** (canvas plein écran + particules + audio) | 2 | 2 | Couches pré-rendues, scène à 30 fps, curseur seul redessiné ; profilage dès la phase 1 |
 | R9 | **Contenu** : volume de voicings, progressions, patterns de backing ; erreurs de transcription | 2 | 3 | Tests automatiques sur chaque forme ; données séparées du code ; relecture « prof » des doigtés en phase 4 |
 | R10 | **Dérive de périmètre** : le brief est très large | 3 | 3 | Phases séquencées, définition de « terminé » par phase, phase 1 découpée 1a / 1b / 1c / 1d |
-| R11 | Contraintes d'**autorisation** (HTTPS requis pour le micro) | 1 | 2 | `localhost` pour le dev ; HTTPS pour le déploiement ; messages d'erreur dédiés (refusée, aucun périphérique) |
+| R11 | Contraintes d'**autorisation** (HTTPS requis pour le micro) | 1 | 2 | **Traité (3)** : `window.isSecureContext` vérifié avant `getUserMedia`, messages distincts pour refus, contexte non sécurisé, aucun périphérique, périphérique occupé; `localhost` en développement |
 | R12 | Taille du bundle (Tone.js ≈ 5,4 Mo dépaquetés) | 1 | 1 | **Mesuré en 1c** : 112,7 ko gzip (app) + 79,4 ko gzip (Tone, au démarrage) ; échantillons hors bundle, téléchargés à la demande (5,3 Mo nylon) |
 
 ### 7.2 La détection polyphonique en détail
@@ -720,6 +776,18 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 61. **Le N3 pèse 1,5 et le N2 pèse 1** dans la moyenne récente de maîtrise (D33). À scores égaux, la pondération ne change rien (testé) : elle ne joue que lorsque les niveaux diffèrent.
 62. **Taux de trous 20 / 35 / 50 %** (défaut 35) et **tempo de grille réglables** dans Réglages ; au moins 2 trous et jamais toute la position quel que soit le taux (D33).
 
+**Prises en phase 3**
+63. **Seuils de détection par source** : −42 dBFS (micro), −36 (interface USB) ; **clarté minimale 0,90** ; **tolérance 35 cents**. Ce sont des valeurs *raisonnées*, pas calibrées sur une pièce réelle (mesuré : un signal à −20 dB de bruit donne une clarté de 0,906, donc 0,90 est la limite basse). Réglables dans l'accordeur.
+64. **Une note n'est reconnue qu'après 3 fenêtres** (≈ 65 ms) dans la même demi-teinte, étalement ≤ 40 cents ; la justesse affichée est la **médiane**. Latence totale geste → case remplie ≈ 100 ms (3 fenêtres + demi-fenêtre). À revoir si c'est perceptible à l'usage.
+65. **Verdict audio** : juste à ±tolérance ; **accord** (aucune erreur) jusqu'à max(tolérance+10, 60) cents ; **une octave d'écart n'est pas une faute** ; **au-delà de 2 demi-tons, ce n'est plus une tentative** ; une note **déjà écrite** dans le segment n'est jamais une erreur (D36).
+66. **Le micro ne dit pas la corde** : l'app valide la **case attendue**, jamais « tu as joué sur la mauvaise corde ». La corde d'une tentative reste celle du trou (`missedStrings`).
+67. **Au micro, `seconds`** court de la première note acceptée ; la grille se juge sur l'**attaque de la dernière note**, latence retranchée. Au pavé, rien ne change (chrono de saisie).
+68. **Les clics du métronome sont masqués ± 90 ms** : jouer pile sur le clic peut coûter une analyse. Compromis choisi contre la fausse validation.
+69. **Le worklet est du JS pur** dans `public/worklets/` (testé hors navigateur par `node:vm`) ; `pitchy` reste sur le fil principal (D35).
+70. **La de référence dans les réglages d'entrée** (415-445 Hz), lue par la détection **et** l'accordeur ; elle n'est pas encore appliquée aux échantillons de sortie (`tuningCents` reste vide côté lecture).
+71. **La page « Son » quitte la barre de navigation** (4 onglets : Hub, Gammes, Accordeur, Réglages) ; elle reste joignable depuis les réglages et par `#/audio` (D38).
+72. **Un seul `InputEngine` par contexte audio** (`app/inputSession.ts`) : deux flux ouverts se disputeraient le périphérique sur Android.
+
 **Hypothèses les plus fragiles** (ce qui pourrait encore bouger — rien n'est verrouillé) :
 **Hypothèses les plus fragiles** (ce qui pourrait encore bouger — rien n'est verrouillé) :
 - **32-35 et 38** (vélocité de base, strum, tenue, humanisation, niveaux) sont réglées **par calcul et par mesure, pas par écoute** : un ajustement à ton oreille est probable, et c'est normal.
@@ -735,6 +803,10 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 - **61** (poids 1,5 du N3) : choix de prof, non calibré sur des journaux réels ; il suppose que le N3 est plus difficile que le N2, ce qui est vrai sur une 3NPS et discutable sur une box à 4 notes.
 - **60** (ordre de la session) : déterministe pour être testable ; un tirage aléatoire serait plus varié à l'usage.
 - **Composition du poster** (soleil à 26 % de la largeur, titre hors du disque) : calibrée pour 390×844 ; à revoir sur un vrai téléphone en portrait étroit (360 px) et en paysage.
+- **63-64** (seuils, clarté, retenue de note) : réglés par raisonnement et par mesure **sur signaux synthétiques**, jamais dans une vraie pièce avec un vrai micro. C'est le premier réglage à corriger après deux minutes de jeu réel.
+- **65** (2 demi-tons pour une tentative, octave non comptée) : choix de prof. Le seuil des 2 demi-tons est le plus discutable — une gamme a des écarts de 1 à 2 demi-tons, donc un élève qui joue *la note voisine* remplit cette case-là, ce qui est le comportement voulu mais peut masquer une erreur de doigté.
+- **68** (masque des clics) : 90 ms est large (15 % du temps à 50 BPM). Un guitariste qui joue exactement en place verra parfois sa note ignorée.
+- **67** (`seconds` au micro) : mêle temps de jeu et temps de lecture ; acceptable pour un exercice court, faux pour un exercice entrecoupé de pauses.
 
 ---
 
@@ -750,6 +822,10 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | Niveaux Gammes | N1 seul | **N1 (écoute) + N2 (trous) + N3 (rappel)** |
 | Rythme dans les exercices | absent | **grille rythmique** (un temps par trou, ★★ conditionné) |
 | Ordre des exercices | une forme, puis retour au hub | **session mélangée** de 5 formes différentes |
+| Entrée audio | worklet + Worker séparés, polyphonie dès la 3 | **mono seulement** : `pitchy` sur le fil principal (D35), worklet = capture (3) |
+| Validation N2/N3 | pavé numérique | **pavé ou micro** : la case se remplit à la note jouée (3) |
+| Tempo des exercices | chrono de saisie au pavé | **attaque mesurée**, latence retranchée, quand le micro est actif (3) |
+| Navigation | Hub · Gammes · Son · Réglages | **Hub · Gammes · Accordeur · Réglages** (la page Son sort de la barre, D38) |
 | Boîte d'accord | à trancher | **D1 = B** (Découvrir/Construire) |
 | Feuille de route | « son final + hub + thème + module » en 1c | 1c = audio seul ; les écrans en 1d |
 
@@ -764,13 +840,27 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | **1c** ✔ `971be8c` | Moteur audio de sortie : échantillons CC0 (nylon, électrique) + repli synthèse, choix/couches/round-robin, bus master (compresseur + plafond), drone, métronome, volumes mémorisés, préchargement, page Audio | « Son = tablature » vérifié (6 types de score), drone, métronome, plafond tenu, page Audio — **atteint** (274 tests, mesures dans « État exact ») |
 | **1d** ✔ (commit en fin de phase) | Hub + routeur par hash, thème Synthwave (tokens, scène, parallaxe, scanlines), module Gammes N1 (sélection, annotations, calque d'accord), positions CAGED / 3NPS / boxes, réglages globaux, journal de pratique local | Choisir une gamme, la voir et l'entendre avec le son final ; captures 390×844 **et** 1440×900 — **atteint** (314 tests, mesures dans « État exact ») |
 | **2** ✔ `d76e78a` + `3a9e049` | Journal de tentatives, maîtrise par forme, Leitner 6 boîtes, XP/série/badges, Gammes N2 (trous) et N3 (rappel) avec pavé numérique, diagnostic par corde, transposition suggérée, export/import JSON, **grille rythmique (★★ au tempo)**, **session mélangée (interleaving)**, **pondération N3 et taux de trous réglable** | Faire une série de trous, voir la maîtrise bouger, fermer l'onglet et retrouver son état ; grille tenue/manquée distinguée ; session de 5 formes enchaînée ; export/import vérifié — **atteint** (371 tests, mesures dans « État exact ») |
-| 3 | Entrée mono, calibration, accordeur, affichage live | Test sur guitare réelle |
-| 4 | Accords A : curriculum, tab accords, leçon guidée, QCM/auto-éval, validation arpège, recommandation | Parcours P0-P4 jouable |
-| 5 | Polyphonique, onset, timing, transitions | Résultats chiffrés publiés |
+| **3** ✔ (commit en fin de phase) | Entrée mono (`pitchy`), note stabilisée, appariement hauteur → case, seuils par source, plancher de bruit mesuré, **latence mesurée**, accordeur 6 cordes, « Micro » dans les niveaux 2-3 | Détection vérifiée sur signaux synthétiques **et** sur un **micro simulé rejouant de vrais échantillons** (cases remplies, tentative journalisée) — **atteint, sauf le test sur guitare réelle** (431 tests) |
+| 4 | Accords A : curriculum, tab accords, leçon guidée, QCM/auto-éval, validation arpège, recommandation · **+ P1, P2, P4 (phase 3, §9.1)** | Parcours P0-P4 jouable |
+| 5 | Polyphonique, onset, timing, transitions · **+ P5 (phase 3, §9.1)** | Résultats chiffrés publiés |
 | 6 | Défi Accords, strumming, familles d'accords, harmonisation | Setlist complète |
-| 7 | Improvisation + backing tracks + classification | Synthwave + Lo-fi jouables |
+| 7 | Improvisation + backing tracks + classification · **+ P3 (phase 3, §9.1)** | Synthwave + Lo-fi jouables |
 | 8 | Thèmes, ear training, dashboard, badges, PWA, polish | — |
 À chaque phase : l'app tourne (`npm run dev`), code typé, tests unitaires ; captures d'écran ; bilan en fin de phase + 3 à 5 propositions pédagogiques.
+
+### 9.1 Propositions pédagogiques de la phase 3 → phase où elles atterrissent
+
+Les cinq propositions du bilan de la phase 3 (`MUSIC_DESIGN.md` §14.3) sont **placées**, pas seulement notées : chacune est rattachée à la phase dont elle partage déjà le moteur ou la dette. Aucune ne remplace un livrable existant.
+
+| # | Proposition | Phase | Pourquoi cette phase |
+|---|---|---|---|
+| **P1** | **« Joue la case que je montre »** — la tablature allume une pastille, l'élève la joue, le micro valide. | **4** | Même moteur qu'un trou (`matchPitch` à une seule cible), et c'est **exactement** l'étape « Construire / Vérifier » de la leçon d'accord : la construire pour les gammes la rend gratuite pour les accords. C'est le pont manquant entre *lire un chiffre* et *poser un doigt*. |
+| **P2** | **Diagnostic de note morte** — 15 à 40 cents bas **et** niveau faible → « la corde ne sonne pas : appuie juste derrière la frette » (au lieu de « accorde-toi »). | **4** | Sans lui, la validation **arpège corde par corde** de la phase 4 confond « doigt mal placé », « corde étouffée » et « guitare désaccordée ». Le niveau RMS par note existe déjà (phase 3), la règle est courte. |
+| **P3** | **Affichage live de la note sur la position** (niveau 1) — la note détectée allume la pastille correspondante de la position affichée. | **7** | Même surcouche de tablature que l'improvisation (notes jouées inscrites à la position du curseur). Peut être **tirée dans la 4** si le coût s'avère faible (une prop de `TabView` + le flux de la phase 3). |
+| **P4** | **Accordage guidé corde par corde** — les six cordes dans l'ordre, « corde 6 juste → passe à la 5 », rappel « dernier accordage : 3 jours ». | **4** | Prérequis direct de la validation arpège : une guitare à −20 cents fait échouer des cordes justes. Réutilise l'accordeur de la 3 tel quel ; l'effort est dans l'enchaînement et le rappel, pas dans la mesure. |
+| **P5** | **Avance / retard moyen sur la grille** — « tu joues 40 ms avant le clic » pendant l'exercice. | **5** | C'est du **timing** : la phase 5 possède l'onset, la compensation de latence et les transitions. Les instants d'attaque sont déjà mesurés (phase 3), il ne reste qu'à les comparer aux clics et à les afficher. |
+
+Deux conséquences à garder en tête quand ces phases s'ouvriront : **P1 et P4 ne sont pas des gadgets de confort** — ce sont les deux conditions pour que la validation audio du module Accords soit juste (savoir viser une case, partir d'une guitare accordée) ; et **P2 est une correction de contresens**, pas une amélioration : aujourd'hui l'app envoie vers l'accordeur un élève qui doit simplement presser plus près de la frette.
 
 ---
 
@@ -815,7 +905,12 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 
 | D34 | Surfaces et contraste (2, correction) | **Aucune carte translucide** : panneau = `surface`, carte = `surface-hi`, creux = `bg` ; les sections du hub posées à même le décor (Par où commencer, Badges, Modules, Le code couleur) deviennent des **panneaux** ; `muted` #C4B6E4 (≥ 7:1) et `dim` #A99BCF (≥ 5,5:1) ; titre de module en `text` + filet d'accent. Mesuré : contraste minimum 5,2:1 sur 207 textes, rangées du hub alignées |
 
-**D1-D34 tranchées** (D13 écartée ; D7 remplacée par D14 ; D18 tranchée ; **D24 = la typographie de la 1d**, ajoutée au journal). **Aucune décision en attente** : la suite (phase 3) est décrite au §12.
+| D35 | Où tourne la détection de hauteur (3) | **Fil principal**, pas le worklet : un module AudioWorklet n'est pas bundlé, donc `pitchy` (ESM) ne peut pas s'y importer sans build séparé et périssable. Le worklet fait ce qui est par bloc (anneau, RMS, attaque) et envoie une fenêtre toutes les 21 ms ; coût mesuré 0,17-0,37 ms par fenêtre. En prime, la convention de `pitchy` est corrigée : son `minVolumeDecibels` est en amplitude², d'où `dbfsToPitchy` (sinon le seuil réel était 100× trop bas) |
+| D36 | Ce qu'un verdict audio a le droit d'affirmer (3) | **La case, jamais la corde** (une hauteur existe à plusieurs endroits) ; `fill` / `tuning` / `octave` / `wrong` / `outside` ; **accord ≠ erreur**, **octave ≠ erreur**, **note déjà écrite ≠ erreur**, erreur seulement à ≤ 2 demi-tons d'un trou |
+| D37 | Réglages d'entrée (3) | Seuils **par source** (micro −42 / USB −36 dBFS), clarté 0,90, tolérance 35 cents, La 415-445 Hz, latences par source ; **tout est mémorisé** et lisible dans l'accordeur. Valeurs raisonnées, non calibrées sur une pièce réelle |
+| D38 | Place de l'accordeur (3) | **Écran `#/accordeur` dans la barre de navigation** (4 onglets) ; la page « Son » (outil de contrôle 1c) **sort de la barre** et reste joignable depuis les réglages — cinq libellés pixel ne tiennent pas sur 390 px sans ellipse (mesuré) |
+
+**D1-D38 tranchées** (D13 écartée ; D7 remplacée par D14 ; D18 tranchée ; **D24 = la typographie de la 1d**, ajoutée au journal). **Aucune décision en attente** : la suite (phase 4) est décrite au §12.
 
 ---
 
@@ -830,24 +925,27 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 - **Phase 2** (terminée, commit `d76e78a`, seconde passe dans la même phase) : journal de tentatives, maîtrise par forme, Leitner 6 boîtes, XP/série/badges, niveaux 2 et 3 (trous, rappel) avec pavé numérique, diagnostic par corde, transposition suggérée, export/import — détail dans « État exact ». **359 tests** (358 verts, 1 ignoré) à la première passe, **371** après la seconde, `tsc` propre, build OK. Vérifié dans Chromium (390×844 @3, 1440×900 @1) : trou touché au clic réel, pavé, validation, série terminée, tentative écrite, rechargement, hub à jour ; révision qui rouvre la bonne position ; export → import → réimport sans doublon ; écoute du niveau 1 journalisée sans XP. **Trouvé en route, corrigé** : (1) un exercice à **1 trou** (35 % de 4 notes = 1,4) ne testait rien → minimum 2 trous, jamais tous ; (2) le libellé du pavé affichait **la fonction de la note** visée (« tierce mineure ») — c'est-à-dire une partie de la réponse → retiré ; (3) le pavé sortait de l'écran dès qu'on lisait la tablature sur téléphone → panneau collant sous 900 px ; (4) le résultat annonçait « 0 XP : il faut 80 % » alors que l'XP est proportionnel (60 % = 6 XP) → texte corrigé ; (5) un exercice masqué gardait son **annotation** dans le modèle de layout (le rendu la supprimait, le test non) → vérifié par test pixel. **Non vérifié** : timbre, Safari/iOS, vrai téléphone, latence ; claviers physiques testés par événement DOM, pas par frappe CDP.
 - **Phase 2 — seconde passe** (commit `3a9e049` ; tes trois propositions, livrées dans la même phase) : grille rythmique (métronome sur score de silences, ★★/★★★ conditionnés), session mélangée (file calculée, enchaînement, bilan), pondération N3 (1,5) et taux de trous réglable (20/35/50 %) + tempo mémorisé. **371 tests** (370 verts, 1 ignoré), `tsc` propre, build OK. Vérifié au navigateur : 4 clics / 4,8 s puis `grid: "over"`, série en 1 s → `tempoOk: true` et ★★★ ; grille manquée → ★ et `tempoOk: false` ; session de 5 formes enchaînées et bilan « 5 formes · 100 % · 75 XP » ; taux 20 % → 4 trous sur 18 notes, 50 % → 3 sur 6. **Trouvé en route, corrigé** : (1) la grille ne relançait pas le chrono (une grille abandonnée comptait dans la tentative : 19 s pour une série de 1 s) ; (2) le bilan de session affichait **3 formes sur 4** et 45 XP — le résumé remplaçait le résultat de la dernière forme avant son agrégation → accumulateur en `ref`, bilan au dernier clic ; (3) la session mélangée ne démarrait pas depuis l'URL : React réutilisait l'instance de l'écran d'entraînement → **clés distinctes** dans le routeur ; (4) la grille exige un **geste réel** (AudioContext) : un appel de fonction depuis le crochet de dev ne démarre rien — la vérification passe par un clic souris ; (5) une hypothèse de test fausse sur la pondération (à scores égaux, le poids ne se voit pas) → test corrigé, pas le code.
 - **Correction de lisibilité** (commit `688aff7` ; ta remarque : « les cartes n'ont pas de fond, le contraste est vraiment faible ») : les quatre sections du hub (**Par où commencer, Badges, Modules, Le code couleur**) étaient posées **à même le décor**, sans panneau ; plusieurs cartes étaient **translucides** (`rgba(…, 0.5-0.72)`) ou de la **même couleur que leur panneau** (touches du pavé, cartes de module, lignes de liste), donc invisibles en tant que cartes ; le texte secondaire (`--dim`) tombait à **4,6:1** sur une carte. Corrigé (D34) : panneaux partout, cartes en `surface-hi` opaque, creux en `bg`, `muted`/`dim` éclaircis, seuils relevés dans `theme.test.ts`, titre de module en `text` + filet d'accent, colonne de gauche tendue à la hauteur de sa rangée. Vérifié au navigateur : contraste minimum **5,2:1** (207 textes sur quatre écrans), aucun sous 4,5, rangées alignées. **Trouvé en route** : le serveur Vite de la session servait un **CSS périmé** (le fichier sur disque était bon, la feuille servie gardait `--accent` sur les titres de module) → serveur redémarré ; `curl http://127.0.0.1:5173/src/app/app.css` le montre en une commande (même piège qu'en 1d).
+- **Phase 3** (terminée, commit en fin de phase) : entrée audio monophonique de bout en bout — `pitchy` + retenue de note, worklet de capture, appariement hauteur → case, seuils par source, plancher de bruit et **latence mesurés**, accordeur, « Micro » dans les niveaux 2-3 avec **tempo mesuré au jeu**. **431 tests** (430 verts, 1 ignoré), `tsc` propre, build OK. Vérifié : justesse ≤ 0,3 cent sur 49 hauteurs, silence et bruit refusés, et surtout **le chemin complet avec un micro simulé rejouant de vrais échantillons nylon** (notes lues à ≤ 9 cents, cases remplies, ★★★, tentative journalisée ; chemin d'erreur avec révélation et `missedStrings`). **Trouvé en route, corrigé** : (1) `start()` prenait son jeton avant `stop()` → l'ouverture du micro s'annulait elle-même ; (2) `new AudioWorkletNode` refusé par le contexte enveloppé de Tone → contexte natif ; (3) seuil `pitchy` 100× trop bas (dBFS vs amplitude²) ; (4) jouer une note visible du segment comptait comme une erreur ; (5) une attaque pouvait être perdue entre deux messages du worklet ; (6) la barre de navigation passait à la ligne puis tronquait « ACCORDEUR » ; (7) « corde de Ré3 » annoncée pour un Do3 ; (8) une latence tirée d'une seule mesure était mémorisée ; (9) `**…**` affiché littéralement dans le JSX ; (10) « MI » deux fois dans l'accordeur (police en capitales). **Non vérifié** : vraie guitare, vrai micro, latence réelle, Safari/iOS, chemin `grid: kept` au micro.
+- **Mise à jour de ce document (après la 3)** : « État exact » (bloc 3 + rappel 2), §3.6 (écart worklet → fil principal), §4.8 (pipeline réel), R2/R3/R11, hypothèses 63-72 et fragiles, §8 bis (entrée audio, tempo, navigation), plan (3 ✔), **§9.1 (les cinq propositions de la phase 3 placées en phases 4, 5 et 7)**, décisions **D35-D38**, journal, §12 réécrite pour la phase 4 (avec P1, P2, P4 dans ses livrables).
 - **Mise à jour de ce document (après la 2)** : « État exact » (bloc 2 + rappel 1d), hypothèses 50-62 et fragiles, §8 bis (progression, persistance, rythme, session), §3.8 (persistance révisée), §4.1 (arborescence `progress/`), §4.3 (stores), plan (2 ✔ + seconde passe), décisions **D24-D33** (D25 écarte IndexedDB), journal (défauts trouvés), §12 « Prochaine étape » réécrite pour la phase 3.
 - **Mise à jour de ce document (après 1c)** : « État exact » (bloc 1c, mesures, pas fait, écarts), §3.1 (outils de build), §3.5 (échantillons et échantillonneur maison), §4.1 (arborescence), §4.7 (pipeline tel que construit), R4 et R12 (traités / mesurés), hypothèses 31-41, plan (1c fait, 1d proposée), décisions **D14-D18** (D7 remplacée), journal, §12 « Prochaine étape ».
 
 ---
 
-## 12. Prochaine étape : phase 3 (entrée audio monophonique, calibration, accordeur)
+## 12. Prochaine étape : phase 4 (module Accords, partie A)
 
-**Objectif** : faire passer la validation de la **saisie au pavé** à la **guitare réelle** — une note isolée, puis une corde d'accord, avec un diagnostic par corde.
+**Objectif** : ouvrir le second module — apprendre un accord **de zéro**, en tablature, avec doigtés, écoute plaquée et arpégée, et validation par l'entrée audio **en mode arpège** (la seule validation fiable en mono).
 
 **Livrables**
-1. `getUserMedia` avec choix du périphérique, `echoCancellation/noiseSuppression/autoGainControl` désactivés, plage de détection **dérivée de l'accordage** (E2 82,41 Hz → ~73 Hz en Drop D, ~62 Hz pour un Si1 de 7 cordes, haut de plage à la case 24).
-2. `pitchy` (McLeod) dans un AudioWorklet, note + écart en cents, **désambiguïsation corde/case** selon la position active (une hauteur existe à plusieurs endroits).
-3. Écran de calibration (niveau d'entrée, seuil de bruit, latence mesurée) + accordeur ; réglages séparés micro / interface USB.
-4. **Validation d'une corde** dans les niveaux 2-3 : le pavé devient un secours, la note détectée remplit le trou — la tentative enregistrée garde le même format (`kind`, `correct`, `total`, `missedStrings`).
-5. Gestion propre : permission refusée, aucun périphérique, note qui s'éteint, bend/vibrato, mode casque recommandé.
+1. **Curriculum des accords ouverts** en données (P1 Em/Em7/Asus2/Am7 → P2 Am → P4 C et G avec marchepieds ; power chords en branche optionnelle dès P2), avec **doigtés saisis doigt par doigt** (la rangée « doigté » du modèle est vide depuis la 1b) et une **relecture prof** position par position — c'est la dette laissée en 1d.
+2. **Écran de leçon** : les 7 étapes du brief (Découvrir → Construire → Vérifier → Plaquer → Fixer → Enchaîner → Intégrer), la **boîte d'accord** aux étapes Découvrir/Construire (D1 = B, désactivable), la pile verticale en tablature pour le reste.
+3. **Écoute** : plaqué (strum avec léger décalage) et **arpégé corde par corde** depuis le voicing affiché — la vérification « son = tablature » existe déjà (1c) et doit s'appliquer aux voicings.
+4. **Validation en mode arpège** avec le moteur de la phase 3 : chaque corde jouée est comparée à la corde attendue, diagnostic par corde (étouffée / mauvaise note / trop basse) ; le **mode plaqué reste en auto-évaluation** (« je l'ai bien joué », statut non vérifié) jusqu'à la phase 5.
+5. **Progression et recommandation** : nœuds `acc:accord:{voicingId}` sur le journal existant, difficulté estimée par accord (doigts, écart, barré, cordes étouffées, doigts communs), **proposition du prochain accord** avec sa raison (« avec Em, Am et D, tu peux jouer ces 3 progressions »).
+6. **Trois ajouts venus de la phase 3, placés ici (§9.1)** : **P1 « joue la case que je montre »** (même moteur qu'un trou, et c'est l'étape *Construire / Vérifier* de la leçon d'accord), **P2 diagnostic de note morte** (15-40 ¢ bas + niveau faible → « appuie juste derrière la frette », pas « accorde-toi »), **P4 accordage guidé corde par corde** (prérequis : une guitare à −20 ¢ fait échouer des cordes justes). Ce ne sont pas des conforts : sans eux, la validation arpège confond doigt mal placé, corde étouffée et guitare fausse. **P3** (affichage live sur la position) est visé en phase 7 avec l'improvisation, **P5** (avance/retard sur la grille) en phase 5 avec le timing.
 
-**« Terminé » =** jouer quelques notes d'une position sur une vraie guitare et voir la tablature se remplir correctement, avec un diagnostic par corde et une tentative journalisée ; calibration et accordeur vérifiés sur au moins deux sources (micro intégré, interface USB).
+**« Terminé » =** apprendre Em puis Am depuis zéro dans l'app, chaque corde validée au micro (ou au pavé), l'accord entrant dans le pool des accords connus, et le hub proposant le suivant avec sa justification ; captures 390×844 et 1440×900.
 
-**Points à surveiller** : octave fausse sur les deux cordes graves au micro de téléphone (peu d'énergie < 100 Hz), latence acoustique **non mesurable** sans micro de référence, et un journal qui grossit vite (rouvrir D25 : IndexedDB probable).
+**Points à surveiller** : la validation arpège au micro **dépend de la justesse de l'accordage** (l'accordeur de la 3 est maintenant là pour ça) ; les **cordes à vide qui résonnent par sympathie** peuvent valider une corde qu'on n'a pas jouée ; les **doigtés non relus** sont le vrai risque de contenu ; et un accord validé corde par corde n'est pas un accord *placé* (la phase 5 apportera le plaqué).
 
-**Dette technique assumée à reprendre** : doigtés non relus position par position, vue manche optionnelle (attend un accord explicite), page « Progression » (heatmap), tempo/rythmique dans les exercices, `#/tab` encore en page de contrôle.
+**Dette technique assumée à reprendre** : vue manche optionnelle (attend un accord explicite), page « Progression » (heatmap), doigtés de position non relus, `#/tab` encore en page de contrôle, La de référence non appliquée à la lecture des échantillons, `InputEngine` sans détection de bend/vibrato, **référence 440 Hz qui ne corrige pas encore la hauteur des échantillons** (écart de 7,9 cents à 442), et **phases 5/7 qui portent P5 et P3** (§9.1).
