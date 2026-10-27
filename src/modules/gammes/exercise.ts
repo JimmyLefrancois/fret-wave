@@ -226,3 +226,19 @@ export function tempoGrid(holes: number, tempo: number): TempoGrid {
 export function insideGrid(seconds: number, grid: TempoGrid, tolerance = 0.3): boolean {
   return seconds <= grid.seconds + tolerance;
 }
+
+/**
+ * Le temps écoulé est-il à portée d'un clic du métronome ? (phase 3)
+ *
+ * Les clics de la grille sont des attaques larges : au micro, le métronome de l'app est entendu
+ * comme un coup de médiator et pourrait remplir une case tout seul. On ignore donc les fenêtres
+ * proches d'un clic (± 90 ms, soit un peu plus de la moitié d'un temps à 50 BPM). Le prix est
+ * assumé : jouer **exactement** sur le clic peut coûter une analyse. C'est le compromis inverse
+ * d'une fausse validation, qui elle apprendrait du faux.
+ */
+export function nearClick(elapsedSeconds: number, bpm: number, windowMs = 90): boolean {
+  const beat = 60 / Math.max(1, bpm);
+  const phase = ((elapsedSeconds % beat) + beat) % beat;
+  const ms = phase * 1000;
+  return Math.min(ms, beat * 1000 - ms) <= windowMs;
+}

@@ -9,6 +9,7 @@ import { SCALE_SELECTION_KEY, DEFAULT_SELECTION, setScaleSelection } from './sca
 import { DEFAULT_SETTINGS, HOLE_RATES, MAX_TEMPO, MIN_TEMPO, setSettings, useSettings, type HoleRate } from './settings';
 import { Panel, PixelButton, Segmented, Switch } from './ui';
 import { Mixer, InstrumentPicker } from './AudioControls';
+import { useInputSettings } from '../core/input/settings';
 
 import { PRACTICE_KEY } from '../core/progress/practiceLog';
 import {
@@ -19,6 +20,7 @@ import type { ChordNotation, NoteNotation } from '../core/theory';
 
 export function SettingsPage() {
   const settings = useSettings();
+  const input = useInputSettings();
   const [confirmWipe, setConfirmWipe] = useState(false);
   const [wiped, setWiped] = useState(false);
   const [count, setCount] = useState(() => loadJournal(progressStore()).length);
@@ -156,8 +158,8 @@ export function SettingsPage() {
             <span className="t-small t-dim">un temps par trou</span>
           </div>
           <p className="t-small t-dim">
-            Le métronome ne joue aucune note. Tant que la validation passe par le pavé, ce tempo mesure la
-            rapidité à écrire une case : la phase 3 (micro) rendra la mesure honnête.
+            Le métronome ne joue aucune note. Au pavé, ce tempo mesure la rapidité à écrire une case ; avec le micro
+            (interrupteur sur l’écran d’entraînement), il mesure le moment où la note est jouée, latence retranchée.
           </p>
         </div>
       </Panel>
@@ -188,6 +190,25 @@ export function SettingsPage() {
         <Mixer channels={['master', 'guitar', 'drone', 'metronome']} />
         <p className="t-small t-dim">
           Échantillons CC0 (FreePats nylon, Karoryfer électrique). Crédits et licences complets sur la page Audio.
+        </p>
+      </Panel>
+
+      <Panel className="span-6" accent="green" label="Entrée audio">
+        <p className="t-body">
+          Micro ou interface USB, pour jouer sur la vraie guitare : niveau, seuil de bruit, <strong>latence mesurée</strong>
+          {' '}et accordeur. Les seuils et la latence sont mémorisés par source.
+        </p>
+        <p className="t-small">
+          seuil <strong>{input.thresholds[input.source]} dBFS</strong> ({input.source === 'mic' ? 'micro' : 'interface USB'}) ·
+          tolérance <strong>{input.centsTolerance} cents</strong> · La <strong>{input.a4} Hz</strong> · latence{' '}
+          <strong>{input.latencies[input.source] > 0 ? `${input.latencies[input.source]} ms` : 'non mesurée'}</strong>
+        </p>
+        <div className="row">
+          <PixelButton variant="primary" onClick={() => navigate('tuner')}>Accordeur et calibration</PixelButton>
+        </div>
+        <p className="t-small t-dim">
+          Le micro donne une hauteur, jamais une corde. Il exige HTTPS (ou localhost) ; un casque évite qu’il reprenne
+          le son de l’app.
         </p>
       </Panel>
 

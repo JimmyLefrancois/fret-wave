@@ -14,6 +14,7 @@ import { SettingsPage } from './SettingsPage';
 import { useSettings } from './settings';
 import { TabPage } from './TabPage';
 import { TheoryPage } from './TheoryPage';
+import { TunerPage } from './TunerPage';
 import { PixelIcon, type IconName } from './ui';
 import { installDevHooks } from './devHooks';
 import { ScaleDiscoveryPage } from '../modules/gammes/ScaleDiscoveryPage';
@@ -25,12 +26,14 @@ const SHORT_NAME: Record<string, string> = { nylon: 'GUITARE NYLON', electric: '
 const NAV: { route: RouteName; label: string; icon: IconName }[] = [
   { route: 'hub', label: 'Hub', icon: 'home' },
   { route: 'gammes', label: 'Gammes', icon: 'scales' },
-  { route: 'audio', label: 'Son', icon: 'wave' },
+  { route: 'tuner', label: 'Accordeur', icon: 'ear' },
+  // La page « Son » (outil de contrôle de la 1c) sort de la barre : elle reste joignable depuis les réglages
+  // et par son URL (#/audio). Cinq onglets en police pixel ne tiennent pas sur un téléphone de 390 px.
   { route: 'settings', label: 'Réglages', icon: 'sliders' },
 ];
 
 const ACTIVE: Record<RouteName, RouteName> = {
-  hub: 'hub', gammes: 'gammes', scale: 'gammes', training: 'gammes', review: 'gammes', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
+  hub: 'hub', gammes: 'gammes', scale: 'gammes', training: 'gammes', review: 'gammes', tuner: 'tuner', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
 };
 
 function Page({ route }: { route: RouteName }) {
@@ -41,6 +44,7 @@ function Page({ route }: { route: RouteName }) {
     // clés distinctes : sans elles, React réutilise l'instance et la session mélangée ne démarre pas
     case 'training': return <ScaleTrainingPage key="training" />;
     case 'review': return <ScaleTrainingPage key="review" initialMixed />;
+    case 'tuner': return <TunerPage />;
     case 'settings': return <SettingsPage />;
     case 'tab': return <TabPage />;
     case 'audio': return <AudioPage />;

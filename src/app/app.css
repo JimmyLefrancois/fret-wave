@@ -671,7 +671,9 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   max-width: min(90vw, 1800px);
   z-index: 5;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* le nombre d'onglets peut changer (phase 3 : Accordeur) : une seule rangée, colonnes égales */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   background: rgba(6, 0, 15, 0.94);
   border-top: var(--bw) solid var(--line);
   border-left: var(--bw) solid var(--line-soft);
@@ -688,11 +690,13 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   color: var(--dim);
   font-family: var(--font-label);
   font-weight: 600;
-  font-size: 10.5px;
-  letter-spacing: 0.02em;
+  /* 9,5 px : « ACCORDEUR » (9 capitales de Silkscreen) doit tenir dans 1/4 de 390 px sans ellipse */
+  font-size: 9.5px;
+  letter-spacing: 0;
   cursor: pointer;
   min-height: 52px;
 }
+.navbtn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .navbtn.on { color: var(--magenta); }
 .navbtn.on .picon { filter: drop-shadow(0 0 6px var(--magenta)); }
 
@@ -1123,4 +1127,93 @@ table.kv td:first-child { color: var(--muted); }
   align-items: center;
   gap: 8px 12px;
   margin: 10px 0 6px;
+}
+
+/* ===========================================================================
+   Entrée audio (phase 3) : bandeau d'écoute, jauge de niveau, accordeur.
+   Tout vit sur des surfaces OPAQUES (D34) : le décor ne passe jamais derrière un texte.
+   =========================================================================== */
+
+.mic-strip {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  margin-bottom: 10px;
+  background: var(--bg);
+  border: 2px solid var(--line-soft);
+}
+.mic-top { display: flex; align-items: center; gap: 8px; }
+.mic-dot { flex: none; width: 8px; height: 8px; background: var(--line); }
+.mic-dot.on { background: var(--ok); box-shadow: 0 0 6px var(--ok); animation: mic-pulse 1.6s steps(2, end) infinite; }
+@keyframes mic-pulse { 50% { opacity: 0.3; } }
+.mic-state { flex: 1; min-width: 0; color: var(--muted); }
+.mic-db { flex: none; font-family: var(--font-label); font-size: 11px; color: var(--dim); }
+
+.mic-meter { position: relative; height: 10px; background: var(--surface); border: 2px solid var(--line-soft); }
+.mic-meter i { display: block; height: 100%; width: 0; background: var(--ok); transition: width 70ms linear; }
+.mic-meter b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text); opacity: 0.8; }
+
+.mic-note { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; min-height: 26px; }
+.mic-pill {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.2;
+  padding: 2px 8px;
+  color: #120a2a;
+  background: var(--muted);
+  border: 2px solid var(--line);
+}
+.mic-pill.in { background: var(--ok); }
+.mic-pill.low, .mic-pill.high { background: var(--yellow); }
+.mic-pill.far { background: var(--orange); }
+.mic-cents { font-family: var(--font-label); font-size: 12px; color: var(--dim); }
+.mic-cents.in { color: var(--ok); }
+.mic-cents.low, .mic-cents.high { color: var(--yellow); }
+.mic-cents.far { color: var(--orange); }
+.mic-string { font-size: 12.5px; color: var(--dim); }
+.mic-strip.big .mic-pill { font-size: 22px; padding: 4px 10px; }
+.mic-strip.big .mic-state { font-size: 15px; }
+
+.mic-tol { position: relative; height: 6px; background: var(--surface); border: 2px solid var(--line-soft); }
+.mic-tol span { position: absolute; top: 0; bottom: 0; background: var(--surface-hi); border-left: 1px solid var(--ok); border-right: 1px solid var(--ok); }
+.mic-tol b { position: absolute; top: -3px; bottom: -3px; width: 3px; background: var(--text); transform: translateX(-1px); }
+
+/* --- accordeur --- */
+.tuner-list { display: grid; gap: 4px; margin: 8px 0; }
+.tuner-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 62px 70px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--surface-hi);
+  border: 2px solid var(--line-soft);
+}
+.tuner-row.on { border-color: var(--yellow); }
+.tuner-row.on.in { border-color: var(--ok); }
+.tuner-label { font-family: var(--font-label); font-size: 15px; color: var(--text); }
+.tuner-target { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tuner-cents { font-family: var(--font-label); font-size: 12.5px; color: var(--dim); text-align: right; }
+.tuner-status { font-size: 12.5px; text-align: right; color: var(--dim); }
+.tuner-row.on .tuner-status, .tuner-row.on .tuner-cents { color: var(--yellow); }
+.tuner-row.on.in .tuner-status, .tuner-row.on.in .tuner-cents { color: var(--ok); }
+.tuner-row.on.far .tuner-status, .tuner-row.on.far .tuner-cents { color: var(--orange); }
+
+.tuner-needle { position: relative; height: 14px; margin: 10px 0 6px; background: var(--surface-hi); border: 2px solid var(--line); }
+.tuner-needle-zero { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--muted); }
+.tuner-needle b { position: absolute; top: 0; bottom: 0; width: 4px; background: var(--orange); transform: translateX(-2px); }
+.tuner-needle b.in { background: var(--ok); }
+.tuner-needle b.low, .tuner-needle b.high { background: var(--yellow); }
+
+/* --- réglages d'entrée --- */
+.range { width: 100%; min-height: 44px; accent-color: var(--magenta); }
+.calib-warn { margin-top: 6px; color: var(--yellow); }
+.calib-steps { margin: 6px 0 0; padding-left: 1.1em; display: grid; gap: 5px; }
+.calib-steps li { font-size: 13.5px; line-height: 1.45; color: var(--muted); }
+.calib-msg { margin-top: 8px; color: var(--text); }
+
+@media (max-width: 520px) {
+  .tuner-row { grid-template-columns: 44px minmax(0, 1fr) 58px; }
+  .tuner-status { display: none; }
 }

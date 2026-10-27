@@ -23,6 +23,12 @@ import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
 import { setSettings, useSettings } from '../../app/settings';
 import { TabView, type TabPick } from '../../app/TabView';
 import { Panel, PixelButton, Segmented, Switch } from '../../app/ui';
+import { MicStrip } from '../../app/MicStrip';
+import { ensureInputEngine, inputEngineIfAny, windowFor } from '../../app/inputSession';
+import { AudioEngine } from '../../core/audio/engine';
+import { describeInputError, type InputEngine, type InputFrame } from '../../core/input/engine';
+import { matchPitch, noteNameOf, targetsFor, type MatchVerdict } from '../../core/input/match';
+import { useInputSettings } from '../../core/input/settings';
 import { fmtNote } from '../../core/theory';
 import { positionToScore } from '../../core/tab';
 import { TabPlayer } from '../../core/audio/tabPlayer';
@@ -32,7 +38,7 @@ import {
 } from '../../core/progress';
 import { degreeName, fmtDegree, positionLabel, resolveScale } from './resolve';
 import {
-  SEGMENTS, buildExercise, holeKey, insideGrid, mulberry32, segmentPlan, starsFor, tempoGrid, withRevealed,
+  SEGMENTS, buildExercise, holeKey, insideGrid, mulberry32, nearClick, segmentPlan, starsFor, tempoGrid, withRevealed,
   type GridOutcome, type Segment,
 } from './exercise';
 import { buildReviewQueue, type ReviewTarget } from './review';
@@ -91,6 +97,23 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   // accumulateur de session : une ref, pour que le bilan soit juste dès le dernier clic (pas un rendu plus tard)
   const sessionAcc = useRef({ forms: 0, accuracy: 0, xp: 0 });
 
+  // --- micro (phase 3) : jouer la note au lieu de taper la case
+  const input = useInputSettings();
+  const [micOn, setMicOn] = useState(false);
+  const [micBusy, setMicBusy] = useState(false);
+  const [engine, setEngine] = useState<InputEngine | null>(null);
+  const [micState, setMicState] = useState<string>('idle');
+  const inputRef = useRef(input);
+  inputRef.current = input;
+  const tuningIdRef = useRef(r.tuning.id);
+  tuningIdRef.current = r.tuning.id;
+  const onFrameRef = useRef<(f: InputFrame) => void>(() => {});
+  /** Dernière note validée au micro (horloge `performance`, latence retranchée). */
+  const lastNotePerf = useRef<number | null>(null);
+  const gridStartPerf = useRef(0);
+  /** Anti-rebond : une même hauteur ne produit qu'un verdict toutes les 400 ms. */
+  const actedRef = useRef<{ midi: number; at: number } | null>(null);
+
   const plan = useMemo(() => (r.position ? segmentPlan(r.position, segment) : null), [r.position, segment]);
 
   const baseScore = useMemo(() => {
@@ -141,6 +164,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     setFeedback(null);
     setStartedAt(null);
     setResult(null);
+    lastNotePerf.current = null;
+    actedRef.current = null;
     player.current?.stop();
     setGrid('off');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -175,6 +200,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       };
       await p.play();
       gridStart.current = performance.now();
+      gridStartPerf.current = performance.now();
+      lastNotePerf.current = null;
       // le chrono repart de la grille : sinon une grille lancée puis abandonnée compte dans la tentative
       setStartedAt(Date.now());
       setGrid('running');
@@ -205,7 +232,12 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     const errorTotal = Object.values(errorCount).reduce((s, v) => s + v, 0);
     const seconds = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0;
     // grille tenue ? (finie avant la fin du métronome, tolérance d'un dixième de temps)
-    const gridOutcome: GridOutcome = grid === 'off' ? 'off' : grid === 'running' && insideGrid(seconds, tempoGrid(totalHoles, settings.trainingTempo)) ? 'kept' : 'missed';
+    // au micro, le temps de jeu est celui de l'attaque de la dernière note, latence mesurée retranchée ;
+    // au pavé, c'est le temps de saisie (inchangé depuis la phase 2).
+    const playedSeconds = lastNotePerf.current !== null && gridStartPerf.current > 0
+      ? (lastNotePerf.current - gridStartPerf.current) / 1000
+      : seconds;
+    const gridOutcome: GridOutcome = grid === 'off' ? 'off' : grid === 'running' && insideGrid(playedSeconds, tempoGrid(totalHoles, settings.trainingTempo)) ? 'kept' : 'missed';
     if (grid !== 'off') stopGrid();
     const attempt: Attempt = {
       id: newAttemptId(Date.now(), nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index }), readAttempts(progressStore()).length),
@@ -240,34 +272,122 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     setResult(res);
   }, [exercise, plan, r, level, startedAt, grid, settings.trainingTempo, stopGrid]);
 
+  /** Réponse juste : la pastille reprend sa couleur, le curseur passe au trou suivant. */
+  const applyRight = useCallback((key: string, cents: number | null) => {
+    const hole = exercise?.holes.find((h) => h.key === key);
+    if (!hole) return;
+    touch();
+    const nextMarks = { ...marks, [key]: 'right' as HoleMark };
+    setMarks(nextMarks);
+    setActiveKey(nextOpen(key));
+    setFeedback({
+      ok: true,
+      text: `${fmtNote(hole.note, settings.noteNotation)} · ${fmtDegree(hole.fn)} (${degreeName(hole.fn)})`
+        + (cents === null ? '' : ` · ${cents > 0 ? '+' : ''}${cents.toFixed(0)} ¢`)
+        + ' — juste',
+    });
+    if (Object.keys(nextMarks).length === total) finish(nextMarks, errors);
+  }, [exercise, marks, nextOpen, settings.noteNotation, total, finish, errors]);
+
+  /**
+   * Réponse fausse : la 2ᵉ erreur révèle la case (comptée fausse). `heard` = note réellement jouée
+   * (micro), affichée telle quelle : c'est l'information que le pavé ne peut pas donner.
+   */
+  const applyWrong = useCallback((key: string, heard: string | null) => {
+    const hole = exercise?.holes.find((h) => h.key === key);
+    if (!hole) return;
+    touch();
+    setActiveKey(key);
+    const count = (errors[key] ?? 0) + 1;
+    const nextErrors = { ...errors, [key]: count };
+    setErrors(nextErrors);
+    const heardText = heard ? `tu joues ${heard} · ` : '';
+    if (count >= 2) {
+      const nextMarks = { ...marks, [key]: 'revealed' as HoleMark };
+      setMarks(nextMarks);
+      setFeedback({ ok: false, text: `${heardText}c’était ${hole.fret} (case révélée)` });
+      setActiveKey(nextOpen(key));
+      if (Object.keys(nextMarks).length === total) finish(nextMarks, nextErrors);
+    } else {
+      setFeedback({ ok: false, text: `${heardText}non — réessaie (encore une erreur et je révèle la case)` });
+    }
+  }, [exercise, errors, marks, nextOpen, total, finish]);
+
   const validate = useCallback(() => {
     if (!activeHole || entry === '') return;
-    touch();
     const value = Number(entry);
-    if (value === activeHole.fret) {
-      const nextMarks = { ...marks, [activeHole.key]: 'right' as HoleMark };
-      setMarks(nextMarks);
-      setEntry('');
-      setFeedback({ ok: true, text: `${fmtNote(activeHole.note, settings.noteNotation)} · ${fmtDegree(activeHole.fn)} (${degreeName(activeHole.fn)}) — juste` });
-      const next = nextOpen(activeHole.key);
-      setActiveKey(next);
-      if (Object.keys(nextMarks).length === total) finish(nextMarks, errors);
-    } else {
-      const count = (errors[activeHole.key] ?? 0) + 1;
-      const nextErrors = { ...errors, [activeHole.key]: count };
-      setErrors(nextErrors);
-      setEntry('');
-      if (count >= 2) {
-        const nextMarks = { ...marks, [activeHole.key]: 'revealed' as HoleMark };
-        setMarks(nextMarks);
-        setFeedback({ ok: false, text: `c’était ${activeHole.fret} (case révélée)` });
-        setActiveKey(nextOpen(activeHole.key));
-        if (Object.keys(nextMarks).length === total) finish(nextMarks, nextErrors);
-      } else {
-        setFeedback({ ok: false, text: 'non — réessaie (encore une erreur et je révèle la case)' });
+    setEntry('');
+    if (value === activeHole.fret) applyRight(activeHole.key, null);
+    else applyWrong(activeHole.key, null);
+  }, [activeHole, entry, applyRight, applyWrong]);
+
+  /** Verdict du micro : remplit, explique, ou ne compte rien (octave douteuse, accord, hors exercice). */
+  const applyVerdict = useCallback((v: MatchVerdict, heardMidi: number) => {
+    switch (v.kind) {
+      case 'fill': {
+        const latency = inputRef.current.latencies[inputRef.current.source] ?? 0;
+        lastNotePerf.current = performance.now() - latency;
+        applyRight(v.target.key, v.cents);
+        break;
       }
+      case 'tuning':
+        setFeedback({
+          ok: false,
+          text: `${Math.abs(v.cents).toFixed(0)} cents ${v.cents > 0 ? 'haut' : 'bas'} : ce n’est pas ta mémoire, c’est l’accord — passe par l’accordeur.`,
+        });
+        break;
+      case 'octave':
+        setFeedback({
+          ok: false,
+          text: 'une octave d’écart avec la case visée (le micro se trompe parfois d’octave sur les cordes graves) : rejoue la note seule, un peu plus fort.',
+        });
+        break;
+      case 'wrong':
+        applyWrong(v.target.key, fmtNote(noteNameOf(v.heardMidi), settings.noteNotation));
+        break;
+      case 'outside':
+        setFeedback({ ok: false, text: `entendu ${fmtNote(noteNameOf(heardMidi), settings.noteNotation)} : cette note n’est pas dans l’exercice.` });
+        break;
+      case 'empty':
+        break;
     }
-  }, [activeHole, entry, marks, errors, settings.noteNotation, nextOpen, total, finish]);
+  }, [applyRight, applyWrong, settings.noteNotation]);
+
+  /** Une fenêtre du micro : on ne juge qu'une note stable, et une seule fois par attaque. */
+  const handleFrame = (f: InputFrame) => {
+    if (result || !exercise || !r.position) return;
+    const note = f.stable;
+    if (!note) return;
+    if (!f.isNew && !f.onset) return;
+    const now = performance.now();
+    const prev = actedRef.current;
+    if (prev && prev.midi === note.midi && now - prev.at < 400) return;
+    // masque des clics du métronome : le micro les entend comme une attaque
+    if (grid === 'running' && nearClick((now - gridStartPerf.current) / 1000, settings.trainingTempo)) return;
+    const open = exercise.holes.filter((h) => !marks[h.key]);
+    if (open.length === 0) return;
+    const targets = targetsFor(open, r.tuning);
+    const verdict = matchPitch(note.midi + note.cents / 100, targets, {
+      centsTolerance: input.centsTolerance,
+      activeKey,
+    });
+    actedRef.current = { midi: note.midi, at: now };
+    if (verdict.kind === 'fill' || verdict.kind === 'tuning' || verdict.kind === 'empty') {
+      applyVerdict(verdict, note.midi);
+      return;
+    }
+    // Une note du segment qui n'est pas un trou (visible, ou déjà trouvée) n'est **jamais** une
+    // erreur : c'est ainsi qu'un élève se repère avant de viser la case. Le test porte sur le score
+    // affiché : un trou encore vide y est `hidden`, une note écrite ne l'est pas.
+    const written = display?.measures
+      .flatMap((m) => m.events.flatMap((e) => e.notes))
+      .find((n) => !n.muted && !n.hidden && n.midi === note.midi);
+    if (written) {
+      setFeedback({ ok: true, text: `${fmtNote(noteNameOf(note.midi), settings.noteNotation)} est déjà écrite dans ce segment — vise un emplacement vide.` });
+      return;
+    }
+    applyVerdict(verdict, note.midi);
+  };
 
   const press = useCallback((d: string) => {
     touch();
@@ -304,6 +424,79 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [press, validate, result]);
+
+  // --- micro : ouverture à la demande, fermeture en quittant l'écran
+  useEffect(() => {
+    if (!micOn) {
+      engine?.stop();
+      setMicState('idle');
+      return;
+    }
+    let cancelled = false;
+    setMicBusy(true);
+    void (async () => {
+      try {
+        await AudioEngine.get().unlock(); // dans le geste qui a basculé l'interrupteur
+        const e = await ensureInputEngine();
+        if (cancelled) return;
+        setEngine(e);
+        await e.start(inputRef.current, { windowSize: windowFor(tuningIdRef.current) });
+        if (cancelled) {
+          e.stop();
+          return;
+        }
+        setMicState(e.state);
+        if (e.state !== 'listening') {
+          const info = describeInputError(e.state, e.error);
+          setFeedback({ ok: false, text: `${info.message} — ${info.hint}` });
+          setMicOn(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setFeedback({ ok: false, text: `micro indisponible : ${(err as Error).message}` });
+          setMicOn(false);
+        }
+      } finally {
+        if (!cancelled) setMicBusy(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [micOn]);
+
+  useEffect(() => {
+    if (!engine) return;
+    const unsub = engine.subscribe(() => {
+      const f = engine.last;
+      if (f) onFrameRef.current(f);
+    });
+    return unsub;
+  }, [engine]);
+
+  // la fonction de traitement change à chaque rendu (exercice, marques, erreurs) : on la rebranche
+  useEffect(() => {
+    onFrameRef.current = handleFrame;
+  });
+
+  // réglages d'entrée à chaud (seuil, clarté, La de référence)
+  useEffect(() => {
+    engine?.setGates({ thresholdDb: input.thresholds[input.source], clarityMin: input.clarityMin, a4: input.a4 });
+  }, [engine, input.thresholds, input.source, input.clarityMin, input.a4]);
+
+  // une autre taille de fenêtre est nécessaire quand l'accordage change (Si1 de 7 cordes)
+  useEffect(() => {
+    const e = engine;
+    if (!e || e.state !== 'listening') return;
+    void e.start(inputRef.current, { windowSize: windowFor(selection.tuningId) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection.tuningId]);
+
+  // quitter l'exercice ferme le micro (un flux oublié garde l'indicateur allumé et le périphérique occupé)
+  useEffect(() => () => {
+    inputEngineIfAny()?.stop();
+  }, []);
 
   const restart = (nextLevel = level, nextSegment = segment) => {
     setLevel(nextLevel);
@@ -377,8 +570,17 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       startMixed: () => startMixed(),
       nextInQueue: () => nextInQueue(),
       journalLength: journal.length,
+      // micro (phase 3) : état observable pour la vérification au navigateur
+      // fonctions et non valeurs : l'état du moteur change 47 fois par seconde sans re-rendu de la page
+      mic: {
+        on: micOn,
+        state: () => engine?.state ?? 'idle',
+        set: (v: boolean) => setMicOn(v),
+        last: () => engine?.last ?? null,
+        lastNotePerf: () => lastNotePerf.current,
+      },
     };
-  }, [exercise, plan, marks, errors, activeKey, result, level, segment, total, done, grid, mixed, queue, qIndex, press, validate, journal.length]);
+  }, [exercise, plan, marks, errors, activeKey, result, level, segment, total, done, grid, mixed, queue, qIndex, press, validate, journal.length, micOn, engine]);
 
   if (!r.position || !exercise || !display || !plan) {
     return (
@@ -416,7 +618,24 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
       <Panel className="span-7" accent="magenta" label="Exercice" right={<span className="badge">{done} / {total}</span>}>
         <div className="row">
-          <Switch checked={mixed} onChange={toggleMixed} label="Session mélangée" hint="3 à 5 formes différentes d'affilée" />
+          <Switch checked={mixed} onChange={toggleMixed} label="Session mélangée" hint="3 à 5 formes différentes d’affilée" />
+        </div>
+        <div className="row">
+          <Switch
+            checked={micOn}
+            onChange={setMicOn}
+            label={micBusy ? 'Micro — ouverture…' : 'Micro (jouer pour valider)'}
+            hint={
+              micOn
+                ? micState === 'listening'
+                  ? 'la case se remplit à la note jouée ; le pavé reste un secours'
+                  : 'micro fermé'
+                : 'sans micro : pavé numérique'
+            }
+          />
+          {micOn && micState !== 'listening' && (
+            <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer</PixelButton>
+          )}
         </div>
         {mixed && queue.length > 0 && (
           <p className="t-small">
@@ -453,8 +672,12 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         )}
         <p className="t-small">
           {level === 2
-            ? `${Math.round(settings.holeRate * 100)} % des notes masquées (au moins 2, jamais toutes) : ici ${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes}. Touche un emplacement vide, tape la case au pavé, valide.`
-            : `${exercise.notes} cases à écrire de mémoire : seules les cordes, les mesures et le rythme restent visibles.`}
+            ? `${Math.round(settings.holeRate * 100)} % des notes masquées (au moins 2, jamais toutes) : ici ${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes}. `
+              + (micOn
+                ? 'Joue la note à la guitare : elle remplit l’emplacement. Le pavé reste un secours.'
+                : 'Touche un emplacement vide, tape la case au pavé, valide.')
+            : `${exercise.notes} cases à écrire de mémoire : seules les cordes, les mesures et le rythme restent visibles.`
+              + (micOn ? ' Joue-les dans l’ordre que tu veux.' : '')}
         </p>
 
         <div className="grid-row">
@@ -469,7 +692,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           <span className="t-small t-dim">{gridSpec.beats} temps ≈ {gridSpec.seconds.toFixed(1)} s</span>
         </div>
         <p className="t-small t-dim">
-          Un temps par trou, en mesures entières. Finir dans la grille **et** juste à ≥ 95 % vaut ★★,
+          Un temps par trou, en mesures entières. Finir dans la grille et juste à ≥ 95 % vaut ★★,
           parfait sans une erreur vaut ★★★. Le métronome ne joue aucune note : il ne donne pas les réponses.
         </p>
 
@@ -480,7 +703,17 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         </div>
       </Panel>
 
-      <Panel className="span-5 numpad-panel" accent="cyan" label="Pavé numérique" right={activeStringLabel ? <span className="tag">corde de {activeStringLabel}</span> : <span className="tag">aucun trou</span>}>
+      <Panel className="span-5 numpad-panel" accent="cyan" label={micOn ? 'Micro · pavé en secours' : 'Pavé numérique'} right={activeStringLabel ? <span className="tag">corde de {activeStringLabel}</span> : <span className="tag">aucun trou</span>}>
+        {micOn && (
+          <MicStrip
+            engine={engine}
+            notation={settings.noteNotation}
+            thresholdDb={input.thresholds[input.source]}
+            tolerance={input.centsTolerance}
+            tuning={r.tuning}
+            a4={input.a4}
+          />
+        )}
         <div className="numpad-entry" aria-live="polite">
           <span className="numpad-label">{activeStringLabel ? 'Case ?' : 'touche un emplacement vide'}</span>
           <span className="numpad-digits">{entry || '—'}</span>
