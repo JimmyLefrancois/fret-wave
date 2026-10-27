@@ -65,9 +65,11 @@ export function SceneBackground(props: {
       k = Math.max(1, Math.round(S * dpr));
       const lw = Math.ceil(cssW / S);
       const lh = Math.ceil(cssH / S);
+      // grand écran : horizon plus bas pour que le soleil passe SOUS le titre du hub
+      const wide = cssW >= 900;
       geo = variant === 'poster'
-        ? sceneGeometry(lw, lh, { horizonRatio: 0.38, sunRatio: 0.26 })
-        : sceneGeometry(lw, lh, { horizonRatio: 0.3 });
+        ? sceneGeometry(lw, lh, wide ? { horizonRatio: 0.5, sunRatio: 0.2 } : { horizonRatio: 0.38, sunRatio: 0.26 })
+        : sceneGeometry(lw, lh, { horizonRatio: wide ? 0.34 : 0.3 });
       stars = makeStars(geo, variant === 'poster' ? 110 : 70);
 
       for (const c of [still, motion]) {

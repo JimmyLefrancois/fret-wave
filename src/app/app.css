@@ -655,7 +655,7 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   bottom: 0;
   transform: translateX(-50%);
   width: 100%;
-  max-width: 620px;
+  max-width: min(90vw, 1800px);
   z-index: 5;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -773,9 +773,81 @@ table.kv td:first-child { color: var(--muted); }
   .mixer.compact .mix-row { grid-template-columns: 96px minmax(60px, 1fr) 62px; }
 }
 
-@media (min-width: 720px) {
-  .shell { max-width: 620px; padding-top: 18px; }
-  .hero { padding-top: 44px; }
+/* ===========================================================================
+   Grand écran : la colonne occupe 90 % de la largeur et se partage en deux
+   colonnes (une seule colonne de 90 % donnerait des lignes de 1 300 px).
+   Les blocs « pleine largeur » (poster, en-tête, tablature, exercice, CTA) sont
+   déclarés explicitement ; les panneaux se placent deux par ligne.
+   =========================================================================== */
+@media (min-width: 900px) {
+  .shell {
+    width: 90vw;
+    max-width: 1800px;
+    padding: 18px 0 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 22px;
+    align-items: start;
+  }
+  .shell > .hero,
+  .shell > .page-head,
+  .shell > .quiz-strip,
+  .shell > .tabview,
+  .shell > .pos-nav,
+  .shell > .cta-block,
+  .shell > .foot-note,
+  .shell > .row,
+  .shell > .section-full { grid-column: 1 / -1; }
+
+  .shell > .panel,
+  .shell > .section { margin: 12px 0; }
+  .shell > .section > .entries,
+  .shell > .section > .modules { grid-template-columns: 1fr; }
+
+  .hero { min-height: min(64vh, 560px); padding-top: 56px; }
+  .hero-title { font-size: clamp(40px, 3.4vw, 60px); }
+  .hero-sub { font-size: 13px; letter-spacing: 0.3em; }
+  .hero-kicker { font-size: 12px; }
+  .hero-sub span { padding: 9px 14px 10px; }
+  .page-title { font-size: 20px; }
+  .card-title { font-size: 15px; }
+  .t-body { font-size: 21px; }
+  .t-small { font-size: 17px; }
+
+  /* la tablature garde une largeur de lecture confortable et se centre.
+     `width: 100%` est indispensable : avec des marges automatiques seules, l'élément
+     de grille se réduit à la largeur de son contenu (et la tab reste à 360 px). */
+  .tabview,
+  .quiz-strip,
+  .pos-nav { width: 100%; max-width: 980px; margin-left: auto; margin-right: auto; }
+
+  /* les panneaux larges respirent un peu plus */
+  .panel { padding: 14px 16px; }
+  .entry { padding: 12px 14px; }
+  .scale-row { padding: 10px 12px; }
+  .system-row { padding: 10px 12px; }
+}
+
+@media (min-width: 900px) {
+  .bottombar {
+    grid-template-columns: repeat(4, minmax(0, 170px));
+    justify-content: center;
+    gap: 6px;
+    padding-bottom: 8px;
+  }
+  .navbtn { min-height: 58px; }
+}
+
+@media (min-width: 1500px) {
+  .shell { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .shell > .hero,
+  .shell > .page-head,
+  .shell > .quiz-strip,
+  .shell > .tabview,
+  .shell > .pos-nav,
+  .shell > .cta-block,
+  .shell > .foot-note,
+  .shell > .row { grid-column: 1 / -1; }
 }
 
 /* mouvement réduit : aucune transition (le décor est figé par le composant Scene) */
