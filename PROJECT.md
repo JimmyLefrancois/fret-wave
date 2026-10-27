@@ -10,7 +10,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 
 ## État exact (dernière mise à jour : après la phase 4b)
 
-**Git** (branche `master`) : `183eacc` Phase 0 · `5797333` 1a · `823fbbd` 1b · `971be8c` 1c · `ee0f82e`…`264b7d9` 1d · `d76e78a` + `3a9e049` Phase 2 · `688aff7` lisibilité · phase 3 · `2c447d6` phase 4a · **`8cda4a8` phase 4b**. **558 tests (557 verts, 1 ignoré), `tsc --noEmit` propre, `vite build` OK.** Aucun remote.
+**Git** : remote `origin` = `git@github.com:JimmyLefrancois/fret-wave.git`. `master` : `183eacc` Phase 0 · `5797333` 1a · `823fbbd` 1b · `971be8c` 1c · `ee0f82e`…`264b7d9` 1d · `d76e78a` + `3a9e049` Phase 2 · `688aff7` lisibilité · phase 3 · `2c447d6` phase 4a · **`8cda4a8` phase 4b** · `2f34d6e` tour des pages. Branche de refonte `ui/simplification` (voir l'état exact ci-dessous), poussée sur `origin`. **À la dernière mesure : 565 tests (564 verts, 1 ignoré), `tsc --noEmit` propre, `vite build` OK.**
 
 **Le cycle des sept étapes est complet** — et il est complet *dans l'écran*, pas seulement ici : sept boutons d'étape, dont les trois derniers (Fixer, Enchaîner, Intégrer) sont ceux qui manquaient à la 4a.
 
@@ -56,6 +56,28 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 9. **« b3 » s'affichait dans les paragraphes** de la leçon (degrés du modèle affichés bruts) → `fmtDegree` déplacé dans le cœur, une seule fonction d'affichage.
 10. **La fixture d'accordage était transposée de deux demi-tons** : `asetrate` appliqué à 48 kHz sur des FLAC à 44,1 kHz. Corrigé en lisant le taux réel du fichier — et la correction de hauteur est indispensable, sinon « l'app ne valide pas » ressemble à un bug alors que c'est l'instrument du test qui est faux.
 11. **Identifiants P6 faux** (`G/B-x20003` au lieu de `GoverB-x20003`) : le test « chaque accord du parcours existe dans la base » l'a arrêté immédiatement.
+
+## État exact de la branche `ui/simplification` (refonte de navigation)
+
+**Demande d'origine** : « je trouve que c'est vraiment fouilli, je ne sais même pas où aller pour faire des exercices » — mot d'ordre simplicité, compréhension, navigation facile, sur une branche dédiée, sans nouvelle fonctionnalité de jeu.
+
+**Ce qui a changé à l'écran**
+- **Accueil** : trois blocs au lieu de dix panneaux de prose — « Continuer » (la gamme en cours, ▶ Découvrir / S'exercer au micro / Changer), deux portes (Apprendre · Accorder), la révision **seulement quand une carte est due**, puis les **dix derniers accomplissements** (D59). Sortis de l'accueil : niveau détaillé, badges, liste des modules, code couleur, points d'entrée, note de journal.
+- **Gammes** : un seul écran. Famille (dont la famille **Mineures**, D56), tonique, puis **la liste des positions** avec, sur chaque ligne, « Découvrir » et « S'exercer ». L'accordage et le système de positions passent dans un repli : ce sont des réglages, pas des étapes.
+- **Exercice** : la tablature passe **avant** les réglages, le micro devient un bouton primaire en tête, découpage / session mélangée / métronome sont repliés. La **légende du halo** (D57) est écrite sous la portée, et un **panneau de réussite** animé (D58) récapitule XP gagné, XP total, XP du jour et les mesures de la série.
+- **Décor** (D55) : l'affiche synthwave (soleil rayé, montagnes, grille en perspective) est présente sur **toutes** les pages et couvre tout l'écran ; le soleil est centré sur l'accueil, décalé à droite ailleurs pour ne pas passer sous les titres.
+- **Détails de mise en page** : tablature à la largeur de son panneau (D52), plancher de lisibilité 11 px (D51), accordeur réordonné (D53), flèches de strum en ▼ ▲ dans le DOM, tempo à droite du transport, commutateur « Drone · fond. + quinte » sur une ligne.
+
+**Mesures (téléphone 390 × 844, bureau 1 440 × 900)**
+- Hauteurs : accueil **4 301 → 844 px** (puis ~1 940 px avec les dix accomplissements, et 1 236 px sans journal), gammes 1 936 → 1 464, exercice 2 039 → 1 837 avec la tablature sur le premier écran, accordeur 6 432 → 2 488.
+- **`tools/tour-check.mjs` : 0 problème sur les 19 écrans aux deux tailles, 0 erreur console** (il a servi de juge toute la branche : largeurs, débordement, textes < 11 px, troncatures).
+- **565 tests (564 verts, 1 ignoré)**, dont 7 nouveaux sur les accomplissements ; `tsc --noEmit` propre ; `vite build` OK, `index` **579,8 ko (183,4 ko gzip)**, CSS **45,6 ko (9,7 gzip)**.
+
+**Ce qui n'a pas été touché** : aucune règle musicale, aucun barème d'XP, aucun seuil de maîtrise. Les accords restent joignables par le lien discret en pied d'accueil. Les sessions mélangées gardent leur panneau « Session terminée » (pas de panneau de réussite animé).
+
+**Commits de la branche** : `2f34d6e` tour des pages · `85841d9` refonte de navigation · `9f2185a` décor plein écran · `1975d83` affiche partout · `be92e8c` famille Mineures · `03b037b` + `26eee4d` légende du halo · `95fa1ff` commutateur inline · `bfee5c4` tempo · `0b203e8` panneau de réussite · `8f7aa62` accomplissements.
+
+---
 
 ## État exact de la phase 4a (rappel)
 

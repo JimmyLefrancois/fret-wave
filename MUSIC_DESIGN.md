@@ -777,3 +777,24 @@ Ce qui a changé : étapes en **une rangée de quatre boutons** (numéro + libel
 | **Q5** | **Métronome dans l'enchaînement** — mesurer le changement **contre le clic** et non seulement entre deux repères | fort / moyen | **5** | C'est le vrai critère musical (« ton changement tombe-t-il sur le temps ? »), et il demande l'onset, donc la phase 5. |
 
 **Ce que je ne recommande toujours pas** : élargir encore le curriculum (P8-P10) avant que le plaqué soit écouté. Trente-cinq accords qu'on ne sait ni enchaîner proprement ni vérifier en plaqué, c'est de la largeur ; ce qui manque désormais, c'est la **profondeur de la validation**.
+
+---
+
+## 17. Ce que la récompense a le droit d'afficher (branche `ui/simplification`)
+
+Trois surfaces de récompense existent désormais : le **panneau de réussite** en fin de série (§16, D58), le bloc des **dix derniers accomplissements** sur l'accueil (D59) et les **paliers de jours** (3 / 7 / 14 / 30). Elles répondent toutes aux mêmes règles, qui sont pédagogiques avant d'être techniques.
+
+### 17.1 On ne félicite que ce qui est vérifié
+- Une **écoute** ne produit jamais d'accomplissement et ne rapporte pas d'XP : elle n'est pas vérifiée (§7.4, D22).
+- Une **déclaration** (« je l'ai plaqué ») compte comme activité du jour, jamais comme accomplissement.
+- Un **QCM** produit un savoir (`acc:savoir:*`), pas un geste : il n'apparaît pas comme « forme apprise ».
+- Le seuil de la fête est celui de la maîtrise : **80 %** de trous justes au premier essai. En dessous, l'écran de résultat dit la vérité sans animation — féliciter un 60 % apprendrait à viser le bouton « terminer » plutôt que la justesse.
+
+### 17.2 Le chiffre affiché est recalculé, jamais incrémenté
+Le panneau et le bloc lisent `fretwave.attempts.v1` et recalculent **XP total**, **XP du jour** (plafonné à 120), **série** et **état de maîtrise** avec les mêmes fonctions que le hub. Aucun compteur parallèle, donc aucun risque qu'un chiffre affiché contredise le journal — et un import de journal fait réapparaître les accomplissements correspondants sans les dupliquer.
+
+### 17.3 Un franchissement s'annonce une fois
+La tentative qui fait passer une forme à « apprise » ou « maîtrisée » ne produit **pas** en plus une ligne « série réussie » : le palier est la nouvelle, la série est ce qui l'a causée. De même, « 1 jour d'affilée » ne s'affiche pas (la série commence à deux) et les paliers de jours ne se répètent pas.
+
+### 17.4 Ce que la récompense ne mesure pas
+Elle ne dit rien du **timing** (le micro valide une hauteur, pas un placement), rien du **doigté**, rien de la **qualité du son** (un accord sale peut passer une série de trous). Le panneau le rappelle d'une ligne : « la tentative déplace la forme dans la file de révision, elle ne la certifie pas ». C'est la limite assumée de la phase 3-4, et elle s'écrit là où l'élève lit ses étoiles.
