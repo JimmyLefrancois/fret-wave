@@ -344,7 +344,9 @@ export function ScaleDiscoveryPage() {
             {target ? <em> · {degreeName(target)}</em> : null}
           </span>
           <span className="quiz-score">
-            {feedback ? feedback.text : `${score.right} juste${score.right > 1 ? 's' : ''} · ${score.wrong} erreur${score.wrong > 1 ? 's' : ''}`}
+            {feedback
+              ? `${feedback.text} · ${score.right}/${score.right + score.wrong}`
+              : `${score.right} juste${score.right > 1 ? 's' : ''} · ${score.wrong} erreur${score.wrong > 1 ? 's' : ''}`}
           </span>
         </div>
       )}
