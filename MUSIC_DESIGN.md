@@ -1,6 +1,6 @@
 # MUSIC_DESIGN.md — choix musicaux et pédagogiques
 
-Statut : **phases 0, 1a, 1b, 1c, 1d, 2, 3 et 4a terminées** (4a = module Accords : curriculum P0-P4, doigtés saisis et relus, boîte d'accord, leçon Découvrir → Construire → Vérifier en arpège → Plaquer déclaré, nœuds de progression, recommandation). Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la phase 4a : **§4.3** (les doigtés sont désormais saisis, plus « à saisir »), **§4.6** (ce que « appris » exige réellement aujourd'hui), **§15** (bilan de la 4a, avis de prof et propositions).
+Statut : **phases 0, 1a, 1b, 1c, 1d, 2, 3, 4a et 4b terminées** (4b = module Accords, partie B : cycle complet en sept étapes, QCM sans matériel, accordage guidé corde par corde, paliers P5-P7). Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la phase 4b : **§4.6** (le critère « appris » tient enfin sa promesse : pose à froid comprise), **§4.7** (l'axe *transition* est mesuré), **§5** (trois nouveaux types de nœuds), **§16** (bilan de la 4b, avis de prof et propositions).
 Auteur du raisonnement : rôle « dev + prof de guitare » du BRIEF.md. Les avis de prof sont marqués **[AVIS PROF]**, les hypothèses **[HYP]**, les points à trancher par toi **[À TRANCHER]**.
 
 Ce qui a été **vérifié par calcul** en phase 0 (script jetable, hors dépôt) : les 43 formes d'accord de la section 4.3 (notes réellement produites en accordage standard = notes de l'accord, basse correcte, orthographe correcte) et les 10 formes mobiles (barrés Mi/La × 5 qualités) sur 13 positions de fondamentale (cases 0 à 12) : **0 erreur**. Tout le reste est du raisonnement non exécuté.
@@ -393,13 +393,18 @@ Un accord passe **en cours d'apprentissage → appris** quand, **à la fois** :
 **Maîtrisé** : appris + intervalle de révision ≥ 14 jours réussi + transition vers ≥ 2 accords connus sous le seuil de tempo.
 Seuils configurables (N, jours, secondes). **[AVIS PROF]** : 3 arpèges propres sur 2 jours est exigeant mais honnête ; moins, c'est valider un hasard. Au micro de téléphone dans une pièce bruyante, passer N à 2 et le dire.
 
-**Tel que construit en 4a** : seules les deux premières lignes sont implémentées — **forme : 3 vérifications propres (≥ 80 %) sur ≥ 2 jours différents**, dans le même journal que les gammes (`acc:accord:{voicingId}`, `minSuccesses = 3`). **Le rappel à froid chronométré n'existe pas encore** : l'étape « Fixer » est en 4b. Conséquence à dire franchement : un accord peut aujourd'hui être « appris » sans avoir été posé une seule fois à froid. Le critère est donc **plus faible que ce paragraphe**, et l'écran l'annonce tel quel. Le plaqué déclaré (`kind: 'strum'`) n'entre jamais dans le calcul.
+**Tel que construit depuis la 4b** — le paragraphe ci-dessus est tenu, à une nuance près :
+- **forme** : 3 vérifications propres (≥ 80 %) sur ≥ 2 jours différents, dans le même journal que les gammes (`acc:accord:{voicingId}`, `minSuccesses = 3`) ;
+- **rappel à froid** : **exigé** (étape Fixer). Une pose réussie **dans la limite** — 8 s aux paliers P1-P2, 5 s à P3-P4, 3 s ensuite, resserrée d'un cran par réussite réussie — et **propre** (≥ 80 % des cordes). Le chrono s'arrête à la **première corde juste** : c'est le moment où la main arrive, pas la durée du geste complet. Un rappel le **même jour** ne compte qu'à **≥ 10 minutes** de la première vérification (consolidation motrice) ;
+- **plaqué** : non requis, et toujours pas écouté (phase 5).
+
+**Ce que le critère ne dit pas** (à dire à l'élève, et c'est dit à l'écran) : la pose à froid valide l'**arrivée** de la main sur une note attendue, pas la propreté des six cordes simultanées ; et le temps est arrondi **au supérieur** au journal, pour qu'une pose à 8,1 s ne passe jamais pour 8 s.
 
 ### 4.7 Les 3 axes de maîtrise
 | Axe | Unité de suivi | Mesure |
 |---|---|---|
 | **Forme** | accord (voicing) | arpèges vérifiés, diagnostic par corde, rappel à froid |
-| **Transition** | paire ordonnée A→B | **changements propres par minute** (exercice classique ; objectifs : 20 = correct, 30-40 = fluide sur les premières paires) ou temps de changement mesuré à l'onset |
+| **Transition** | paire ordonnée A→B | **changements propres par minute** (exercice classique ; objectifs : 20 = correct, 30-40 = fluide sur les premières paires). **Livré en 4b** : exercice de 30 s, une **note repère** par accord (la basse, ou la première corde qui diffère quand les deux formes partagent la même — Em→Em7), écart médian en ms, « propre » ≤ 2 s, « fluide » ≤ 1,5 s |
 | **Tempo** | chaque accord, sur backing | BPM maximal tenu proprement dans des progressions/strums contenant l'accord, crédité à chaque accord de la progression |
 
 ### 4.8 Système adaptatif
@@ -421,7 +426,7 @@ Seuils configurables (N, jours, secondes). **[AVIS PROF]** : 3 arpèges propres 
 
 ## 5. Répétition espacée et modèle de maîtrise
 
-**Identifiants de nœuds** : `gam:lecture:{système}:{forme}:{mode}`, `gam:forme:{système}:{index}`, `acc:accord:{voicingId}`, `acc:transition:{voicingA}>{voicingB}`. Les gammes symétriques utilisent la clé canonique de la collection.
+**Identifiants de nœuds** : `gam:lecture:{système}:{forme}:{mode}`, `gam:forme:{système}:{index}`, `acc:accord:{voicingId}`, `acc:transition:{voicingA}>{voicingB}`, **`acc:savoir:{voicingId}`** (QCM : ce qu'on sait *lire*, jamais un geste) et **`acc:progression:{id}`** (activité déclarée sur une progression). Les deux derniers ne rendent jamais un accord « appris ». Les gammes symétriques utilisent la clé canonique de la collection.
 **États** : verrouillée → disponible → en apprentissage → apprise → maîtrisée (dérivés des axes par le module).
 **Planificateur** : [HYP] **Leitner à 6 boîtes** (10 min le même jour, 1 j, 3 j, 7 j, 16 j, 35 j), avec :
 - réussite nette → boîte +1 ; réussite lente/avec aide → même boîte ; échec → retour boîte 1 (ou −2) ;
@@ -736,7 +741,38 @@ Ce qui a changé : étapes en **une rangée de quatre boutons** (numéro + libel
 1. **Le rappel à froid chronométré (Fixer)** — *fort, moyen* — **4b**. L'accord est demandé sans aide, 8 s → 5 s → 3 s, un autre jour. Sans lui, « appris » reste une demi-promesse. C'est la proposition qui a le meilleur rapport valeur/effort du module, et elle ne demande aucune technique nouvelle : un chrono et l'écran déjà écrit.
 2. **Enchaîner deux accords, chronomètre en main** — *fort, moyen* — **4b** (mesure fiable en 5). « Em → Am, quatre temps chacun, à 60 BPM » : c'est la compétence musicale réelle, et c'est ce que les débutants ratent (pas la forme, le changement). Le modèle de nœuds `acc:transition:{a}>{b}` est déjà prévu ; `progressionToScore` existe depuis la 1b.
 3. **Voir les cordes à vide et étouffées dès le premier geste** — *moyen, très faible* — **fait dans la 4a** (corrigé après capture) : à l'étape Construire, seuls les doigts manquants sont masqués. Un débutant qui ne voit pas le X de la 6e corde gratte les six et croit que « ça sonne ». C'est un détail d'affichage qui change une leçon.
-4. **Dire quelle corde est la plus souvent étouffée, par accord** — *moyen, faible* — **4b** : les `missedStrings` sont déjà journalisés par tentative d'arpège. « Sur Am, c'est souvent la corde de Sol qui ne sonne pas » est la phrase qu'un prof dit au bout de trois cours. Même agrégation que le diagnostic par corde des gammes, autre libellé.
-5. **QCM « quel accord est-ce ? » et « quelles notes le composent ? »** — *moyen, faible* — **4b** : le brief le demande pour le mode sans matériel, et c'est le seul exercice d'accord possible dans le métro. Les données existent (forme, notes, degrés) ; il manque quatre distracteurs choisis intelligemment (Am vs C, Em vs G — les confusions réelles).
+4. **Dire quelle corde est la plus souvent étouffée, par accord** — *moyen, faible* — **reporté en phase 5** (proposition **Q1** du §16.3) : les `missedStrings` sont déjà journalisés par tentative d'arpège, mais l'affichage utile (« sur Am, c'est souvent la corde de Sol ») prend sa vraie valeur avec le diagnostic polyphonique, qui sait *pourquoi* la corde ne sonne pas. Non livré en 4b, et dit tel quel.
+5. **QCM « quel accord est-ce ? » et « quelles notes le composent ? »** — *moyen, faible* — **✔ fait en 4b** (`#/accords/qcm`) : trois types (tablature anonyme, notes, case masquée), distracteurs pris dans les confusions réelles (Am vs C, Em vs E, D vs Dsus2), nœud `acc:savoir:*` distinct du nœud de la forme. L'extension « à l'oreille » reste à faire (proposition **Q2**, §16.3).
 
-**Ce que je ne recommande pas** : ajouter les paliers P5-P10 avant que le cycle des sept étapes soit complet. Empiler des accords qu'on ne sait ni enchaîner ni placer à froid donnerait l'illusion d'un curriculum large ; c'est la profondeur qui manque, pas la largeur.
+**Ce que je ne recommande pas** : ajouter les paliers P5-P10 avant que le cycle des sept étapes soit complet. *(Depuis la 4b, le cycle est complet : P5-P7 sont livrés, P8-P10 attendent des doigtés saisis — la réserve porte désormais sur la **validation**, pas sur la largeur : voir §16.3.)* Empiler des accords qu'on ne sait ni enchaîner ni placer à froid donnerait l'illusion d'un curriculum large ; c'est la profondeur qui manque, pas la largeur.
+
+---
+
+## 16. Bilan de la phase 4b — avis de prof et propositions
+
+### 16.1 Ce qui marche vraiment
+- **Le cycle est complet, et il se voit.** Sept étapes sur l'écran, pas seulement dans un document. La 4a s'arrêtait sur « Plaquer » en laissant croire que le cycle était fini ; ici, l'élève peut **poser à froid**, **enchaîner** et **jouer une progression** le même soir.
+- **« Appris » veut enfin dire quelque chose.** Trois arpèges lents ne suffisent plus : il faut une pose chronométrée, propre, un autre jour (ou dix minutes plus tard). C'est la correction la plus importante de la phase — elle rend le mot honnête, et elle coûte un chrono et l'écran déjà écrit.
+- **Le temps de changement est mesuré, pas estimé.** L'idée qui débloque tout : horodater une **note repère** par accord avec la **même horloge**, donc la latence s'annule dans la différence. Au micro simulé, la médiane mesurée (1 749 ms) est exactement l'espacement du fichier — la mesure est juste, pas seulement plausible.
+- **Le cas « même basse » a été trouvé en jouant, pas en réfléchissant.** Em → Em7 ne bouge pas la corde grave : une mesure naïve aurait compté des notes tenues comme des changements. Le repère est devenu « la première corde qui diffère ». C'est le genre de défaut qu'aucun test unitaire n'aurait signalé, parce qu'il fallait **jouer** l'exercice.
+- **Le QCM est honnête sur ce qu'il est.** Un nœud de **savoir**, distinct du nœud de la forme : on peut savoir lire un accord sans savoir le jouer, et l'app ne mélange plus les deux. Les distracteurs sont les confusions réelles (Em/E, Am/C, D/Dsus2) — une question se joue sur une tierce, pas sur un nom au hasard.
+- **L'accordage guidé ferme la boucle ouverte en phase 3.** Une guitare à −20 cents faisait échouer des notes justes ; l'accordeur existait, l'enchaînement non. Six cordes dans l'ordre, ±5 cents, et un rappel quand le dernier accordage date.
+
+### 16.2 Ce qui reste faible (à dire franchement)
+- **Le plaqué n'est toujours pas écouté.** C'est la limite qui structure tout le module : l'étape 4 et l'étape 7 sont des **déclarations**. Un élève peut jouer faux et l'app le croit. Le journal garde le statut « non vérifié », mais la promesse du brief (« validation du strum ») attend la phase 5.
+- **L'enchaînement ne juge qu'une note.** On mesure l'arrivée de la main, pas la propreté des six cordes : une corde étouffée passe inaperçue. C'est pour cela que la transition ne rend jamais un accord « appris » — la règle est juste, mais elle laisse un trou pédagogique réel.
+- **Les seuils sont des seuils de prof.** 8/5/3 s, 2 s « propre », 20 changements/minute, ±5 cents : rien n'est calibré sur un vrai débutant. Le plus discutable est le passage de 8 à 5 s après **une seule** réussite.
+- **Le QCM n'entend rien et ne teste pas la main.** Il travaille la lecture ; un élève peut le réussir à 100 % sans savoir poser un accord. C'est complémentaire, pas équivalent — et l'écran ne le prétend pas.
+- **Le mode sans matériel est enterré.** Il vit dans le module Accords (`#/accords/qcm`), pas dans le hub : l'élève qui n'a pas sa guitare aujourd'hui ne le trouvera pas tout seul.
+- **Rien d'écouté, rien de joué** : pas de vraie guitare, pas de vrai micro, pas de vrai téléphone. Le micro simulé prouve la chaîne, pas l'expérience.
+
+### 16.3 Propositions pédagogiques (impact ÷ effort décroissant) — placées
+| # | Proposition | Impact/effort | Phase | Pourquoi |
+|---|---|---|---|---|
+| **Q1** | **Diagnostic « quelle corde ne sonne pas » par accord** — « sur Am, c'est souvent la corde de Sol », agrégé depuis les `missedStrings` déjà journalisés | fort / **très faible** | **5** | C'est la phrase qu'un prof dit au bout de trois cours, et la donnée existe déjà. À faire en même temps que le diagnostic polyphonique, qui la rendra plus fine. |
+| **Q2** | **QCM d'oreille** — les trois mêmes types, mais **entendus** (plaqué ou arpégé) au lieu d'être lus | fort / moyen | **5** (avec le moteur polyphonique) ou **8** (ear training) | Le pont manquant entre *lire* et *entendre*. Il faut soit un moteur d'analyse, soit un simple « écoute puis choisis » : le second est faisable tout de suite. |
+| **Q3** | **Pose à froid en aveugle partiel** — une fois sur trois, l'accord est **nommé** sans tablature ni boîte | moyen / **très faible** | 6 | Aujourd'hui la forme reste affichée : on mesure la vitesse de pose, pas le rappel de la forme. Un tirage déterministe suffit. |
+| **Q4** | **Carnet de transitions** — « ton meilleur enchaînement : Em→Am en 1,4 s », et la paire suivante proposée par **progression mesurée** | moyen / faible | 6 (avec le Défi) | Le `changeMs` est journalisé mais personne ne le lit : le rendre visible transforme une mesure en objectif. |
+| **Q5** | **Métronome dans l'enchaînement** — mesurer le changement **contre le clic** et non seulement entre deux repères | fort / moyen | **5** | C'est le vrai critère musical (« ton changement tombe-t-il sur le temps ? »), et il demande l'onset, donc la phase 5. |
+
+**Ce que je ne recommande toujours pas** : élargir encore le curriculum (P8-P10) avant que le plaqué soit écouté. Trente-cinq accords qu'on ne sait ni enchaîner proprement ni vérifier en plaqué, c'est de la largeur ; ce qui manque désormais, c'est la **profondeur de la validation**.

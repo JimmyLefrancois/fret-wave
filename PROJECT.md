@@ -1,17 +1,67 @@
 # PROJECT.md — Fretwave (nom de travail) : apprendre la guitare, en tablature, en pixel art
 
-**Statut : phases 0, 1a, 1b, 1c, 1d, 2, 3 et 4a terminées · 4a = module Accords, partie A : curriculum P0–P4 + branche power chords, **doigtés saisis et relus par règle**, boîte d'accord pixel (D1 = B), leçon Découvrir → Construire → Vérifier (arpège au micro) → Plaquer (déclaré), nœuds `acc:accord:*` dans le même journal, recommandation justifiée · D1-D44 tranchées (D13 écartée, D7 remplacée par D14) · aucune décision en attente · **489 tests (488 verts, 1 ignoré)**.**
+**Statut : phases 0, 1a, 1b, 1c, 1d, 2, 3, 4a et 4b terminées · 4b = module Accords, partie B : les **sept étapes** du cycle du brief sont là (Découvrir → Construire → Vérifier → Plaquer → **Fixer** (pose à froid chronométrée) → **Enchaîner** (changement mesuré entre deux notes repères) → **Intégrer** (progression + strum)), plus le **QCM sans matériel**, l'**accordage guidé corde par corde** et les paliers **P5-P7** (couleurs, slash, Fa et Si m) · « appris » exige enfin une pose à froid · D1-D50 tranchées (D13 écartée, D7 remplacée par D14) · aucune décision en attente · **558 tests (557 verts, 1 ignoré)**.**
 Documents liés : `BRIEF.md` (cahier des charges), `MUSIC_DESIGN.md` (conventions musicales, curriculum, avis de prof).
-**Repères** : *État exact* juste en dessous · **hypothèses** §8 (1-77) et §8 bis (ce qui a changé) · **plan des phases** §9 · **décisions** §10 (D1-D44) · **prochaine étape** §12. Pages de l'app (hash) : `#/hub`, `#/gammes`, `#/gammes/jouer`, `#/gammes/entrainement`, `#/gammes/revision`, `#/accords`, `#/accords/lecon`, `#/accordeur`, `#/reglages`, plus les outils de contrôle `#/tab`, `#/audio`, `#/theorie` (la page « Son » a quitté la barre de navigation en phase 3 : elle reste joignable depuis les réglages). `npm run dev` → http://localhost:5173/ (un seul serveur à la fois : deux instances Vite sur le même port servent une version périmée du CSS).
+**Repères** : *État exact* juste en dessous · **hypothèses** §8 (1-88) et §8 bis (ce qui a changé) · **plan des phases** §9 · **décisions** §10 (D1-D50) · **prochaine étape** §12. Pages de l'app (hash) : `#/hub`, `#/gammes`, `#/gammes/jouer`, `#/gammes/entrainement`, `#/gammes/revision`, `#/accords`, `#/accords/lecon`, `#/accords/qcm`, `#/accordeur`, `#/reglages`, plus les outils de contrôle `#/tab`, `#/audio`, `#/theorie` (la page « Son » a quitté la barre de navigation en phase 3 : elle reste joignable depuis les réglages). `npm run dev` → http://localhost:5173/ (un seul serveur à la fois : deux instances Vite sur le même port servent une version périmée du CSS).
 Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** décision qui t'appartient · **[RISQUE]** voir section 7.
 
 ---
 
-## État exact (dernière mise à jour : après la phase 4a)
+
+## État exact (dernière mise à jour : après la phase 4b)
+
+**Git** (branche `master`) : `183eacc` Phase 0 · `5797333` 1a · `823fbbd` 1b · `971be8c` 1c · `ee0f82e`…`264b7d9` 1d · `d76e78a` + `3a9e049` Phase 2 · `688aff7` lisibilité · phase 3 · `2c447d6` phase 4a · **`8cda4a8` phase 4b**. **558 tests (557 verts, 1 ignoré), `tsc --noEmit` propre, `vite build` OK.** Aucun remote.
+
+**Le cycle des sept étapes est complet** — et il est complet *dans l'écran*, pas seulement ici : sept boutons d'étape, dont les trois derniers (Fixer, Enchaîner, Intégrer) sont ceux qui manquaient à la 4a.
+
+**Fait et vérifié (4b)**
+- **Fixer** (`modules/accords/fixer.ts`) — pose à froid **chronométrée** : 8 s → 5 s → 3 s (le palier donne le plafond, chaque réussite resserre d'un cran, jamais sous 3 s). Le chrono s'arrête à la **première corde juste** ; la vérification des six cordes continue ensuite **sans limite**, car c'est la propreté qu'on juge après la vitesse. Verdict : il faut le **temps ET ≥ 80 % des cordes** — « rapide mais sale » n'est pas une pose, « propre mais lent » est un manque de réflexe, et l'écran dit lequel des deux.
+- **« Appris » tient sa promesse** : 3 arpèges propres sur 2 jours **et** une **pose à froid réussie** (D45). Un rappel le **même jour** ne compte qu'après **10 minutes** (MUSIC_DESIGN §4.4) ; une pose à 8,1 s est écrite **9** (arrondi au supérieur) pour ne jamais passer pour 8.
+- **Enchaîner** (`transitions.ts`) — exercice « changements en 30 s » : on horodate une **note repère** par accord, et l'écart entre deux repères **est** le temps de changement. La basse quand elle change ; sinon la **première corde qui diffère** (Em → Em7, F 4 cordes → F barré gardent la même basse : écouter la basse y mesurerait une note tenue). La latence **s'annule** dans la différence : aucune compensation à supposer. Résultat : changements, médiane, changements/minute, part de changements « propres » (≤ 2 s) et « fluides » (≤ 1,5 s), avec les repères de prof (20/min = correct, 30-40 = fluide). Tentative `kind: 'transition'`, nœud `acc:transition:{a}>{b}`, `changeMs` médian au journal.
+- **Intégrer** (`progressions.ts`) — **8 progressions** en données (I–IV–V, I7–IV7–V7, vi–IV–I–V, I–vi–IV–V avec Fmaj7, folk en Sol…), classées par nombre d'accords inconnus, **aucune avec un barré complet**. Tablature (`progressionToScore`), motif de strum (↓, ↓↑, motif universel) et métronome (Tone.Transport). La déclaration s'écrit sous `acc:progression:{id}` avec `correct: null` : une activité, jamais une preuve.
+- **QCM sans matériel** (`quiz.ts`, `#/accords/qcm`) — trois types : **reconnaître** l'accord d'une tablature **anonyme** (sans son nom au-dessus de la portée), **reconstituer** ses notes, **retrouver** une case masquée dans la pile. Les distracteurs sont les **confusions réelles** (Em/E, Am/C, G/Em, D/Dsus2, D/F♯/D), deux au maximum par question puis complétées par le parcours. Tirage **déterministe** (graine), vivier limité aux accords **déjà rencontrés**. Nœud `acc:savoir:{voicingId}` : **le QCM ne rend jamais un accord « appris »** (D47).
+- **Accordage guidé corde par corde** (`core/input/tuningGuide.ts`, P4 de la phase 3) — les six cordes dans l'ordre (6 → 1), **±5 cents tenus 400 ms**, corde suivante automatique, enregistrement du dernier accordage et **rappel dans la leçon** au-delà de 3 jours.
+- **Curriculum P5-P7** — septièmes et couleurs (10 accords), premiers slash (G/B, D/F♯, C/G, présentés dans leur ligne de basse), Fa et Si m **par paliers** (Fmaj7 → mini-barré → barré, Bm7 → Bm). **35 accords** au parcours principal.
+- **Journal unifié étendu** : `kind` gagne `cold`, `transition`, `qcm` ; champs `chordIdB`, `progressionId`, `limitSec`, `changeMs` ; nœuds `acc:transition:*`, `acc:savoir:*`, `acc:progression:*` à côté de `acc:accord:*`. Même Leitner, même XP, hub filtré par module.
+- **XP** : pose à froid 15 (mémoire), transition 10, QCM **6 sans bonus de vitesse** — un QCM juste ne doit pas payer comme une gamme jouée.
+- **Degrés** : `fmtDegree` vit désormais dans le cœur (`core/theory/notation.ts`) ; plus aucun « b3 » dans un paragraphe.
+
+**Mesures de la 4b**
+- **Tests** : **558 (557 verts, 1 ignoré)**, dont **69 nouveaux** (fixer, transitions, QCM, progressions, accordage guidé) ; 40 fichiers de test + 1 ignoré. `tsc --noEmit` propre, `vite build` OK.
+- **Poids** : `index` **580,9 ko (183,9 ko gzip)** — **+47,5 ko (+14,9 gzip)** pour la phase (trois étapes, QCM, accordage guidé, P5-P7) ; CSS **34,5 ko (7,5 gzip)** (+1,6 ko).
+- **Mise en page** (`tools/phase4b-check.mjs`, 390 × 844 et 1 440 × 900, captures dans `.shots/4b/`) : **aucun débordement** horizontal aux deux tailles, **aucune erreur console**. Les **sept étapes tiennent en deux rangées** (4 + 3). L'**action principale est au-dessus de la barre du bas** sur les sept écrans : Découvrir 772, Construire 727, Vérifier 764, Plaquer 482, **Fixer 607**, **Enchaîner 669**, **Intégrer 630** px pour une barre à 782.
+- **Chemin complet au micro simulé** (Chromium, `--use-file-for-fake-audio-capture`, échantillons nylon CC0) :
+  - **Enchaîner Em → Am** : **6 changements mesurés, médiane 1 749 ms, 24/min, 6 propres**, tentative `kind: 'transition'` journalisée (`correct: 6/6`, `changeMs: 1749`). Les 1 749 ms mesurées sont **exactement** l'espacement du fichier (1,3 s de note + 0,45 s de silence) : la mesure est juste, pas seulement plausible.
+  - **Fixer** : arpège complet de Mi mineur en **8,1 s** → verdict « propre, mais 8,1 s pour 8 s accordées », tentative `kind: 'cold'` écrite `seconds: 9, limitSec: 8` — donc **pas** une pose à froid réussie. Le chemin d'échec est aussi vérifié que le chemin de réussite.
+  - **Accordage guidé** : les **six cordes validées** (−1, +2, +1, −0, +1, −1 cents), enregistrement `{"tuningId":"standard","strings":6}` écrit, aucune erreur console. Premier essai **raté** et c'est instructif : le fichier brut rejouait des échantillons jusqu'à +17 cents hauts, donc une corde sur deux ne passait jamais — le comportement était **juste** (l'app refuse de valider une corde fausse) et la fixture a été corrigée en hauteur.
+- **QCM** : six questions répondues au clic, correction affichée, **six tentatives `qcm`** au journal, aucun chiffre de justesse ailleurs.
+
+**Pas fait (4b)** — à dire tel quel
+- **Le plaqué n'est toujours pas écouté** : l'étape 4 et la progression restent déclarées (phase 5).
+- **Le temps de changement est mesuré sur UNE note repère**, pas sur les six cordes : une corde étouffée au milieu de l'accord ne se voit pas. C'est pourquoi l'enchaînement **ne rend jamais un accord « appris »** à lui seul.
+- **Le QCM n'entend rien** : il travaille la lecture, pas l'oreille (l'ear training est en phase 8). Il ne vérifie pas non plus qu'un doigté est *possible* : seulement qu'on sait le lire.
+- **P8 (barrés mobiles) et P10 (drop 2/3, extensions) absents du parcours** : ils demandent des doigtés **saisis** pour les formes déplacées (D40), pas calculés — phase 6.
+- **Pas de mode « sans matériel » depuis le hub** : le QCM s'ouvre depuis le module Accords et depuis la leçon. Pas de rappel du dernier accordage dans le hub non plus.
+- Toujours non vérifiés : **vraie guitare**, **vrai micro**, **vrai téléphone**, Safari/iOS, le timbre, la latence acoustique.
+
+**Trouvé en route, corrigé (4b)**
+1. **Em → Em7 ne pouvait pas être mesuré** : les deux formes partagent la basse (Mi grave), donc l'alternance de basses comptait des notes tenues. Trouvé en pilotant l'exercice, pas en relisant le code → **notes repères** (la première corde qui diffère).
+2. **Une pose à froid de 8,1 s s'écrivait 8 s** et passait pour réussie (`seconds <= limitSec` sur un entier arrondi) → arrondi **au supérieur** au journal.
+3. `guideSteps` parcourait les cordes **de la plus aiguë à la plus grave** (l'index 0 est la corde grave dans le modèle) : l'accordage guidé demandait le mi aigu en premier. Trouvé par les tests.
+4. **Les distracteurs du QCM étaient tirés au hasard** : « Em » pouvait se retrouver face à Do, Sol et Ré, ce qui ne teste rien → deux confusions réelles garanties, puis complément.
+5. **Le QCM interrogeait des accords jamais ouverts** (Fmaj7 pour un débutant qui n'a pas vu Fa) → vivier limité aux accords rencontrés, ou aux six premiers du parcours.
+6. **Le trou du QCM était percé quatre fois** (une par frappe du motif) : quatre cases masquées au lieu d'une → seulement la première pile, celle qui est dessinée.
+7. **Les actions d'Intégrer et d'Enchaîner étaient sous le pli** (876 px pour une barre à 782) : le motif et le tempo passaient avant les boutons → actions d'abord, réglages ensuite (630 et 669 px).
+8. **Sept boutons d'étape dans une grille de quatre** : la seconde rangée était là, mais sans `row-gap` → ajouté, mesures à l'appui.
+9. **« b3 » s'affichait dans les paragraphes** de la leçon (degrés du modèle affichés bruts) → `fmtDegree` déplacé dans le cœur, une seule fonction d'affichage.
+10. **La fixture d'accordage était transposée de deux demi-tons** : `asetrate` appliqué à 48 kHz sur des FLAC à 44,1 kHz. Corrigé en lisant le taux réel du fichier — et la correction de hauteur est indispensable, sinon « l'app ne valide pas » ressemble à un bug alors que c'est l'instrument du test qui est faux.
+11. **Identifiants P6 faux** (`G/B-x20003` au lieu de `GoverB-x20003`) : le test « chaque accord du parcours existe dans la base » l'a arrêté immédiatement.
+
+## État exact de la phase 4a (rappel)
 
 **Git** (branche `master`) : `183eacc` Phase 0 · `5797333` 1a · `823fbbd` 1b · `971be8c` 1c · `ee0f82e`…`264b7d9` 1d · `d76e78a` + `3a9e049` Phase 2 · `688aff7` lisibilité · phase 3 · **`2c447d6` phase 4a**. **489 tests (488 verts, 1 ignoré), `tsc --noEmit` propre, `vite build` OK.** Aucun remote.
 
-**Découpage de la phase 4** : **4a = moteur et leçon** (ce qui est décrit ici) ; **4b = Fixer / Enchaîner / Intégrer**, QCM sans matériel, accordage guidé corde par corde (P4 de la phase 3), paliers P5-P10. Le cycle du brief a 7 étapes ; quatre sont livrées, trois ne le sont pas — et c'est écrit dans l'écran, pas seulement ici.
+**Découpage de la phase 4** : **4a = moteur et leçon** (bloc ci-dessous, gardé comme rappel) ; **4b = Fixer / Enchaîner / Intégrer**, QCM sans matériel, accordage guidé corde par corde (P4 de la phase 3), paliers P5-P7 — **livrée**, voir le bloc du haut. Le cycle du brief a 7 étapes et **les sept sont dans l'écran** : la phrase de la 4a (« quatre sont livrées, trois ne le sont pas ») n'est plus vraie.
 
 **Fait et vérifié (4a)**
 - **Doigtés saisis** (`src/data/voicings.ts`) pour les 44 formes de la base, et **relus par règle** (`core/theory/chordFingers.ts`) : un doigt = une case (sauf barré), corde à vide ou étouffée sans doigt, case la plus basse tenue par l'index ou le majeur, cordes du barré au doigt du barré, 4 doigts au plus. L'ordre de pose est **déduit** : barré d'abord, puis index → auriculaire, cordes graves d'abord. C'était la dette de la 1d ; l'étape « Construire » n'était pas faisable sans elle.
@@ -35,7 +85,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 - **Pas de rappel à froid chronométré** (Fixer) : le critère « appris » est donc **plus faible** que ce que le §4.6 de `MUSIC_DESIGN.md` annonce (il manque la pose à froid ≤ 8 s un autre jour).
 - **Pas de transitions** (Enchaîner) ni de progression (Intégrer) : aucune compétence musicale de changement d'accord n'est entraînée.
 - **Pas de QCM** ni de mode sans matériel au-delà de la déclaration corde par corde.
-- **Accordage guidé corde par corde (P4)** : reporté en 4b (l'accordeur existe, l'enchaînement non).
+- **Accordage guidé corde par corde (P4)** : ✔ **fait en 4b** (l'accordeur existait, l'enchaînement non).
 - **Palier P5-P10** absents du curriculum (septièmes, sus/add, slash, barrés) : la base de voicings les contient, le parcours non.
 - Toujours non vérifiés : **vraie guitare**, **vrai micro**, **vrai téléphone**, Safari/iOS, le timbre.
 - **« Note morte » non démontrée de bout en bout** : la règle est testée unitairement, mais un signal synthétique atténué et abaissé de 28 cents a été lu **+187 cents** par le détecteur (verdict `outside`, donc aucune erreur comptée — le comportement reste juste, la démonstration non).
@@ -275,7 +325,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 | Pitch mono | `pitchy` (McLeod), fenêtre adaptée à l'accordage ; **capture dans un AudioWorklet, analyse sur le fil principal** (D35, 0,17-0,37 ms par fenêtre) ; note stabilisée sur 3 fenêtres ; **latence mesurée**, pas estimée. |
 | Polyphonique | **Moteur maison « accord attendu »** (peignes d'harmoniques + soustraction), **pas essentia.js (AGPL-3.0)**, pas de chromagramme seul. Verdict = **niveau de confiance**, jamais binaire. |
 | Persistance | localStorage (réglages, journal) + export/import JSON. *(Phase 0 prévoyait IndexedDB : révisé en phase 2, D25 ; `navigator.storage.persist()` pas encore demandé.)* |
-| Modules | `Gammes` (N1-N3 livrés) et `Accords` (phase 4) au MVP ; **l'accordeur est un écran de premier rang** (`#/accordeur`, phase 3) plutôt qu'un module `Fondations` séparé ; `Rythmique` préparé dès le modèle. |
+| Modules | `Gammes` (N1-N3 livrés) et `Accords` (cycle complet en 7 étapes depuis la 4b, + QCM sans matériel) au MVP ; **l'accordeur est un écran de premier rang** (`#/accordeur`, phase 3) plutôt qu'un module `Fondations` séparé ; `Rythmique` préparé dès le modèle. |
 | Écart majeur avec le brief | Gammes débutent par la **pentatonique mineure**, pas la majeure ; Am n'est **pas** un accord à 1-2 doigts ; le **verdict par corde en strum est irréaliste** ; **boîte d'accord** : D1 = B (étapes Découvrir/Construire seulement, §7.1 de `MUSIC_DESIGN.md`). |
 
 ---
@@ -845,6 +895,17 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 78. **La boîte d'accord ne vit que dans Découvrir et Construire** (D1 = B) et reste désactivable : la règle « tablature seulement » du brief n'est pas entamée ailleurs.
 79. **Les nœuds de gamme et d'accord partagent le même journal et le même Leitner** : le hub filtre (`module`), la révision de gammes ignore `acc:*`. Un seul modèle, deux modules.
 
+**Prises en phase 4b**
+80. **Pose à froid** : 8 s (P1-P2) → 5 s (P3-P4) → 3 s (P5+), resserré d'un cran par réussite, **jamais sous 3 s**. Ce sont des seuils de prof, pas une mesure — un débutant met souvent 4 à 6 s sur un Sol les premières semaines. **[HYP fragile]**
+81. **La pose à froid mesure la première note** (basse, ou note repère) et non l'accord plaqué : c'est le maximum de ce qu'une détection monophonique autorise. La propreté est jugée ensuite, sans limite de temps.
+82. **Un rappel à froid le même jour ne compte qu'à ≥ 10 min** après la première vérification (consolidation motrice) ; à un autre jour, il compte toujours.
+83. **Les secondes d'une pose sont arrondies au supérieur** (`Math.ceil`) : le journal ne stocke que des entiers, et 8,1 s ne doit pas s'écrire 8 s.
+84. **Enchaînement** : 30 s d'exercice, un changement « propre » ≤ 2 s, « fluide » ≤ 1,5 s, repères de lecture 20/min (correct) et 30-40/min (fluide). Mesure **entre deux notes repères** horodatées par le même détecteur (la latence s'annule), sans métronome.
+85. **Un changement compte dès qu'une note repère juste est entendue** : les autres cordes de l'accord ne sont pas jugées (monophonie). L'enchaînement ne rend donc jamais un accord « appris ».
+86. **QCM** : 6 questions, les trois types en alternance, **deux confusions réelles** parmi les distracteurs, vivier = accords déjà rencontrés (sinon les six premiers du parcours), tirage déterministe. XP 6 **sans bonus de vitesse** ; nœud `acc:savoir:*` distinct du nœud de la forme.
+87. **Progressions** : 8 en données, aucune avec un barré complet (Bm7 et Fmaj7 au lieu de Bm et F), une mesure par accord, déclaration sous `acc:progression:{id}`.
+88. **Accordage guidé** : ±5 cents tenus **400 ms** par corde, « ce n'est pas cette corde » au-delà de 90 cents, rappel au-delà de **3 jours** sans accordage. Plus serré que la tolérance d'exercice (35 cents) : on accorde avant de jouer, on ne juge pas en jouant.
+
 **Hypothèses les plus fragiles** (ce qui pourrait encore bouger — rien n'est verrouillé) :
 - **32-35 et 38** (vélocité de base, strum, tenue, humanisation, niveaux) sont réglées **par calcul et par mesure, pas par écoute** : un ajustement à ton oreille est probable, et c'est normal.
 - **22** (CAGED maison, D12) : définition non comparée à une source ; ta relecture de Do, Sol, La conditionne son exposition.
@@ -863,6 +924,12 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 - **65** (2 demi-tons pour une tentative, octave non comptée) : choix de prof. Le seuil des 2 demi-tons est le plus discutable — une gamme a des écarts de 1 à 2 demi-tons, donc un élève qui joue *la note voisine* remplit cette case-là, ce qui est le comportement voulu mais peut masquer une erreur de doigté.
 - **68** (masque des clics) : 90 ms est large (15 % du temps à 50 BPM). Un guitariste qui joue exactement en place verra parfois sa note ignorée.
 - **67** (`seconds` au micro) : mêle temps de jeu et temps de lecture ; acceptable pour un exercice court, faux pour un exercice entrecoupé de pauses.
+- **80** (8 / 5 / 3 s de pose à froid) : valeurs de prof, non calibrées sur un vrai débutant ; le passage de 8 à 5 s après **une** réussite est probablement trop rapide.
+- **84-85** (2 s « propre », 30 s d'exercice) : le seuil de 2 s est un choix de musique, pas une mesure ; en dessous de 20 changements/min l'exercice peut décourager, au-dessus de 40 il ne teste plus rien.
+- **86** (QCM) : le vivier « accords rencontrés » se réduit à trois accords après deux leçons, donc les mêmes questions reviennent ; à revoir avec un historique plus riche.
+- **88** (±5 cents, 400 ms) : une guitare fraîchement accordée dérive de quelques cents pendant qu'on joue ; 5 cents peut être vécu comme « impossible » sur une mécanique bon marché. À mesurer sur un vrai instrument.
+- **Le mode sans matériel n'est pas dans le hub** : un élève sans guitare doit passer par le module Accords pour le trouver.
+- **`changeMs` au journal** ne garde que la médiane : impossible de dire après coup si l'élève s'améliore ou s'il a fait un seul bon changement.
 
 ---
 
@@ -879,13 +946,21 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | Rythme dans les exercices | absent | **grille rythmique** (un temps par trou, ★★ conditionné) |
 | Ordre des exercices | une forme, puis retour au hub | **session mélangée** de 5 formes différentes |
 | Entrée audio | worklet + Worker séparés, polyphonie dès la 3 | **mono seulement** : `pitchy` sur le fil principal (D35), worklet = capture (3) |
-| Module Accords | « phase 4 » en un bloc, QCM + validation plaquée | **4a livrée** : 4 étapes sur 7, arpège vérifié, plaqué déclaré ; **4b** pour Fixer / Enchaîner / Intégrer |
+| Module Accords | « phase 4 » en un bloc, QCM + validation plaquée | **4a + 4b livrées** : 7 étapes, arpège vérifié, pose à froid, transition mesurée, progression, QCM ; **le plaqué reste déclaré** (phase 5) |
 | Doigtés d'accord | « saisis en phase 4 » (rangée vide depuis la 1b) | **saisis et relus par règle** (D40), ordre de pose déduit |
 | Progression | journal réservé aux gammes | **un seul journal, deux modules** : `module: 'accords'`, `chordId`, nœuds `acc:accord:*` (D43) |
 | Validation N2/N3 | pavé numérique | **pavé ou micro** : la case se remplit à la note jouée (3) |
 | Tempo des exercices | chrono de saisie au pavé | **attaque mesurée**, latence retranchée, quand le micro est actif (3) |
 | Navigation | Hub · Gammes · Son · Réglages | **Hub · Gammes · Accordeur · Réglages** (la page Son sort de la barre, D38) |
 | Boîte d'accord | à trancher | **D1 = B** (Découvrir/Construire) |
+| Cycle d'un accord | 4 étapes sur 7 (4a) | **7 étapes** : Fixer, Enchaîner et Intégrer livrées en 4b |
+| Critère « appris » | 3 arpèges sur 2 jours | **3 arpèges + une pose à froid réussie** (D45) |
+| Durée d'une leçon | 4 écrans | 7 étapes, deux rangées de boutons, action principale toujours au-dessus de la barre |
+| Mode sans matériel | absent | **QCM** à trois types, nœud `acc:savoir:*` (D47) |
+| Enchaînement | rien | **mesuré** entre deux notes repères, nœud `acc:transition:*` (D46) |
+| Progressions | moteur seul (1b) | **8 progressions** jouables, déclarées (D48) |
+| Accordage | accordeur (3) | **guidé corde par corde** + rappel 3 jours (D49) |
+| Curriculum | P0-P4 (17 accords) | **P0-P7 (35 accords)**, P8-P10 en phase 6 (D50) |
 | Feuille de route | « son final + hub + thème + module » en 1c | 1c = audio seul ; les écrans en 1d |
 
 ---
@@ -901,7 +976,7 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | **2** ✔ `d76e78a` + `3a9e049` | Journal de tentatives, maîtrise par forme, Leitner 6 boîtes, XP/série/badges, Gammes N2 (trous) et N3 (rappel) avec pavé numérique, diagnostic par corde, transposition suggérée, export/import JSON, **grille rythmique (★★ au tempo)**, **session mélangée (interleaving)**, **pondération N3 et taux de trous réglable** | Faire une série de trous, voir la maîtrise bouger, fermer l'onglet et retrouver son état ; grille tenue/manquée distinguée ; session de 5 formes enchaînée ; export/import vérifié — **atteint** (371 tests, mesures dans « État exact ») |
 | **3** ✔ (commit en fin de phase) | Entrée mono (`pitchy`), note stabilisée, appariement hauteur → case, seuils par source, plancher de bruit mesuré, **latence mesurée**, accordeur 6 cordes, « Micro » dans les niveaux 2-3 | Détection vérifiée sur signaux synthétiques **et** sur un **micro simulé rejouant de vrais échantillons** (cases remplies, tentative journalisée) — **atteint, sauf le test sur guitare réelle** (431 tests) |
 | **4a** ✔ `2c447d6` | Accords A : curriculum P0-P4 + branche rock, **doigtés saisis et relus**, boîte d'accord (D1=B), leçon Découvrir → Construire → Vérifier (arpège au micro) → Plaquer (déclaré), nœuds `acc:accord:*`, recommandation · **+ P1 (joue la case) et P2 (note morte)** | Apprendre Em puis Am depuis zéro, chaque corde validée au micro, tentative journalisée, prochain accord justifié — **atteint** (489 tests, mesures dans « État exact ») |
-| 4b | **Fixer** (rappel à froid chronométré), **Enchaîner** (transitions), **Intégrer** (progression + strum) · QCM / mode sans matériel · accordage guidé corde par corde (P4) · paliers P5-P10 | Cycle des 7 étapes complet, transition mesurée |
+| **4b** ✔ `8cda4a8` | **Fixer** (pose à froid chronométrée), **Enchaîner** (changements mesurés entre notes repères), **Intégrer** (8 progressions + strum + métronome) · **QCM** sans matériel (3 types) · **accordage guidé** corde par corde (P4 de la phase 3) · paliers **P5-P7** | Cycle des 7 étapes complet **dans l'écran** ; Em enchaîné à Am avec un temps de changement mesuré (1 749 ms au micro simulé) ; QCM jouable sans guitare ; « appris » exigeant la pose à froid — **atteint** (558 tests, mesures dans « État exact ») |
 | 5 | Polyphonique, onset, timing, transitions · **+ P5 (phase 3, §9.1)** | Résultats chiffrés publiés |
 | 6 | Défi Accords, strumming, familles d'accords, harmonisation | Setlist complète |
 | 7 | Improvisation + backing tracks + classification · **+ P3 (phase 3, §9.1)** | Synthwave + Lo-fi jouables |
@@ -917,7 +992,7 @@ Les cinq propositions du bilan de la phase 3 (`MUSIC_DESIGN.md` §14.3) sont **p
 | **P1** | **« Joue la case que je montre »** — la tablature allume une pastille, l'élève la joue, le micro valide. **✔ fait en 4a**, à l'étape « Construire » (chaque doigt est validé au micro). | **4** | Même moteur qu'un trou (`matchPitch` à une seule cible), et c'est **exactement** l'étape « Construire / Vérifier » de la leçon d'accord : la construire pour les gammes la rend gratuite pour les accords. C'est le pont manquant entre *lire un chiffre* et *poser un doigt*. |
 | **P2** | **Diagnostic de note morte** — 15 à 40 cents bas **et** niveau faible → « la corde ne sonne pas : appuie juste derrière la frette » (au lieu de « accorde-toi »). **✔ fait en 4a** (règle testée ; non démontrée sur un vrai signal, voir « Pas fait »). | **4** | Sans lui, la validation **arpège corde par corde** de la phase 4 confond « doigt mal placé », « corde étouffée » et « guitare désaccordée ». Le niveau RMS par note existe déjà (phase 3), la règle est courte. |
 | **P3** | **Affichage live de la note sur la position** (niveau 1) — la note détectée allume la pastille correspondante de la position affichée. | **7** | Même surcouche de tablature que l'improvisation (notes jouées inscrites à la position du curseur). Peut être **tirée dans la 4** si le coût s'avère faible (une prop de `TabView` + le flux de la phase 3). |
-| **P4** | **Accordage guidé corde par corde** — les six cordes dans l'ordre, « corde 6 juste → passe à la 5 », rappel « dernier accordage : 3 jours ». **Reporté en 4b** (l'accordeur de la 3 existe, l'enchaînement non). | **4** | Prérequis direct de la validation arpège : une guitare à −20 cents fait échouer des cordes justes. Réutilise l'accordeur de la 3 tel quel ; l'effort est dans l'enchaînement et le rappel, pas dans la mesure. |
+| **P4** | **Accordage guidé corde par corde** — les six cordes dans l'ordre, « corde 6 juste → passe à la 5 », rappel « dernier accordage : 3 jours ». **✔ fait en 4b** (`core/input/tuningGuide.ts` : les six cordes dans l'ordre, ±5 cents tenus 400 ms, rappel au-delà de 3 jours). | **4** | Prérequis direct de la validation arpège : une guitare à −20 cents fait échouer des cordes justes. Réutilise l'accordeur de la 3 tel quel ; l'effort est dans l'enchaînement et le rappel, pas dans la mesure. |
 | **P5** | **Avance / retard moyen sur la grille** — « tu joues 40 ms avant le clic » pendant l'exercice. | **5** | C'est du **timing** : la phase 5 possède l'onset, la compensation de latence et les transitions. Les instants d'attaque sont déjà mesurés (phase 3), il ne reste qu'à les comparer aux clics et à les afficher. |
 
 Deux conséquences à garder en tête quand ces phases s'ouvriront : **P1 et P4 ne sont pas des gadgets de confort** — ce sont les deux conditions pour que la validation audio du module Accords soit juste (savoir viser une case, partir d'une guitare accordée) ; et **P2 est une correction de contresens**, pas une amélioration : aujourd'hui l'app envoie vers l'accordeur un élève qui doit simplement presser plus près de la frette.
@@ -975,8 +1050,14 @@ Deux conséquences à garder en tête quand ces phases s'ouvriront : **P1 et P4 
 | D42 | Validation d'un accord (4a) | **Mode arpège uniquement, ordre grave → aiguë** (seule façon de lever l'ambiguïté hauteur/corde en monophonie) ; 3 essais puis révélation ; **le plaqué est déclaré** (`kind: 'strum'`, `correct`/`total` à `null`) et ne peut jamais devenir une preuve |
 | D43 | Nœuds de progression d'accord (4a) | `acc:accord:{voicingId}` dans **le même journal** ; « appris » = **3 vérifications propres sur 2 jours** (contre 2 pour une forme) ; même Leitner, même XP, hub filtré par module |
 | D44 | Recommandation du prochain accord (4a) | Premier accord du parcours dont les prérequis sont **appris**, avec la **raison affichée** (prérequis + transitions déjà en place + ouverture de palier) ; **aucun accord inaccessible**, un accord commencé n'est jamais dit « verrouillé » |
+| D45 | Pose à froid (4b) | **Exigée pour « appris »** : une pose réussie dans la limite (8/5/3 s selon le palier, resserrée par les réussites), **en plus** des 3 arpèges sur 2 jours. Le chrono s'arrête à la **première corde juste** ; la propreté se juge ensuite, sans limite. Verdict = temps **et** ≥ 80 % des cordes. Tentative `kind: 'cold'` avec `limitSec`, secondes arrondies au supérieur |
+| D46 | Mesure d'une transition (4b) | **Entre deux notes repères** horodatées par le même détecteur : la basse quand elle change, sinon la **première corde qui diffère** (Em→Em7, F 4 cordes→F barré). La latence s'annule dans la différence. Exercice de 30 s, « propre » ≤ 2 s, « fluide » ≤ 1,5 s ; nœud `acc:transition:{a}>{b}` avec `changeMs` médian |
+| D47 | QCM sans matériel (4b) | **Nœud de savoir distinct** (`acc:savoir:*`) : trois types (tab anonyme, notes, case masquée), distracteurs = **confusions réelles** (2 garanties), tirage déterministe, vivier = accords rencontrés. **Ne rend jamais un accord « appris »** ; XP 6 sans bonus de vitesse |
+| D48 | Progressions (4b) | **8 progressions en données**, filtrées par les accords appris, **aucune avec un barré complet** ; une mesure par accord, motif de strum et métronome. La déclaration s'écrit `kind: 'strum'` + `progressionId`, `correct: null`, nœud `acc:progression:{id}` |
+| D49 | Accordage guidé (4b) | Six cordes de la grave à l'aiguë, **±5 cents tenus 400 ms**, « ce n'est pas cette corde » au-delà de 90 cents ; enregistrement du dernier accordage (`fretwave.tuning.v1`) et **rappel au-delà de 3 jours** dans la leçon |
+| D50 | Paliers P5-P10 (4b) | **P5 (couleurs), P6 (slash) et P7 (Fa, Si m) livrés** avec justifications, prérequis et transitions ; **P8 (barrés mobiles) et P10 (drop 2/3, extensions) en phase 6** : ils demandent des doigtés **saisis** pour les formes déplacées (D40), pas calculés |
 
-**D1-D44 tranchées** (D13 écartée ; D7 remplacée par D14 ; D18 tranchée ; **D24 = la typographie de la 1d**, ajoutée au journal). **Aucune décision en attente** : la suite (phase 4b) est décrite au §12.
+**D1-D50 tranchées** (D13 écartée ; D7 remplacée par D14 ; D18 tranchée ; **D24 = la typographie de la 1d**, ajoutée au journal). **Aucune décision en attente** : la suite (phase 5) est décrite au §12.
 
 ---
 
@@ -997,22 +1078,23 @@ Deux conséquences à garder en tête quand ces phases s'ouvriront : **P1 et P4 
 - **Mise à jour de ce document (après la 2)** : « État exact » (bloc 2 + rappel 1d), hypothèses 50-62 et fragiles, §8 bis (progression, persistance, rythme, session), §3.8 (persistance révisée), §4.1 (arborescence `progress/`), §4.3 (stores), plan (2 ✔ + seconde passe), décisions **D24-D33** (D25 écarte IndexedDB), journal (défauts trouvés), §12 « Prochaine étape » réécrite pour la phase 3.
 - **Mise à jour de ce document (après 1c)** : « État exact » (bloc 1c, mesures, pas fait, écarts), §3.1 (outils de build), §3.5 (échantillons et échantillonneur maison), §4.1 (arborescence), §4.7 (pipeline tel que construit), R4 et R12 (traités / mesurés), hypothèses 31-41, plan (1c fait, 1d proposée), décisions **D14-D18** (D7 remplacée), journal, §12 « Prochaine étape ».
 
+- **Phase 4b** (terminée, commit `8cda4a8`) : cycle complet — **Fixer** (pose à froid chronométrée 8/5/3 s, chrono arrêté à la première corde juste, temps **et** propreté), **Enchaîner** (changements mesurés entre deux **notes repères**, 6 changements / 1 749 ms de médiane au micro simulé), **Intégrer** (8 progressions en données, strum et métronome, déclarées), **QCM sans matériel** (3 types, confusions réelles, nœud `acc:savoir:*`), **accordage guidé corde par corde** (±5 cents tenus 400 ms, 6/6 au micro simulé, enregistrement), **paliers P5-P7** (35 accords). « Appris » exige désormais une pose à froid (D45). **558 tests** (557 verts, 1 ignoré), `tsc` propre, build OK : `index` 580,9 ko (183,9 gzip), CSS 34,5 ko (7,5 gzip). Vérifié au navigateur : sept étapes en deux rangées, aucun débordement à 390 et 1 440, action principale au-dessus de la barre sur les sept écrans, aucune erreur console ; au micro simulé : enchaînement Em→Am, pose à froid jugée « trop lente » (chemin d'échec) et accordage complet. **Trouvé en route, corrigé** : (1) Em→Em7 partage la basse, donc l'alternance de basses ne mesurait rien → notes repères ; (2) une pose à 8,1 s s'écrivait 8 s et passait pour réussie → arrondi supérieur ; (3) `guideSteps` demandait le mi aigu en premier ; (4) les distracteurs du QCM étaient tirés au hasard → deux confusions réelles garanties ; (5) le QCM interrogeait des accords jamais ouverts → vivier limité ; (6) quatre cases masquées au lieu d'une dans le trou du QCM ; (7) actions d'Intégrer et d'Enchaîner sous le pli → réorganisées ; (8) sept boutons d'étape sans `row-gap` ; (9) « b3 » dans les paragraphes → `fmtDegree` au cœur ; (10) fixture d'accordage transposée de deux demi-tons (`asetrate` au taux du fichier) ; (11) identifiants P6 faux, arrêtés par le test du curriculum. **Non vérifié** : vraie guitare, vrai micro, vrai téléphone, Safari/iOS, le timbre.
 ---
 
-## 12. Prochaine étape : phase 4b (module Accords, partie B)
+## 12. Prochaine étape : phase 5 (validation polyphonique des accords plaqués)
 
-**Objectif** : terminer le cycle d'apprentissage d'un accord — les trois étapes qui manquent (Fixer, Enchaîner, Intégrer) — et rendre le module utilisable **sans matériel**.
+**Objectif** : entendre **six cordes ensemble**. C'est la seule chose que le module Accords ne sait pas faire, et c'est celle qui manque pour que « plaqué » et « tempo » cessent d'être des déclarations.
 
 **Livrables**
-1. **Fixer** — rappel à froid chronométré : l'accord est demandé sans aide, chrono 8 s → 5 s → 3 s selon le palier, un **jour différent** de la première vérification. C'est ce qui manque pour que « appris » (D5, `MUSIC_DESIGN` §4.6) tienne sa promesse. Tentative `kind: 'cold'`, vérifiée au micro (l'arpège est déjà là) ou déclarée.
-2. **Enchaîner** — transitions du curriculum (Em↔Em7, Em↔Asus2, Asus2→Am, Em↔Am, Am↔E, E↔A, A↔D, D↔G…) : deux accords, une mesure chacun, tempo réglable, **temps de changement mesuré** (onset de la première corde de B − dernier temps de A, latence retranchée). Nœuds `acc:transition:{a}>{b}` — le modèle du §5 les prévoit déjà.
-3. **Intégrer** — une progression de 4 accords sur `progressionToScore` (déjà écrit en 1b), strum ↓ puis ↓↑, avec le **plaqué déclaré** (la phase 5 l'écoutera).
-4. **Mode sans matériel** — QCM « quel accord est écrit en tab », « quelles notes le composent », reconstruction corde par corde ; auto-évaluation clairement distincte (statut non vérifié, moins d'XP).
-5. **Accordage guidé corde par corde (P4 de la phase 3)** — les six cordes dans l'ordre, « corde 6 juste → passe à la 5 », rappel « dernier accordage : 3 jours ». Prérequis réel de la validation arpège.
-6. **Paliers P5-P10** au curriculum (septièmes, sus/add, slash, Fa et Si m, barrés) : les voicings sont déjà dans la base et testés, il reste les justifications, les prérequis et les doigtés à saisir.
+1. **Analyse « accord attendu »** (`core/input/poly.ts`) : détection d'attaque (flux spectral), fenêtre longue **après** l'attaque (FFT 8 192-16 384, 5,9-2,9 Hz/bin), somme pondérée des harmoniques 1-6 par note attendue avec **soustraction itérative** des harmoniques déjà expliqués par les notes plus graves (idée de Klapuri). Sortie : **confiance 0-1 par note**, jamais un verdict binaire.
+2. **Comparaison avec les hypothèses concurrentes** : Em vs E, D/Dsus2/Dsus4, Am vs C, G/B vs G — les paires documentées en `MUSIC_DESIGN` §6. Message ciblé (« Sol♯ détecté au lieu de Sol »).
+3. **Tests sur signaux synthétiques d'abord** : générateur de superposition (harmoniques décroissantes, inharmonicité légère, bruit d'attaque, strum 10-40 ms, désaccord ±0/15/30 cents, SNR 30/20/10 dB, corde étouffée simulée), **matrice de confusion** pour les paires proches, **résultats chiffrés publiés tels quels**, y compris les échecs. Cibles hypothétiques (pas des promesses) : ≥ 90 % d'acceptation correcte à SNR 20 dB, ≤ 10 % de faux positifs entre voisins.
+4. **Onset et timing** : remplacer les horloges internes par l'attaque mesurée, latence retranchée ; **P5 de la phase 3** (« avance/retard moyen sur la grille ») tombe ici naturellement. Le temps de changement de l'étape Enchaîner passe de **une** note repère à l'accord entier.
+5. **Ce qui change dans le module Accords** : l'étape « Plaquer » et l'étape « Intégrer » deviennent **vérifiables** (avec niveau de confiance et bouton de secours), et la progression peut créditer l'axe **tempo** de `MUSIC_DESIGN` §4.7.
+6. **Seuils séparés par source** : interface USB d'abord, micro de téléphone ensuite ; le mode arpège **reste** la référence pour apprendre.
 
-**« Terminé » =** faire Em de zéro **puis** l'enchaîner avec Am à un tempo mesuré, l'app enregistrant la transition ; répondre à un QCM d'accord sans guitare ; et « appris » exigeant enfin la pose à froid.
+**« Terminé » =** un accord plaqué reconnu sur signal synthétique avec des chiffres publiés, puis validé sur une vraie guitare (interface USB), et un temps de changement mesuré sur les six cordes — l'app enregistrant un score de confiance, jamais un « faux » sec.
 
-**Points à surveiller** : le **temps de changement** dépend de l'onset, donc de la phase 5 (polyphonique) pour être fiable — en mono, on ne peut mesurer que la première corde ; les **cordes à vide qui résonnent par sympathie** peuvent valider une corde qu'on n'a pas jouée ; et un accord validé corde par corde reste **un accord posé, pas plaqué** tant que la phase 5 n'écoute pas les six cordes ensemble.
+**Points à surveiller** : les harmoniques des cordes graves recouvrent des notes aiguës (5·E2 = 412 Hz ≈ Sol♯4) ; l'**absence** d'une corde est bien plus difficile à prouver que sa présence ; un accord proche (Am/C, Em/G) restera ambigu en strum — le dire dans l'UI, pas seulement ici. Si les cibles ne sont pas tenues : le strum reste « confiance + validation manuelle », l'arpège porte la validation d'apprentissage.
 
-**Dette technique assumée à reprendre** : vue manche optionnelle (attend un accord explicite), page « Progression » (heatmap), doigtés de position non relus, `#/tab` encore en page de contrôle, La de référence non appliquée à la lecture des échantillons, `InputEngine` sans détection de bend/vibrato, **phases 5/7 qui portent P5 et P3** (§9.1), et **« note morte » non démontrée sur un vrai signal** (voir « Pas fait » de la 4a).
+**Dette technique assumée à reprendre** : vue manche optionnelle (attend un accord explicite), page « Progression » (heatmap), doigtés de position non relus, `#/tab` encore en page de contrôle, La de référence non appliquée à la lecture des échantillons, `InputEngine` sans détection de bend/vibrato, **P8/P10 du curriculum** (doigtés saisis des formes mobiles), **mode sans matériel absent du hub**, **« note morte » non démontrée sur un vrai signal**, et **P3 de la phase 3** (affichage live de la note) qui atterrit en phase 7.
