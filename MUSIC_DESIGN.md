@@ -1,6 +1,6 @@
 # MUSIC_DESIGN.md — choix musicaux et pédagogiques
 
-Statut : **phase 0 validée ; phase 1a (théorie + voicings) terminée, tests verts**. Ce document fixe les conventions et le plan pédagogique ; il sera mis à jour à chaque phase.
+Statut : **phase 0 validée ; phase 1a (théorie + voicings) commitée ; phase 1b (positions, écriture de la tablature, rythme, couleurs) terminée, tests verts, non commitée**. Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la 1b : §2.1, §3.7, §4.3 (barrés), §10.
 Auteur du raisonnement : rôle « dev + prof de guitare » du BRIEF.md. Les avis de prof sont marqués **[AVIS PROF]**, les hypothèses **[HYP]**, les points à trancher par toi **[À TRANCHER]**.
 
 Ce qui a été **vérifié par calcul** en phase 0 (script jetable, hors dépôt) : les 43 formes d'accord de la section 4.3 (notes réellement produites en accordage standard = notes de l'accord, basse correcte, orthographe correcte) et les 10 formes mobiles (barrés Mi/La × 5 qualités) sur 13 positions de fondamentale (cases 0 à 12) : **0 erreur**. Tout le reste est du raisonnement non exécuté.
@@ -83,6 +83,30 @@ Chiffrage romain : casse = qualité (I ii iii IV V vi vii° ; i ii° III iv v VI
 - Techniques (h, p, /, \, b, ~) dans le modèle dès la phase 1 ; affichage quand un exercice les utilise.
 - **Limites assumées** (sans diagramme de manche) : la tab montre mal la *forme de la main* et la *géométrie d'une position*. Compensations prévues : alignement vertical des colonnes, repère de case en marge, couleurs d'intervalle, doigtés, aperçu « position complète corde par corde », construction progressive (un doigt à la fois). **Ce qui reste insuffisant** : voir la forme d'un accord d'un coup d'œil, voir comment deux positions voisines se chevauchent, voir qu'une pentatonique « tient dans un rectangle ». Cf. propositions de vues complémentaires en 7.1 (non implémentées, **[À TRANCHER]**).
 
+### 2.1 Conventions implémentées en 1b (toutes testées)
+
+**Pastille et couleurs**
+- Pastille 11×13 px logiques (1 chiffre) ou 17×13 (2 chiffres, jusqu'à la case 24) ; glyphes 5×7 ; pas de 14 px entre cordes, donc 1 px d'air entre deux pastilles d'une pile.
+- Couleur = **fonction** d'intervalle : famille 1 jaune · 2 / 9 orange · 3 magenta · 4 / 11 vert · 5 cyan · 6 / 13 violet · 7 corail ; ♭ = −22 % de luminosité + encoche en bas à droite ; ♯ = +30 % de blanc + encoche en haut à droite ; **fondamentale = coins coupés** (le seul marqueur de forme). ♯4 et ♭5 sur la même touche ont deux couleurs (ΔE 69), comme ♭3 et ♯2 (ΔE 73).
+- Chiffre sombre ou blanc, selon le meilleur contraste (WCAG) : ≥ 4,5 sur les 23 fonctions testées (un chiffre sombre sur ♭3, ♭6, ♭7 donnait 3,6-4,0).
+- **Daltonisme (simulation Machado, ΔE76 minimal entre familles)** : protanopie 12,9 · deutéranopie 17,7 · tritanopie 12,0. **Limite constatée sur capture** : orange / magenta / vert se rapprochent en protanopie et deutéranopie. La couleur n'est donc **jamais la seule information** : forme de la fondamentale, encoche d'altération, rangée de degrés (réglable) — **décision : pas de réglage « aide daltonisme »** (D13 écartée) ; limite assumée.
+- Note caractéristique d'un mode (dorien : 6 ; phrygien : ♭2 ; lydien : ♯4 ; mixolydien : ♭7 ; éolien : ♭6 ; locrien : ♭2 et ♭5 ; blues mineur : ♭5 ; blues majeur : ♭3) : anneau lumineux qui pulse sur 4 images (≈ 5 Hz), fixe en mode « réduire les animations ». Ionien : aucune ; le ♭6 de l'éolien se lit « par contraste avec le dorien » (§1.4).
+
+**Pile d'accord**
+- Pile verticale, corde aiguë en haut ; `X` (rouge) sur chaque corde non jouée, écrit sur un fond qui coupe la ligne de corde ; barré = repère vertical à gauche de la pile couvrant les cordes concernées + `B1` (case du barré) dans la rangée du libellé.
+- **Simile** : la pile est redessinée au début de chaque mesure et quand la forme change ; les frappes suivantes ne portent que la flèche (↓ cyan, ↑ rose) et le rythme. Réglage « une pile par frappe » disponible.
+- Annotation d'une pile (note, degré, intervalle, doigté) : à droite de chaque pastille, sur fond de panneau. Pour une note seule : une rangée sous la tab.
+
+**Rythme (sous la tab, hampes vers le bas)**
+- Noire : hampe. Croches / doubles croches : **ligatures par temps** (par noire en 2/4, 3/4, 4/4 ; par noire pointée en 6/8, 9/8, 12/8) ; une croche isolée porte un fanion ; une double croche entre deux croches : ligature partielle. Blanche : hampe + anneau ; ronde : anneau seul. Points (simple et double). Triolet de croches : ligature + « 3 ». Silences : ronde (suspendu), blanche (posé), noire, croche, double croche.
+- Motifs de strum : ↓ ↓ ↓ ↓ ; ↓↑ en croches ; « motif universel » ↓ · ↓ ↑ · ↑ ↓ ↑, écrit en durées jusqu'à la frappe suivante (la main continue de battre, la tab n'écrit que les frappes : 2-1-2-1-1-1 croches).
+- Un arpège de 6 notes en croches remplit 6 des 8 croches de la mesure ; les 2 dernières sont des silences alignés sur les temps (jamais une pause « au hasard »).
+
+**Notation affichée**
+- Étiquettes de cordes : `mi` aigu / `Mi` grave en solfège, `e` / `E` en anglo ; Drop D : `Ré` grave. Noms de notes d'annotation : réglage solfège / anglo ; accords : `Am7` · `Lam7` · `A-7`.
+- Degrés écrits avec les vrais glyphes (♭3, ♯4, 𝄫7) ; intervalles : `P1 m3 M3 A4 d5 m7`.
+- Niveau 2 (mémorisation) : une note `hidden` s'affiche en emplacement pointillé, **sans chiffre, sans couleur, sans annotation** (rien ne fuit).
+
 ---
 
 ## 3. Module Gammes — plan pédagogique
@@ -107,7 +131,7 @@ G0 Fondations
 G1 Pentatonique mineure
  ├ G1.1 box 1 en Mi m (cases 0-3, quasi à vide) puis La m (cases 5-8)
  ├ G1.2 blue note ♭5 → blues mineur (box 1)
- ├ G1.3 boxes 2 à 5 (règle de chaînage : la box n+1 commence sur la 2de note de la box n sur la corde de Mi grave ; en La m : cases 5-8 → 7-10 → 9-12 → 12-15 → 14-17/2-5)
+ ├ G1.3 boxes 2 à 5 (règle de chaînage : la box n+1 commence sur la 2de note de la box n sur la corde de Mi grave ; en La m : cases 5-8 → 7-10 → 9-13 → 12-15 → 14-17 ; la même box 4 s'écrit cases 0-3 en position ouverte, la box 5 cases 2-5 ; **calculé et testé en 1b**, voir §3.7)
  └ G1.4 transposition : même box, autre case (jamais avant 2 tonalités maîtrisées)
 G2 Pentatonique majeure = même motifs, autre racine (relative) ; blues majeur
 G3 Majeure (ionien)
@@ -153,6 +177,24 @@ Séquences (par 3, par 4, tierces, quartes), motifs, alternate picking, legato (
 
 ### 3.6 Ear training (mini-jeux) — par ordre d'utilité/effort
 1. Majeur vs mineur (accord puis gamme) ; 2. quelle est la note caractéristique ? (dorien vs éolien, lydien vs ionien) ; 3. intervalles ascendants (2de→8ve) ; 4. mode sur drone ; 5. « joue la note que tu entends » (nécessite le micro). Les 1 et 2 sont à très haut impact pour un coût faible : audio seul.
+
+### 3.7 Positions : définitions implémentées en 1b (testées sur 12 toniques × tous les accordages)
+
+Une position = des couples (corde, case) lus **corde grave → aiguë, cases croissantes** ; la descente est l'ordre inverse exact. Toutes les notes appartiennent à la gamme, l'orthographe est celle de la gamme.
+
+| Système | Règle | Vérifié |
+|---|---|---|
+| **3 notes par corde** (gammes à 7 notes) | 3 notes **consécutives** de la gamme par corde, enchaînées d'une corde à l'autre ; la position *k* part du degré *k* sur la corde grave, à l'instance la plus basse du manche | 7 positions pour les 21 gammes à 7 notes × 12 toniques × 9 accordages (6 à 8 cordes) ; étendue maximale **mesurée : 6 cases d'écart** (7 cases occupées), y compris harmonique et mélodique ; position *k* et *k+1* : 12 notes sur 18 en commun |
+| **Boxes** (pentatoniques) | 2 notes consécutives par corde, même enchaînement | La m : **5-8 → 7-10 → 9-13 → 0-3 (= 12-15) → 2-5 (= 14-17)** ; Mi m box 1 : 0-3 ; La m pent et Do maj pent : mêmes 5 formes |
+| **Blues** | box de la pentatonique + la note de blues qui tombe dans la fenêtre | La blues, box 1 : ♭5 (Mi♭) corde de La case 6 et corde de Sol case 8 — les cases de la forme classique ; blues majeur : ♭3 |
+| **Bebop** | 3NPS de la gamme de base (bebop dominant → mixolydien ; bebop majeur → ionien) + la note de passage chromatique | 7 notes + la 7M (dominante) ou la ♯5 (majeur), marquées `passing` |
+| **CAGED** | fenêtre de **5 cases** autour de la forme d'accord de la majeure parente : forme de Mi / La / Ré = accord ± 1 case ; Do / Sol = 3 cases sous la fondamentale à 1 au-dessus | **[définition maison, à relire]** 5 formes pour la majeure, ses 6 autres modes et les 2 pentatoniques ; 2-3 notes par corde ; fondamentale, tierce et quinte toujours présentes ; fenêtres consécutives qui se recouvrent, sur 13 tonalités |
+| **Symétriques** | période du motif (2 tons entiers, 3 diminuée, 4 augmentée) ; un motif par case de la période ; fenêtre de 5 cases | 2 / 3 / 4 positions |
+
+- Exemples de fenêtres CAGED (cases) : **Do majeur** C 0-4 · A 2-6 · G 5-9 · E 7-10 · D 9-13 ; **Sol majeur** G 0-4 · E 2-5 · D 4-8 · C 7-11 · A 9-13.
+- CAGED n'est calculé que si les 6 cordes aiguës sont en standard (Mi La Ré Sol Si mi) : 7 et 8 cordes standard : oui (la corde grave supplémentaire est incluse dans la fenêtre) ; Drop D, DADGAD, Open G… : **refusé, avec la raison affichable**.
+- **`formIndex`** : identité de la forme indépendante du mode — rang de départ dans la gamme **parente** : la position 2 de Ré dorien (départ Mi) a le même `formIndex` et les mêmes cases que la position 3 de Do majeur. C'est la clé des nœuds « forme » de §3.1.
+- **Numéro d'une position** = rang du degré de départ : « Position 1 » = la tonique sur la corde grave, quel que soit l'endroit du manche. Un même numéro désigne donc la même *forme* dans toutes les tonalités ; pour savoir *où*, on lit « cases a–b ».
 
 ---
 
@@ -260,6 +302,7 @@ Formes mobiles (fondamentale sur la case r de la corde indiquée ; offsets relat
 | La maj7 | corde 5 | x 0 2 1 2 0 |
 
 Précisions honnêtes :
+- **Barrés (1b)** : `F-133211` (case 1, cordes 6→1), `F-xx3211` (case 1, cordes 2→1), `Bm-x24432` (case 2, cordes 5→1) portent un champ `barre` ; les formes mobiles (Mi / La) en reçoivent un dès qu'elles quittent le sillet (l'index remplace le sillet), sur les cordes à l'offset 0 de la forme (Mi maj7 en Sol : cordes 6→2, car la corde 1 n'est pas jouée). Test : toutes les cordes du barré sont à la case du barré ou au-dessus et au moins deux y sont posées.
 - Une forme « 4 cordes » comme **xx0003 est en réalité G/D** (basse = Ré). On l'étiquette ainsi ; on ne la présente pas comme « un Sol ».
 - **Accordages alternatifs** : seules les formes mobiles (barrés, power chords, triades) et les formes recalculées par un **solveur de voicings** (recherche exhaustive d'un accord dans l'accordage donné, étendue ≤ 4 cases, notes requises présentes, basse contrainte, classement par ergonomie) sont proposées ; chaque résultat passe le même test automatique que les formes curées. Les formes ouvertes fixes ne s'appliquent qu'au standard. **[À TRANCHER]** : solveur en phase 4 ou plus tard.
 - Tests d'une forme : (a) classes de hauteurs jouées = formule de l'accord moins omissions *déclarées* ; (b) basse = fondamentale ou basse déclarée ; (c) orthographe égale à celle de la formule ; (d) étendue ≤ 4 cases (hors barré) ; (e) nombre de doigts ≤ 4 (un barré compte pour 1) ; (f) formes mobiles testées sur 13 fondamentales.
@@ -408,6 +451,27 @@ Feedback explicatif : toujours une cause + une action (« Do tenu sur G7 frotte 
 
 ## 9. Idées en attente et références
 
-**Idées en attente** (non planifiées) : mode gaucher (miroir de la vue boîte) ; solveur de voicings pour accordages alternatifs ; bibliothèque de morceaux **domaine public / traditionnels uniquement** (les morceaux sous droits ne peuvent pas être embarqués) ; journal de pratique exportable ; mode « métronome seul » ; entraînement du chant/note cible ; export Guitar Pro (via alphaTab, hors chemin critique).
+**Idées en attente** (non planifiées) : mode « débutant » de la tab (hampes masquées, flèches seules) ; vue « fondamentales seulement » d'une position ; positions en sous-ensembles (2 cordes, puis 3…) pour le chunking ; comparaison côte à côte de deux modes voisins ; superposition de la forme d'accord dans une position CAGED ;  mode gaucher (miroir de la vue boîte) ; solveur de voicings pour accordages alternatifs ; bibliothèque de morceaux **domaine public / traditionnels uniquement** (les morceaux sous droits ne peuvent pas être embarqués) ; journal de pratique exportable ; mode « métronome seul » ; entraînement du chant/note cible ; export Guitar Pro (via alphaTab, hors chemin critique).
 
 **Références de travail** (citées de mémoire, **non relues** pendant la phase 0 ; à vérifier avant d'être affichées dans l'app) : Mark Levine, *The Jazz Theory Book* (notes à éviter, modes sur accords) ; cours débutant de JustinGuitar (ordre des accords, exercice « one-minute changes ») ; McLeod & Wyvill, « A Smarter Way to Find Pitch » (2005) ; A. Klapuri, estimation multi-F0 par annulation itérative (ISMIR 2006) ; Wozniak, SM-2 ; FSRS (Ye et al.).
+
+---
+
+## 10. Bilan de la phase 1b — avis de prof et propositions
+
+### 10.1 Avis de prof sur ce qui est construit
+- **Ce qui marche vraiment** : la tab montre maintenant la *fonction* des notes, pas seulement leur place. La fondamentale jaune aux coins coupés, la couleur du ♭3 qui diffère de celle de la 3ce, le glow sur la note qui fait le mode (la 6te du dorien, le ♭5 du blues) : c'est ce qui transforme « 12 chiffres à retenir » en « une forme avec un centre ». La box 1 de La mineur sort exactement comme la forme qu'on enseigne (5-8 / 5-7 / 5-7 / 5-7 / 5-8 / 5-8) et la blue note tombe aux bonnes cases (corde de La case 6, corde de Sol case 8) — vérifié par test, pas à l'œil.
+- **Ce que la tab ne sait pas faire (limite confirmée sur les captures)** : une box à 2 notes par corde se lit comme une forme ; une position 3NPS (18 notes sur 6 lignes) se lit comme une **liste de chiffres**. Je ne promets pas qu'un débutant « voie » le rectangle à partir de la tab seule. Les repères actuels (cases a–b, fondamentale jaune, couleurs) aident, ils ne remplacent pas un diagramme. Ma recommandation de la phase 0 (une vue manche **optionnelle** dans le module Gammes) reste d'actualité ; je ne l'ai pas implémentée.
+- **Les accords** : la pile + X + barré + « simile » est lisible et honnête, mais l'étape « Construire un doigt à la fois » est **bloquée par les données** : aucun doigté n'est saisi (phase 4, relecture prof). Sans eux, la rangée « doigté » reste vide. Et la forme de la main reste mal visible dans une pile (D1 : boîte d'accord aux étapes Découvrir / Construire, toujours recommandée).
+- **Rythme** : correct (ligatures par temps, points, triolets, silences), mais trois couches — pile, flèches, hampes — c'est beaucoup pour quelqu'un qui joue ses deux premiers accords. À ce stade, seules les flèches comptent : un mode « débutant » qui masque les hampes est plus important que n'importe quel raffinement de notation.
+- **CAGED** : ma définition (fenêtre de 5 cases autour de la forme d'accord) est cohérente et testée, mais **ce n'est pas encore une position que j'enseignerais sans que tu la relises** (D12). Les fenêtres de Do majeur (C 0-4 · A 2-6 · G 5-9 · E 7-10 · D 9-13) sont plausibles ; je n'ai pas de source sous les yeux pour comparer.
+- **Couleur et daltonisme** : les chiffres de contraste sont bons, mais l'œil voit orange, magenta et vert se confondre en protanopie / deutéranopie. Sans réglage dédié (D13 écartée), seule la rangée de degrés optionnelle compense : ce n'est pas pleinement accessible à ≈ 8 % des garçons et hommes. Limite assumée.
+- **Le curseur** : ancré à 30 % de la largeur, notes passées estompées, anneau blanc sur la note en cours — ça se suit sans lâcher la main des yeux. Mesuré exact au pixel par rapport au tick du Transport (écart max à une droite parfaite : 3,9 ticks ≈ 6 ms) ; l'alignement avec le son **entendu** repose sur la latence de sortie annoncée par le navigateur (retranchée), **non mesurée au micro**. **Le son, lui, est provisoire et je ne l'ai pas écouté** : le timbre d'un PluckSynth n'est pas celui d'une guitare ; ne juge pas la pédagogie sur lui.
+
+### 10.2 Propositions pédagogiques (impact ÷ effort décroissant)
+1. **« Fondamentales d'abord »** *(impact fort, effort faible)* : avant de jouer une position, n'allumer que les fondamentales (et les quintes) ; l'élève les nomme à voix haute. Ça ancre la tonique **dans** la forme avant les 10 autres notes — l'erreur n°1 est de connaître la forme sans savoir où elle « habite ». Réutilise `fn` : un simple réglage d'affichage.
+2. **Positions par morceaux** *(fort, moyen)* : le même générateur émet une position en sous-ensembles — 2 cordes, puis 3, puis la box entière. Réduit la charge de 12 notes à 4 et prépare le niveau 3 « Rappel » (§3.4) sans nouveau code de théorie.
+3. **« Quelle est la ♭3 ? »** *(fort, moyen)* : jouer la box avec drone, demander de toucher la pastille d'une fonction donnée (la magenta, la ♭5…). Apprend à lire la couleur comme un **son** (la couleur du mode), pas comme un décor ; c'est de l'ear training sur la tab elle-même.
+4. **Deux modes côte à côte** *(moyen, faible)* : dorien et éolien sur la même position, seule la note qui change en glow (la 6te contre la ♭6). Le brief demande les deux façons de penser les modes ; le modèle porte déjà `characteristic`.
+5. **Le pont accord ↔ gamme dans CAGED** *(moyen, moyen)* : dans une position CAGED, superposer la pile de la forme d'accord correspondante (« ton Mi barré est ici, la gamme l'entoure »). Les données existent (fenêtres CAGED + formes mobiles) ; c'est le lien explicite que demande le brief entre les deux modules.
+

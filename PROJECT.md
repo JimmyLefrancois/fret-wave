@@ -1,14 +1,54 @@
 # PROJECT.md — Fretwave (nom de travail) : apprendre la guitare, en tablature, en pixel art
 
-**Statut : phase 0 validée (D1-D10 acceptées ; D8 = `Am7` anglo). Phase 1a terminée (moteur de théorie + voicings + tests) ; 1b (TabScore + rendu pixel) en attente de ton feu vert.**
+**Statut : phase 0 validée · phase 1a terminée et commitée (`5797333`) · phase 1b (positions, TabScore, rendu pixel, curseur synchronisé sur Tone.Transport) terminée, **non commitée**, en attente de ta validation · 1c pas commencée.**
 Documents liés : `BRIEF.md` (cahier des charges), `MUSIC_DESIGN.md` (conventions musicales, curriculum, avis de prof).
 Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** décision qui t'appartient · **[RISQUE]** voir section 7.
 
 ---
 
+## État exact (dernière mise à jour : fin de la phase 1b)
+
+**Git** (branche `master`) : `183eacc` Phase 0 · `5797333` Phase 1a · **la phase 1b n'est pas commitée** (`git status` : fichiers modifiés et nouveaux, dont ce document). Aucun remote.
+
+**Fait et vérifié (1b)**
+- **Positions** (`src/core/theory/positions.ts`) : 3 notes par corde (7), boxes pentatoniques (5), CAGED (5), motifs symétriques (période 2 / 3 / 4), blues (box + note de blues), bebop (3NPS + note de passage). Générique sur l'accordage et le nombre de cordes ; CAGED seulement si les 6 cordes aiguës sont en standard (refus avec raison). Option `register` (+12 cases), `formIndex` (identité de forme indépendante du mode), étiquettes « Position 3 · cases 7–10 ». Règles exactes : `MUSIC_DESIGN.md` §3.7.
+- **`TabScore`** (`src/core/tab/model.ts`) : ticks entiers PPQ 480, `startTick` relatif à la mesure, valeurs de notes (pointées, triolets), fonctions d'intervalle, `validateScore` (durées = signature, `midi = accordage + case`, nom de note cohérent, cordes, cases 0-24…).
+- **Générateurs → TabScore** (`generators.ts`) : gamme, position (montée / descente / aller-retour), arpège dans une position, accord (plaqué, arpégé, les deux, 3 motifs de strum), progression, accord « dérivé de la gamme ». Les notes de l'accord affiché = celles du voicing (testé sur les 43 formes + 120 barrés mobiles).
+- **Layout pur** (`layout.ts`, testé sans canvas) : mesures, barres, colonnes proportionnelles au temps, piles d'accord avec « simile », X sur les cordes non jouées, barré, flèches ↓↑, rythme (hampes, ligatures 1-3 niveaux, points, triolets, silences), noms d'accords + chiffrage romain + libellé, 4 annotations (note, degré, intervalle, doigté), `cursorAt(tick)`. Deux dispositions : défilement continu (étiquettes de cordes fixes) et retour à la ligne justifié.
+- **Police bitmap 5×7** maison (`font.ts`, 90 glyphes dont ♯ ♭ 𝄪 𝄫 ø Δ ° ↓ ↑ ♩, + 5 silences) ; un test vérifie qu'elle couvre **tout** ce que l'app peut afficher dans la tab.
+- **Rendu pixel** (`render.ts`, `surface.ts`) sur une interface `Surface` : Canvas 2D (échelle entière) ou tampon mémoire (tests pixel par pixel, export PNG). Pastilles 11×13 / 17×13, fondamentale à coins coupés, encoche ♭/♯, glow pulsé des notes caractéristiques, notes passées estompées, curseur.
+- **Lecture** : `playback.ts` (pur : mêmes notes que l'écran, strum 14 ms) + `core/audio/tabPlayer.ts` (Tone.Transport, PPQ 480, **son provisoire** : une corde Karplus-Strong `PluckSynth` par corde de la guitare). Tone est chargé à la demande (chunk séparé).
+- **Page de contrôle** (`src/app/TabPage.tsx`, `TabView.tsx`) : tous les générateurs, 9 accordages, 31 gammes, 4 annotations, 2 notations, 3 échelles + auto, lecture / pause / stop / boucle / tempo en direct, « réduire les animations ». L'explorateur de théorie de la 1a est conservé (onglet « Théorie »).
+- **Tests** : **204 verts** (1a : 61) + un générateur de captures PNG (`FRETWAVE_PNG_DIR=… npx vitest run tests/snapshots.test.ts`). `tsc --noEmit` propre. `vite build` OK : **312 ko (99,7 ko gzip)** + chunk Tone de 341 ko (79,4 ko gzip) chargé seulement au premier « Lecture ».
+
+**Mesures (Chromium piloté par CDP, viewports émulés 390×844 @3, 412×915 @2,625, 1440×900 @1 — pas un vrai téléphone)**
+- **Synchronisation** : à 80 BPM, pente du tick lu = **640,01 ticks/s** (attendu 640) sur 330 images, écart max à la droite 3,9 ticks (≈ 6 ms), rms 1,8 ticks ; à 160 BPM 1280,1 (attendu 1280) ; boucle : retour à 0 vérifié ; changement de tempo en lecture pris en compte. Notes déclenchées : 23 / 23, écart max à la grille de ticks idéale **0,0 ms**. Le curseur est **exact au pixel** (cœur blanc à `round(cursorAt(tick).x) × k`), ancré à 30 % de la largeur en défilement. Latence de sortie annoncée par le navigateur : 11 ms, retranchée du tick lu — **non vérifiée acoustiquement** (pas de micro de mesure) ; à recalibrer sur appareil réel (R2).
+- **Performance** : dessin statique 0,2 à 10,7 ms (une fois par disposition), couche animée 0,06 à 0,27 ms par image (max 7 ms à la 1re), 241 à 469 images par essai, **0 image > 25 ms**, écart max entre images 16,8 ms (60 Hz).
+- **DPR non entier (R5)** : à 2,625, k = 5 pixels physiques par pixel logique ; largeur du canvas 985 px = 984,99 px (CSS × DPR) → pixels tous identiques.
+- **Lisibilité** : contraste chiffre / pastille ≥ 4,5 pour les 23 fonctions testées (chiffre sombre ou blanc selon le meilleur contraste). Daltonisme (Machado, ΔE76 entre les 7 familles) : minimum **12,9** protanopie (1/4), **17,7** deutéranopie (2/4), **12,0** tritanopie (3/7). Mais **à l'œil** (capture `11-daltonisme…`), orange / magenta / vert se rapprochent en protanopie et deutéranopie : la couleur seule ne tient pas, ce sont la forme (fondamentale), l'encoche (♭/♯) et la rangée de degrés qui portent l'information.
+- Hauteur d'une ligne de 6 cordes : **136 px logiques** (gamme + annotation sous la tab), **137** (accord plaqué avec flèches) ; +14 par corde supplémentaire (7 cordes : +14, 8 : +28, testé).
+
+**Pas fait**
+- **Son final** : échantillons de guitare, bus / mixage, drone, accordeur de référence, SFX (→ 1c). Le son provisoire n'a **pas été écouté** (timing vérifié, pas le timbre).
+- Hub, thème Synthwave complet (scène, parallaxe), module Gammes N1, page debug audio (→ 1c).
+- **Doigtés** (aucun n'est généré : la donnée est vide, la rangée « doigté » n'affiche que ce qui existe) ; marqueur de **basse** des accords slash ; doigt du barré affiché (seuls « B1 » et le repère le sont) ; boîte d'accord (D1 : phase 4).
+- Tempo **par mesure** (modélisé et validé, pas joué) ; triolets : rendu et lecture sur fixture, **aucun générateur** ne les produit ; techniques (h p / \ b ~) modélisées, pas dessinées.
+- Saisie sur la tab (cases cliquables, pavé numérique : phase 2) ; défilement des scores très longs (garde-fou `tooWide` > 16 000 px de canvas, pas de découpage en tuiles) ; test sur appareil réel et Safari iOS.
+- Persistance, progression, SRS, entrée audio, PWA, i18n, routeur : phases suivantes.
+
+**Écarts entre ce document (phase 0 / 1a) et la réalité**
+- Hauteur d'une ligne 6 cordes : **136-137 px** et non 144 (§4.9, corrigé).
+- La pile d'accord est redessinée **au début de chaque mesure** et au changement d'accord (et non seulement au changement) : une ligne qui revient à la ligne reste lisible sans état caché (H21).
+- `TabNote.pitch` du §4.4 devient `midi` + `note` (nom orthographié) ; `ChordRef` devient le symbole du modèle (chaîne) ; ajouts : `unplayed`, `barre`, `characteristic`, `passing`, `TabScore.kind`, `TabScore.meta`.
+- Positions boxes : en La m, la box 4 est écrite **cases 0-3** (instance la plus basse) ; l'instance « 12-15 » du curriculum s'obtient avec `register: 1` ; la box 3 couvre 9-13 (et non 9-12). `MUSIC_DESIGN.md` §3.2 corrigé.
+- Données : `F-133211`, `F-xx3211`, `Bm-x24432` et les formes mobiles déplacées portent maintenant un champ `barre`, validé par `validateVoicing`.
+- Dépendances : **Tone 15.1.22** installé (chargé à la demande) ; `@types/node` ajouté (helper PNG des tests) ; `tsconfig` : `types: ["vite/client", "node"]`.
+
+---
+
 ## 0. En une page
 
-| Sujet | Décision proposée |
+| Sujet | Décision (validée en phase 0) |
 |---|---|
 | Framework | **Vite + TypeScript + React 19.** Le temps réel (audio, canvas) vit dans des classes TS hors React ; React ne gère que l'UI (hub, menus, réglages). |
 | Rendu pixel | **Canvas 2D**, **un seul « pixel logique » pour toute l'app** (facteur entier S ≥ 2), canvas de largeur variable ; **pas de PixiJS**. |
@@ -55,7 +95,7 @@ Le brief propose Gammes + Accords. **Je garde ces deux modules**, avec ces écar
 ## 3. Stack et justifications
 
 ### 3.1 Versions (npm au moment de la phase 0)
-Vite 8.3.5 · React 19.3.1 · Vitest 5.0.5 · Tone 15.1.22 · tonal 6.5.1 · pitchy 4.1.0 · idb 8.0.4 · vite-plugin-pwa 2.0.0 · Node 24.22.1 présent sur la machine. Les numéros seront figés dans `package.json` en phase 1 ; vérification faite via `npm view`, pas via installation.
+**Installées (`package.json`)** : Vite 8.3.5 · React / React DOM 19.3.1 · TypeScript 7.0.2 · Vitest 5.0.5 · `@vitejs/plugin-react` 6.1.2 · `tonal` 6.5.1 · **Tone 15.1.22 (1b, import dynamique)** · types React 19.3.0 · `@types/node` 24 · Node 24.22.1 (système : v18, trop ancien). **À installer en 1c / plus tard** : pitchy 4.1.0 · idb 8.0.4 · vite-plugin-pwa 2.0.0 (versions relevées par `npm view` en phase 0).
 
 ### 3.2 React vs Svelte
 **React 19.** Raison : écosystème de test et d'accessibilité, familiarité, et surtout **le framework est presque neutre ici** : les parties critiques (audio, tab, pitch) sont des modules TS purs sans dépendance au framework. Svelte serait plus léger ; le gain ne justifie pas de changer d'outil pour un projet solo. État global léger (Zustand ou équivalent) ; routage minimal par hash (compatible PWA hors ligne). **[HYP]**
@@ -138,6 +178,8 @@ guitare/
 ```
 **Ajouter un module = ajouter un dossier avec `module.ts` ; ajouter un thème = ajouter un fichier de config + assets.** Le cœur ne change pas.
 
+*État (fin 1b) : existent `src/app/` (page de contrôle : `TabPage`, `TabView`, `TheoryPage`), `src/core/theory/` (avec `positions`, sans `harmony`), `src/core/tab/` (`model` · `generators` · `layout` · `render` · `surface` · `font` · `colors` · `playback`), `src/core/audio/tabPlayer.ts` (lecteur provisoire) et `src/data/voicings.ts` (TS, pas JSON). Le reste de l'arbre est à créer ; `tab/slots` (saisie) et `tab/cursor` sont dans `layout.ts` (`cursorAt`) pour l'instant.*
+
 ### 4.2 Interface `LearningModule` (contrat, pas du code livré)
 ```ts
 interface LearningModule {
@@ -174,21 +216,26 @@ interface AxisProgress {
 ```
 Journal `attempts` : `{ts, nodeId, axis, exerciseType, outcome, durationMs, evidence, context}`. Les agrégats se **recalculent** à partir du journal.
 
-### 4.4 Modèle `TabScore` (indépendant du rendu ; consommé par rendu **et** audio)
+### 4.4 Modèle `TabScore` (indépendant du rendu ; consommé par rendu **et** audio) — *tel que construit en 1b* (`src/core/tab/model.ts`)
 ```ts
-interface TabScore { id; tuning: Tuning; stringCount: number; capo?: number; ppq: 480;
-                     tempo: number; timeSig: [number, number]; measures: Measure[] }
-interface Measure  { timeSig?; tempo?; label?: { chord?: ChordRef; roman?: string }; events: TabEvent[] }
-interface TabEvent { startTick: number; durTick: number; tuplet?: Tuplet;     // entiers : pas de dérive flottante
-                     kind: 'notes'|'rest'; notes: TabNote[];
-                     chord?: ChordRef; strum?: { dir: 'D'|'U'; spreadMs?: number } }
-interface TabNote  { string: number /*0 = grave*/; fret: number; pitch: Pitch /*MIDI + nom anglo*/;
-                     muted?: boolean; technique?: 'h'|'p'|'/'|'\\'|'b'|'~'; finger?: 0|1|2|3|4|'T';
-                     fn: IntervalFunction /*1,♭3,3,♯4,♭5…*/; hidden?: boolean /*trous niveau 2*/ }
+interface TabScore { id; kind: 'scale'|'position'|'arpeggio'|'chord'|'progression'|'exercise';
+                     tuning: Tuning; stringCount: number; ppq: 480; tempo: number; timeSig: [number, number];
+                     measures: Measure[]; meta?: { scaleId?; tonic?; positionId?; system?; chord? } }
+interface Measure  { timeSig?; tempo?; label?: { chord?: string; roman?: string; text?: string }; events: TabEvent[] }
+interface TabEvent { startTick: number /* RELATIF à la mesure */; durTick: number; tuplet?: { actual; normal };
+                     kind: 'notes'|'rest'; notes: TabNote[]; chord?: string /* symbole du modèle, anglo */;
+                     strum?: { dir: 'D'|'U'; spreadMs? }; unplayed?: number[] /* X de la pile */;
+                     barre?: { fret; fromString; toString; finger } }
+interface TabNote  { string: number /*0 = grave*/; fret: number; midi: number /*son réel*/; note: NoteName /*orthographe, sans octave*/;
+                     fn: DegreeLabel /*« 1 », « b3 », « #4 », « 9 » : relatif à la fondamentale du contexte*/;
+                     muted?; technique?: 'h'|'p'|'/'|'\\'|'b'|'~'; finger?: 0|1|2|3|4|'T';
+                     hidden?: boolean /*trous niveau 2*/; characteristic?: boolean /*glow*/; passing?: boolean /*blue note, passage*/ }
 ```
-- Les **ticks entiers** (PPQ 480) évitent les erreurs de flottants ; conversion vers le Transport de Tone en un seul endroit.
-- Générateurs `theory → TabScore` : gamme, position, arpège, accord (plaqué/arpégé), exercice, progression, backing.
-- Tests : durées par mesure = signature ; chaque note a une hauteur cohérente avec l'accordage (`pitch = tuning[string] + fret`) ; l'audio joué = les notes affichées.
+- Les **ticks entiers** (PPQ 480) évitent les erreurs de flottants (croche de triolet = 160) ; conversion vers le Transport de Tone en **un seul endroit** (`tabPlayer.ts` : `` `${tick}i` ``).
+- `validateScore` = les invariants testés : durées de chaque mesure = signature (événements contigus, silences explicites), `midi = accordage[corde] + case`, `note` cohérente avec `midi`, cordes / cases dans la plage, une note par corde et par événement, durées « notables » (noire pointée, triolet… sinon refus), `strum` seulement sur ≥ 2 notes.
+- Générateurs `théorie → TabScore` livrés : gamme, position, arpège, accord (plaqué / arpégé), progression. À venir : exercice (séquences), backing.
+- **La fonction `fn` est relative au contexte** : fondamentale de la gamme pour une position, fondamentale de l'accord pour un arpège ou un accord (Cmaj7 joué dans une position de La mineur : 1 3 5 7, pas 3 5 7 1♭3…).
+- Lecture : `scoreToPlayEvents` (pur) → Tone. **Le son joué = les notes du score** (testé sur 6 types de scores, cordes × cases × hauteurs). Strum : ↓ grave → aigu, ↑ aigu → grave, 14 ms entre cordes par défaut (plage réaliste 8-25 ms).
 
 ### 4.5 Base de voicings
 ```ts
@@ -230,8 +277,8 @@ Casque recommandé pour le Défi (le micro capterait le backing).
 **Un seul pixel logique pour toute l'app.** Facteur d'échelle entier `S` (CSS px par pixel logique), `canvas.width = largeur_css × dpr` arrondie à un multiple de `S × k` quand c'est possible ; rendu à `image-rendering: pixelated`, `imageSmoothingEnabled = false`.
 - **480×270 n'est pas adapté** : une tab de 6 cordes + en-têtes + rythme + annotations demande ≈ 144 pixels logiques de haut (53 % de 270), et un téléphone portrait (390 px) n'a pas de rapport entier avec 480.
 - **Chiffres de frettes** : police bitmap maison **5×7** (≥ 2 chiffres lisibles), pastille 1 chiffre = 11×13, 2 chiffres = 17×13 pixels logiques (contour 1 + remplissage 2). Pas entre cordes : **14** (pastille 13 → 1 px d'air, piles d'accords sans chevauchement).
-- **Hauteur d'une tab 6 cordes ≈ 144 px logiques** : en-tête (nom d'accord + chiffrage romain) 22 ; corde/pastilles 83 ; rythme 16 ; annotation 10 ; doigtés 10 (+ marge). **7 cordes : +14.**
-- **Échelle `S` automatique** : `S = clamp(⌊min(largeur/190, hauteur×0,38/144)⌋, 2, 4)` : téléphone 390×844 → **S=2** (chiffre 14 px CSS de haut, pastille 26×34 CSS, bien lisible) ; bureau 1440×900 → S=2 (S=3 en réglage) ; 4K → S=4. Largeur logique = largeur écran/S (**195 px logiques en portrait**).
+- **Hauteur d'une ligne de tab 6 cordes = 136-137 px logiques** (mesuré en 1b ; l'estimation de la phase 0 était 144) : marge + nom d'accord 3 + 10 ; libellé / chiffrage 10 ; + 3 ; cordes et pastilles 83 ; flèches de strum 2 + 7 (accords seulement) ; rythme 2 + 13 (+ 8 si triolets) ; annotation 1 + 7 (notes seules) ; marge basse 4. Une rangée absente de tout le score disparaît pour toutes les lignes. **7 cordes : +14, 8 cordes : +28** (testé).
+- **Échelle `S` automatique** : `S = clamp(⌊min(largeur/190, hauteur×0,38/144)⌋, 2, 4)` : téléphone 390×844 → **S=2** (chiffre 14 px CSS de haut, pastille 26×34 CSS, bien lisible) ; bureau 1440×900 → S=2 (S=3 en réglage) ; 4K → S=4. Largeur logique = largeur écran/S (**195 px logiques en portrait**). *1b : implémenté tel quel (`autoScale`) ; `k = round(S × dpr)` pixels physiques par pixel logique, canvas dimensionné à `largeur × k` ; en défilement continu les étiquettes de cordes restent fixes, le curseur est ancré à 30 % ; au-delà de 16 000 px de canvas : drapeau `tooWide` (pas de tuiles).*
 - **Scène de fond** : même grille de pixels (taille = viewport/S), couches pré-rendues, parallaxe légère, étoiles qui scintillent ; limitée à 30 images/s.
 - **DPR non entier** (ex. 2,625) : le facteur d'agrandissement final doit rester entier sur le *pixel physique* ; sinon pixels inégaux (voir R5).
 - **Mobile portrait : défilement horizontal continu avec curseur fixe (≈ 30 % de la largeur)** pour tout ce qui est « jeu » (Défi, improvisation, lecture) ; **retour à la ligne** (systèmes empilés) pour l'étude statique et le grand écran/paysage. La position complète d'une gamme (36 notes) s'affiche en **liste verticale de systèmes**.
@@ -472,16 +519,41 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 
 ## 8. Hypothèses prises (sans te bloquer)
 
-1. Droitier, accordage standard, La = 440 Hz, notation d'affichage **solfège** par défaut (réglage anglo/jazz). **[HYP]**
+**Issues de la phase 0**
+1. Droitier, accordage standard, La = 440 Hz. **[HYP]**
 2. Français uniquement ; textes dans un catalogue i18n pour une éventuelle traduction. **[HYP]**
 3. Pas de backend ; données locales ; aucun compte.
 4. Corde grave = index 0 dans le modèle ; « corde 1 » = aiguë côté affichage.
-5. PPQ 480 en interne.
+5. PPQ 480 en interne (`TabScore`, construit en 1b).
 6. Leitner à 6 boîtes derrière une interface `Scheduler` (FSRS possible).
-7. Symboles d'accords affichés en **notation anglo-saxonne par défaut (`Am7`, `G/B`, `F♯m7♭5`)** — **décision D8 validée** ; les noms de notes (tab, annotations) restent en solfège par défaut ; deux réglages distincts (`noteNotation`, `chordNotation`).
-8. Défi : x accords de 2 à 6.
-9. Latence : mesurée par calibration, pas estimée.
-10. Le dépôt git du projet est vide (aucun commit) ; **je n'ai rien commité**. Les 3 fichiers `BRIEF.md`, `PROJECT.md`, `MUSIC_DESIGN.md` sont non suivis.
+7. Défi : x accords de 2 à 6.
+8. Latence : mesurée par calibration, pas estimée.
+9. Notation : **notes en solfège** par défaut, **accords en anglo** (`Am7`, décision D8) ; deux réglages distincts (`noteNotation`, `chordNotation`).
+
+**Prises en phase 1a**
+10. **Mélodique = convention jazz** (1 2 ♭3 4 5 6 7 montée et descente) ; la variante classique n'est pas encore implémentée (option documentée dans `MUSIC_DESIGN.md` §1.5).
+11. **Tons entiers écrits avec ♭7** (Do Ré Mi Fa♯ Sol♯ Si♭), pas La♯ : on garde la fonction de degré.
+12. **Altérée = 1 ♭2 ♭3 ♭4 ♭5 ♭6 ♭7** (la tierce s'écrit ♭4 pour garder une note par lettre) ; dim7 = 1 ♭3 ♭5 𝄫7 ; `dim` = triade.
+13. Une altération juste après la lettre fait toujours partie de la fondamentale : `Bb5` = Si♭ power chord, `Bbb5` = Si𝄫 power chord.
+14. Les 7 modes diatoniques de la majeure, de l'harmonique et de la mélodique sont dans le catalogue ; les noms français des modes dérivés sont provisoires.
+15. Les **difficultés (1-5)** et les paliers des voicings sont des **heuristiques** (non calibrées) ; les **doigtés** ne sont pas saisis (phase 4, relecture « prof »).
+16. Les voicings curés sont **limités à l'accordage standard** ; les accordages alternatifs passeront par des formes mobiles ou un solveur validé (D9, plus tard).
+17. Étiquettes de cordes en solfège : `Mi` grave / `mi` aigu (casse), comme `E`/`e`.
+18. `parentMajorTonic` renvoie la transposition brute : elle peut donner un parent à 7 altérations ou à doubles altérations (ex. Ré♯ locrien → Mi♯ majeur). L'UI devra le présenter comme une information, pas comme une tonalité jouable (à traiter en 1c).
+19. Le nom « Fretwave » est un **nom de travail**.
+20. Le dépôt n'a pas de remote ; les commits sont locaux.
+
+**Prises en phase 1b**
+21. **Position n = rang du degré de départ sur la corde grave** (Position 1 = la tonique) ; chaque position est placée à l'**instance la plus basse du manche** (cases 0-24) ; `register: 1` donne l'instance 12 cases plus haut (une position qui dépasserait la case 24 est omise, jamais tronquée). Les numéros ne suivent donc pas l'ordre sur le manche. **[HYP → décision D11 : acceptée]**
+22. **CAGED = fenêtre de 5 cases autour de la forme d'accord** (Mi / La / Ré : l'accord ± 1 case ; Do / Sol : de 3 cases sous la fondamentale à 1 au-dessus). Définition **maison**, non comparée à une source ; testée : 5 formes pour la majeure, ses 6 modes et les 2 pentatoniques, 2-3 notes par corde, accord majeur toujours présent, fenêtres qui se recouvrent sur 13 tonalités. CAGED des modes et des pentatoniques = fenêtres de la majeure parente. **[HYP → décision D12 : acceptée ; relecture par toi de 3 tonalités (Do, Sol, La) avant d'exposer CAGED dans l'UI 1c]**
+23. **Symétriques** : un motif par case de la période (2, 3, 4), fenêtre de 5 cases. **Blues / bebop** = position de la gamme de base (pentatonique / mixolydien / ionien) + les notes ajoutées qui tombent dans sa fenêtre, marquées `passing`.
+24. **Pile d'accord redessinée au début de chaque mesure** et à chaque changement de forme (les frappes suivantes : flèche seule, « simile ») ; `stacks: 'all'` dessine une pile par frappe.
+25. Strum : ↓ cyan, ↑ rose. Le « motif universel » ↓ · ↓ ↑ · ↑ ↓ ↑ est écrit en durées jusqu'à la frappe suivante (noire, croche, noire, croche, croche, croche), sans silences.
+26. Annotation : une rangée sous la tab pour les notes seules ; pour une pile, à droite de chaque pastille sur un fond de panneau (la ligne de corde ne traverse pas le texte).
+27. Barré : repère vertical à gauche de la pile, `B{case}` dans la rangée du libellé ; formes mobiles : barré dès qu'elles quittent le sillet.
+28. Couleurs d'intervalle : bémol = −22 % de luminosité + encoche en bas à droite, dièse = +30 % de blanc + encoche en haut à droite, fondamentale = coins coupés ; chiffre sombre ou blanc selon le meilleur contraste.
+29. **Son provisoire** = une corde `PluckSynth` par corde de la guitare, sans échantillons. Fin de morceau : arrêt par minuterie, **pas** `transport.stop(time)` (Tone rejoue alors le tick 0 : une note parasite sonnait après la fin, constaté dans le navigateur).
+30. Tempo constant pendant la lecture d'un score (`measure.tempo` est validé, pas joué).
 
 ---
 
@@ -489,9 +561,9 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 
 | Phase | Contenu | « Terminé » = |
 |---|---|---|
-| **1a** | Moteur de théorie (gammes, accords, orthographe, enharmoniques, conversion solfège), accordages/nb de cordes, base de voicings + tests | Tous les tests de `MUSIC_DESIGN.md` verts ; couverture des 13+13 tonalités |
-| **1b** | `TabScore`, layout, rendu pixel art, curseur, police bitmap, positions (CAGED / 3NPS / boxes + table de compatibilité) | Captures lisibles à S=2 sur 390×844 ; chiffres 2 chiffres nets ; piles d'accords nettes |
-| **1c** | Moteur audio + échantillons, hub, thème Synthwave, module Gammes N1 | Écoute montante/descendante + drone, curseur synchronisé, page debug audio |
+| **1a** ✔ `5797333` | Moteur de théorie (gammes, accords, orthographe, enharmoniques, conversion solfège), accordages/nb de cordes, base de voicings + tests | Tous les tests de `MUSIC_DESIGN.md` verts ; couverture des 13+13 tonalités — **atteint** (61 tests) |
+| **1b** ✔ (non commitée) | Positions (3NPS, boxes, CAGED, symétriques, blues, bebop), `TabScore`, générateurs, layout, police bitmap, rendu pixel, curseur synchronisé sur Tone.Transport (son provisoire) | Captures lisibles à S=2 sur 390×844 ; chiffres à 2 chiffres nets ; piles d'accords nettes ; 7 cordes, solfège / anglo, Drop D ; daltonisme ; coût de rendu — **atteint** (204 tests, mesures dans « État exact ») |
+| **1c** (prochaine) | Moteur audio + échantillons (remplace le son provisoire), hub, thème Synthwave, module Gammes N1, page debug audio | Écoute montante/descendante + drone, curseur synchronisé, page debug audio |
 | 2 | Gammes N2/N3 (saisie), progression unifiée persistante, XP, SRS | Journal + export/import |
 | 3 | Entrée mono, calibration, accordeur, affichage live | Test sur guitare réelle |
 | 4 | Accords A : curriculum, tab accords, leçon guidée, QCM/auto-éval, validation arpège, recommandation | Parcours P0-P4 jouable |
@@ -503,27 +575,55 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 
 ---
 
-## 10. Décisions attendues (avec ma recommandation)
+## 10. Décisions
 
-| # | Décision | Recommandation |
+| # | Décision | Prise |
 |---|---|---|
-| D1 | Boîte d'accord : (A) tab seule · **(B) boîte uniquement aux étapes Découvrir/Construire** · (C) partout | **B**, désactivable |
-| D2 | Ordre Gammes : pentatonique mineure d'abord (vs majeure d'abord du brief) | pentatonique d'abord |
-| D3 | Curriculum Accords révisé (P1 Em/Em7/Asus2/Am7 ; Am en P2 ; C et G en P4 avec marchepieds) | accepté |
-| D4 | Power chords : branche optionnelle dès P2 | accepté |
-| D5 | Critères « appris » : 3 arpèges vérifiés sur ≥ 2 jours + rappel à froid | accepté (seuils réglables) |
-| D6 | Module `Fondations` + `Rythmique` déclaré | accepté |
-| D7 | Échantillons : démarrer avec `tonejs-instruments` (CC BY 3.0, attribution) + Karplus-Strong | accepté, à revoir si qualité insuffisante |
-| D8 | Style d'affichage des accords | **`Am7` (anglo) — tranché par toi** ; solfège/jazz en option |
-| D9 | Solveur de voicings pour accordages alternatifs : phase 4 ou plus tard | plus tard (après P4) |
-| D10 | Phase 1 découpée en 1a/1b/1c | accepté |
+| D1 | Boîte d'accord | **B** : boîte uniquement aux étapes Découvrir/Construire du module Accords, désactivable (non implémentée avant la phase 4) |
+| D2 | Ordre des gammes | **Pentatonique mineure d'abord** |
+| D3 | Curriculum Accords révisé | **Accepté** (P1 Em/Em7/Asus2/Am7 ; Am en P2 ; C et G en P4 avec marchepieds) |
+| D4 | Power chords | **Branche optionnelle dès P2** |
+| D5 | Critères « appris » | **3 arpèges vérifiés sur ≥ 2 jours + rappel à froid** (seuils réglables) |
+| D6 | Modules | **`Fondations` ajouté, `Rythmique` déclaré** |
+| D7 | Échantillons | **`tonejs-instruments` (CC BY 3.0, attribution) + Karplus-Strong** ; à revoir si la qualité est insuffisante (licences non vérifiées : *à vérifier* avant embarquement) |
+| D8 | Affichage des accords | **`Am7` (anglo)** — *changé par toi* (ma reco était `Lam7`) ; solfège/jazz en option |
+| D9 | Solveur de voicings (accordages alternatifs) | **Plus tard**, après P4 |
+| D10 | Phase 1 | **Découpée en 1a / 1b / 1c** |
+
+**Décisions D1-D12 : tranchées.** D11 et D12 (phase 1b) acceptées avec ma recommandation ; D13 écartée par toi :
+
+| # | Question | Ma recommandation |
+|---|---|---|
+| D11 ✔ | Numérotation des positions : par **degré de départ** (actuel : Position 1 = tonique) ou par **ordre sur le manche** ? | Garder l'actuel (la forme est stable d'une tonalité à l'autre) et **toujours afficher les cases** ; l'écran 1c pourra trier par cases. |
+| D12 ✔ | **CAGED** : définition par fenêtre de 5 cases autour de la forme d'accord (actuelle, générique) ou positions CAGED saisies à la main (5 formes × doigtés, fidèles à tes sources) ? | Garder la définition par fenêtre, et que **tu relises 3 tonalités** (Do, Sol, La) avant que 1c n'expose CAGED dans l'UI. |
+| D13 ✘ écartée | **Daltonisme** : la couleur seule ne suffit pas (capture 11). Réglage « aide visuelle » : rangée de degrés toujours affichée, ou **degré écrit dans la pastille à la place de la case** ? | Rangée de degrés forcée + motif par famille (hachure) dans un réglage « aide daltonisme » ; à faire en 1c avec les réglages. |
+
 
 ---
 
 ## 11. Journal d'avancement
 
-- **Phase 0** (terminée) : lecture complète de `BRIEF.md` (40 513 octets) ; versions et licences de paquets vérifiées via `npm view` ; calculs de fenêtres FFT, harmoniques et périodes ; **vérification de 43 voicings et 10 formes mobiles (0 erreur)** ; rédaction de `PROJECT.md` et `MUSIC_DESIGN.md`. Aucun code d'application. **Validée par l'utilisateur** (tout accepté ; D8 changée en `Am7`).
-- **Phase 0 validée** : D1-D10 acceptées ; **D8 changée : symboles d'accords en anglo (`Am7`) par défaut** (réglages `noteNotation` = solfège et `chordNotation` = anglo, distincts).
-- **Phase 1a (terminée)** : projet Vite 8 + React 19 + TypeScript 7 + Vitest 5 ; `src/core/theory/` : notation (conversion unique anglo↔solfège, glyphes ♯ ♭ 𝄪 𝄫), catalogue de gammes (modes, pentatoniques, blues, harmonique/mélodique jazz et leurs modes, symétriques, bebop), politique des tonalités (13+13), accordages 6-8 cordes, fretboard (fréquence → corde/case, plage et fenêtre de pitch déduites de l'accordage), accords par formule, table de compatibilité gamme ↔ systèmes, voicings (43 formes + 10 formes mobiles) avec validateur. **61 tests verts**, `tsc` propre, `vite build` OK (≈ 82 ko gzip), page de contrôle `npm run dev` vérifiée dans un navigateur (Ré dorien = Ré Mi Fa Sol La Si Do ; 43 voicings affichés).
-  - Écarts avec ce qui était écrit en phase 0 : la règle d'orthographe des toniques est « **coût égal → les deux** » (et non « écart ≤ 1 ») : c'est elle qui retrouve exactement la table des tonalités (test) ; `dim` = triade, `dim7` = 1 ♭3 ♭5 𝄫7 ; « Bbb5 » se lit Si𝄫 power chord (une altération après la lettre fait toujours partie de la fondamentale).
-  - **Pas encore fait de la phase 1** : génération des positions (3NPS, CAGED, boxes), `TabScore`, rendu, audio, hub, thème, module Gammes N1 → phases 1b et 1c.
+- **Phase 0** (terminée, commit `183eacc`) : lecture complète de `BRIEF.md` (40 513 octets) ; versions/licences de paquets vérifiées via `npm view` ; calculs de fenêtres FFT, harmoniques et périodes ; vérification par script de 43 voicings et 10 formes mobiles (0 erreur) ; rédaction de `PROJECT.md` et `MUSIC_DESIGN.md`. Validée par l'utilisateur : D1-D10 acceptées, **D8 changée en `Am7`**.
+- **Phase 1a** (terminée, commit `5797333`) : projet Vite + React + TypeScript + Vitest ; moteur de théorie, base de voicings et page de contrôle (détail dans « État exact »). 61 tests verts, `tsc` propre, build OK, rendu vérifié dans un navigateur. Corrections de la documentation trouvées par les tests : règle de coût d'orthographe « coût égal → les deux » ; `dim` = triade / `dim7` à part.
+- **Phase 1b** (terminée, **non commitée**) : positions, `TabScore`, générateurs, layout, police, rendu, lecteur Tone, page de contrôle (détail dans « État exact »). 204 tests verts, `tsc` propre, build OK. Vérifié dans Chromium piloté par CDP à 3 viewports : lecture, boucle, tempo en direct, curseur exact au pixel, défilement et retour à la ligne, DPR 2,625. **Trouvé en route** : (1) `transport.stop(time)` dans l'événement de fin rejoue le tick 0 (une note parasite) → arrêt par minuterie ; (2) contraste chiffre / pastille insuffisant sur les couleurs de bémols (3,6-4,0) → chiffre blanc automatique ; (3) les tests ont corrigé `MUSIC_DESIGN.md` §3.2 (box 3 de La m = cases 9-13) ; (4) onglet de test masqué : `requestAnimationFrame` s'arrête (le curseur ne bouge pas) — sans effet pour l'utilisateur, mais le banc de mesure doit mettre la page au premier plan ; (5) simulation de daltonisme : voir D13.
+- **Mise à jour de ce document** : section « État exact », décisions D1-D12 tranchées (D13 écartée), hypothèses 1-30, section 12 « Prochaine étape ».
+
+---
+
+## 12. Prochaine étape : phase 1c (en attente de ton feu vert)
+
+**Objectif** : un premier module jouable de bout en bout — choisir une gamme, la voir et l'entendre (montée, descente, drone) avec un vrai son de guitare. Pas de saisie (phase 2), pas de micro (phase 3).
+
+**Livrables**
+1. **Moteur audio** (`core/audio/`) : échantillons de guitare (D7 : `tonejs-instruments`, **licence à vérifier avant d'embarquer**) + repli Karplus-Strong ; bus guitare / backing / SFX, compresseur / limiteur ; préchargement avec écran de chargement ; `tabPlayer` bascule sur ce moteur (même `scoreToPlayEvents`). Latence « interactive », contexte démarré sur un geste.
+2. **Drone** de la fondamentale et accord de référence (couleur du mode).
+3. **Thème Synthwave** (tokens, scène pixel, parallaxe 30 images/s, scanlines désactivables) ; panneau de tab opaque (déjà en place).
+4. **Hub** minimal + routeur par hash ; réglages globaux (notations, thème, volumes, « réduire les animations »). *Pas d'« aide daltonisme » (D13 écartée) : la limite constatée en 1b est assumée.*
+5. **Module Gammes niveau 1** : sélection (gamme, tonique avec parent affiché — hypothèse 18, système compatible, position), lecture montée / descente, drone, arpège superposable, notes caractéristiques en évidence.
+6. **Page debug audio** (chaque son, volumes mémorisés).
+
+**« Terminé » =** écoute montante / descendante + drone, curseur synchronisé (mesure comme en 1b, avec le son final), page debug audio, captures du module sur 390×844.
+
+**Points à surveiller** : licence et poids des échantillons (R4, R12) ; contexte audio sur iOS (R3) ; qualité « studio » plafonnée par les échantillons ; **écoute réelle du son provisoire puis final par toi** (je ne peux pas juger le timbre).
+
+**Ensuite** : phase 2 (Gammes N2/N3 : saisie sur la tab, progression persistante, XP, SRS).

@@ -7,3 +7,4 @@ export * from './fretboard';
 export * from './chords';
 export * from './systems';
 export * from './voicings';
+export * from './positions';

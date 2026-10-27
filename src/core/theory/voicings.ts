@@ -116,6 +116,13 @@ export function validateVoicing(v: Voicing, tuning: Tuning = TUNINGS[v.tuningId]
     const used = new Set(v.fingers.filter((f): f is Finger => f !== null && f !== 0));
     if (used.size > 5) errs.push(`${tag} : plus de 4 doigts + pouce`);
   }
+  // barré : toutes les cordes jouées de son étendue sont à la case du barré ou au-dessus, et au moins deux y sont posées
+  if (v.barre) {
+    const b = v.barre;
+    const inRange = v.frets.flatMap((f, i) => (i >= Math.min(b.fromString, b.toString) && i <= Math.max(b.fromString, b.toString) && f !== null ? [f] : []));
+    if (inRange.some((f) => f < b.fret)) errs.push(`${tag} : une corde du barré est sous la case ${b.fret}`);
+    if (inRange.filter((f) => f === b.fret).length < 2) errs.push(`${tag} : le barré case ${b.fret} ne couvre pas 2 cordes`);
+  }
   // cases négatives / trop hautes
   for (const f of v.frets) if (f !== null && (f < 0 || f > 24)) errs.push(`${tag} : case hors plage (${f})`);
   // cohérence de qualité
@@ -127,6 +134,11 @@ export function validateVoicing(v: Voicing, tuning: Tuning = TUNINGS[v.tuningId]
 export function instantiateShape(shape: MobileShape, rootName: NoteName, tuning: Tuning = TUNINGS.standard!): Voicing {
   const openPc = ((fretToMidi(tuning, shape.rootString, 0) % 12) + 12) % 12;
   const rootFret = (((pitchClassOf(rootName) - openPc) % 12) + 12) % 12;
+  // barré : l'index remplace le sillet — cordes à l'offset 0 de la forme, seulement quand la forme est déplacée
+  const atRoot = shape.offsets.flatMap((o, i) => (o === 0 ? [i] : []));
+  const barre = rootFret > 0 && atRoot.length >= 2
+    ? { fret: rootFret, fromString: atRoot[0]!, toString: atRoot[atRoot.length - 1]!, finger: 1 as const }
+    : undefined;
   return {
     id: `${shape.id}@${rootName}`,
     chord: `${rootName}${shape.quality}`,
@@ -136,5 +148,6 @@ export function instantiateShape(shape: MobileShape, rootName: NoteName, tuning:
     difficulty: rootFret === 0 ? 2 : 4,
     palier: 'P8',
     omitted: shape.omitted ?? [],
+    ...(barre ? { barre } : {}),
   };
 }

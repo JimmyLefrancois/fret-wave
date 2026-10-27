@@ -63,6 +63,35 @@ describe('base de voicings (accordage standard)', () => {
   });
 });
 
+describe('barrés', () => {
+  it('formes curées avec barré : F barré complet, mini-barré, Si m', () => {
+    const find = (id: string) => VOICINGS.find((v) => v.id === id)!;
+    expect(find('F-133211').barre).toEqual({ fret: 1, fromString: 0, toString: 5, finger: 1 });
+    expect(find('F-xx3211').barre).toEqual({ fret: 1, fromString: 4, toString: 5, finger: 1 });
+    expect(find('Bm-x24432').barre).toEqual({ fret: 2, fromString: 1, toString: 5, finger: 1 });
+  });
+
+  it('formes mobiles : barré dès que la forme quitte le sillet (index à la place du sillet), jamais en position ouverte', () => {
+    for (const shape of MOBILE_SHAPES) {
+      for (const root of MAJOR_KEYS) {
+        const v = instantiateShape(shape, root);
+        const rootFret = v.frets[shape.rootString]!;
+        if (rootFret === 0) expect(v.barre, v.id).toBeUndefined();
+        else expect(v.barre, v.id).toMatchObject({ fret: rootFret, finger: 1 });
+      }
+    }
+    // E maj en Fa : barré complet case 1 ; Mi maj7 en Sol : barré de la corde 6 à la corde 2 (les cordes 1 et 6 ne sont pas toutes jouées)
+    expect(instantiateShape(MOBILE_SHAPES[0]!, 'F').barre).toEqual({ fret: 1, fromString: 0, toString: 5, finger: 1 });
+    expect(instantiateShape(MOBILE_SHAPES[4]!, 'G').barre).toEqual({ fret: 3, fromString: 0, toString: 4, finger: 1 });
+  });
+
+  it('validateVoicing refuse un barré incohérent', () => {
+    const f = VOICINGS.find((v) => v.id === 'F-133211')!;
+    expect(validateVoicing({ ...f, barre: { fret: 2, fromString: 0, toString: 5, finger: 1 } }).length).toBeGreaterThan(0);
+    expect(validateVoicing({ ...f, barre: { fret: 1, fromString: 1, toString: 2, finger: 1 } }).length).toBeGreaterThan(0);
+  });
+});
+
 describe('formes mobiles (barrés)', () => {
   it('10 formes × 13 fondamentales (noms de la politique des tonalités) = 130 voicings valides', () => {
     expect(MOBILE_SHAPES).toHaveLength(10);
