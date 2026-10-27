@@ -43,7 +43,7 @@ export function ScaleSelectPage() {
         <span className="tag tag-on">N1</span>
       </header>
 
-      <Panel accent="magenta" label="1 · Gamme">
+      <Panel className="span-7" accent="magenta" label="1 · Gamme">
         <Segmented
           size="sm"
           label="Famille de gammes"
@@ -76,7 +76,7 @@ export function ScaleSelectPage() {
         </div>
       </Panel>
 
-      <Panel accent="cyan" label="2 · Tonique">
+      <Panel className="span-5 panel-fill" accent="cyan" label="2 · Tonique et accordage">
         <div className="tonics">
           {Array.from({ length: 12 }, (_, pc) => tonicSpellings(r.def, pc)).map((names) =>
             names.map((n) => (
@@ -97,10 +97,7 @@ export function ScaleSelectPage() {
           {r.parent && <p className="t-small t-dim">{r.parent}</p>}
         </div>
         {r.hint && <p className="t-small hint">{r.hint}</p>}
-      </Panel>
-
-      <Panel label="3 · Accordage">
-        <div className="field">
+        <div className="panel-foot tuning-foot">
           <label htmlFor="tuning" className="t-label">Accordage</label>
           <select
             id="tuning"
@@ -111,13 +108,13 @@ export function ScaleSelectPage() {
               <option key={t.id} value={t.id}>{t.nameFr}</option>
             ))}
           </select>
+          <p className="t-small t-dim">
+            {r.tuning.strings.length} cordes · {r.tuning.strings.map((s) => fmtNote(s.replace(/-?\d+$/, ''), settings.noteNotation)).join(' ')}
+          </p>
         </div>
-        <p className="t-small t-dim">
-          {r.tuning.strings.length} cordes · {r.tuning.strings.map((s) => fmtNote(s.replace(/-?\d+$/, ''), settings.noteNotation)).join(' ')}
-        </p>
       </Panel>
 
-      <Panel accent="violet" label="4 · Système de positions">
+      <Panel className="span-7" accent="violet" label="3 · Système de positions">
         <div className="system-list">
           {r.support.map((s) => {
             const on = r.selection.system === s.system;
@@ -146,7 +143,7 @@ export function ScaleSelectPage() {
         <p className="t-small t-dim">Les systèmes grisés ne s’appliquent pas à cette gamme — la raison est écrite.</p>
       </Panel>
 
-      <Panel label="5 · Position">
+      <Panel className="span-5 panel-fill" label="4 · Position">
         <div className="positions">
           {r.positions.map((p, i) => (
             <Chip key={p.id} small selected={r.selection.positionIndex === i} onClick={() => set({ positionIndex: i })}>
@@ -154,8 +151,13 @@ export function ScaleSelectPage() {
             </Chip>
           ))}
         </div>
-        {r.positions.length === 0 && (
+        {r.positions.length === 0 ? (
           <p className="t-small t-dim">Aucune position pour cet accordage : essaie un autre système.</p>
+        ) : (
+          <p className="t-small t-dim position-note">
+            Le numéro suit le <strong>degré de départ</strong> sur la corde grave : la même forme se retrouve dans toutes les tonalités,
+            seul l’endroit du manche change (les cases sont écrites à côté).
+          </p>
         )}
       </Panel>
 

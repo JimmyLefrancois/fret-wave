@@ -260,7 +260,7 @@ export function ScaleDiscoveryPage() {
         <span className="tag tag-on">N1</span>
       </header>
 
-      <Panel accent="magenta" label="Écoute" right={<span className="badge">{r.formula}</span>}>
+      <Panel className="span-7" accent="magenta" label="Écoute" right={<span className="badge">{r.formula}</span>}>
         <div className="transport-row">
           <PixelButton variant="primary" onClick={onPlay} disabled={!scoreTab || playing} ariaLabel="Lecture" className="play">
             <PixelIcon name="play" size={18} /> {transport === 'paused' ? 'Reprendre' : 'Écouter'}
@@ -287,7 +287,7 @@ export function ScaleDiscoveryPage() {
         </div>
       </Panel>
 
-      <Panel accent="violet" label="Lecture">
+      <Panel className="span-5 panel-fill" accent="violet" label="Lecture">
         <div className="field">
           <span className="t-label">Sens</span>
           <Segmented
@@ -335,6 +335,11 @@ export function ScaleDiscoveryPage() {
           )}
         </details>
         {status && <p className="t-small t-dim status">{status}</p>}
+        {r.parent && (
+          <div className="panel-foot">
+            <span className="t-small t-dim">{r.parent}</span>
+          </div>
+        )}
       </Panel>
 
       {quiz && (
@@ -380,7 +385,7 @@ export function ScaleDiscoveryPage() {
         <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2}>Position ›</PixelButton>
       </div>
 
-      <Panel accent="green" label="Exercice" right={<span className="tag">{quiz ? `${score.right}/${score.right + score.wrong}` : 'sans matériel'}</span>}>
+      <Panel className="span-5" accent="green" label="Exercice" right={<span className="tag">{quiz ? `${score.right}/${score.right + score.wrong}` : 'sans matériel'}</span>}>
         <Switch
           checked={quiz}
           onChange={toggleQuiz}
@@ -394,7 +399,7 @@ export function ScaleDiscoveryPage() {
       </Panel>
 
       {neighbourId && neighbour && (
-        <Panel accent="cyan" label={`Comparer à ${neighbour.nameFr.toLowerCase()}`}>
+        <Panel className="span-7" accent="cyan" label={`Comparer à ${neighbour.nameFr.toLowerCase()}`}>
           <Switch
             checked={compare}
             onChange={setCompare}
@@ -441,7 +446,7 @@ export function ScaleDiscoveryPage() {
         </Panel>
       )}
 
-      <Panel accent="violet" label="Couleurs = fonctions">
+      <Panel className="span-5" accent="violet" label="Couleurs = fonctions">
         <div className="legend">
           {legend.map((it) => (
             <div key={it.fn} className="legend-item">
@@ -458,17 +463,17 @@ export function ScaleDiscoveryPage() {
       </Panel>
 
       {r.hint && (
-        <Panel accent="yellow" label="Ce que tu écoutes">
+        <Panel className="span-7" accent="yellow" label="Ce que tu écoutes">
           <p className="t-body">{r.hint}</p>
           {r.parent && <p className="t-small t-dim">{r.parent}</p>}
         </Panel>
       )}
 
-      <Panel label="Instrument">
+      <Panel className="span-5" label="Instrument">
         <InstrumentPicker />
       </Panel>
 
-      <div className="row">
+      <div className="row span-7">
         <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
         <PixelButton variant="quiet" onClick={() => navigate('hub')}>Hub</PixelButton>
       </div>

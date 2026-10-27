@@ -305,7 +305,7 @@ a { color: var(--cyan); }
   min-height: 38px;
   padding: 0 10px;
   font-family: var(--font-label);
-  font-size: 11px;
+  font-size: 12px;
   border: var(--bw) solid var(--line);
   background: transparent;
   color: var(--muted);
@@ -509,7 +509,7 @@ a { color: var(--cyan); }
 .scale-row:hover { border-color: var(--cyan); }
 .scale-row.on { border-color: var(--magenta); background: rgba(255, 42, 109, 0.1); }
 .scale-name { grid-area: name; font-size: 18px; color: var(--text); }
-.scale-deg { grid-area: deg; font-family: var(--font-label); font-size: 10px; color: var(--dim); letter-spacing: 0.06em; }
+.scale-deg { grid-area: deg; font-family: var(--font-label); font-size: 11px; color: var(--dim); letter-spacing: 0.08em; }
 .scale-n { grid-area: n; font-family: var(--font-label); font-size: 9px; color: var(--dim); }
 .scale-row.on .scale-n { color: var(--magenta); }
 
@@ -780,74 +780,120 @@ table.kv td:first-child { color: var(--muted); }
    déclarés explicitement ; les panneaux se placent deux par ligne.
    =========================================================================== */
 @media (min-width: 900px) {
+  /* ---- grille de page : 12 colonnes, gouttières régulières, rangées de même hauteur ---- */
   .shell {
     width: 90vw;
-    max-width: 1800px;
-    padding: 18px 0 0;
+    max-width: 1560px;
+    padding: 24px 0 40px;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 22px;
-    align-items: start;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 20px;
+    align-items: stretch;
   }
+  .shell > * { margin: 0; min-width: 0; }
   .shell > .hero,
   .shell > .page-head,
-  .shell > .quiz-strip,
   .shell > .tabview,
+  .shell > .quiz-strip,
   .shell > .pos-nav,
   .shell > .cta-block,
-  .shell > .foot-note,
-  .shell > .row,
-  .shell > .section-full { grid-column: 1 / -1; }
+  .shell > .foot-note { grid-column: 1 / -1; }
 
-  .shell > .panel,
-  .shell > .section { margin: 12px 0; }
-  .shell > .section > .entries,
-  .shell > .section > .modules { grid-template-columns: 1fr; }
+  /* largeurs : 3 crans seulement, pour que les rangées s'alignent toujours */
+  .span-4 { grid-column: span 4; }
+  .span-5 { grid-column: span 5; }
+  .span-6 { grid-column: span 6; }
+  .span-7 { grid-column: span 7; }
+  .span-8 { grid-column: span 8; }
 
-  .hero { min-height: min(64vh, 560px); padding-top: 56px; }
-  .hero-title { font-size: clamp(40px, 3.4vw, 60px); }
-  .hero-sub { font-size: 13px; letter-spacing: 0.3em; }
+  .panel { padding: 16px 18px; }
+  .panel-head { margin-bottom: 10px; }
+  /* un panneau plus court que son voisin de rangée garde son pied dans le bas */
+  .panel-fill { display: flex; flex-direction: column; }
+  .panel-foot {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .panel-foot .btn { min-height: 36px; font-size: 10px; }
+
+  .hero { min-height: min(46vh, 420px); padding: 8px 0 0; }
+  .hero-title { font-size: clamp(40px, 3.4vw, 58px); }
+  .hero-sub { font-size: 13px; letter-spacing: 0.3em; margin-top: 22px; }
   .hero-kicker { font-size: 12px; }
   .hero-sub span { padding: 9px 14px 10px; }
+  /* sur grand écran le repère est redondant avec la carte « Gammes » : on le retire */
+  .hero-hint { display: none; }
+
+  .page-head { grid-template-columns: 44px auto 1fr; padding: 0 0 4px; }
+  .page-head > .tag { grid-column: 3; justify-self: start; margin-left: 4px; }
+  .btn.play { flex: 0 1 300px; }
+  .toggle-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .page-title { font-size: 20px; }
   .card-title { font-size: 15px; }
   .t-body { font-size: 21px; }
   .t-small { font-size: 17px; }
 
-  /* la tablature garde une largeur de lecture confortable et se centre.
-     `width: 100%` est indispensable : avec des marges automatiques seules, l'élément
-     de grille se réduit à la largeur de son contenu (et la tab reste à 360 px). */
   .tabview,
   .quiz-strip,
-  .pos-nav { width: 100%; max-width: 980px; margin-left: auto; margin-right: auto; }
+  .pos-nav { width: 100%; max-width: 1040px; margin-left: auto; margin-right: auto; }
 
-  /* les panneaux larges respirent un peu plus */
-  .panel { padding: 14px 16px; }
-  .entry { padding: 12px 14px; }
-  .scale-row { padding: 10px 12px; }
-  .system-row { padding: 10px 12px; }
-}
+  .entry { padding: 13px 16px; }
+  .scale-row { padding: 11px 14px; }
+  .system-row { padding: 11px 14px; }
+  .cta-block { border-top: 0; padding: 0; }
+  .cta-block .btn { min-height: 52px; }
 
-@media (min-width: 900px) {
+  /* ---- barre de navigation en haut, comme une application de bureau ---- */
   .bottombar {
-    grid-template-columns: repeat(4, minmax(0, 170px));
-    justify-content: center;
-    gap: 6px;
-    padding-bottom: 8px;
+    top: 0;
+    bottom: auto;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    height: 58px;
+    align-items: center;
+    justify-content: end;
+    grid-template-columns: repeat(4, 148px);
+    gap: 4px;
+    padding: 0 5vw;
+    border-top: 0;
+    border-bottom: var(--bw) solid var(--line);
+    border-left: 0;
+    border-right: 0;
+    background: rgba(6, 0, 15, 0.92);
   }
-  .navbtn { min-height: 58px; }
+  .bottombar::before {
+    content: 'FRETWAVE';
+    position: absolute;
+    left: 5vw;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--text);
+    text-shadow: 0 0 12px var(--magenta);
+    letter-spacing: 0.02em;
+  }
+  .navbtn {
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    font-size: 10px;
+    border: var(--bw) solid transparent;
+  }
+  .navbtn:hover { border-color: var(--line); }
+  .navbtn.on { border-color: var(--magenta); }
+  .app-content { padding-top: 58px; padding-bottom: 0; }
 }
 
 @media (min-width: 1500px) {
-  .shell { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .shell > .hero,
-  .shell > .page-head,
-  .shell > .quiz-strip,
-  .shell > .tabview,
-  .shell > .pos-nav,
-  .shell > .cta-block,
-  .shell > .foot-note,
-  .shell > .row { grid-column: 1 / -1; }
+  .shell { max-width: 1680px; }
 }
 
 /* mouvement réduit : aucune transition (le décor est figé par le composant Scene) */
@@ -892,3 +938,28 @@ table.kv td:first-child { color: var(--muted); }
 .more-opts > summary::before { content: '▸ '; color: var(--magenta); }
 .more-opts[open] > summary::before { content: '▾ '; }
 .more-opts[open] { padding-bottom: 4px; }
+
+/* pied de panneau : accordage sous la tonique */
+.tuning-foot { display: grid; gap: 4px; justify-items: start; }
+.tuning-foot select { width: 100%; }
+.tuning-foot p { margin: 0; }
+.position-note { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+
+/* clé des couleurs sur le hub */
+.key-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 6px; }
+.key-pill {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  font-family: var(--font-label);
+  font-size: 13px;
+  border: 2px solid var(--bg-deep);
+  box-shadow: 0 0 12px -3px currentColor;
+}
+
+/* colonne de gauche du hub : deux blocs empilés, hauteur libre */
+@media (min-width: 900px) {
+  .col-5 { grid-column: span 5; display: grid; gap: 20px; align-content: start; min-width: 0; }
+  .col-5 > .section { margin: 0; }
+}

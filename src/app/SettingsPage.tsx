@@ -42,7 +42,7 @@ export function SettingsPage() {
         </div>
       </header>
 
-      <Panel accent="cyan" label="Notation">
+      <Panel className="span-6" accent="cyan" label="Notation">
         <div className="field">
           <span className="t-label">Noms de notes</span>
           <Segmented<NoteNotation>
@@ -64,7 +64,7 @@ export function SettingsPage() {
         </div>
       </Panel>
 
-      <Panel accent="magenta" label="Ambiance">
+      <Panel className="span-6" accent="magenta" label="Ambiance">
         <div className="theme-list">
           {THEME_LIST.map((t) => (
             <div key={t.id} className={`theme-row ${settings.theme === t.id ? 'on' : ''}`}>
@@ -87,7 +87,7 @@ export function SettingsPage() {
         </p>
       </Panel>
 
-      <Panel label="Mouvement">
+      <Panel className="span-5" label="Mouvement">
         <Switch
           checked={settings.reduceMotion}
           onChange={(v) => setSettings({ reduceMotion: v })}
@@ -108,7 +108,7 @@ export function SettingsPage() {
         />
       </Panel>
 
-      <Panel accent="yellow" label="Son">
+      <Panel className="span-7" accent="yellow" label="Son">
         <InstrumentPicker />
         <Mixer channels={['master', 'guitar', 'drone', 'metronome']} />
         <p className="t-small t-dim">
@@ -116,7 +116,7 @@ export function SettingsPage() {
         </p>
       </Panel>
 
-      <Panel label="Outils de vérification">
+      <Panel className="span-6" label="Outils de vérification">
         <p className="t-small t-dim">
           Pages de contrôle des phases 1a-1c : tous les générateurs, les accordages, les mesures audio.
         </p>
@@ -127,7 +127,7 @@ export function SettingsPage() {
         </div>
       </Panel>
 
-      <Panel accent="orange" label="Données locales">
+      <Panel className="span-6" accent="orange" label="Données locales">
         <p className="t-small">
           Journal d’écoute et sélection courante, conservés dans ce navigateur. Rien n’est envoyé sur un serveur.
         </p>

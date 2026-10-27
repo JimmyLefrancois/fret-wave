@@ -13,6 +13,7 @@ import { MODULES } from '../modules/registry';
 import { ENTRY_POINTS, type EntryPoint } from '../modules/gammes/content';
 import { positionLabel, resolveScale } from '../modules/gammes/resolve';
 import { practiceStore, readLog, summarizeDay } from '../core/progress/practiceLog';
+import { intervalStyle } from '../core/tab';
 
 /** Objectif proposé : 3 écoutes. Pas de réglage avant la phase 2 (répétition espacée). */
 export const DAILY_GOAL = 3;
@@ -59,7 +60,7 @@ export function HubPage() {
         <p className="hero-hint t-label">↓ 31 gammes · 5 systèmes · N1</p>
       </header>
 
-      <Panel accent="cyan" label="Objectif du jour" right={<span className="badge">{day.count} / {DAILY_GOAL}</span>}>
+      <Panel className="span-5 panel-fill" accent="cyan" label="Objectif du jour" right={<span className="badge">{day.count} / {DAILY_GOAL}</span>}>
         <p className="stat-line">
           <strong>{day.distinct}</strong> gamme{day.distinct > 1 ? 's' : ''} écoutée{day.distinct > 1 ? 's' : ''}
           {day.seconds > 0 ? ` · ${minutes(day.seconds)}` : ''}
@@ -72,9 +73,14 @@ export function HubPage() {
               ? 'Objectif atteint. Les niveaux 2 et 3 arrivent en phase 2.'
               : `Encore ${DAILY_GOAL - day.count} écoute${DAILY_GOAL - day.count > 1 ? 's' : ''} pour l’objectif.`}
         </p>
+        <div className="panel-foot">
+          <PixelButton variant="quiet" onClick={() => navigate('settings')}>Réglages</PixelButton>
+          <PixelButton variant="quiet" onClick={() => navigate('audio')}>Crédits audio</PixelButton>
+        </div>
       </Panel>
 
       <Panel
+        className="span-7"
         accent="magenta"
         label="Reprendre"
         right={<Chip small onClick={() => navigate('gammes')}>changer</Chip>}
@@ -95,25 +101,28 @@ export function HubPage() {
         </div>
       </Panel>
 
+      <div className="col-5">
       <section className="section">
-        <h2 className="section-title t-label">Par où commencer</h2>
-        <p className="t-small">Trois portes d’entrée, dans l’ordre où je les enseignerais.</p>
-        <div className="entries">
-          {ENTRY_POINTS.map((p, i) => (
-            <button key={p.title} type="button" className="entry" onClick={() => openEntryPoint(p)}>
-              <span className="entry-num">{String(i + 1).padStart(2, '0')}</span>
-              <span className="entry-body">
-                <span className="entry-title">{p.title}</span>
-                <span className="entry-why">{p.why}</span>
-              </span>
-              <span className="entry-go" aria-hidden="true">▶</span>
-            </button>
-          ))}
-        </div>
-      </section>
+          <h2 className="section-title t-label">Par où commencer</h2>
+          <p className="t-small">Trois portes d’entrée, dans l’ordre où je les enseignerais.</p>
+          <div className="entries">
+            {ENTRY_POINTS.map((p, i) => (
+              <button key={p.title} type="button" className="entry" onClick={() => openEntryPoint(p)}>
+                <span className="entry-num">{String(i + 1).padStart(2, '0')}</span>
+                <span className="entry-body">
+                  <span className="entry-title">{p.title}</span>
+                  <span className="entry-why">{p.why}</span>
+                </span>
+                <span className="entry-go" aria-hidden="true">▶</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
 
-      <section className="section">
+      <section className="section span-7">
         <h2 className="section-title t-label">Modules</h2>
+        <p className="t-small">Un module jouable aujourd’hui, trois déclarés — l’état est écrit, pas suggéré.</p>
         <div className="modules">
           {MODULES.map((m) => (
             <article key={m.id} className={`module ${m.status}`} style={{ ['--accent' as never]: `var(--${m.accent})` }}>
@@ -138,6 +147,26 @@ export function HubPage() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="section span-5 colour-key">
+        <h2 className="section-title t-label">Le code couleur</h2>
+        <p className="t-small">
+          La couleur d’une pastille donne la <strong>fonction</strong> de la note, jamais sa place sur le manche — et elle ne change
+          pas d’une ambiance à l’autre.
+        </p>
+        <div className="key-row">
+          {['1', '2', '3', '4', '5', '6', '7'].map((fn) => {
+            const st = intervalStyle(fn);
+            return (
+              <span key={fn} className="key-pill" style={{ background: st.fill, color: st.digit }}>{fn}</span>
+            );
+          })}
+        </div>
+        <p className="t-small t-dim">
+          Un bémol assombrit la pastille et pose une encoche en bas ; un dièse l’éclaircit et pose l’encoche en haut. Ainsi ♭3 et 3
+          ne se confondent pas, et ♯4 et ♭5 non plus : ce ne sont pas les mêmes fonctions.
+        </p>
       </section>
 
       <p className="t-small t-dim foot-note">
