@@ -30,6 +30,8 @@ export interface GeometryOptions {
   horizonRatio?: number;
   /** Rayon du soleil, en fraction de la largeur (0,19 par défaut ; 0,26 pour un poster). */
   sunRatio?: number;
+  /** Position horizontale du soleil (fraction de la largeur, défaut 0,5 = centré). */
+  sunCx?: number;
 }
 
 export function sceneGeometry(width: number, height: number, opts: GeometryOptions = {}): SceneGeometry {
@@ -44,7 +46,7 @@ export function sceneGeometry(width: number, height: number, opts: GeometryOptio
     height: h,
     horizon,
     gridBottom: h,
-    sun: { cx: Math.round(w / 2), cy: horizon - r - Math.round(h * 0.04), r },
+    sun: { cx: Math.round(w * (opts.sunCx ?? 0.5)), cy: horizon - r - Math.round(h * 0.04), r },
   };
 }
 

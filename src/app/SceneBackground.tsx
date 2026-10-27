@@ -25,8 +25,10 @@ export function SceneBackground(props: {
   reduceMotion: boolean;
   scanlines: boolean;
   variant: SceneVariant;
+  /** Décalage horizontal du soleil (0,5 = centré) : sur les écrans de travail, il s'écarte du titre. */
+  sunX?: number;
 }) {
-  const { theme, reduceMotion, scanlines, variant } = props;
+  const { theme, reduceMotion, scanlines, variant, sunX = 0.5 } = props;
   const stillRef = useRef<HTMLCanvasElement>(null);
   const motionRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -70,7 +72,7 @@ export function SceneBackground(props: {
       // le décor couvre tout l'écran : horizon bas, soleil dans la bande haute (l'affiche du hub, puis
       // les en-têtes), grille en perspective jusqu'en bas — c'est l'image « synthwave » de la 1re version
       geo = variant === 'poster'
-        ? sceneGeometry(lw, lh, wide ? { horizonRatio: 0.34, sunRatio: 0.19 } : { horizonRatio: 0.33, sunRatio: 0.24 })
+        ? sceneGeometry(lw, lh, wide ? { horizonRatio: 0.34, sunRatio: 0.19, sunCx: sunX } : { horizonRatio: 0.33, sunRatio: 0.24, sunCx: sunX })
         : sceneGeometry(lw, lh, { horizonRatio: wide ? 0.34 : 0.3 });
       stars = makeStars(geo, variant === 'poster' ? 110 : 70);
 
@@ -125,7 +127,7 @@ export function SceneBackground(props: {
       window.removeEventListener('resize', resize);
       window.removeEventListener('scroll', onScroll);
     };
-  }, [theme, reduceMotion, variant]);
+  }, [theme, reduceMotion, variant, sunX]);
 
   return (
     <div

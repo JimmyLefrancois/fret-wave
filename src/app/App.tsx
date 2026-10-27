@@ -118,7 +118,8 @@ export function App() {
         theme={theme}
         reduceMotion={settings.reduceMotion}
         scanlines={settings.scanlines}
-        variant={route === 'hub' ? 'poster' : 'calm'}
+        variant="poster"
+        sunX={route === 'hub' ? 0.5 : 0.82}
       />
       <div className={`app-content ${isDevPage ? 'dev' : ''}`}>
         <Page route={route} />
