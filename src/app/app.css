@@ -832,6 +832,8 @@ table.kv td:first-child { color: var(--muted); }
   .page-head > .tag { grid-column: 3; justify-self: start; margin-left: 4px; }
   .btn.play { flex: 0 1 300px; }
   .toggle-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tempo-row { justify-content: flex-start; gap: 14px; }
+  .shell > .row { align-self: center; justify-content: flex-end; }
   .page-title { font-size: 20px; }
   .card-title { font-size: 15px; }
   .t-body { font-size: 21px; }

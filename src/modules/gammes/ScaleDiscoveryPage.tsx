@@ -443,6 +443,12 @@ export function ScaleDiscoveryPage() {
             </>
           )}
           {compare && !comparison && <p className="t-small t-dim">Pas de position équivalente pour cette comparaison.</p>}
+          {!compare && (
+            <p className="t-small t-dim">
+              Active l’interrupteur : les deux gammes s’affichent l’une sous l’autre sur la <strong>même forme</strong>, et la note
+              qui les sépare pulse des deux côtés.
+            </p>
+          )}
         </Panel>
       )}
 
