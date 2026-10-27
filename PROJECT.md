@@ -72,7 +72,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 **Mesures (téléphone 390 × 844, bureau 1 440 × 900)**
 - Hauteurs : accueil **4 301 → 844 px** (puis ~1 940 px avec les dix accomplissements, et 1 236 px sans journal), gammes 1 936 → 1 464, exercice 2 039 → 1 837 avec la tablature sur le premier écran, accordeur 6 432 → 2 488.
 - **`tools/tour-check.mjs` : 0 problème sur les 19 écrans aux deux tailles, 0 erreur console** (il a servi de juge toute la branche : largeurs, débordement, textes < 11 px, troncatures).
-- **566 tests (565 verts, 1 ignoré)**, dont 7 sur les accomplissements, les contrôles de contraste des deux thèmes et les deux tests de comètes ; `tsc --noEmit` propre ; `vite build` OK, `index` **582,7 ko (184,7 ko gzip)**, CSS **46,5 ko (9,7 gzip)**.
+- **567 tests (566 verts, 1 ignoré)**, dont 7 sur les accomplissements, les contrôles de contraste des deux thèmes et les deux tests de comètes ; `tsc --noEmit` propre ; `vite build` OK, `index` **582,7 ko (184,7 ko gzip)**, CSS **46,5 ko (9,7 gzip)**.
 
 **Ce qui n'a pas été touché** : aucune règle musicale, aucun barème d'XP, aucun seuil de maîtrise. Les accords ont retrouvé un onglet de barre et une porte sur l'accueil (D61) : ils n'étaient plus joignables que par un lien de pied de page. Les sessions mélangées gardent leur panneau « Session terminée » (pas de panneau de réussite animé).
 
