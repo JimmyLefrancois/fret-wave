@@ -83,7 +83,7 @@ export function HubPage() {
         className="span-7"
         accent="magenta"
         label="Reprendre"
-        right={<Chip small onClick={() => navigate('gammes')}>changer</Chip>}
+        right={<Chip small onClick={() => navigate('gammes')}>Changer</Chip>}
       >
         <h3 className="card-title">{resolved.title}</h3>
         <p className="t-small">

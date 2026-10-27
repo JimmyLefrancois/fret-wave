@@ -46,9 +46,12 @@ export const SYNTHWAVE: ThemeTokens = {
   },
   tab: THEME_SYNTHWAVE,
   fonts: {
-    display: "'Press Start 2P', 'VT323', monospace",
-    label: "'Silkscreen', 'VT323', monospace",
-    body: "'VT323', ui-monospace, monospace",
+    // marque et mot-symbole seulement : Press Start 2P n'a pas de minuscules
+    display: "'Press Start 2P', monospace",
+    // chrome : étiquettes, badges, boutons, onglets — capitales épaisses, courtes
+    label: "'Silkscreen', 'Press Start 2P', monospace",
+    // texte courant et titres : sans-serif système, lisible et sans téléchargement
+    body: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   },
   ui: { border: 2, shadow: 4, corner: 2 },
   scanlines: true,

@@ -309,7 +309,7 @@ export function ScaleDiscoveryPage() {
           />
         </div>
         <details className="more-opts">
-          <summary className="t-label">Plus d’options · cordes, accord, fondamentales, rythme</summary>
+          <summary className="t-label">Plus d’options</summary>
           <div className="field">
             <span className="t-label">Cordes (découpage)</span>
             <Segmented<StringLimit>
