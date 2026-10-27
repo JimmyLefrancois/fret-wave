@@ -674,7 +674,9 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   /* le nombre d'onglets peut changer (phase 3 : Accordeur) : une seule rangée, colonnes égales */
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
-  background: rgba(6, 0, 15, 0.94);
+  /* opaque : le texte de la page ne doit pas passer sous les libellés (même règle que D34 pour les
+     cartes — une barre à 94 % laissait lire le contenu derrière les onglets) */
+  background: #06000f;
   border-top: var(--bw) solid var(--line);
   border-left: var(--bw) solid var(--line-soft);
   border-right: var(--bw) solid var(--line-soft);
@@ -688,10 +690,12 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   background: transparent;
   border: 0;
   color: var(--dim);
-  font-family: var(--font-label);
+  /* le libellé est du texte qu'on lit, pas une étiquette de décor : Silkscreen en capitales à 9,5 px
+     tronquait « ACCORDEUR » et perdait les accents (D24). En sans-serif, 11,5 px tient dans un quart
+     de 390 px avec de la marge — mesuré, aucune ellipse. */
+  font-family: var(--font-body);
   font-weight: 600;
-  /* 9,5 px : « ACCORDEUR » (9 capitales de Silkscreen) doit tenir dans 1/4 de 390 px sans ellipse */
-  font-size: 9.5px;
+  font-size: 11.5px;
   letter-spacing: 0;
   cursor: pointer;
   min-height: 52px;
@@ -907,7 +911,7 @@ table.kv td:first-child { color: var(--muted); }
     justify-content: center;
     gap: 8px;
     min-height: 42px;
-    font-size: 10px;
+    font-size: 12px;
     border: var(--bw) solid transparent;
   }
   .navbtn:hover { border-color: var(--line); }
@@ -1353,42 +1357,49 @@ table.kv td:first-child { color: var(--muted); }
 .step-nav {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin: 8px 0 4px;
+  gap: 5px;
+  margin: 6px 0 2px;
 }
 .step-btn {
   display: grid;
   gap: 2px;
   justify-items: center;
   align-content: center;
-  min-height: 46px;
-  padding: 5px 2px;
+  min-height: 50px;
+  padding: 5px 3px;
   background: var(--surface-hi);
   border: 2px solid var(--line-soft);
   color: var(--muted);
   font: inherit;
   cursor: pointer;
 }
+/* le numéro et le libellé sont du texte qu'on lit. Silkscreen en capitales à 9,5 px perdait les
+   accents et la hauteur d'x (D24) ; et ses chiffres, très larges, faisaient lire « 0 2 » au lieu de
+   « 02 ». L'identité pixel reste dans le décor, la tablature et le mot-symbole. */
 .step-btn .step-num {
-  font-family: var(--font-label);
-  font-size: 11px;
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
   color: var(--dim);
   line-height: 1;
 }
 .step-btn .step-label {
-  font-family: var(--font-label);
-  font-size: 9.5px;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.15;
   color: var(--muted);
-  line-height: 1.1;
   text-align: center;
 }
 .step-btn.on { border-color: var(--cyan); background: var(--surface); }
-.step-btn.on .step-num, .step-btn.on .step-label { color: var(--text); }
+.step-btn.on .step-num { color: var(--cyan); }
+.step-btn.on .step-label { color: var(--text); }
 
 .step-goal {
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
