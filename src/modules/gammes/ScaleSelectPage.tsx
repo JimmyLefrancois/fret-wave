@@ -1,19 +1,30 @@
 /**
- * Module Gammes — sélection (BRIEF.md §2 « Sélection », PROJECT.md §6.2).
- * Cinq décisions, dans l'ordre où on les prend : la gamme, la tonique (avec le mode parent),
- * l'accordage, le système de positions (avec la table de compatibilité) et la position.
- * Tout est dérivé du moteur (`resolveScale`) : aucune liste écrite en dur dans l'écran.
+ * Module Gammes — l'écran unique : **choisir, puis voir les positions et agir dessus**.
+ *
+ * Avant (phase 1-4), quatre panneaux numérotés (gamme, tonique, système de positions, position) et
+ * deux boutons en bas : il fallait comprendre « système de positions » et « CAGED / 3NPS » avant de
+ * pouvoir jouer une seule note, et le choix de la position était séparé de l'action.
+ *
+ * Maintenant : deux rangées de pastilles (la gamme, la tonique), puis **la liste des positions**, chaque
+ * ligne portant ses deux gestes — « Découvrir » (niveau 1 : la tablature s'affiche et s'écoute) et
+ * « S'exercer » (le micro vérifie chaque note). L'accordage et le système de positions passent dans un
+ * repli : ce sont des réglages, pas des étapes.
  */
 import { useMemo } from 'react';
 import { navigate } from '../../app/router';
 import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
 import { useSettings } from '../../app/settings';
-import { Chip, Panel, PixelButton, Segmented } from '../../app/ui';
+import { Chip, Panel, Segmented } from '../../app/ui';
 import {
-  TUNINGS, degreeLabels, fmtNote, getScale, tonicSpellings, type PositionSystem,
+  TUNINGS, degreeLabels, fmtNote, getScale, tonicSpellings, type Position, type PositionSystem,
 } from '../../core/theory';
 import { SCALE_GROUPS } from './content';
 import { fmtDegree, positionLabel, resolveScale, scaleTitle } from './resolve';
+
+/** « Box 1 · cases 5–8 » → « Position 1 · cases 5–8 » : un débutant cherche une position, pas une « box ». */
+function rowLabel(p: Position, notation: 'fr' | 'en'): string {
+  return positionLabel(p, notation).replace(/^Box (\d+)/, 'Position $1').replace(/^Motif (\d+)/, 'Position $1');
+}
 
 const SYSTEM_LABEL: Record<PositionSystem, string> = {
   '3nps': '3 notes par corde',
@@ -31,19 +42,23 @@ export function ScaleSelectPage() {
 
   const set = (patch: Parameters<typeof setScaleSelection>[0]) => setScaleSelection(patch);
   const resetPosition = { positionIndex: 0 };
+  /** Choisit une position puis ouvre l'écran voulu : un seul geste par ligne. */
+  const open = (index: number, where: 'scale' | 'training') => {
+    setScaleSelection({ positionIndex: index });
+    navigate(where);
+  };
 
   return (
     <main className="shell">
       <header className="page-head">
-        <button type="button" className="back" onClick={() => navigate('hub')} aria-label="Retour au hub">‹</button>
+        <button type="button" className="back" onClick={() => navigate('hub')} aria-label="Retour à l’accueil">‹</button>
         <div>
           <h1 className="page-title">Gammes</h1>
-          <p className="t-small t-dim">Choisis, écoute, repère la tonique</p>
+          <p className="t-small t-dim">La gamme, puis la position.</p>
         </div>
-        <span className="tag tag-on">N1 → N3</span>
       </header>
 
-      <Panel className="span-7" accent="magenta" label="1 · Gamme">
+      <Panel className="span-5 panel-fill" accent="magenta" label="1 · La gamme">
         <Segmented
           size="sm"
           label="Famille de gammes"
@@ -54,7 +69,6 @@ export function ScaleSelectPage() {
           }}
           options={SCALE_GROUPS.map((g) => ({ value: g.id, label: g.short, note: g.title }))}
         />
-        <p className="t-small t-dim group-note">{group.note}</p>
         <div className="scale-list">
           {group.scaleIds.map((id) => {
             const def = getScale(id);
@@ -69,14 +83,11 @@ export function ScaleSelectPage() {
               >
                 <span className="scale-name">{def.nameFr}</span>
                 <span className="scale-deg">{degreeLabels(def).map(fmtDegree).join(' ')}</span>
-                <span className="scale-n">{def.intervals.length} notes</span>
               </button>
             );
           })}
         </div>
-      </Panel>
-
-      <Panel className="span-5 panel-fill" accent="cyan" label="2 · Tonique et accordage">
+        <p className="t-label tonics-label">Tonique</p>
         <div className="tonics">
           {Array.from({ length: 12 }, (_, pc) => tonicSpellings(r.def, pc)).map((names) =>
             names.map((n) => (
@@ -91,84 +102,90 @@ export function ScaleSelectPage() {
             )),
           )}
         </div>
-        <div className="context-box">
-          <p className="card-title">{scaleTitle(r.def, r.tonic, settings.noteNotation)}</p>
-          <p className="t-small">{r.formula}</p>
-          {r.parent && <p className="t-small t-dim">{r.parent}</p>}
-        </div>
-        {r.hint && <p className="t-small hint">{r.hint}</p>}
-        <div className="panel-foot tuning-foot">
-          <label htmlFor="tuning" className="t-label">Accordage</label>
-          <select
-            id="tuning"
-            value={r.tuning.id}
-            onChange={(e) => set({ tuningId: e.target.value, ...resetPosition })}
-          >
-            {Object.values(TUNINGS).map((t) => (
-              <option key={t.id} value={t.id}>{t.nameFr}</option>
-            ))}
-          </select>
-          <p className="t-small t-dim">
-            {r.tuning.strings.length} cordes · {r.tuning.strings.map((s) => fmtNote(s.replace(/-?\d+$/, ''), settings.noteNotation)).join(' ')}
-          </p>
-        </div>
+        <p className="chosen-line">
+          <strong>{scaleTitle(r.def, r.tonic, settings.noteNotation)}</strong>
+          <span className="t-small t-dim"> · {r.formula}</span>
+          {r.parent ? <span className="t-small t-dim"> · {r.parent}</span> : null}
+        </p>
       </Panel>
 
-      <Panel className="span-7" accent="violet" label="3 · Système de positions">
-        <div className="system-list">
-          {r.support.map((s) => {
-            const on = r.selection.system === s.system;
-            return (
-              <button
-                key={s.system}
-                type="button"
-                className={`system-row ${on ? 'on' : ''}`}
-                disabled={!s.available}
-                aria-pressed={on}
-                onClick={() => set({ system: s.system, ...resetPosition })}
-              >
-                <span className="radio" aria-hidden="true" />
-                <span className="system-body">
-                  <span className="system-name">
-                    {SYSTEM_LABEL[s.system]}
-                    {s.available && s.count ? <em> · {s.count} formes</em> : null}
-                  </span>
-                  {s.note && <span className="system-note">{s.note}</span>}
-                </span>
-                {!s.available && <span className="tag">indispo</span>}
-              </button>
-            );
-          })}
-        </div>
-        <p className="t-small t-dim">Les systèmes grisés ne s’appliquent pas à cette gamme — la raison est écrite.</p>
-      </Panel>
-
-      <Panel className="span-5 panel-fill" label="4 · Position">
-        <div className="positions">
-          {r.positions.map((p, i) => (
-            <Chip key={p.id} small selected={r.selection.positionIndex === i} onClick={() => set({ positionIndex: i })}>
-              {positionLabel(p, settings.noteNotation)}
-            </Chip>
-          ))}
-        </div>
+      <Panel
+        className="span-7"
+        accent="violet"
+        label={`2 · Les positions (${r.positions.length})`}
+        right={<span className="tag">{SYSTEM_LABEL[r.selection.system]}</span>}
+      >
         {r.positions.length === 0 ? (
-          <p className="t-small t-dim">Aucune position pour cet accordage : essaie un autre système.</p>
+          <p className="t-small t-dim">Aucune position pour cet accordage : choisis un autre système dans les réglages ci-dessous.</p>
         ) : (
-          <p className="t-small t-dim position-note">
-            Le numéro suit le <strong>degré de départ</strong> sur la corde grave : la même forme se retrouve dans toutes les tonalités,
-            seul l’endroit du manche change (les cases sont écrites à côté).
-          </p>
+          <>
+            <p className="t-small t-dim">La même forme, déplacée sur le manche : les cases changent, le doigté non.</p>
+            <ul className="pos-list">
+              {r.positions.map((p, i) => (
+                <li key={p.id} className={`pos-item ${i === r.selection.positionIndex ? 'on' : ''}`}>
+                  <span className="pos-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="pos-body">
+                    <span className="pos-label">{rowLabel(p, settings.noteNotation)}</span>
+                    <span className="t-small t-dim">départ {fmtDegree(p.notes[0]?.degree ?? '1')} · {p.notes.length} notes</span>
+                  </span>
+                  <span className="pos-acts">
+                    <button type="button" className="pos-act" onClick={() => open(i, 'scale')}>Découvrir</button>
+                    <button type="button" className="pos-act primary" onClick={() => open(i, 'training')}>S’exercer</button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
-      </Panel>
 
-      <div className="cta-block">
-        <PixelButton variant="primary" className="wide" onClick={() => navigate('scale')}>
-          ▶ Écouter cette gamme
-        </PixelButton>
-        <PixelButton className="wide" onClick={() => navigate('training')}>
-          Se tester · trous et rappel (N2 / N3)
-        </PixelButton>
-      </div>
+        <details className="adv-settings">
+          <summary className="t-label">Accordage et système de positions</summary>
+          <div className="panel-foot tuning-foot">
+            <label htmlFor="tuning" className="t-label">Accordage</label>
+            <select
+              id="tuning"
+              value={r.tuning.id}
+              onChange={(e) => set({ tuningId: e.target.value, ...resetPosition })}
+            >
+              {Object.values(TUNINGS).map((t) => (
+                <option key={t.id} value={t.id}>{t.nameFr}</option>
+              ))}
+            </select>
+            <p className="t-small t-dim">
+              {r.tuning.strings.length} cordes · {r.tuning.strings.map((s) => fmtNote(s.replace(/-?\d+$/, ''), settings.noteNotation)).join(' ')}
+            </p>
+          </div>
+          <div className="system-list">
+            {r.support.map((s) => {
+              const on = r.selection.system === s.system;
+              return (
+                <button
+                  key={s.system}
+                  type="button"
+                  className={`system-row ${on ? 'on' : ''}`}
+                  disabled={!s.available}
+                  aria-pressed={on}
+                  onClick={() => set({ system: s.system, ...resetPosition })}
+                >
+                  <span className="radio" aria-hidden="true" />
+                  <span className="system-body">
+                    <span className="system-name">
+                      {SYSTEM_LABEL[s.system]}
+                      {s.available && s.count ? <em> · {s.count} formes</em> : null}
+                    </span>
+                    {s.note && <span className="system-note">{s.note}</span>}
+                  </span>
+                  {!s.available && <span className="tag">indispo</span>}
+                </button>
+              );
+            })}
+          </div>
+          <p className="t-small t-dim">
+            « Boxes » = une forme par degré de départ. « 3 notes par corde » = trois notes sur chaque corde, plus
+            horizontal. Les systèmes grisés ne s’appliquent pas à cette gamme — la raison est écrite.
+          </p>
+        </details>
+      </Panel>
     </main>
   );
 }

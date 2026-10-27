@@ -399,7 +399,18 @@ export function ScaleDiscoveryPage() {
         <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2}>Position ›</PixelButton>
       </div>
 
-      <Panel className="span-5" accent="green" label="Exercice" right={<span className="tag">{quiz ? `${score.right}/${score.right + score.wrong}` : 'sans matériel'}</span>}>
+      {/* le geste suivant, écrit noir sur blanc : on a vu la position, on la joue */}
+      <div className="next-step">
+        <PixelButton variant="primary" className="wide" onClick={() => navigate('training')}>
+          ▶ S’exercer sur cette position, au micro
+        </PixelButton>
+        <p className="t-small t-dim">
+          Le micro valide chaque note : tu la joues sur ta guitare, elle se remplit. Sans micro, le pavé numérique
+          prend le relais.
+        </p>
+      </div>
+
+      <Panel className="span-5" accent="green" label="Sans instrument" right={<span className="tag">{quiz ? `${score.right}/${score.right + score.wrong}` : 'sans matériel'}</span>}>
         <Switch
           checked={quiz}
           onChange={toggleQuiz}

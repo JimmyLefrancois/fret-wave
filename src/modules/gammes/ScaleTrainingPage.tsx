@@ -616,25 +616,42 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         <span className="tag tag-on">{mixed && queue.length > 0 ? `Session ${qIndex + 1} / ${queue.length}` : `N${level}`}</span>
       </header>
 
+      <TabView
+        score={display}
+        notes={settings.noteNotation}
+        chords={settings.chordNotation}
+        annotation="degree"
+        mode="wrap"
+        scale="auto"
+        reduceMotion={settings.reduceMotion}
+        player={null}
+        transport="stopped"
+        hideRhythm
+        onPick={onPick}
+        {...(activeKey ? { activeHoleKey: activeKey } : {})}
+      />
+
+
       <Panel className="span-7" accent="magenta" label="Exercice" right={<span className="badge">{done} / {total}</span>}>
-        <div className="row">
-          <Switch checked={mixed} onChange={toggleMixed} label="Session mélangée" hint="3 à 5 formes différentes d’affilée" />
-        </div>
-        <div className="row">
-          <Switch
-            checked={micOn}
-            onChange={setMicOn}
-            label={micBusy ? 'Micro — ouverture…' : 'Micro (jouer pour valider)'}
-            hint={
-              micOn
-                ? micState === 'listening'
-                  ? 'la case se remplit à la note jouée ; le pavé reste un secours'
-                  : 'micro fermé'
-                : 'sans micro : pavé numérique'
-            }
-          />
-          {micOn && micState !== 'listening' && (
+        <div className={`mic-line ${micState === 'listening' ? 'on' : ''}`}>
+          <div className="mic-line-body">
+            <span className="mic-line-title">
+              {micState === 'listening' ? 'Micro ouvert : joue la note, elle se remplit' : 'Valide au micro (tu joues) ou au pavé (tu tapes)'}
+            </span>
+            <span className="t-small t-dim">
+              {micBusy
+                ? 'ouverture du périphérique…'
+                : micState === 'listening'
+                  ? 'le pavé numérique reste disponible à tout moment'
+                  : 'le micro ou l’interface USB doit être branché avant d’ouvrir'}
+            </span>
+          </div>
+          {micState === 'listening' ? (
             <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer</PixelButton>
+          ) : (
+            <PixelButton variant="primary" onClick={() => setMicOn(true)} disabled={micBusy}>
+              ▶ Ouvrir le micro
+            </PixelButton>
           )}
         </div>
         {mixed && queue.length > 0 && (
@@ -644,31 +661,19 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           </p>
         )}
         {!mixed && (
-          <>
-            <div className="field">
-              <span className="t-label">Niveau</span>
-              <Segmented<AttemptLevel>
-                size="sm"
-                label="Niveau"
-                value={level}
-                onChange={(v) => restart(v, segment)}
-                options={[
-                  { value: 2, label: 'N2 · trous' },
-                  { value: 3, label: 'N3 · rappel' },
-                ]}
-              />
-            </div>
-            <div className="field">
-              <span className="t-label">Découpage</span>
-              <Segmented<Segment>
-                size="sm"
-                label="Découpage"
-                value={segment}
-                onChange={(v) => restart(level, v)}
-                options={SEGMENTS.map((s) => ({ value: s.value, label: s.label, note: s.hint }))}
-              />
-            </div>
-          </>
+          <div className="field">
+            <span className="t-label">Niveau</span>
+            <Segmented<AttemptLevel>
+              size="sm"
+              label="Niveau"
+              value={level}
+              onChange={(v) => restart(v, segment)}
+              options={[
+                { value: 2, label: 'N2 · trous' },
+                { value: 3, label: 'N3 · rappel' },
+              ]}
+            />
+          </div>
         )}
         <p className="t-small">
           {level === 2
@@ -679,28 +684,45 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             : `${exercise.notes} cases à écrire de mémoire : seules les cordes, les mesures et le rythme restent visibles.`
               + (micOn ? ' Joue-les dans l’ordre que tu veux.' : '')}
         </p>
-
-        <div className="grid-row">
-          <div className="tempo">
-            <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.max(30, settings.trainingTempo - 5) })} aria-label="Grille moins vite">−</button>
-            <span className="tempo-val">♩ {settings.trainingTempo}</span>
-            <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.min(120, settings.trainingTempo + 5) })} aria-label="Grille plus vite">+</button>
-          </div>
-          <PixelButton variant={grid === 'running' ? 'primary' : 'ghost'} onClick={() => (grid === 'running' ? stopGrid() : void startGrid())} disabled={!!result}>
-            {grid === 'running' ? 'Arrêter la grille' : 'Grille (métronome)'}
-          </PixelButton>
-          <span className="t-small t-dim">{gridSpec.beats} temps ≈ {gridSpec.seconds.toFixed(1)} s</span>
-        </div>
-        <p className="t-small t-dim">
-          Un temps par trou, en mesures entières. Finir dans la grille et juste à ≥ 95 % vaut ★★,
-          parfait sans une erreur vaut ★★★. Le métronome ne joue aucune note : il ne donne pas les réponses.
-        </p>
-
-        <div className="row">
-          <PixelButton variant="quiet" onClick={() => restart()} title="Même gamme, nouveaux trous">Nouvelle série</PixelButton>
+        <div className="row exercise-start">
+          <PixelButton variant="primary" onClick={() => restart()} title="Même gamme, nouveaux trous">▶ Nouvelle série</PixelButton>
           <PixelButton variant="quiet" onClick={() => navigate('scale')}>Écouter d’abord</PixelButton>
           {startedAt !== null && !result && <span className="t-label">{mmss(elapsed)}</span>}
         </div>
+
+        <details className="adv-settings">
+          <summary className="t-label">Réglages de la série · découpage, mélange, métronome</summary>
+          <div className="row">
+            <Switch checked={mixed} onChange={toggleMixed} label="Session mélangée" hint="3 à 5 formes différentes d’affilée" />
+          </div>
+          {!mixed && (
+            <div className="field">
+              <span className="t-label">Découpage</span>
+              <Segmented<Segment>
+                size="sm"
+                label="Découpage"
+                value={segment}
+                onChange={(v) => restart(level, v)}
+                options={SEGMENTS.map((s) => ({ value: s.value, label: s.label, note: s.hint }))}
+              />
+            </div>
+          )}
+          <div className="grid-row">
+            <div className="tempo">
+              <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.max(30, settings.trainingTempo - 5) })} aria-label="Grille moins vite">−</button>
+              <span className="tempo-val">♩ {settings.trainingTempo}</span>
+              <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.min(120, settings.trainingTempo + 5) })} aria-label="Grille plus vite">+</button>
+            </div>
+            <PixelButton variant={grid === 'running' ? 'primary' : 'ghost'} onClick={() => (grid === 'running' ? stopGrid() : void startGrid())} disabled={!!result}>
+              {grid === 'running' ? 'Arrêter la grille' : 'Grille (métronome)'}
+            </PixelButton>
+            <span className="t-small t-dim">{gridSpec.beats} temps ≈ {gridSpec.seconds.toFixed(1)} s</span>
+          </div>
+          <p className="t-small t-dim">
+            Un temps par trou, en mesures entières. Finir dans la grille et juste à ≥ 95 % vaut ★★,
+            parfait sans une erreur vaut ★★★. Le métronome ne joue aucune note : il ne donne pas les réponses.
+          </p>
+        </details>
       </Panel>
 
       <Panel className="span-5 numpad-panel" accent="cyan" label={micOn ? 'Micro · pavé en secours' : 'Pavé numérique'} right={activeStringLabel ? <span className="tag">corde de {activeStringLabel}</span> : <span className="tag">aucun trou</span>}>
@@ -734,20 +756,6 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         )}
       </Panel>
 
-      <TabView
-        score={display}
-        notes={settings.noteNotation}
-        chords={settings.chordNotation}
-        annotation="degree"
-        mode="wrap"
-        scale="auto"
-        reduceMotion={settings.reduceMotion}
-        player={null}
-        transport="stopped"
-        hideRhythm
-        onPick={onPick}
-        {...(activeKey ? { activeHoleKey: activeKey } : {})}
-      />
 
       {sessionDone && mixed ? (
         <Panel className="span-7" accent="green" label="Session terminée">

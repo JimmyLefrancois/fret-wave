@@ -27,7 +27,7 @@ import { ChordQuizPage } from '../modules/accords/ChordQuizPage';
 const SHORT_NAME: Record<string, string> = { nylon: 'GUITARE NYLON', electric: 'GUITARE ÉLECTRIQUE' };
 
 const NAV: { route: RouteName; label: string; icon: IconName }[] = [
-  { route: 'hub', label: 'Hub', icon: 'home' },
+  { route: 'hub', label: 'Accueil', icon: 'home' },
   { route: 'gammes', label: 'Gammes', icon: 'scales' },
   { route: 'tuner', label: 'Accordeur', icon: 'ear' },
   // La page « Son » (outil de contrôle de la 1c) sort de la barre : elle reste joignable depuis les réglages
@@ -118,7 +118,7 @@ export function App() {
         theme={theme}
         reduceMotion={settings.reduceMotion}
         scanlines={settings.scanlines}
-        variant={route === 'hub' ? 'poster' : 'calm'}
+        variant="calm"
       />
       <div className={`app-content ${isDevPage ? 'dev' : ''}`}>
         <Page route={route} />

@@ -821,6 +821,9 @@ table.kv td:first-child { color: var(--muted); }
   .shell > * { margin: 0; min-width: 0; }
   .shell > .hero,
   .shell > .page-head,
+  .shell > .home-head,
+  .shell > .home-foot,
+  .shell > .next-step,
   .shell > .tabview,
   .shell > .quiz-strip,
   .shell > .pos-nav,
@@ -1543,3 +1546,106 @@ table.kv td:first-child { color: var(--muted); }
 .adv-settings > summary::before { content: '▸ '; }
 .adv-settings[open] > summary::before { content: '▾ '; }
 .adv-settings[open] > summary { margin-bottom: 8px; }
+
+/* ---- accueil simplifié et liste des positions (branche ui/simplification) ------------------------- */
+.home-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 12px; padding: 18px 0 0; }
+.home-head-main { min-width: 0; }
+.home-title { margin: 2px 0 4px; font-family: var(--font-body); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.home-actions { margin: 12px 0 10px; }
+.home-actions .btn { flex: 1 1 150px; }
+
+.home-door { margin: 12px 0; }
+.door {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-height: 128px;
+  padding: 14px;
+  text-align: left;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--surface);
+  border: var(--bw) solid var(--line);
+  box-shadow: var(--shadow) var(--shadow) 0 rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+.door:hover, .door:focus-visible { border-color: var(--cyan); background: var(--surface-hi); }
+.door-kicker { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan); }
+.door-title { font-size: 18px; font-weight: 700; line-height: 1.2; }
+.door-sub { font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+
+.home-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 0 8px; }
+.home-foot button {
+  min-height: 32px;
+  padding: 0 2px;
+  font: inherit;
+  color: var(--dim);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.home-foot button:hover { color: var(--cyan); }
+
+.chosen-line { margin: 10px 0 2px; font-size: 14px; }
+.tonics-label { margin: 12px 0 0; color: var(--cyan); }
+
+/* liste des positions : une ligne = une forme, deux gestes */
+.pos-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.pos-item {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0 10px 8px;
+  border-top: 1px solid var(--line-soft);
+}
+.pos-item.on { border-left: 3px solid var(--violet); padding-left: 5px; background: rgba(168, 107, 255, 0.07); }
+.pos-num { font-family: var(--font-body); font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 700; color: var(--dim); }
+.pos-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pos-label { font-size: 14px; font-weight: 600; }
+.pos-acts { display: flex; gap: 6px; }
+.pos-act {
+  min-height: 36px;
+  padding: 0 11px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: transparent;
+  border: var(--bw) solid var(--line);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pos-act:hover { border-color: var(--cyan); }
+.pos-act.primary { background: var(--violet); border-color: var(--violet); color: #0d0221; }
+.pos-act.primary:hover { background: #bb8bff; border-color: #bb8bff; }
+
+@media (max-width: 519px) {
+  /* sur téléphone les deux gestes passent sous le libellé : la ligne reste lisible sans troncature */
+  .pos-item { grid-template-columns: 32px minmax(0, 1fr); row-gap: 8px; }
+  .pos-acts { grid-column: 2; }
+  .pos-act { flex: 1 1 auto; }
+  .home-actions .btn { flex: 1 1 100%; }
+}
+
+/* geste suivant sur l'écran de découverte, et bandeau micro de l'exercice */
+.next-step { margin: 12px 0 4px; }
+.next-step .btn { width: 100%; }
+.mic-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  margin: 4px 0 10px;
+  border: var(--bw) solid var(--line);
+  background: rgba(5, 217, 232, 0.06);
+}
+.mic-line.on { border-color: var(--green); background: rgba(124, 255, 107, 0.08); }
+.mic-line-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
+.mic-line-title { font-size: 14px; font-weight: 600; }
+.exercise-start { margin: 12px 0 8px; }
+.exercise-start .btn { flex: 1 1 140px; }
+@media (max-width: 519px) { .exercise-start .btn { flex: 1 1 100%; } }
