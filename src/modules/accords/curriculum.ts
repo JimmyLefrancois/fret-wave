@@ -21,7 +21,7 @@ export interface ChordEntry {
 }
 
 export interface Palier {
-  id: 'P0' | 'P1' | 'P2' | 'P2b' | 'P3' | 'P4';
+  id: 'P0' | 'P1' | 'P2' | 'P2b' | 'P3' | 'P4' | 'P5' | 'P6' | 'P7';
   title: string;
   goal: string;
   entries: ChordEntry[];
@@ -147,6 +147,74 @@ export const CURRICULUM: readonly Palier[] = [
     ],
     prof:
       'Sol et Do sont deux murs pour deux raisons différentes : Do demande d’étouffer la 6e corde et d’écarter la main, Sol demande de changer tout le poignet. D’où le marchepied Cmaj7 et la variante 4 doigts de Sol, et d’où l’interdiction de bloquer : si Do ne vient pas, G/B et C/G permettent de jouer quand même.',
+  },
+  {
+    id: 'P5',
+    title: 'Septièmes et couleurs',
+    goal: 'Les mêmes formes, quatre couleurs : entendre ce que la septième change.',
+    entries: [
+      { voicingId: 'D7-xx0212', why: 'Ré + un doigt déplacé sur la corde de Si : la couleur blues', prereq: ['D-xx0232'] },
+      { voicingId: 'G7-320001', why: 'Sol + l’auriculaire sur la corde de mi aigu', prereq: ['G-320003'] },
+      { voicingId: 'C7-x32310', why: 'Do + l’auriculaire : l’accord qui appelle Fa', prereq: ['C-x32010'] },
+      { voicingId: 'Dmaj7-xx0222', why: 'Ré majeur avec un doigt à plat sur les trois aiguës : la couleur douce', prereq: ['D-xx0232'] },
+      { voicingId: 'Gmaj7-320002', why: 'deux doigts seulement, et le Sol devient rêveur', prereq: ['G-320003'] },
+      { voicingId: 'Cadd9-x32030', why: 'Do + l’auriculaire sur la corde de Si : la neuvième, très pop', prereq: ['C-x32010'] },
+      { voicingId: 'Asus4-x02230', why: 'La + l’auriculaire : la quarte suspendue, la même famille que Dsus4', prereq: ['A-x02220'] },
+      { voicingId: 'Esus4-002200', why: 'deux doigts, une couleur ouverte ; le même geste que Em, deux cases plus haut', prereq: ['E-022100'] },
+      { voicingId: 'Em7-022030', why: 'la variante à trois doigts de Em7 : plus pleine, et un doigt à réutiliser', prereq: ['Em7-020000'] },
+      { voicingId: 'B7-x21202', why: 'quatre doigts : le Si7 qui appelle Mi, à placer en fin de palier', prereq: ['E7-020100'] },
+    ],
+    transitions: [
+      ['D-xx0232', 'D7-xx0212'],
+      ['G-320003', 'G7-320001'],
+      ['C-x32010', 'C7-x32310'],
+      ['C-x32010', 'Cadd9-x32030'],
+      ['D-xx0232', 'Dmaj7-xx0222'],
+      ['G-320003', 'Gmaj7-320002'],
+      ['A-x02220', 'Asus4-x02230'],
+      ['E-022100', 'Esus4-002200'],
+    ],
+    prof:
+      'Un palier de couleurs, pas de nouvelles positions : chaque accord ne demande qu’un doigt de plus (ou un doigt déplacé) sur une forme connue. C’est volontaire — un élève qui a passé Do et Sol a besoin de variété sonore, pas d’une nouvelle difficulté motrice. B7 est le seul vrai effort : il arrive en dernier et ne bloque rien.',
+  },
+  {
+    id: 'P6',
+    title: 'Premiers accords slash',
+    goal: 'Une autre note à la basse — donc entendre une ligne de basse, pas un accord bizarre.',
+    entries: [
+      { voicingId: 'GoverB-x20003', why: 'Sol avec Si à la basse : il relie Sol à Do sans saut', prereq: ['G-320003'] },
+      { voicingId: 'DoverFs-200232', why: 'Ré avec Fa♯ à la basse : le chemin naturel de Ré vers Sol', prereq: ['D-xx0232'] },
+      { voicingId: 'CoverG-332010', why: 'Do avec Sol à la basse : la version pleine du Do', prereq: ['C-x32010'] },
+    ],
+    transitions: [
+      ['G-320003', 'GoverB-x20003'],
+      ['GoverB-x20003', 'C-x32010'],
+      ['D-xx0232', 'DoverFs-200232'],
+      ['C-x32010', 'CoverG-332010'],
+    ],
+    prof:
+      'Un accord slash se comprend en contexte ou pas du tout. On ne l’apprend donc jamais seul : G → G/B → C est une ligne de basse (Sol, Si, Do) qu’on entendrait à la basse. Le doigt qui change est celui de la corde de La — exactement la note qui donne son nom à l’accord.',
+  },
+  {
+    id: 'P7',
+    title: 'Fa et Si mineur — sans se bloquer',
+    goal: 'Le barré, par paliers : d’abord une forme sans barre, puis deux cordes, puis six.',
+    entries: [
+      { voicingId: 'Fmaj7-xx3210', why: 'quatre cordes, aucun barré : le Fa existe déjà', prereq: ['C-x32010'] },
+      { voicingId: 'F-xx3211', why: 'le même geste, l’index à plat sur deux cordes : le mini-barré', prereq: ['Fmaj7-xx3210'] },
+      { voicingId: 'F-133211', why: 'le barré complet, forme de Mi déplacée en case 1', prereq: ['F-xx3211'] },
+      { voicingId: 'Bm7-x20202', why: 'trois doigts, aucun barré : la couleur de Si mineur', prereq: ['D-xx0232'] },
+      { voicingId: 'Bm-x24432', why: 'la forme de La mineur barrée en case 2', prereq: ['Bm7-x20202'] },
+    ],
+    transitions: [
+      ['Fmaj7-xx3210', 'F-xx3211'],
+      ['F-xx3211', 'F-133211'],
+      ['Am-x02210', 'Fmaj7-xx3210'],
+      ['D-xx0232', 'Bm7-x20202'],
+      ['Bm7-x20202', 'Bm-x24432'],
+    ],
+    prof:
+      'Trois entrées pour le même accord, dans l’ordre de la difficulté : Fmaj7 sans barré, puis deux cordes sous l’index, puis les six. Un barré demande des semaines, et un élève qui n’y arrive pas n’est pas en échec — il est normal. Aucun de ces accords n’est un verrou : Bm7 et Fmaj7 permettent déjà de jouer les progressions qui les demandent.',
   },
 ];
 

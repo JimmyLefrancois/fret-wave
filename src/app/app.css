@@ -1409,3 +1409,93 @@ table.kv td:first-child { color: var(--muted); }
 @media (min-width: 720px) {
   .chord-intro { grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 16px; }
 }
+
+/* --- phase 4b : Fixer, Enchaîner, Intégrer, QCM, accordage guidé ------------------------------- */
+
+/* sept étapes : la grille de 4 place les trois dernières sur une seconde rangée */
+.step-nav-7 { row-gap: 6px; }
+
+/* pose à froid : le chrono est la seule chose qu'on regarde */
+.cold-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 6px 0 2px;
+}
+.cold-chrono {
+  font-family: var(--font-label);
+  font-size: 26px;
+  line-height: 1;
+  color: var(--yellow);
+}
+.cold-chrono.ko { color: var(--danger); }
+
+/* paires d'accords (Enchaîner) et progressions (Intégrer) : des puces, une seule ligne qui défile */
+.pair-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.drill-result {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--bg);
+  border: 2px solid var(--line-soft);
+}
+
+/* QCM sans matériel : une réponse = une grande cible tactile, lisible seule */
+.quiz-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.quiz-tab { margin: 8px 0; }
+.quiz-options { display: grid; gap: 8px; margin: 10px 0; }
+.quiz-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 10px;
+  background: var(--surface-hi);
+  border: 2px solid var(--line-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+.quiz-option:hover:not(:disabled) { border-color: var(--cyan); }
+.quiz-option.right { border-color: var(--ok); }
+.quiz-option.wrong { border-color: var(--danger); }
+.quiz-option.muted { opacity: 0.5; }
+.quiz-letter {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--line-soft);
+  color: var(--dim);
+  font-family: var(--font-label);
+  font-size: 11px;
+}
+.quiz-option.right .quiz-letter { color: var(--ok); border-color: var(--ok); }
+.quiz-option.wrong .quiz-letter { color: var(--danger); border-color: var(--danger); }
+.quiz-label { min-width: 0; }
+
+/* accordage guidé : la corde en cours se lit de loin */
+.guide { display: grid; gap: 6px; margin-top: 6px; }
+.guide-target { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.guide-number {
+  font-family: var(--font-label);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--ok);
+}
+.guide-note { font-size: 22px; color: var(--text); }
+.guide-hz { font-size: 13px; color: var(--dim); }

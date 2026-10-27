@@ -124,7 +124,8 @@ describe('recommandation du prochain accord', () => {
     const am = new Set(transitionsWith('Am-x02210').map(key));
     expect(em.has(['Em-022000', 'Am-x02210'].sort().join('>'))).toBe(true);
     expect(am.has(['Em-022000', 'Am-x02210'].sort().join('>'))).toBe(true);
-    expect(transitionsWith('C7-x32310')).toEqual([]); // hors curriculum de la 4a
+    expect(transitionsWith('C7-x32310')).toHaveLength(1); // C7 est entré au curriculum en 4b (C → C7)
+    expect(transitionsWith('triad-C-xxx553')).toEqual([]); // P9 : triades, hors parcours (phase 6)
   });
 
   it('les paliers savent dire où on en est, et pourquoi un suivant est plus tard', () => {

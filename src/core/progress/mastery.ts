@@ -9,11 +9,21 @@
  *  - « appris » = 2 réussites sur **2 jours différents** (une leçon apprise un soir se consolide la nuit) ;
  *  - « maîtrisé » = appris **et** boîte de Leitner ≥ 5 (révision à 16 j tenue) **et** dernière tentative réussie.
  */
-import { dayKey, isVerified, nodeIdOf, scoreOf, zoneOf, type Attempt } from './journal';
+import {
+  chordIdOfNode, dayKey, isVerified, nodeIdOf, progressionIdOfNode, scoreOf, transitionOfNode, zoneOf, type Attempt,
+} from './journal';
 import { cardsFrom, type Card } from './scheduler';
 
 export const PASS = 0.8;
 export const EXCELLENT = 0.95;
+
+/** Médiane (les mesures de temps de changement n'ont pas de moyenne utile : une hésitation suffit). */
+export function medianOf(values: readonly number[]): number | null {
+  if (values.length === 0) return null;
+  const s = [...values].sort((a, b) => a - b);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m]! : Math.round((s[m - 1]! + s[m]!) / 2);
+}
 
 /**
  * Poids d'une tentative dans la moyenne récente : une case écrite **de mémoire** (N3) vaut plus qu'un
@@ -36,8 +46,14 @@ export interface NodeStats {
   nodeId: string;
   /** Module du nœud (les deux modules partagent le même modèle de maîtrise). */
   module: 'gammes' | 'accords';
-  /** Voicing du nœud quand `module === 'accords'`. */
+  /** Nature du nœud : une forme tenue, un savoir, une transition, une progression, une lecture de gamme. */
+  nodeKind: 'gamme' | 'accord' | 'savoir' | 'transition' | 'progression';
+  /** Voicing du nœud quand il s'agit d'une forme d'accord (`acc:accord:*`). */
   chordId: string | null;
+  /** Paire ordonnée d'une transition (`acc:transition:a>b`). */
+  pair: [string, string] | null;
+  /** Progression (`acc:progression:*`). */
+  progressionId: string | null;
   /** Gamme du nœud (module Gammes) ; chaîne vide pour un accord. */
   scaleId: string;
   system: string;
@@ -48,6 +64,14 @@ export interface NodeStats {
   successes: number;
   /** Jours distincts où le nœud a été réussi. */
   successDays: number;
+  /** Poses à froid réussies **dans la limite** (étape Fixer) — exigées pour un accord. */
+  coldPasses: number;
+  /** Jours distincts de ces poses à froid. */
+  coldDays: number;
+  /** Meilleur temps de pose à froid (s), réussi ou non. */
+  coldBestSeconds: number | null;
+  /** Temps de changement médian mesuré (ms, transitions). */
+  changeMs: number | null;
   firstTs: number;
   lastTs: number;
   /** Meilleure précision au premier essai. */
@@ -98,16 +122,49 @@ function weightedRecent(scores: readonly number[], weights: readonly number[]): 
  */
 export const CHORD_SUCCESSES = 3;
 
+/**
+ * Une **pose à froid** réussie est exigée en plus, depuis la 4b : sans elle, un élève pouvait être
+ * déclaré « appris » en posant l'accord lentement six fois de suite, sans jamais savoir le placer en
+ * quelques secondes (c'était la demi-promesse de la 4a, §4.6).
+ */
+export const CHORD_COLD = 1;
+
+/**
+ * Un rappel à froid le **même jour** ne compte que s'il vient au moins dix minutes après la première
+ * vérification (MUSIC_DESIGN §4.4) : la consolidation motrice demande un intervalle, pas un clic.
+ */
+export const COLD_SAME_DAY_MIN_MS = 10 * 60_000;
+
+/** Une pose à froid est réussie si elle est propre **et** dans la limite de temps accordée. */
+export function isColdPass(a: Attempt): boolean {
+  if (a.kind !== 'cold') return false;
+  if ((scoreOf(a) ?? 0) < PASS) return false;
+  return a.seconds <= (a.limitSec ?? 8);
+}
+
 export function stateOf(opts: {
   attempts: number; successes: number; successDays: number; last: number; box: number | null;
   /** Seuil de réussites exigé (2 pour une forme de gamme, 3 pour un accord). */
   minSuccesses?: number;
+  /** Poses à froid réussies et seuil exigé (un accord seulement). */
+  coldPasses?: number;
+  minCold?: number;
 }): NodeState {
   if (opts.attempts === 0) return 'available';
-  const learned = opts.successes >= (opts.minSuccesses ?? 2) && opts.successDays >= 2;
+  const learned = opts.successes >= (opts.minSuccesses ?? 2) && opts.successDays >= 2
+    && (opts.coldPasses ?? 0) >= (opts.minCold ?? 0);
   if (!learned) return 'learning';
   if (opts.box !== null && opts.box >= 5 && opts.last >= PASS) return 'mastered';
   return 'learned';
+}
+
+/** Nature d'un nœud, déduite de son identifiant (une seule source de vérité : le préfixe). */
+export function nodeKindOf(nodeId: string): NodeStats['nodeKind'] {
+  if (nodeId.startsWith('acc:transition:')) return 'transition';
+  if (nodeId.startsWith('acc:savoir:')) return 'savoir';
+  if (nodeId.startsWith('acc:progression:')) return 'progression';
+  if (nodeId.startsWith('acc:')) return 'accord';
+  return 'gamme';
 }
 
 export function summarizeNodes(attempts: readonly Attempt[]): NodeStats[] {
@@ -130,17 +187,30 @@ export function summarizeNodes(attempts: readonly Attempt[]): NodeStats[] {
     const first = sorted[0]!;
     const last = sorted[sorted.length - 1]!;
     const card: Card | null = cards.get(nodeId) ?? null;
-    const isChord = nodeId.startsWith('acc:');
+    const kind = nodeKindOf(nodeId);
+    const isChord = kind === 'accord';
+    // poses à froid : une réussite le même jour ne compte que dix minutes après la première tentative
+    const firstDay = dayKey(first.ts);
+    const coldOk = sorted.filter(isColdPass).filter((a) => dayKey(a.ts) !== firstDay || a.ts - first.ts >= COLD_SAME_DAY_MIN_MS);
+    const coldTries = sorted.filter((a) => a.kind === 'cold');
+    const changeMs = medianOf(sorted.filter((a) => a.kind === 'transition' && typeof a.changeMs === 'number').map((a) => a.changeMs!));
     const stats: NodeStats = {
       nodeId,
-      module: isChord ? 'accords' : 'gammes',
-      chordId: isChord ? nodeId.slice('acc:accord:'.length) : null,
+      module: nodeId.startsWith('acc:') ? 'accords' : 'gammes',
+      nodeKind: kind,
+      chordId: chordIdOfNode(nodeId),
+      pair: transitionOfNode(nodeId),
+      progressionId: progressionIdOfNode(nodeId),
       scaleId: first.scaleId,
       system: first.system,
       formIndex: first.formIndex,
       attempts: sorted.length,
       successes: successAttempts.length,
       successDays,
+      coldPasses: coldOk.length,
+      coldDays: new Set(coldOk.map((a) => dayKey(a.ts))).size,
+      coldBestSeconds: coldTries.length ? Math.min(...coldTries.map((a) => a.seconds)) : null,
+      changeMs,
       firstTs: first.ts,
       lastTs: last.ts,
       best: Math.max(...scores),
@@ -160,8 +230,9 @@ export function summarizeNodes(attempts: readonly Attempt[]): NodeStats[] {
       successDays,
       last: stats.last,
       box: stats.box,
-      // un accord exige 3 vérifications propres sur 2 jours (MUSIC_DESIGN §4.6) ; une forme de gamme 2
-      ...(isChord ? { minSuccesses: CHORD_SUCCESSES } : {}),
+      // une forme d'accord exige 3 vérifications propres sur 2 jours (MUSIC_DESIGN §4.6) **et** une
+      // pose à froid réussie (4b) ; un savoir (QCM) et une transition gardent le seuil des gammes (2)
+      ...(isChord ? { minSuccesses: CHORD_SUCCESSES, coldPasses: stats.coldPasses, minCold: CHORD_COLD } : {}),
     });
     out.push(stats);
   }

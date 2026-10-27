@@ -16,16 +16,13 @@ import { DEFAULT_SELECTION } from '../../app/scaleSession';
 import { SCALE_HINTS } from './content';
 
 /** Degrés en glyphes réels : « b3 » → « ♭3 », « #4 » → « ♯4 », « bb7 » → « 𝄫7 ». */
-export function fmtDegree(fn: string): string {
-  return fn.replace(/bb/g, '𝄫').replace(/##/g, '𝄪').replace(/b/g, '♭').replace(/#/g, '♯');
-}
+// le formatage des degrés vit dans le cœur (`core/theory/notation`) : une seule fonction pour toute l'app
+import { fmtDegree, toAsciiDegree } from '../../core/theory/notation';
+export { fmtDegree, toAsciiDegree };
 
 const NUMBER_NAME = ['unisson', 'seconde', 'tierce', 'quarte', 'quinte', 'sixte', 'septième'];
 
-/** Ramène les glyphes d'altération à l'ASCII du modèle : « ♭3 » → « b3 ». */
-export function toAsciiDegree(fn: string): string {
-  return fn.replace(/𝄫/g, 'bb').replace(/𝄪/g, '##').replace(/♭/g, 'b').replace(/♯/g, '#');
-}
+
 
 /** Nom français d'une fonction d'intervalle : « b3 » ou « ♭3 » → « tierce mineure ». */
 export function degreeName(fn: string): string {

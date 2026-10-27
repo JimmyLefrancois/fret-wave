@@ -21,18 +21,26 @@ import { TUNINGS, type Tuning } from '../../core/theory/tunings';
 import type { DegreeLabel, NoteName } from '../../core/theory/types';
 import type { Voicing } from '../../core/theory/voicings';
 
-/** Étapes de la leçon **livrées en 4a** (les trois dernières arrivent en 4b). */
-export type LessonStep = 'decouvrir' | 'construire' | 'verifier' | 'plaquer';
+/** Étapes de la leçon : les sept du cycle du brief, toutes livrées depuis la 4b. */
+export type LessonStep = 'decouvrir' | 'construire' | 'verifier' | 'plaquer' | 'fixer' | 'enchainer' | 'integrer';
 
-export const LESSON_STEPS: readonly { id: LessonStep; num: string; title: string; goal: string }[] = [
-  { id: 'decouvrir', num: '01', title: 'Découvrir', goal: 'Nom, notes, couleur, écoute plaquée et arpégée' },
-  { id: 'construire', num: '02', title: 'Construire', goal: 'Un doigt à la fois, dans l’ordre' },
-  { id: 'verifier', num: '03', title: 'Vérifier', goal: 'Corde par corde, au micro ou à l’oreille' },
-  { id: 'plaquer', num: '04', title: 'Plaquer', goal: 'Le geste complet — déclaré, pas encore vérifié' },
+export const LESSON_STEPS: readonly { id: LessonStep; num: string; title: string; short: string; goal: string }[] = [
+  { id: 'decouvrir', num: '01', title: 'Découvrir', short: 'Découvrir', goal: 'Nom, notes, couleur, écoute plaquée et arpégée' },
+  { id: 'construire', num: '02', title: 'Construire', short: 'Construire', goal: 'Un doigt à la fois, dans l’ordre' },
+  { id: 'verifier', num: '03', title: 'Vérifier', short: 'Vérifier', goal: 'Corde par corde, au micro ou à l’oreille' },
+  { id: 'plaquer', num: '04', title: 'Plaquer', short: 'Plaquer', goal: 'Le geste complet — déclaré, pas encore vérifié' },
+  { id: 'fixer', num: '05', title: 'Fixer', short: 'Fixer', goal: 'Pose à froid, chronométrée, sans aide' },
+  { id: 'enchainer', num: '06', title: 'Enchaîner', short: 'Enchaîner', goal: 'Changer d’accord, et mesurer le temps de changement' },
+  { id: 'integrer', num: '07', title: 'Intégrer', short: 'Intégrer', goal: 'Une progression de quatre accords, en mesure' },
 ];
 
-/** Ce qui reste du cycle des 7 étapes du brief, et où il vit. */
-export const PENDING_STEPS = 'Fixer (rappel à froid chronométré), Enchaîner (transitions) et Intégrer (progression) arrivent en 4b : ils demandent le rythme et l’onset de la phase 5.';
+/**
+ * Ce que le cycle ne prouve pas encore, dit à l'écran : le **plaqué** n'est pas écouté (phase 5) et le
+ * temps de changement est mesuré sur la **basse** seule (monophonie). Un écran qui laisse croire le
+ * contraire serait la même malhonnêteté qu'un chiffre inventé.
+ */
+export const CYCLE_LIMITS =
+  'Deux limites assumées : l’accord plaqué n’est pas encore écouté (analyse polyphonique en phase 5), et l’enchaînement mesure la basse, pas les six cordes.';
 
 // ---------------------------------------------------------------------------
 // Liste de vérification en mode arpège

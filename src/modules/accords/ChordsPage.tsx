@@ -16,7 +16,7 @@ import { interpretChord } from '../../core/theory/chords';
 import { loadJournal, progressStore, summarizeNodes } from '../../core/progress';
 import { CURRICULUM } from './curriculum';
 import { chordCards, chordProgress, learnedChordIds, startedChordIds, palierStates, nextChord } from './recommend';
-import { PENDING_STEPS } from './lesson';
+import { CYCLE_LIMITS } from './lesson';
 
 const STATUS_LABEL: Record<string, string> = {
   learned: 'appris',
@@ -55,12 +55,13 @@ export function ChordsPage() {
           <h1 className="page-title">Accords</h1>
           <p className="t-small t-dim">Doigt par doigt, puis corde par corde</p>
         </div>
-        <span className="tag tag-on">P1 → P4</span>
+        <span className="tag tag-on">P1 → P7</span>
       </header>
 
       <p className="t-small span-12">
-        Un accord s’apprend doigt par doigt, puis corde par corde. Chaque corde est vérifiée au micro —
-        c’est la seule chose que l’entrée audio monophonique sache faire honnêtement.
+        Un accord s’apprend doigt par doigt, puis corde par corde, puis <strong>en changement</strong>. Chaque
+        corde est vérifiée au micro — c’est la seule chose que l’entrée audio monophonique sache faire
+        honnêtement.
       </p>
 
       <Panel
@@ -90,10 +91,10 @@ export function ChordsPage() {
           </>
         )}
         <Bar value={progress.done} max={Math.max(1, progress.total)} accent="cyan" />
-        <p className="t-small t-dim">{progress.done} accord{progress.done > 1 ? 's' : ''} appris sur {progress.total} — les power chords, plus l’Enchaîner et l’Intégrer, viendront en 4b.</p>
+        <p className="t-small t-dim">{progress.done} accord{progress.done > 1 ? 's' : ''} appris sur {progress.total} — les sept étapes du cycle sont là. Les barrés mobiles (P8) et les voicings avancés (P10) arrivent en phase 6.</p>
         <p className="t-small t-dim">
-          « Appris » = 3 vérifications propres en mode arpège sur au moins 2 jours différents. Une lecture
-          d’accord ou un plaqué déclaré ne compte pas.
+          « Appris » = 3 vérifications propres en mode arpège sur au moins 2 jours différents <strong>et</strong> une
+          pose à froid réussie (étape Fixer). Une lecture d’accord ou un plaqué déclaré ne compte pas.
         </p>
       </Panel>
 
@@ -103,8 +104,14 @@ export function ChordsPage() {
           <li className="t-small">Construire — un doigt à la fois, dans l’ordre, validé au micro</li>
           <li className="t-small">Vérifier — corde par corde (étouffée, fausse, trop basse)</li>
           <li className="t-small">Plaquer — le geste complet, <strong>déclaré</strong> (la phase 5 l’écoutera)</li>
+          <li className="t-small">Fixer — pose à froid chronométrée (8 s → 5 s → 3 s)</li>
+          <li className="t-small">Enchaîner — changement mesuré entre deux accords</li>
+          <li className="t-small">Intégrer — quatre accords en mesure, avec un motif de strum</li>
         </ul>
-        <p className="t-small t-dim">{PENDING_STEPS}</p>
+        <p className="t-small t-dim">{CYCLE_LIMITS}</p>
+        <div className="row">
+          <PixelButton onClick={() => navigate('chordquiz')}>Sans matériel · QCM</PixelButton>
+        </div>
       </Panel>
 
       {CURRICULUM.map((palier) => {

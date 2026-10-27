@@ -87,7 +87,7 @@ describe('« appris » pour un accord : trois vérifications propres sur deux jo
     expect(node.state).toBe('learning');
   });
 
-  it('trois réussites sur deux jours : appris', () => {
+  it('trois réussites sur deux jours ne suffisent plus : il faut la pose à froid (4b)', () => {
     const three = [
       chordAttempt({ ts: at(1, 9), correct: 6, total: 6 }),
       chordAttempt({ ts: at(1, 20), correct: 6, total: 6 }),
@@ -96,8 +96,44 @@ describe('« appris » pour un accord : trois vérifications propres sur deux jo
     const node = summarizeNodes(three)[0]!;
     expect(node.successes).toBe(3);
     expect(node.successDays).toBe(2);
-    expect(node.state).toBe('learned');
-    expect(learnedChordIds(three).has('Em-022000')).toBe(true);
+    // la règle de la 4b : sans pose à froid réussie, l'accord reste « en apprentissage »
+    expect(node.coldPasses).toBe(0);
+    expect(node.state).toBe('learning');
+    expect(learnedChordIds(three).has('Em-022000')).toBe(false);
+  });
+
+  it('trois réussites sur deux jours + une pose à froid : appris', () => {
+    const all = [
+      chordAttempt({ ts: at(1, 9), correct: 6, total: 6 }),
+      chordAttempt({ ts: at(1, 20), correct: 6, total: 6 }),
+      chordAttempt({ ts: at(0), correct: 6, total: 6 }),
+      chordAttempt({ kind: 'cold', ts: at(0, 19), correct: 6, total: 6, seconds: 4, limitSec: 8 }),
+    ];
+    const node = summarizeNodes(all)[0]!;
+    expect(node.coldPasses).toBe(1);
+    // quatre réussites nettes font monter la boîte de Leitner : « appris » au minimum, « maîtrisé » possible
+    expect(['learned', 'mastered']).toContain(node.state);
+    expect(learnedChordIds(all).has('Em-022000')).toBe(true);
+  });
+
+  it('une pose à froid hors délai ou sale ne compte pas', () => {
+    const base = [
+      chordAttempt({ ts: at(1, 9), correct: 6, total: 6 }),
+      chordAttempt({ ts: at(1, 20), correct: 6, total: 6 }),
+      chordAttempt({ ts: at(0), correct: 6, total: 6 }),
+    ];
+    const slow = [...base, chordAttempt({ kind: 'cold', ts: at(0, 19), correct: 6, total: 6, seconds: 12, limitSec: 8 })];
+    expect(summarizeNodes(slow)[0]!.coldPasses).toBe(0);
+    const sloppy = [...base, chordAttempt({ kind: 'cold', ts: at(0, 19), correct: 3, total: 6, seconds: 3, limitSec: 8 })];
+    expect(summarizeNodes(sloppy)[0]!.coldPasses).toBe(0);
+  });
+
+  it('une pose à froid le même jour ne compte qu’après dix minutes', () => {
+    const first = chordAttempt({ ts: at(0, 10), correct: 6, total: 6 });
+    const tooSoon = chordAttempt({ kind: 'cold', ts: at(0, 10) + 4 * 60_000, correct: 6, total: 6, seconds: 5, limitSec: 8 });
+    const later = chordAttempt({ kind: 'cold', ts: at(0, 10) + 12 * 60_000, correct: 6, total: 6, seconds: 5, limitSec: 8 });
+    expect(summarizeNodes([first, tooSoon])[0]!.coldPasses).toBe(0);
+    expect(summarizeNodes([first, later])[0]!.coldPasses).toBe(1);
   });
 
   it('trois jours différents valent mieux que trois leçons le même soir', () => {

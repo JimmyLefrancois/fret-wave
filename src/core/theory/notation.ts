@@ -98,6 +98,21 @@ export function fmtStringLabel(pitch: string, isHighestString: boolean, notation
   return `${cased}${accidentalGlyph(p.alt)}`;
 }
 
+/**
+ * Fonction d'intervalle du modèle (`b3`, `#4`, `bb7`) → glyphes d'affichage (`♭3`, `♯4`, `𝄫7`).
+ * Le modèle ne porte **que** l'ASCII : cette fonction est le seul point où l'app dessine une altération
+ * de degré, comme `fmtNote` l'est pour les notes. Un `b3` affiché tel quel dans un paragraphe est un
+ * oubli de cette couche, pas un choix.
+ */
+export function fmtDegree(fn: string): string {
+  return fn.replace(/bb/g, '𝄫').replace(/##/g, '𝄪').replace(/b/g, '♭').replace(/#/g, '♯');
+}
+
+/** Ramène les glyphes d'altération à l'ASCII du modèle : « ♭3 » → « b3 ». */
+export function toAsciiDegree(fn: string): string {
+  return fn.replace(/𝄫/g, 'bb').replace(/𝄪/g, '##').replace(/♭/g, 'b').replace(/♯/g, '#');
+}
+
 // ---------------------------------------------------------------------------
 // Symboles d'accord
 // ---------------------------------------------------------------------------

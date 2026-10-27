@@ -22,6 +22,7 @@ import { ScaleSelectPage } from '../modules/gammes/ScaleSelectPage';
 import { ScaleTrainingPage } from '../modules/gammes/ScaleTrainingPage';
 import { ChordsPage } from '../modules/accords/ChordsPage';
 import { ChordLessonPage } from '../modules/accords/ChordLessonPage';
+import { ChordQuizPage } from '../modules/accords/ChordQuizPage';
 
 const SHORT_NAME: Record<string, string> = { nylon: 'GUITARE NYLON', electric: 'GUITARE ÉLECTRIQUE' };
 
@@ -37,7 +38,7 @@ const NAV: { route: RouteName; label: string; icon: IconName }[] = [
 const ACTIVE: Record<RouteName, RouteName> = {
   hub: 'hub', gammes: 'gammes', scale: 'gammes', training: 'gammes', review: 'gammes',
   // le module Accords s'ouvre depuis le hub : aucun onglet supplémentaire (5 libellés pixel ne tiennent pas sur 390 px)
-  accords: 'hub', chord: 'hub',
+  accords: 'hub', chord: 'hub', chordquiz: 'hub',
   tuner: 'tuner', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
 };
 
@@ -52,6 +53,7 @@ function Page({ route }: { route: RouteName }) {
     case 'accords': return <ChordsPage />;
     // clé distincte : changer d'accord ne doit pas réutiliser l'état de la leçon précédente
     case 'chord': return <ChordLessonPage />;
+    case 'chordquiz': return <ChordQuizPage />;
     case 'tuner': return <TunerPage />;
     case 'settings': return <SettingsPage />;
     case 'tab': return <TabPage />;

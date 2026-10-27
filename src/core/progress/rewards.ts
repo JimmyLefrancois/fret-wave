@@ -11,6 +11,12 @@ import { PASS, summarizeNodes } from './mastery';
 
 export const XP_HOLES = 10;
 export const XP_RECALL = 15;
+/** Poses à froid (Fixer) : c'est un rappel de mémoire, pas une lecture — même barème que le rappel. */
+export const XP_COLD = 15;
+/** Transitions (Enchaîner) : un geste mesuré, valorisé comme une série de trous. */
+export const XP_TRANSITION = 10;
+/** QCM (sans matériel) : de la connaissance, pas un geste — la moitié d'un exercice vérifié. */
+export const XP_QUIZ = 6;
 /** +5 seulement à ≥ 95 % de précision au premier essai. */
 export const XP_SPEED_BONUS = 5;
 export const DAILY_XP_CAP = 120;
@@ -21,8 +27,15 @@ export const SPEED_THRESHOLD = 0.95;
 export function xpForAttempt(a: Attempt): number {
   const score = scoreOf(a);
   if (!isVerified(a) || score === null) return 0;
-  const base = a.level >= 3 ? XP_RECALL : XP_HOLES;
-  const bonus = score >= SPEED_THRESHOLD ? XP_SPEED_BONUS : 0;
+  const base = a.kind === 'qcm'
+    ? XP_QUIZ
+    : a.kind === 'cold'
+      ? XP_COLD
+      : a.kind === 'transition'
+        ? XP_TRANSITION
+        : a.level >= 3 ? XP_RECALL : XP_HOLES;
+  // le bonus de vitesse ne paie que le geste : un QCM juste ne doit pas rapporter plus qu'une gamme jouée
+  const bonus = a.kind !== 'qcm' && score >= SPEED_THRESHOLD ? XP_SPEED_BONUS : 0;
   return Math.round(base * score) + bonus;
 }
 

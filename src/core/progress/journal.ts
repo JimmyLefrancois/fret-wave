@@ -18,12 +18,15 @@ export const ATTEMPT_CAP = 2000;
 
 /**
  * Genres de tentative. `listen` est une écoute (non vérifiée), `holes` / `recall` sont les exercices du
- * module Gammes, `arpeggio` la vérification corde par corde du module Accords (phase 4a) et `strum`
+ * module Gammes, `arpeggio` la vérification corde par corde du module Accords (phase 4a), `strum`
  * l'auto-évaluation d'un accord plaqué — **déclarée, jamais vérifiée** tant que la phase 5 n'a pas
  * l'analyse polyphonique.
+ *
+ * Phase 4b : `cold` (pose à froid chronométrée, étape Fixer), `transition` (enchaînement mesuré, étape
+ * Enchaîner) et `qcm` (reconnaissance sans instrument, statut **savoir**, jamais une preuve de geste).
  */
-export type AttemptKind = 'listen' | 'holes' | 'recall' | 'arpeggio' | 'strum';
-export const ATTEMPT_KINDS: readonly AttemptKind[] = ['listen', 'holes', 'recall', 'arpeggio', 'strum'];
+export type AttemptKind = 'listen' | 'holes' | 'recall' | 'arpeggio' | 'strum' | 'cold' | 'transition' | 'qcm';
+export const ATTEMPT_KINDS: readonly AttemptKind[] = ['listen', 'holes', 'recall', 'arpeggio', 'strum', 'cold', 'transition', 'qcm'];
 
 /** Module d'appartenance d'une tentative. Absent = module Gammes (tentatives des phases 2-3). */
 export type AttemptModule = 'gammes' | 'accords';
@@ -68,6 +71,17 @@ export interface Attempt {
    * (`acc:accord:{chordId}`). Une forme d'accord se révise une fois, quelle que soit la session.
    */
   chordId?: string;
+  /**
+   * Deuxième accord d'une **transition** (étape Enchaîner) : le nœud devient
+   * `acc:transition:{chordId}>{chordIdB}` — une paire ordonnée, comme le prévoit MUSIC_DESIGN §5.
+   */
+  chordIdB?: string;
+  /** Progression travaillée (étape Intégrer) : nœud `acc:progression:{id}`. */
+  progressionId?: string;
+  /** Pose à froid : temps accordé au premier son (secondes). Sert à juger la passe, jamais à la décrire. */
+  limitSec?: number;
+  /** Transition : temps de changement **médian** mesuré (ms). Le détail par changement n'est pas stocké. */
+  changeMs?: number;
 }
 
 export function zoneOf(fret: number): number {
@@ -75,8 +89,19 @@ export function zoneOf(fret: number): number {
 }
 
 /** Nœud de progression : une **forme lue dans un mode**, indépendante de la tonique. */
-export function nodeIdOf(a: Pick<Attempt, 'scaleId' | 'system' | 'formIndex'> & { chordId?: string; module?: AttemptModule }): string {
-  if (a.module === 'accords' || a.chordId) return `acc:accord:${a.chordId ?? a.scaleId}`;
+export function nodeIdOf(
+  a: Pick<Attempt, 'scaleId' | 'system' | 'formIndex'>
+    & { chordId?: string; module?: AttemptModule; kind?: AttemptKind; chordIdB?: string; progressionId?: string },
+): string {
+  if (a.module === 'accords' || a.chordId || a.progressionId || a.chordIdB) {
+    // une progression et une transition sont des compétences à part entière : elles ne se confondent
+    // ni avec un accord seul ni entre elles (MUSIC_DESIGN §4.7, trois axes séparés)
+    if (a.progressionId) return `acc:progression:${a.progressionId}`;
+    if (a.chordIdB) return `acc:transition:${a.chordId ?? a.scaleId}>${a.chordIdB}`;
+    // le QCM est une connaissance : nœud distinct, il ne rend jamais un accord « appris » (geste)
+    if (a.kind === 'qcm') return `acc:savoir:${a.chordId ?? a.scaleId}`;
+    return `acc:accord:${a.chordId ?? a.scaleId}`;
+  }
   return `gam:lecture:${a.scaleId}:${a.system}:${a.formIndex}`;
 }
 
@@ -85,9 +110,28 @@ export function isChordNode(nodeId: string): boolean {
   return nodeId.startsWith('acc:');
 }
 
-/** Voicing d'un nœud d'accord, ou `null`. */
+/** Voicing d'un nœud d'**accord** (forme tenue), ou `null` pour un nœud de transition, de savoir, etc. */
 export function chordIdOfNode(nodeId: string): string | null {
   return nodeId.startsWith('acc:accord:') ? nodeId.slice('acc:accord:'.length) : null;
+}
+
+/** Voicing dont le nœud décrit le **savoir** (QCM), ou `null`. */
+export function savoirIdOfNode(nodeId: string): string | null {
+  return nodeId.startsWith('acc:savoir:') ? nodeId.slice('acc:savoir:'.length) : null;
+}
+
+/** Paire ordonnée d'un nœud de transition, ou `null`. */
+export function transitionOfNode(nodeId: string): [string, string] | null {
+  if (!nodeId.startsWith('acc:transition:')) return null;
+  const body = nodeId.slice('acc:transition:'.length);
+  const i = body.indexOf('>');
+  if (i <= 0) return null;
+  return [body.slice(0, i), body.slice(i + 1)];
+}
+
+/** Progression d'un nœud `acc:progression:*`, ou `null`. */
+export function progressionIdOfNode(nodeId: string): string | null {
+  return nodeId.startsWith('acc:progression:') ? nodeId.slice('acc:progression:'.length) : null;
 }
 
 /** Part d'un nœud qui reste à expliquer : la tonique (preuve séparée). */
@@ -165,6 +209,13 @@ export function normalizeAttempt(v: unknown): Attempt | null {
     tempoOk: a.tempoOk === true,
     ...(a.module === 'accords' || a.module === 'gammes' ? { module: a.module } : {}),
     ...(typeof a.chordId === 'string' && a.chordId ? { chordId: a.chordId } : {}),
+    ...(typeof a.chordIdB === 'string' && a.chordIdB ? { chordIdB: a.chordIdB } : {}),
+    ...(typeof a.progressionId === 'string' && a.progressionId ? { progressionId: a.progressionId } : {}),
+    // une limite de pose à froid hors de 1-60 s n'est pas une mesure : on la préfère absente à fausse
+    ...(typeof a.limitSec === 'number' && Number.isFinite(a.limitSec) && a.limitSec >= 1 && a.limitSec <= 60
+      ? { limitSec: Math.round(a.limitSec) } : {}),
+    ...(typeof a.changeMs === 'number' && Number.isFinite(a.changeMs) && a.changeMs > 0 && a.changeMs <= 60_000
+      ? { changeMs: Math.round(a.changeMs) } : {}),
   };
 }
 
@@ -259,6 +310,10 @@ export interface DaySummary {
   accuracy: number | null;
   /** Accords plaqués **auto-déclarés** (non vérifiés) : une activité, jamais une preuve. */
   selfAssessed: number;
+  /** Poses à froid vérifiées aujourd'hui (étape Fixer). */
+  coldPoses: number;
+  /** Changements d'accord mesurés aujourd'hui (étape Enchaîner). */
+  transitions: number;
 }
 
 export function summarizeDay(attempts: readonly Attempt[], now: Date): DaySummary {
@@ -276,6 +331,8 @@ export function summarizeDay(attempts: readonly Attempt[], now: Date): DaySummar
     nodes: new Set(mine.map(nodeIdOf)).size,
     accuracy: holes > 0 ? correct / holes : null,
     selfAssessed: mine.filter((a) => a.kind === 'strum').length,
+    coldPoses: mine.filter((a) => a.kind === 'cold' && isVerified(a)).length,
+    transitions: mine.filter((a) => a.kind === 'transition' && isVerified(a)).length,
   };
 }
 
