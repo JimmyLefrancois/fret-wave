@@ -632,7 +632,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         {...(activeKey ? { activeHoleKey: activeKey } : {})}
       />
 
-      <TabLegend def={r.def} />
+      <TabLegend def={r.def} readonly={settings.reduceMotion} />
 
 
       <Panel className="span-7" accent="magenta" label="Exercice" right={<span className="badge">{done} / {total}</span>}>

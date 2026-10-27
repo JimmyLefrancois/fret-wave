@@ -824,6 +824,7 @@ table.kv td:first-child { color: var(--muted); }
   .shell > .home-hero,
   .shell > .home-foot,
   .shell > .next-step,
+  .shell > .tab-legend,
   .shell > .tabview,
   .shell > .quiz-strip,
   .shell > .pos-nav,
@@ -1684,7 +1685,43 @@ table.kv td:first-child { color: var(--muted); }
   pointer-events: none;
 }
 
-/* légende de la tablature : le halo clignotant = note caractéristique de la gamme */
-.tab-legend { margin: 6px 0 10px; line-height: 1.5; }
-.tab-legend-key { color: var(--cyan); font-size: 14px; }
-.tab-legend .legend-pill { display: inline-block; margin: 0 1px; }
+/* légende de la tablature : bande sur fond de panneau, la pastille réelle à gauche, l'anneau qui pulse
+   comme dans la portée (le repère se montre, il ne se décrit pas) */
+.tab-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 12px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: var(--bw) solid var(--line);
+}
+.tab-legend-keys { display: flex; gap: 8px; flex: none; }
+.tab-legend-keywrap { position: relative; display: inline-flex; }
+.tab-legend-keywrap::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 2px solid var(--ring, var(--cyan));
+  animation: tab-legend-ring 0.9s steps(2, end) infinite alternate;
+}
+.tab-legend-keywrap.still::after { animation: none; opacity: 0.8; }
+@keyframes tab-legend-ring { from { opacity: 0.95; } to { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) {
+  .tab-legend-keywrap::after { animation: none; opacity: 0.85; }
+}
+.tab-legend-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 26px;
+  padding: 0 5px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+.tab-legend-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tab-legend-title { font-size: 13px; font-weight: 700; }
+.tab-legend-note { font-size: 12.5px; line-height: 1.4; color: var(--muted); }

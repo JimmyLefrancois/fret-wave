@@ -394,7 +394,7 @@ export function ScaleDiscoveryPage() {
         </Panel>
       )}
 
-      <TabLegend def={r.def} />
+      <TabLegend def={r.def} readonly={settings.reduceMotion} />
 
       <div className="pos-nav">
         <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>‹ Position</PixelButton>
