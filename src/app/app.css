@@ -1868,3 +1868,58 @@ table.kv td:first-child { color: var(--muted); }
   .celebrate-grid { opacity: 0.4; }
 }
 .celebrate-meta { margin: -2px 0 0; font-size: 11.5px; letter-spacing: 0.04em; color: var(--cyan); }
+
+/* ---- derniers accomplissements (accueil) ---------------------------------------------------------- */
+.acc-list { list-style: none; margin: 6px 0 4px; padding: 0; }
+.acc-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.acc-row:first-child { border-top: 0; }
+.acc-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--bg-deep);
+  background: var(--green);
+}
+.acc-green .acc-glyph { background: var(--green); }
+.acc-yellow .acc-glyph { background: var(--yellow); }
+.acc-magenta .acc-glyph { background: var(--magenta); color: #fff6ff; }
+.acc-cyan .acc-glyph { background: var(--cyan); }
+.acc-violet .acc-glyph { background: var(--violet); }
+.acc-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.acc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.acc-title { font-size: 13.5px; font-weight: 700; }
+.acc-when { font-size: 11.5px; color: var(--dim); white-space: nowrap; }
+.acc-line { font-size: 12px; line-height: 1.45; color: var(--text); }
+.acc-detail { color: var(--muted); }
+.acc-open {
+  min-height: 30px;
+  min-width: 32px;
+  padding: 0 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: transparent;
+  border: var(--bw) solid var(--line);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.acc-open:hover { border-color: var(--cyan); }
+@media (max-width: 519px) {
+  /* la ligne reste sur trois colonnes : le bouton « rejouer » tient à droite, la ligne ne double pas
+     de hauteur (10 entrées × 3 lignes faisaient une page de 2 200 px) */
+  .acc-row { grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; }
+  .acc-glyph { width: 20px; height: 20px; font-size: 11px; }
+  .acc-when { font-size: 11px; }
+}

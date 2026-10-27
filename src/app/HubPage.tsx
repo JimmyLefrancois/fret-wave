@@ -16,6 +16,7 @@ import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { useSettings } from '../app/settings';
 import { Chip, Panel, PixelButton } from '../app/ui';
 import { positionLabel, resolveScale } from '../modules/gammes/resolve';
+import { accomplishments, type Accomplishment } from '../modules/gammes/accomplishments';
 import {
   dueNow, loadJournal, nodeIdOf, progressStore, streak, summarizeDay, xpSummary,
   type Attempt,
@@ -23,6 +24,23 @@ import {
 
 /** Objectif proposé : 3 activités (une écoute ou un exercice), pas 3 « clics ». */
 export const DAILY_GOAL = 3;
+
+/** Date relative courte : « il y a 12 min », « hier », « 3 j », puis la date. */
+export function whenLabel(ts: number, now: number): string {
+  const d = now - ts;
+  if (d < 60_000) return 'à l’instant';
+  if (d < 3_600_000) return `il y a ${Math.round(d / 60_000)} min`;
+  if (d < 86_400_000) return `il y a ${Math.round(d / 3_600_000)} h`;
+  const days = Math.round(d / 86_400_000);
+  if (days === 1) return 'hier';
+  if (days < 7) return `il y a ${days} j`;
+  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(new Date(ts));
+}
+
+/** Glyphe du genre d'accomplissement (lisible, pas décoratif). */
+const ACC_GLYPH: Record<Accomplishment['kind'], string> = {
+  perfect: '★', pass: '✓', learned: '◆', mastered: '✦', chord: '♪', streak: '≡',
+};
 
 /** Rouvre une tentative (nœud) sur l'écran d'entraînement, à la bonne position. */
 export function openAttempt(a: Attempt): void {
@@ -52,6 +70,7 @@ export function HubPage() {
   // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran
   const due = useMemo(() => dueNow(journal, now.getTime()).filter((c) => !c.nodeId.startsWith('acc:')), [journal, now]);
   const activity = day.listens + day.exercises + day.selfAssessed;
+  const feats = useMemo(() => accomplishments(journal, { limit: 10, notation: settings.noteNotation }), [journal, settings.noteNotation]);
 
   const review = () => {
     const card = due[0];
@@ -136,6 +155,53 @@ export function HubPage() {
           <p className="t-small t-dim">Plafond de 8 cartes par session : une absence ne crée pas de dette impossible.</p>
         </Panel>
       )}
+
+      <Panel
+        className="span-12"
+        accent="green"
+        label="Derniers accomplissements"
+        right={<span className="badge">{feats.length}</span>}
+      >
+        {feats.length === 0 ? (
+          <p className="t-small t-dim">
+            Rien encore. La première série réussie à 80 % apparaîtra ici, puis chaque forme apprise,
+            chaque sans-faute et chaque palier de jours d’affilée.
+          </p>
+        ) : (
+          <ul className="acc-list">
+            {feats.map((f) => (
+              <li key={f.id} className={`acc-row acc-${f.accent}`}>
+                <span className="acc-glyph" aria-hidden="true">{ACC_GLYPH[f.kind]}</span>
+                <span className="acc-body">
+                  <span className="acc-head">
+                    <span className="acc-title">{f.title}</span>
+                    <span className="acc-when">{whenLabel(f.ts, now.getTime())}</span>
+                  </span>
+                  <span className="acc-line">
+                    <span className="acc-subject">{f.subject}</span>
+                    <span className="acc-detail"> · {f.detail}</span>
+                  </span>
+                </span>
+                {f.attempt && f.kind !== 'streak' && (
+                  <button
+                    type="button"
+                    className="acc-open"
+                    onClick={() => openAttempt(f.attempt!)}
+                    aria-label={`Rejouer : ${f.subject}`}
+                    title="Rejouer cette forme"
+                  >
+                    ▶
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="t-small t-dim">
+          Calculés depuis le journal, jamais comptés à part : une série ne compte qu’au-dessus de 80 % de trous
+          justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
+        </p>
+      </Panel>
 
       <p className="home-foot t-small t-dim">
         <button type="button" onClick={() => navigate('settings')}>Réglages</button>
