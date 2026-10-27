@@ -2,13 +2,14 @@
 
 **Statut : phases 0, 1a et 1b validées et commitées (`183eacc`, `5797333`, `823fbbd`) · 1c (moteur audio de sortie) commitée (`971be8c`) · D1-D17 tranchées, D13 écartée, D7 remplacée par D14 · décision en attente : D18 (découpage 1d = hub + thème + module Gammes N1).**
 Documents liés : `BRIEF.md` (cahier des charges), `MUSIC_DESIGN.md` (conventions musicales, curriculum, avis de prof).
+**Repères** : *État exact* juste en dessous · **hypothèses** §8 (1-41) et §8 bis (ce qui a changé) · **plan des phases** §9 · **décisions** §10 (D1-D18) · **prochaine étape** §12. **Une seule décision t'attend : D18.** Pages de l'app : `#tab` (tablature), `#audio` (debug audio), `#theorie` ; `npm run dev` → http://localhost:5173/.
 Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** décision qui t'appartient · **[RISQUE]** voir section 7.
 
 ---
 
-## État exact (dernière mise à jour : après la construction de la phase 1c)
+## État exact (dernière mise à jour : après le commit de la phase 1c, `971be8c`)
 
-**Git** (branche `master`) : `183eacc` Phase 0 · `5797333` Phase 1a · `823fbbd` Phase 1b. **Phase 1c commitée (`971be8c`, 174 fichiers)** : `src/core/audio/` (11 fichiers), `src/app/{AudioPage,AudioControls,LoadingScreen,loadingScreen,devHooks}`, `public/samples/` (12,1 Mo), `tools/build-samples.mjs`, 5 nouveaux fichiers de test, ces documents. Aucun remote.
+**Git** (branche `master`) : `183eacc` Phase 0 · `5797333` Phase 1a · `823fbbd` Phase 1b · `971be8c` Phase 1c (174 fichiers : 11 fichiers de `core/audio/`, 5 fichiers de test, `public/samples/` 12,1 Mo, `tools/`) · `5818e8b` docs. La mise à jour ci-dessous est le commit courant. **Arbre propre, 274 tests verts, `tsc` propre, build OK.** Aucun remote.
 
 **Fait et vérifié (1c — moteur audio de sortie)** — périmètre redéfini par toi : audio seulement (hub, thème Synthwave et module Gammes N1 → 1d, D18).
 - **Échantillons** (`public/samples/`, produits par `tools/build-samples.mjs`) : deux banques **CC0 1.0**, provenance, licence, modifications et empreintes dans `manifest.json` + `LICENSE.txt` + `SOURCE-README.txt` + `public/samples/README.md` :
@@ -89,7 +90,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 
 ## 0. En une page
 
-| Sujet | Décision (validée en phase 0) |
+| Sujet | Décision (phase 0, amendée depuis : voir §10) |
 |---|---|
 | Framework | **Vite + TypeScript + React 19.** Le temps réel (audio, canvas) vit dans des classes TS hors React ; React ne gère que l'UI (hub, menus, réglages). |
 | Rendu pixel | **Canvas 2D**, **un seul « pixel logique » pour toute l'app** (facteur entier S ≥ 2), canvas de largeur variable ; **pas de PixiJS**. |
@@ -100,7 +101,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 | Polyphonique | **Moteur maison « accord attendu »** (peignes d'harmoniques + soustraction), **pas essentia.js (AGPL-3.0)**, pas de chromagramme seul. Verdict = **niveau de confiance**, jamais binaire. |
 | Persistance | IndexedDB (journal d'événements) + localStorage (réglages) + export/import JSON ; `navigator.storage.persist()`. |
 | Modules | `Gammes` et `Accords` au MVP ; **un module `Fondations` (onboarding, accordeur) en plus** ; `Rythmique` préparé dès le modèle. |
-| Écart majeur avec le brief | Gammes débutent par la **pentatonique mineure**, pas la majeure ; Am n'est **pas** un accord à 1-2 doigts ; le **verdict par corde en strum est irréaliste** ; **boîte d'accord à décider** (7.1 de `MUSIC_DESIGN.md`). |
+| Écart majeur avec le brief | Gammes débutent par la **pentatonique mineure**, pas la majeure ; Am n'est **pas** un accord à 1-2 doigts ; le **verdict par corde en strum est irréaliste** ; **boîte d'accord** : D1 = B (étapes Découvrir/Construire seulement, §7.1 de `MUSIC_DESIGN.md`). |
 
 ---
 
@@ -112,12 +113,12 @@ Ce qui, tel quel, serait irréaliste, trompeur ou frustrant — avec l'alternati
 2. **Am en « 1 à 2 doigts »** : faux (3 doigts). Voir curriculum révisé, `MUSIC_DESIGN.md` §4.
 3. **Gammes : « majeure/mineure d'abord »** : théoriquement propre, mais la pentatonique donne un 1er succès bien plus vite. Je propose de changer l'ordre (§3.2 de `MUSIC_DESIGN.md`).
 4. **1 248 nœuds de gamme** si on suit le brief au pied de la lettre : intenable en révision. Modèle « formes + lectures + tonalités échantillonnées » (3.1 de `MUSIC_DESIGN.md`) : ≈ 17 formes, ≈ 104 lectures.
-5. **Tab seule pour les accords** : limite réelle pour un débutant (la forme de la main). Je propose une **boîte d'accord limitée aux étapes Découvrir/Construire**, à ta décision.
+5. **Tab seule pour les accords** : limite réelle pour un débutant (la forme de la main). Je propose une **boîte d'accord limitée aux étapes Découvrir/Construire** — **tranché : D1 = B**, implémentation en phase 4.
 6. **« Niveau 3 : rejouer toute la gamme de mémoire au pavé numérique »** : 36 saisies = abandon. Découpage en segments.
 7. **4-5 ambiances × backing tracks de styles différents** : surtout un travail de contenu musical, pas de code. Proposition : 1 style très soigné par thème, **2 thèmes jouables complets (Synthwave, Lo-fi) en phase 7**, les autres en habillage + SFX seulement d'abord.
-8. **Qualité sonore « studio » avec échantillons libres** : plafond réel = celui des échantillons disponibles. Voir 3.5 : il faudra peut-être un compromis ou un pack à acheter/enregistrer.
+8. **Qualité sonore « studio » avec échantillons libres** : plafond réel = celui des échantillons disponibles. **Tranché en 1c (D14)** : deux banques CC0 documentées, hauteur et niveaux mesurés ; le timbre reste à juger à l'oreille (moi, je ne l'entends pas). Un pack acheté/enregistré reste possible sans changer de code.
 9. **Accords en accordage alternatif** : seules les formes mobiles ou recalculées par un solveur testé sont proposées.
-10. **Ordre du brief « tout dans la phase 1 »** : la phase 1 est énorme (théorie + voicings + moteur de tab + audio + hub + thème + module Gammes N1 + positions). Je propose de la découper en 1a/1b/1c (section 10), sans changer l'ordre global.
+10. **Ordre du brief « tout dans la phase 1 »** : la phase 1 est énorme (théorie + voicings + moteur de tab + audio + hub + thème + module Gammes N1 + positions). Je propose de la découper en 1a / 1b / 1c / 1d (§9 ; D10 et D18), sans changer l'ordre global.
 
 ---
 
@@ -189,7 +190,7 @@ Pour les cordes graves en croches rapides (fenêtre courte), on s'appuie sur les
 IndexedDB via `idb` (ISC) : stores `attempts` (journal d'événements, source de vérité), `nodes` (agrégats recalculables), `settings`, `meta`. Export/import JSON. `navigator.storage.persist()` demandé après la première session réussie. Raison : sans backend, **perdre l'historique est le pire risque produit** (voir R7).
 
 ### 3.9 PWA et tests
-`vite-plugin-pwa` (Workbox) ; échantillons en cache à la demande (jeu « haute qualité » téléchargeable). Tests : Vitest (logique pure), tests de propriétés sur la théorie (orthographe, voicings), tests de signaux synthétiques pour l'audio, captures d'écran pour le rendu (phase 1+).
+`vite-plugin-pwa` (Workbox) ; échantillons en cache (deux banques statiques de 12,1 Mo, téléchargées au premier lancement ; pas de jeu « haute qualité » séparé en 1c). Tests : Vitest (logique pure), tests de propriétés sur la théorie (orthographe, voicings), tests de signaux synthétiques pour l'audio, captures d'écran pour le rendu (phase 1+).
 
 ---
 
@@ -276,7 +277,7 @@ interface TabNote  { string: number /*0 = grave*/; fret: number; midi: number /*
 - `validateScore` = les invariants testés : durées de chaque mesure = signature (événements contigus, silences explicites), `midi = accordage[corde] + case`, `note` cohérente avec `midi`, cordes / cases dans la plage, une note par corde et par événement, durées « notables » (noire pointée, triolet… sinon refus), `strum` seulement sur ≥ 2 notes.
 - Générateurs `théorie → TabScore` livrés : gamme, position, arpège, accord (plaqué / arpégé), progression. À venir : exercice (séquences), backing.
 - **La fonction `fn` est relative au contexte** : fondamentale de la gamme pour une position, fondamentale de l'accord pour un arpège ou un accord (Cmaj7 joué dans une position de La mineur : 1 3 5 7, pas 3 5 7 1♭3…).
-- Lecture : `scoreToPlayEvents` (pur) → Tone. **Le son joué = les notes du score** (testé sur 6 types de scores, cordes × cases × hauteurs). Strum : ↓ grave → aigu, ↑ aigu → grave, 14 ms entre cordes par défaut (plage réaliste 8-25 ms).
+- Lecture : `scoreToPlayEvents` (pur) → Tone. **Le son joué = les notes du score** (testé sur 6 types de scores, cordes × cases × hauteurs). Depuis la 1c, ce module porte aussi la **vélocité, la tenue et l'humanisation** (§4.7 ; `MUSIC_DESIGN.md` §11.5) — le modèle `TabScore` et le rendu n'en dépendent pas. Strum : ↓ grave → aigu, ↑ aigu → grave, 14 ms entre cordes par défaut.
 
 ### 4.5 Base de voicings
 ```ts
@@ -541,7 +542,7 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | R7 | **Perte de données** (stockage purgé par iOS pour un site non installé après ~7 jours d'inactivité ; vidage manuel) | 2 | 3 | PWA installée + `persist()` ; **export/import JSON** proposé à chaque palier ; journal d'événements |
 | R8 | **Perf mobile** (canvas plein écran + particules + audio) | 2 | 2 | Couches pré-rendues, scène à 30 fps, curseur seul redessiné ; profilage dès la phase 1 |
 | R9 | **Contenu** : volume de voicings, progressions, patterns de backing ; erreurs de transcription | 2 | 3 | Tests automatiques sur chaque forme ; données séparées du code ; relecture « prof » des doigtés en phase 4 |
-| R10 | **Dérive de périmètre** : le brief est très large | 3 | 3 | Phases séquencées, définition de « terminé » par phase, phase 1 découpée 1a/1b/1c |
+| R10 | **Dérive de périmètre** : le brief est très large | 3 | 3 | Phases séquencées, définition de « terminé » par phase, phase 1 découpée 1a / 1b / 1c / 1d |
 | R11 | Contraintes d'**autorisation** (HTTPS requis pour le micro) | 1 | 2 | `localhost` pour le dev ; HTTPS pour le déploiement ; messages d'erreur dédiés (refusée, aucun périphérique) |
 | R12 | Taille du bundle (Tone.js ≈ 5,4 Mo dépaquetés) | 1 | 1 | **Mesuré en 1c** : 112,7 ko gzip (app) + 79,4 ko gzip (Tone, au démarrage) ; échantillons hors bundle, téléchargés à la demande (5,3 Mo nylon) |
 
@@ -614,6 +615,24 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 40. **« Continuer sans le son »** plutôt que blocage : si les échantillons ne se chargent pas, l'app s'ouvre et la lecture est silencieuse (erreur affichée et conservée dans le moteur).
 41. **Statut des phases** : l'ancienne phase 1c du plan est découpée — **1c = moteur audio** (fait, commité), **1d = hub + thème + module Gammes N1** (proposé, D18).
 
+**Hypothèses les plus fragiles** (ce qui pourrait encore bouger — rien n'est verrouillé) :
+- **32-35 et 38** (vélocité de base, strum, tenue, humanisation, niveaux) sont réglées **par calcul et par mesure, pas par écoute** : un ajustement à ton oreille est probable, et c'est normal.
+- **22** (CAGED maison, D12) : définition non comparée à une source ; ta relecture de Do, Sol, La conditionne son exposition.
+- **15** (difficultés 1-5 des voicings) : heuristique non calibrée, à corriger avec des données réelles en phase 4.
+- **18** (mode parent à 7 altérations) : à filtrer dans l'UI de la 1d — le moteur le renvoie tel quel.
+
+---
+
+## 8 bis. Ce qui a changé depuis la phase 0 (rappel, pour ne pas relire tout)
+
+| Point | Phase 0 | Aujourd'hui |
+|---|---|---|
+| Échantillons | `tonejs-instruments` (CC BY, licences à vérifier) | deux banques **CC0** mesurées (D14) |
+| Chargement audio | à la première lecture | **au démarrage**, avec écran de chargement (D15) |
+| Phase 1 | 1a / 1b / 1c | 1a / 1b / 1c (audio) + **1d** (écrans, D18) |
+| Boîte d'accord | à trancher | **D1 = B** (Découvrir/Construire) |
+| Feuille de route | « son final + hub + thème + module » en 1c | 1c = audio seul ; les écrans en 1d |
+
 ---
 
 ## 9. Plan des phases (affiné)
@@ -648,9 +667,9 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | D7 | Échantillons | **`tonejs-instruments` (CC BY 3.0, attribution) + Karplus-Strong** ; à revoir si la qualité est insuffisante (licences non vérifiées : *à vérifier* avant embarquement) → **remplacée en 1c par D14** |
 | D8 | Affichage des accords | **`Am7` (anglo)** — *changé par toi* (ma reco était `Lam7`) ; solfège/jazz en option |
 | D9 | Solveur de voicings (accordages alternatifs) | **Plus tard**, après P4 |
-| D10 | Phase 1 | **Découpée en 1a / 1b / 1c** |
-| D11 | Numérotation des positions (1b) | **Par degré de départ** (Position 1 = la tonique, même forme dans toutes les tonalités) ; les cases sont toujours affichées ; l'écran 1c peut trier par cases |
-| D12 | Définition de CAGED (1b) | **Fenêtre de 5 cases autour de la forme d'accord** (générique). **Condition : tu relis 3 tonalités (Do, Sol, La) avant que 1c expose CAGED dans l'UI** |
+| D10 | Phase 1 | **Découpée en 1a / 1b / 1c**, puis le reste en 1d (D18) |
+| D11 | Numérotation des positions (1b) | **Par degré de départ** (Position 1 = la tonique, même forme dans toutes les tonalités) ; les cases sont toujours affichées ; l'écran du module (1d) pourra trier par cases |
+| D12 | Définition de CAGED (1b) | **Fenêtre de 5 cases autour de la forme d'accord** (générique). **Condition : tu relis 3 tonalités (Do, Sol, La) avant que le module Gammes (1d) expose CAGED dans l'UI** |
 | D13 | Daltonisme : « aide daltonisme » (1b) | **Écartée** : pas de réglage dédié ; forme de la fondamentale, encoche ♭/♯ et rangée de degrés optionnelle restent les seules aides (limite assumée, `MUSIC_DESIGN.md` §2.1) |
 | D14 | Échantillons (1c) | **Deux banques CC0** : FreePats « Spanish Classical Guitar » (nylon, défaut) + Karoryfer « Emilyguitar » (électrique direct) ; `tonejs-instruments` **écartée** (chaîne de licences invérifiable) ; repli Karplus-Strong conservé. Attribution affichée bien que non obligatoire |
 | D15 | Chargement de Tone (1c) | **Au démarrage** (préchargement), et non au premier « Lecture » : +79,4 ko gzip avant l'écran d'accueil, en échange d'une lecture instantanée ensuite |
@@ -668,6 +687,7 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 - **Phase 1a** (terminée, commit `5797333`) : projet Vite + React + TypeScript + Vitest ; moteur de théorie, base de voicings et page de contrôle (détail dans « État exact »). 61 tests verts, `tsc` propre, build OK, rendu vérifié dans un navigateur. Corrections de la documentation trouvées par les tests : règle de coût d'orthographe « coût égal → les deux » ; `dim` = triade / `dim7` à part.
 - **Phase 1b** (terminée, commit `823fbbd`, validée : D11 et D12 acceptées, D13 écartée) : positions, `TabScore`, générateurs, layout, police, rendu, lecteur Tone, page de contrôle (détail dans « État exact »). 204 tests verts, `tsc` propre, build OK. Vérifié dans Chromium piloté par CDP à 3 viewports : lecture, boucle, tempo en direct, curseur exact au pixel, défilement et retour à la ligne, DPR 2,625. **Trouvé en route** : (1) `transport.stop(time)` dans l'événement de fin rejoue le tick 0 (une note parasite) → arrêt par minuterie ; (2) contraste chiffre / pastille insuffisant sur les couleurs de bémols (3,6-4,0) → chiffre blanc automatique ; (3) les tests ont corrigé `MUSIC_DESIGN.md` §3.2 (box 3 de La m = cases 9-13) ; (4) onglet de test masqué : `requestAnimationFrame` s'arrête (le curseur ne bouge pas) — sans effet pour l'utilisateur, mais le banc de mesure doit mettre la page au premier plan ; (5) simulation de daltonisme : voir D13.
 - **Phase 1c** (terminée, commit `971be8c` ; échantillons compris, 12,1 Mo) : moteur audio de sortie seul (périmètre redéfini par toi) — détail dans « État exact ». 274 tests verts, `tsc` propre, build OK. Vérifié dans Chromium piloté par CDP (390×844 @3) : chargement (48 puis 90 fichiers), son = tablature sur 6 types de score, curseur 639,6 ticks/s (résidu 1,1 tick hors démarrage), métronome 18 clics / 10 s, drone activé et coupé en pause, boucle sans doublon, matrice de clics sur sinus de contrôle, erreur réseau puis « Réessayer », plafond tenu sur un strum extrême (−1,2 dBFS). **Trouvé en route** : 6 défauts (clic à la reprise de corde, rappel d'événement en double par Tone, couche de vélocité qui basculait, limiteur qui laissait passer +2,2 dBFS, écart de 6-7 dB entre banques, Tone chargé trop tard), tous corrigés par un test ou une mesure. **Non vérifié** : le timbre (pas d'écoute), Safari/iOS, téléphone réel, latence acoustique.
+- **Mise à jour d'état (après le commit)** : ligne Git et santé du dépôt (arbre propre, 274 tests), bloc « Repères » en tête, §0 et §1 (décisions désormais tranchées : boîte d'accord D1, échantillons D14, découpage 1d), R10, D10-D12 (l'écran des positions et CAGED passent en 1d), « hypothèses les plus fragiles » et tableau « ce qui a changé depuis la phase 0 ».
 - **Mise à jour de ce document (après 1c)** : « État exact » (bloc 1c, mesures, pas fait, écarts), §3.1 (outils de build), §3.5 (échantillons et échantillonneur maison), §4.1 (arborescence), §4.7 (pipeline tel que construit), R4 et R12 (traités / mesurés), hypothèses 31-41, plan (1c fait, 1d proposée), décisions **D14-D18** (D7 remplacée), journal, §12 « Prochaine étape ».
 
 ---
