@@ -801,3 +801,35 @@ Elle ne dit rien du **timing** (le micro valide une hauteur, pas un placement), 
 
 ### 17.5 Une ambiance ne change pas ce qui s'apprend
 Le thème clair (« Aube », D60) change le décor et l'encre, **jamais les couleurs d'intervalle** : la tonique reste jaune, la tierce mineure rose, la quinte verte, la ♭5 assombrie avec son encoche. C'est une règle d'apprentissage, pas d'esthétique : un élève qui change d'ambiance le soir doit retrouver le même code le lendemain, sinon la couleur cesse d'être un repère et redevient une décoration. Le seul élément qui suit l'ambiance dans la tablature est le **panneau** (papier ou nuit) et l'encre qui s'y pose ; le chiffre dans la pastille garde son contraste calculé (`digitColorFor`).
+
+---
+
+## 18. Bilan de la refonte de navigation — avis de prof et propositions
+
+Branche `ui/simplification`, décisions D52 à D62. Aucune règle musicale n'a changé : ce bilan porte sur **ce que l'élève voit et comprend**, pas sur ce qu'il apprend.
+
+### 18.1 Ce qui marche vraiment
+- **Le chemin vers l'exercice existe enfin.** « Découvrir » puis « S'exercer » sur la même ligne, à côté de la position concernée : plus besoin de traverser quatre panneaux pour jouer une note. C'était la plainte d'origine (« je ne sais même pas où aller »), et elle était juste.
+- **La reconnaissance du repère visuel.** Le halo des notes caractéristiques existait depuis la phase 2 ; personne ne savait ce qu'il voulait dire. Une bande sous la portée, avec la pastille réelle et son anneau, a transformé un mystère en information — sans document, sans tutoriel.
+- **« Apprise » et « maîtrisée » ne sont plus des mots en l'air.** Les accomplissements les datent, les expliquent (« 2 réussites sur 2 jours ») et les rendent relisibles ; le panneau de réussite ne s'ouvre qu'au seuil de 80 %. La récompense est devenue une conséquence vérifiable, pas un décor.
+- **L'ambiance claire n'a rien changé à ce qui s'apprend.** Les couleurs d'intervalle sont identiques dans les deux thèmes ; seul le papier change. C'est ce qui permet de changer d'ambiance le soir sans perdre ses repères le lendemain.
+- **Le texte a été relu depuis l'écran, pas depuis le code.** Une vingtaine de formulations corrigées : plus de « Box », plus de « phase 5 », plus de « hub » — un débutant n'a plus à traduire le vocabulaire du développeur.
+
+### 18.2 Ce qui reste fragile
+- **Les deux modules ne se parlent pas.** Un élève qui apprend La mineur pentatonique en gammes et Mi mineur en accords travaille deux choses qui ne se rencontrent jamais à l'écran : aucune passerelle « joue cet accord comme note de la gamme ».
+- **L'écran de découverte reste le plus dense de l'app** : sept réglages d'affichage cohabitent avec le sujet (la position). Les plus utiles (annotation, nombre de cordes) devraient être les seuls visibles.
+- **La réussite mesure la lecture, pas le jeu.** Une série de trous validée au micro prouve que les hauteurs sont justes, jamais que le rythme ou le doigté le sont. Les ★ ne doivent pas être lus comme « je sais jouer cette position ».
+- **Rien n'a été vérifié sur une vraie guitare.** Tout ce bilan repose sur un micro simulé et un journal de synthèse.
+
+### 18.3 Propositions (par ordre de valeur)
+| # | Proposition | Impact / coût | Phase | Pourquoi |
+|---|---|---|---|---|
+| **R1** | **Une seule position « en cours »** — l'accueil et la liste mettent en avant la prochaine, les autres en lignes compactes | fort / faible | avant 5 | Le journal sait déjà quelles formes sont travaillées : afficher cinq positions de même poids laisse l'élève choisir au hasard. |
+| **R2** | **Écouter avant de jouer** — bouton « modèle » qui joue la position lentement, puis lance l'exercice (call & response) | fort / moyen | avant 5 | Aujourd'hui l'élève comble des trous sans référence sonore : il déduit, il n'entend pas. |
+| **R3** | **Verdict par note, pas par série** — « juste / trop haut / corde voisine » à l'instant, au lieu d'un score à la fin | fort / moyen | 5 | Le micro sait déjà quelle note a sonné ; c'est ce qui apprend l'oreille, pas le total. |
+| **R4** | **Fluidité chronométrée sur une position** — comme la pose à froid des accords (8 s → 5 s → 3 s) | moyen / faible | avant 5 | Le barème existe pour les accords (D45) ; rien d'équivalent pour une gamme tenue d'affilée. |
+| **R5** | **Transposer pour prouver** — même forme deux cases plus haut, une fois la position tenue | moyen / faible | avant 5 | C'est le test qui distingue « j'ai mémorisé un dessin » de « je connais la gamme ». Le journal conserve déjà les toniques travaillées par forme (`NodeStats.tonics`) : la cible se calcule. |
+
+« avant 5 » = travail d'interface à faire entre la 4b et la phase 5 (§9), non planifié comme une phase à part.
+
+**Ce que je ne recommande pas** : ajouter un troisième module (oreille, rythme) avant que gammes et accords se rejoignent. La refonte a montré que le problème n'était pas le nombre d'écrans mais le nombre de décisions à prendre par écran — un module de plus, même bien fait, le recréerait.

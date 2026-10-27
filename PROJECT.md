@@ -76,7 +76,15 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 
 **Ce qui n'a pas été touché** : aucune règle musicale, aucun barème d'XP, aucun seuil de maîtrise. Les accords ont retrouvé un onglet de barre et une porte sur l'accueil (D61) : ils n'étaient plus joignables que par un lien de pied de page. Les sessions mélangées gardent leur panneau « Session terminée » (pas de panneau de réussite animé).
 
-**Commits de la branche** : `2f34d6e` tour des pages · `85841d9` refonte de navigation · `9f2185a` décor plein écran · `1975d83` affiche partout · `be92e8c` famille Mineures · `03b037b` + `26eee4d` légende du halo · `95fa1ff` commutateur inline · `bfee5c4` tempo · `0b203e8` panneau de réussite · `8f7aa62` accomplissements · `940fa79` docs · `1434ee5` thème « Aube » · `b7a96fa` docs · `ae5baf8` docs · `33a172d` accords · `aa10c6f` docs · `a43479a` formulations.
+**Ce que la refonte laisse ouvert** (assumé, à trancher plus tard)
+- **L'écran de découverte reste le plus dense** : sept réglages d'affichage (annotation, cordes affichées, fondamentales, rythme, drone, métronome, boucle) cohabitent avec le sujet, la position. « Plus d'options » n'en replie qu'une partie. C'est le prochain écran à alléger.
+- **Les sessions mélangées** n'ont pas le panneau de réussite : elles gardent leur carte « Session terminée », sans animation ni récap XP.
+- **Aucun test sur matériel réel** : ni vraie guitare, ni vrai micro, ni interface USB, ni Safari/iOS. Le micro reste simulé par un fichier (`tools/mic-check.mjs`).
+- **La première ouverture** n'est pas accompagnée : journal vide, l'accueil affiche la gamme par défaut sans dire « commence ici ».
+- **Le vocabulaire « palier P1 »** subsiste dans les en-têtes d'accords : il est expliqué par le titre de l'étape juste à côté, mais c'est un reste de vocabulaire de spécialiste.
+
+**Commits de la branche** : `2f34d6e` tour des pages · `85841d9` refonte de navigation · `9f2185a` décor plein écran · `1975d83` affiche partout · `be92e8c` famille Mineures · `03b037b` + `26eee4d` légende du halo · `95fa1ff` commutateur inline · `bfee5c4` tempo · `0b203e8` panneau de réussite · `8f7aa62` accomplissements · `940fa79` docs · `1434ee5` thème « Aube » · `b7a96fa` docs · `ae5baf8` docs · `33a172d` accords · `aa10c6f` docs · `a43479a` formulations · `9a94b70` docs · `aa10c6f` docs.
+
 
 ---
 
