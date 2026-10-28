@@ -226,13 +226,13 @@ Angles quasi vifs : un seul rayon, 2 px (`--corner`), qui lit comme un coin « p
 - **Carte de contrôle :** fond surface, bordure 2 px, sans ombre ; titre en Silkscreen cyan ; état « ok » en bordure `--ok`.
 
 ### Accueil (lanceur, D78-D82)
-- **Affiche :** marque, accroche, puis jauge du jour et série sur une **plaque opaque** (`--veil-rgb` plein, D75) ; la jauge dit « Objectif du jour atteint » à 3 exercices vérifiés.
+- **Affiche :** marque, accroche, puis (sous un trait `--line-soft`) jauge du jour et série, sur **une seule plaque** légèrement translucide (`--veil-rgb` à 0,85 ; bordure `--line`, ombre dure), alignée sur le bord des cartes ; pas de voile dégradé sur le décor ; la jauge dit « Objectif du jour atteint » à 3 exercices vérifiés.
 - **Héros :** panneau accentué magenta ; titre de la tâche, une ligne de contexte à 16 px, puis la rangée d'actions à **deux poids** : le primaire (56 px, 17 px, touche « Espace » au clavier seulement), l'autre étape en bouton ordinaire à sa taille (44 px), et « changer de gamme / d'accord » en **lien** souligné. Le primaire garde la même place dans tous les états : pleine largeur au téléphone, à gauche et au moins 20 rem au bureau.
 - **Étapes :** liste numérotée en pastilles pixel 28 px ; étape en cours en aplat magenta, étape franchie en ✓ vert estompée (franchie seulement sur un fait observé, D79).
 - **Parcours :** une ligne par module (nom en `--label-lg` cyan, sujet et compte, barre pixel 12 px au trait `--line` remplie de `--green`) ; trois colonnes au bureau, empilées sous 900 px.
 
 ### Navigation
-Barre du bas à quatre ou cinq destinations : icône pixel au-dessus d'un libellé sans-serif de 11,5 px, 52 px de haut. Actif : texte magenta et lueur sous l'icône. Libellé tronqué par ellipse, jamais à la ligne.
+Barre opaque (`--bg-deep`, trait 2 px `--line`) à quatre ou cinq destinations, icônes pixel pleines 10×10 dessinées à ×2 (20 px). Téléphone : en bas, pleine largeur, icône au-dessus d'un libellé sans-serif de 11,5 px, 56 px de haut. Bureau (≥ 900 px) : en haut, onglets alignés à gauche sur le bord du contenu, icône et libellé de 14 px sur une ligne, 52 px de haut, sans cadre ni mot-symbole (la marque vit dans l'affiche de l'accueil). Repos en `--dim`, survol en `--text`, actif en magenta (icône et libellé), sans halo. Libellé tronqué par ellipse, jamais à la ligne.
 
 ### Tablature (composant signature)
 Panneau de tablature dessiné au canvas : cordes fines, barres de mesure, chiffres sur pastilles colorées par intervalle avec contour qui sépare du fond (sombre en nuit, papier en aube), curseur de lecture magenta à cœur clair. Sur aube, le panneau s'éclaircit (`#FFFBF5`, encre `#2B0B2E`) mais les aplats d'intervalle restent saturés. Le chiffre sur pastille a toujours un contour : jamais de scanlines dessus.

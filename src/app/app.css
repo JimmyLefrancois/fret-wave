@@ -714,11 +714,9 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 
 .bottombar {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 0;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: min(90vw, 1800px);
   z-index: 5;
   display: grid;
   /* le nombre d'onglets peut changer (phase 3 : Accordeur) : une seule rangée, colonnes égales */
@@ -728,15 +726,17 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
      cartes — une barre à 94 % laissait lire le contenu derrière les onglets) */
   background: var(--bg-deep);
   border-top: var(--bw) solid var(--line);
-  border-left: var(--bw) solid var(--line-soft);
-  border-right: var(--bw) solid var(--line-soft);
-  padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .navbtn {
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  padding: 6px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  height: 56px;
+  padding: 0 2px;
   background: transparent;
   border: 0;
   color: var(--dim);
@@ -748,11 +748,12 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   font-size: 11.5px;
   letter-spacing: 0;
   cursor: pointer;
-  min-height: 52px;
 }
 .navbtn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.navbtn:hover { color: var(--text); }
 .navbtn.on { color: var(--magenta); }
-.navbtn.on .picon { filter: drop-shadow(0 0 6px var(--magenta)); }
+/* l'onglet touche le bord de l'écran : l'anneau de focus passe à l'intérieur pour rester entier */
+.navbtn:focus-visible { outline-offset: -4px; }
 
 /* ===========================================================================
    Pages de contrôle (phases 1a-1c) — conservées telles quelles, re-teintées.
@@ -862,9 +863,10 @@ table.kv td:first-child { color: var(--muted); }
    =========================================================================== */
 @media (min-width: 900px) {
   /* ---- grille de page : 12 colonnes, gouttières régulières, rangées de même hauteur ---- */
+  :root { --shell-max: 1560px; }
   .shell {
     width: 90vw;
-    max-width: 1560px;
+    max-width: var(--shell-max);
     padding: 24px 0 40px;
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -942,59 +944,31 @@ table.kv td:first-child { color: var(--muted); }
   .cta-block .btn { min-height: 52px; }
 
   /* ---- barre de navigation en haut, comme une application de bureau ---- */
+  /* les onglets partent de la gauche, alignés sur le bord des cartes : même largeur que .shell
+     (90 vw plafonnés, centrés), moins le retrait de 12 px de l'onglet ; la marque vit dans
+     l'affiche de l'accueil, pas dans la barre */
   .bottombar {
     top: 0;
     bottom: auto;
-    left: 0;
-    transform: none;
-    width: 100%;
-    max-width: none;
-    height: 58px;
-    align-items: center;
-    justify-content: end;
-    /* l'onglet ne doit pas être écrit en dur : il a fallu ajouter « Accords » et la 5e colonne
-       implicite avalait toute la largeur restante. Une colonne auto, de largeur fixe, quel que soit
-       le nombre d'onglets. */
-    grid-template-columns: none;
-    grid-auto-columns: 148px;
+    grid-auto-columns: max-content;
+    justify-content: start;
     gap: 4px;
-    padding: 0 5vw;
+    padding: 0 calc((100% - min(90vw, var(--shell-max))) / 2 - 12px);
     border-top: 0;
     border-bottom: var(--bw) solid var(--line);
-    border-left: 0;
-    border-right: 0;
-    /* opaque (D75) : à 92 %, la page défilée transparaissait sous les onglets */
-    background: rgb(var(--veil-rgb));
-  }
-  .bottombar::before {
-    content: 'FRETWAVE';
-    position: absolute;
-    left: 5vw;
-    top: 50%;
-    transform: translateY(-50%);
-    font-family: var(--font-display);
-    font-size: 13px;
-    color: var(--text);
-    text-shadow: 0 0 12px var(--magenta);
-    letter-spacing: 0.02em;
   }
   .navbtn {
     flex-direction: row;
-    justify-content: center;
     gap: 8px;
-    min-height: 42px;
-    font-size: 12px;
-    border: var(--bw) solid transparent;
+    height: 52px;
+    padding: 0 12px;
+    font-size: 14px;
   }
-  .navbtn:hover { border-color: var(--line); }
-  .navbtn.on { border-color: var(--magenta); }
-  /* l'onglet touche le haut de l'écran : l'anneau de focus passe à l'intérieur pour rester entier */
-  .navbtn:focus-visible { outline-offset: -4px; }
-  .app-content { padding-top: 58px; padding-bottom: 0; }
+  .app-content { padding-top: 54px; padding-bottom: 0; }
 }
 
 @media (min-width: 1500px) {
-  .shell { max-width: 1680px; }
+  :root { --shell-max: 1680px; }
 }
 
 /* mouvement réduit : aucune transition (le décor est figé par le composant Scene) */
@@ -1624,17 +1598,25 @@ table.kv td:first-child { color: var(--muted); }
   min-height: 258px;
   padding: 0 0 10px;
 }
-.home-hero-bottom { display: flex; flex-direction: column; gap: 2px; }
-.home-tagline {
+.home-hero-bottom {
+  /* une seule plaque porte la marque, l'accroche et la jauge : l'affiche ne superpose plus trois
+     aplats de bords différents. Légèrement translucide (demande de l'auteur) : le décor transparaît,
+     mais à 0,85 le voile reste assez dense pour que le contraste ne dépende pas de ce qui passe dessous */
   align-self: flex-start;
-  /* plaque opaque (D75) : en Aube, l'accroche passe devant le soleil */
-  padding: 0 4px;
-  margin-inline-start: -4px;
+  max-inline-size: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px 12px;
+  background: rgba(var(--veil-rgb), 0.85);
+  border: var(--bw) solid var(--line);
+  box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink);
+}
+.home-tagline {
   font-size: var(--label-lg);
   letter-spacing: 0.02em;
   text-wrap: balance;
   color: var(--cyan);
-  background: rgb(var(--veil-rgb));
 }
 .home-go .panel-head .t-label { font-size: var(--label-lg); }
 .home-hero-title {
@@ -1650,7 +1632,7 @@ table.kv td:first-child { color: var(--muted); }
 .day-cells { display: inline-flex; gap: var(--gap-tight); }
 /* chaque morceau reste entier : la série passe à la ligne d'un bloc, jamais « d'affilée » seul */
 .day-text { white-space: nowrap; }
-.home-status { align-self: flex-start; max-inline-size: 100%; margin-block-start: var(--gap-inside); padding: 4px 8px; margin-inline-start: -8px; background: rgb(var(--veil-rgb)); }
+.home-status { margin-block-start: var(--gap-inside); padding-block-start: 10px; border-top: var(--bw) solid var(--line-soft); }
 .home-status .home-day { margin-block-start: 0; }
 .day-done { color: var(--green); font-weight: 700; }
 .day-streak { margin: 2px 0 0; font-size: 15px; color: var(--muted); }
@@ -2366,24 +2348,7 @@ table.kv td:first-child { color: var(--muted); }
   .page-head { row-gap: 6px; }
 }
 
-/* L'affiche d'accueil garde son soleil : le voile est **juste assez** dense pour que le titre et la
-   ligne d'activité ne dépendent pas de ce qui passe dessous, sans éteindre le disque (à 0,72 il
-   devenait olive — mesuré à l'œil sur la capture). */
-.home-hero {
-  /* Dégradé et non voile uniforme : le soleil reste **franc** en haut (à 0,52 d'opacité il devenait
-     olive, mesuré sur capture), et le titre repose en bas sur une plaque à 0,95 — opaque, donc lisible
-     quel que soit ce qui passe derrière. */
-  background: linear-gradient(
-    180deg,
-    rgba(var(--veil-rgb), 0) 0%,
-    rgba(var(--veil-rgb), 0) 60%,
-    rgba(var(--veil-rgb), 0.9) 74%,
-    rgba(var(--veil-rgb), 0.96) 100%
-  );
-  /* pas de bordure : le cadre traçait un rectangle sur toute l'affiche, qui se lisait comme une boîte
-     posée sur le décor alors que l'affiche EST le décor (le titre repose déjà sur la plaque opaque) */
-}
-.home-hero-title { text-shadow: 2px 2px 0 var(--shadow-ink), 0 0 6px rgba(var(--veil-rgb), 0.9); }
+.home-hero-title { text-shadow: 2px 2px 0 var(--shadow-ink); }
 
 /* pied d'accueil et pieds de page : une bande, et des boutons qui se voient */
 .home-foot,

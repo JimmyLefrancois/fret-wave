@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="fr" data-theme="synthwave">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fretwave — accueil v2 (setlist)</title>
+<!--
+  Maquette autonome de l'accueil #/hub, direction « La setlist ».
+  Aucun import depuis src/ : les valeurs ci-dessous recopient les tokens de src/core/themes/
+  (synthwave.ts, dawn.ts) sous les noms de variables de app.css. Les polices viennent de public/fonts/.
+  Les données sont des exemples réalistes (pentatonique : 5 formes ; parcours d'accords : 35 accords),
+  pas des chiffres d'usage.
+-->
+<style>
+@font-face { font-family: 'Press Start 2P'; src: url('../../public/fonts/press-start-2p-400.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Silkscreen'; src: url('../../public/fonts/silkscreen-700.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+
+/* --- tokens : Synthwave Neon (nuit) --- */
+:root {
+  color-scheme: dark;
+  --bg-deep: #06000F; --bg: #0D0221; --surface: #150A33; --surface-hi: #201048;
+  --line: #3A1C71; --line-soft: #28124F;
+  --text: #F6EEFF; --muted: #C4B6E4; --dim: #A99BCF;
+  --magenta: #FF2A6D; --cyan: #05D9E8; --orange: #FF9E3D; --yellow: #FFD23F;
+  --violet: #A86BFF; --green: #7CFF6B; --danger: #FF5C7A; --ok: #4CFF9A; --on-accent: #12021F;
+  --shadow-ink: rgba(0, 0, 0, .45);
+  --veil: rgba(13, 2, 33, .86);
+  --tape: #3A1C71; --tape-edge: #28124F;
+  /* scène (décor canvas) */
+  --sky-top: #0A0126; --sky-mid: #2B0A55; --sky-low: #7A1359; --horizon: #FF2A6D;
+  --sun-outer: #FF2A6D; --sun-mid: #FF9E3D; --sun-core: #FFE66D;
+  --grid-line: #FF3D7F; --grid-far: #5B2A8C;
+  --mountain-far: #2A0F4F; --mountain-near: #12042B; --mountain-rim: #8A3BC9;
+  --star: #F6EEFF; --star-accent: #05D9E8; --ground: #06000F;
+  --scanlines: 1;
+
+  --font-display: 'Press Start 2P', monospace;
+  --font-label: 'Silkscreen', 'Press Start 2P', monospace;
+  --font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --bw: 2px; --corner: 2px; --shadow: 4px;
+  --gap-tight: 4px; --gap-inside: 8px; --gap-block: 12px;
+  --label-lg: 13px;
+  --cue-title: 30px;     /* la ligne en cours : le plus grand mot de l'accueil */
+  --hero-btn-h: 56px; --hero-btn-size: 17px;
+}
+
+/* --- tokens : Aube (jour) --- */
+:root[data-theme="dawn"] {
+  color-scheme: light;
+  --bg-deep: #FFDCC7; --bg: #FFF3E8; --surface: #FFFBF5; --surface-hi: #FFE7D6;
+  --line: #B23A6B; --line-soft: #F3C3D3;
+  --text: #2B0B2E; --muted: #5E2C52; --dim: #6E4462;
+  --magenta: #C2185B; --cyan: #0B6E7A; --orange: #B4530A; --yellow: #7D6000;
+  --violet: #5B2A9E; --green: #1C6B36; --danger: #B3122F; --ok: #14683A; --on-accent: #FFF8F2;
+  --shadow-ink: rgba(194, 24, 91, .28);
+  --veil: rgba(255, 243, 232, .9);
+  --tape: #F3C3D3; --tape-edge: #E7A9BF;
+  --sky-top: #FFE9F2; --sky-mid: #FFD0DF; --sky-low: #FFB3C7; --horizon: #E23E77;
+  --sun-outer: #FF7BA8; --sun-mid: #FFA33D; --sun-core: #FFD84D;
+  --grid-line: #E23E77; --grid-far: #FFC2D4;
+  --mountain-far: #F6B9CC; --mountain-near: #DE9AB8; --mountain-rim: #E23E77;
+  --star: #7A2B58; --star-accent: #0B6E7A; --ground: #FFDCC7;
+  --scanlines: 0;
+}
+
+/* --- base --- */
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg-deep); scrollbar-color: var(--line) var(--bg-deep); }
+body {
+  margin: 0; min-height: 100vh; color: var(--text); background: var(--bg-deep);
+  font: 400 16px/1.5 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  scroll-padding-bottom: 72px;
+}
+::selection { background: var(--magenta); color: var(--on-accent); }
+a { color: var(--cyan); text-underline-offset: 3px; text-decoration-thickness: 2px; }
+a:hover { color: var(--text); }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+h1, h2, h3, p, ol, ul { margin: 0; }
+ol, ul { padding: 0; list-style: none; }
+svg.px { display: block; shape-rendering: crispEdges; fill: currentColor; }
+
+/* --- décor : un canvas fixe en pixels logiques, échelle entière --- */
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; z-index: 0; }
+.scan { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: calc(var(--scanlines) * .5);
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, .22) 2px 4px); }
+
+/* --- navigation (bas au téléphone, haut au bureau) --- */
+.nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 3;
+  display: flex; background: var(--bg-deep); border-top: var(--bw) solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.nav a {
+  flex: 1 1 0; min-width: 0; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  color: var(--dim); text-decoration: none; font-size: 11.5px; font-weight: 600;
+}
+.nav a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-inline: 2px; }
+.nav a:hover { color: var(--text); }
+.nav a[aria-current="page"] { color: var(--magenta); }
+.nav svg { width: 20px; height: 20px; }
+
+/* --- scène de la page --- */
+.stage { position: relative; z-index: 1; padding-inline: 16px; padding-block: 0 96px; }
+.brand { height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 28px; text-align: center; gap: 10px; }
+.brand h1 { font: 400 22px/1.2 var(--font-display); letter-spacing: .02em; color: var(--text);
+  text-shadow: 3px 3px 0 var(--shadow-ink); }
+.brand p { font: 700 11px/1.6 var(--font-label); letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  background: var(--veil); padding: 0 8px; }
+
+/* --- la feuille --- */
+.sheet {
+  position: relative; max-width: 640px; margin-inline: auto;
+  background: var(--surface); border: var(--bw) solid var(--line); border-radius: var(--corner);
+  box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink);
+}
+/* deux bandes de gaffer en haut de la feuille, bords déchirés en marches de pixels */
+.sheet::before, .sheet::after {
+  content: ""; position: absolute; top: -12px; width: 72px; height: 22px; background: var(--tape);
+  border-block: var(--bw) solid var(--tape-edge);
+  clip-path: polygon(0 0, 100% 0, 100% 20%, 96% 20%, 96% 45%, 100% 45%, 100% 75%, 97% 75%, 97% 100%, 0 100%, 0 80%, 4% 80%, 4% 55%, 0 55%, 0 25%, 3% 25%, 3% 0);
+}
+.sheet::before { left: 28px; }
+.sheet::after { right: 28px; }
+
+.sheet-head { padding: 26px 20px 14px; display: grid; gap: var(--gap-inside); border-bottom: var(--bw) dashed var(--line-soft); }
+.sheet-head .top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.sheet-head h2 { font: 400 15px/1.5 var(--font-display); color: var(--magenta); }
+.sheet-head .date { font-size: 14.5px; color: var(--dim); }
+.day { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cells { display: inline-flex; gap: 4px; }
+.cells i { width: 14px; height: 14px; border: var(--bw) solid var(--line); background: var(--bg); }
+.cells i.on { background: var(--green); border-color: var(--green); }
+.day.reached { color: var(--green); font-weight: 650; }
+.streak { font-size: 14.5px; color: var(--dim); }
+
+/* --- les lignes de la setlist --- */
+.set { padding-block: 6px; }
+.cue {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; column-gap: 10px; align-items: baseline;
+  padding: 12px 20px 12px 14px;
+}
+.cue + .cue { border-top: var(--bw) solid var(--line-soft); }
+.cue-mark { align-self: start; padding-top: 4px; display: flex; justify-content: center; color: var(--dim); }
+.cue-mark svg { width: 14px; height: 14px; }
+.cue-title { font-size: 17px; font-weight: 650; line-height: 1.35; color: var(--muted); text-wrap: balance; }
+.cue-line { grid-column: 2 / -1; font-size: 14.5px; color: var(--dim); margin-top: var(--gap-tight); }
+.cue-key { font-size: 15px; font-weight: 700; color: var(--dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* faite : barrée d'un trait pixel vert, sur un fait observé */
+.cue.done .cue-mark { color: var(--green); }
+.cue.done { padding-block: 10px; }
+.cue.done .cue-title { color: var(--dim); text-decoration: line-through 2px var(--green); text-decoration-skip-ink: none; }
+.cue.done .cue-mark svg { animation: tick .3s steps(3) both; }
+@keyframes tick { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+/* téléphone : une ligne faite tient sur une ligne, pour que le primaire reste au-dessus de la barre du bas */
+@media (max-width: 899px) {
+  .cue.done .cue-line { display: none; }
+  .cue.done .cue-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cue.done .cue-key { font-size: 14.5px; }
+  .track a { grid-template-columns: 5.5rem minmax(0, 1fr); }
+}
+
+/* en cours : bande pleine largeur, curseur magenta, le plus grand texte de la page */
+.cue.current {
+  background: var(--surface-hi); margin-inline: calc(var(--bw) * -1); padding-block: 20px 22px;
+  border-block: var(--bw) solid var(--magenta);
+}
+.cue.current + .cue { border-top: 0; }
+.cue.current .cue-mark { color: var(--magenta); padding-top: 10px; }
+.cue.current .cue-mark svg { width: 12px; height: 20px; }
+.cue.current .cue-title { font-size: var(--cue-title); font-weight: 700; line-height: 1.15; color: var(--text); }
+.cue.current .cue-key { font-size: 17px; color: var(--cyan); }
+.cue.current .cue-line { font-size: 16px; color: var(--muted); margin-top: 8px; }
+.cue-note { grid-column: 2 / -1; font-size: 16px; color: var(--muted); }
+.cue-note strong { color: var(--text); font-weight: 650; }
+.cue-actions { grid-column: 2 / -1; margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+
+/* --- boutons --- */
+.btn {
+  font: 650 13.5px/1 var(--font-body); letter-spacing: .04em; text-transform: uppercase;
+  height: 44px; padding: 0 14px; color: var(--text); background: var(--surface); cursor: pointer;
+  border: var(--bw) solid var(--line); border-radius: var(--corner);
+  box-shadow: 3px 3px 0 var(--shadow-ink);
+}
+.btn:hover { border-color: var(--cyan); }
+.btn:active, .btn.pressed { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow-ink); }
+.btn-go {
+  width: 100%; height: var(--hero-btn-h); font-size: var(--hero-btn-size); letter-spacing: .03em;
+  background: var(--magenta); color: var(--on-accent); border-color: var(--bg-deep);
+  box-shadow: 3px 3px 0 var(--shadow-ink);
+}
+.btn-go:hover { border-color: var(--yellow); }
+.key-hint { display: none; font-size: 14.5px; color: var(--dim); }
+.key-hint kbd { font: 700 12px/1 var(--font-label); letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--line); padding: 3px 6px; border-radius: var(--corner); background: var(--bg); }
+@media (hover: hover) and (pointer: fine) { .key-hint { display: inline; } }
+.switch { font-size: 15px; }
+
+/* --- bas de feuille : parcours, dernière réussite, explications --- */
+.sheet-foot { padding: 16px 20px 20px; border-top: var(--bw) dashed var(--line-soft); display: grid; gap: 14px; }
+.track { display: grid; gap: 10px; }
+.track a {
+  display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); grid-template-areas: "name what" "name bar"; column-gap: 12px; row-gap: 6px;
+  align-items: center; text-decoration: none; color: inherit; padding: 6px 0;
+}
+.track a:hover .track-name { color: var(--text); }
+.track-name { grid-area: name; align-self: start; font: 700 var(--label-lg)/1.6 var(--font-label); letter-spacing: .06em; text-transform: uppercase; color: var(--cyan); }
+.track-what { grid-area: what; font-size: 15px; color: var(--muted); }
+.track-what span { color: var(--dim); }
+.bar { grid-area: bar; height: 12px; border: var(--bw) solid var(--line); background: var(--bg); display: block; }
+.bar i { display: block; height: 100%; background: var(--green); }
+.last { font-size: 15px; color: var(--muted); }
+.last strong { color: var(--text); font-weight: 650; }
+details summary { cursor: pointer; font-size: 15px; color: var(--cyan); width: max-content; }
+details[open] summary { margin-bottom: 8px; }
+details p { font-size: 14.5px; color: var(--dim); max-width: 62ch; }
+details p + p { margin-top: 6px; }
+.credits { font-size: 14.5px; }
+.credits a { color: var(--dim); }
+
+/* --- bureau : la feuille à gauche, l'affiche (marque, soleil) à droite --- */
+@media (min-width: 900px) {
+  body { scroll-padding-bottom: 0; scroll-padding-top: 60px; }
+  .nav { position: sticky; top: 0; bottom: auto; border-top: 0; border-bottom: var(--bw) solid var(--line); padding: 0 24px; gap: 4px; }
+  .nav a { flex: 0 0 auto; flex-direction: row; height: 52px; gap: 8px; padding-inline: 12px; font-size: 14px; }
+  .nav svg { width: 20px; height: 20px; }
+  .stage {
+    display: grid; grid-template-columns: minmax(0, 640px) minmax(0, 1fr); column-gap: 56px;
+    max-width: 1240px; margin-inline: auto; padding-inline: 32px; padding-block: 44px 64px;
+  }
+  .brand { grid-column: 2; grid-row: 1; height: auto; padding-top: 7vh; }
+  .brand h1 { font-size: 30px; }
+  .brand p { font-size: var(--label-lg); }
+  .sheet { grid-column: 1; grid-row: 1; margin-inline: 0; }
+  .sheet-head { padding: 30px 28px 16px; }
+  .cue { padding-inline: 20px 28px; grid-template-columns: 32px minmax(0, 1fr) auto; }
+  .cue.current { padding-block: 24px 26px; }
+  :root { --cue-title: 44px; }
+  .btn-go { width: auto; min-width: 20rem; }
+  .sheet-foot { padding: 18px 28px 24px; }
+}
+@media (min-width: 1500px) { .stage { max-width: 1400px; } }
+
+@media (prefers-reduced-motion: reduce) { .cue.done .cue-mark svg { animation: none; } }
+
+/* --- contrôles de la maquette (hors design) --- */
+.mock { position: fixed; top: 8px; right: 8px; z-index: 10; font: 13px/1.4 var(--font-body); }
+.mock summary { list-style: none; background: var(--bg-deep); color: var(--muted); border: 1px dashed var(--dim); padding: 4px 10px; width: auto; font-size: 13px; }
+.mock summary::-webkit-details-marker { display: none; }
+.mock[open] summary { margin-bottom: 0; }
+.mock .panel { background: var(--bg-deep); border: 1px dashed var(--dim); border-top: 0; padding: 10px; display: grid; gap: 8px; width: 15rem; }
+.mock fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.mock legend { color: var(--dim); font-size: 12px; margin-bottom: 4px; padding: 0; }
+.mock button { font: 600 12.5px/1 var(--font-body); color: var(--muted); background: var(--surface-hi); border: 1px solid var(--line); padding: 6px 8px; cursor: pointer; }
+.mock button[aria-pressed="true"] { background: var(--cyan); color: var(--on-accent); border-color: var(--cyan); }
+</style>
+</head>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div class="scan" aria-hidden="true"></div>
+
+<details class="mock">
+  <summary>Maquette</summary>
+  <div class="panel">
+    <fieldset><legend>Thème</legend>
+      <button type="button" data-theme-set="synthwave" aria-pressed="true">Synthwave</button>
+      <button type="button" data-theme-set="dawn" aria-pressed="false">Aube</button>
+    </fieldset>
+    <fieldset><legend>État</legend>
+      <button type="button" data-state-set="first" aria-pressed="false">Premier soir</button>
+      <button type="button" data-state-set="session" aria-pressed="true">Séance en cours</button>
+      <button type="button" data-state-set="done" aria-pressed="false">Objectif atteint</button>
+    </fieldset>
+  </div>
+</details>
+
+<nav class="nav" aria-label="Navigation principale" id="nav"></nav>
+
+<main class="stage">
+  <header class="brand">
+    <h1>Fretwave</h1>
+    <p>Apprendre la guitare en tablature</p>
+  </header>
+
+  <section class="sheet" aria-labelledby="ce-soir" id="sheet">
+    <header class="sheet-head">
+      <div class="top">
+        <h2 id="ce-soir">Ce soir</h2>
+        <p class="date" id="date"></p>
+      </div>
+      <p class="day" id="day"></p>
+      <p class="streak" id="streak"></p>
+    </header>
+    <ol class="set" id="set"></ol>
+    <footer class="sheet-foot">
+      <ul class="track" id="track"></ul>
+      <p class="last" id="last"></p>
+      <details>
+        <summary>Comment ça compte ?</summary>
+        <p>Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : un passage n’est réussi qu’au-dessus de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.</p>
+        <p>L’objectif du jour et la série comptent les exercices vérifiés : une écoute n’y entre pas, un grattage déclaré non plus.</p>
+        <p>8 révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
+        <p>Une ligne n’est barrée que sur un fait observé : le micro autorisé pour l’accordeur, un passage vérifié au micro pour une gamme ou un accord.</p>
+      </details>
+      <p class="credits"><a href="#/audio">Crédits audio</a></p>
+    </footer>
+  </section>
+</main>
+
+<script>
+/* ---------- icônes pixel (grilles 10 × 10, un seul trait) ---------- */
+const ICONS = {
+  home:   ['....##....', '...####...', '..##..##..', '.##....##.', '##########', '.#......#.', '.#..##..#.', '.#..##..#.', '.#..##..#.', '.########.'],
+  scales: ['..........', '........##', '........##', '......####', '......####', '....######', '....######', '..########', '..########', '##########'],
+  chords: ['##########', '#..#..#..#', '#..#.##..#', '##########', '#.##..#..#', '#.##..#..#', '##########', '#..#..#.##', '#..#..#.##', '##########'],
+  tuner:  ['.##....##.', '.##....##.', '.##....##.', '.##....##.', '.##....##.', '.###..###.', '..######..', '....##....', '....##....', '...####...'],
+  sliders:['...##.....', '##########', '...##.....', '..........', '......##..', '##########', '......##..', '..........', '.##.......', '##########'],
+  check:  ['..........', '.........#', '........##', '.......##.', '#.....##..', '##...##...', '.##.##....', '..###.....', '...#......', '..........'],
+  cue:    ['#.....', '##....', '###...', '####..', '#####.', '#####.', '####..', '###...', '##....', '#.....'],
+  dot:    ['..........', '..........', '..........', '..........', '....##....', '....##....', '..........', '..........', '..........', '..........'],
+};
+function px(name) {
+  const g = ICONS[name], w = g[0].length, h = g.length;
+  let r = '';
+  g.forEach((row, y) => { for (let x = 0; x < w; x++) if (row[x] === '#') r += `<rect x="${x}" y="${y}" width="1" height="1"/>`; });
+  return `<svg class="px" viewBox="0 0 ${w} ${h}" aria-hidden="true">${r}</svg>`;
+}
+
+document.getElementById('nav').innerHTML = [
+  ['home', 'Accueil', '#/hub', true], ['scales', 'Gammes', '#/gammes'], ['chords', 'Accords', '#/accords'],
+  ['tuner', 'Accordeur', '#/accordeur'], ['sliders', 'Réglages', '#/reglages'],
+].map(([i, l, h, on]) => `<a href="${h}"${on ? ' aria-current="page"' : ''}>${px(i)}<span>${l}</span></a>`).join('');
+
+/* ---------- états d'exemple ---------- */
+const STATES = {
+  // journal vide : accorder d'abord (franchi seulement quand le micro est autorisé), puis écouter, puis jouer
+  first: {
+    goal: 0, streak: 0,
+    set: [
+      { s: 'current', title: 'Accorder la guitare', key: '',
+        line: 'L’accordeur demande l’accès au micro et montre ce qu’il entend.',
+        go: 'Ouvrir l’accordeur' },
+      { s: 'next', title: 'Écouter la pentatonique mineure', key: 'La', line: 'Forme 1 · cases 5 à 8' },
+      { s: 'next', title: 'La jouer au micro', key: 'La', line: 'Le micro vérifie chaque note' },
+    ],
+    track: [['Gammes', 'Pentatonique mineure de La', 'aucune forme apprise sur 5', 0, 5],
+            ['Accords', 'aucun accord appris sur 35', 'prochain : Mi mineur', 0, 35]],
+    last: null,
+  },
+  // une séance commencée : une révision due passe en tête
+  session: {
+    goal: 1, streak: 4, cap: 7,
+    set: [
+      { s: 'done', title: 'Pentatonique mineure, forme 2', key: 'La', line: 'Passage réussi au micro · 88\u00a0% · il y a 12 min' },
+      { s: 'current', title: 'Gamme majeure, forme 1', key: 'Sol',
+        line: 'Dernier passage : exercice à trous, 85\u00a0% · il y a 3 j',
+        note: '<strong>3 formes</strong> à revoir ce soir',
+        go: 'Jouer au micro', alt: 'Une autre forme', link: 'Changer de gamme' },
+      { s: 'next', title: 'Pentatonique mineure, forme 3', key: 'La', line: 'Jamais écoutée : on commence par l’écouter' },
+      { s: 'next', title: 'Accord de La mineur', key: 'Am', line: 'Asus2 + l’index : ton premier mineur « complet »' },
+    ],
+    track: [['Gammes', 'Pentatonique mineure de La', '2 formes apprises sur 5 · 3 en tout', 2, 5],
+            ['Accords', '4 accords appris sur 35', 'prochain : La mineur', 4, 35]],
+    last: { what: 'Forme apprise', subject: 'Pentatonique mineure de La, forme 1', when: 'hier' },
+  },
+  // trois exercices vérifiés : l'objectif se dit, la suite reste proposée sans insister
+  done: {
+    goal: 3, streak: 5, cap: 7,
+    set: [
+      { s: 'done', title: 'Pentatonique mineure, forme 2', key: 'La', line: 'Passage réussi au micro · 88\u00a0% · il y a 41 min' },
+      { s: 'done', title: 'Gamme majeure, forme 1', key: 'Sol', line: 'Révision réussie · exercice à trous, 91\u00a0% · il y a 25 min' },
+      { s: 'done', title: 'Accord de La mineur', key: 'Am', line: 'Accord entendu au micro · il y a 6 min' },
+      { s: 'current', title: 'Pentatonique mineure, forme 3', key: 'La',
+        line: 'Pour demain, ou maintenant si tu as encore les doigts chauds.',
+        go: 'Écouter', alt: 'Jouer au micro', link: 'Changer de gamme' },
+    ],
+    track: [['Gammes', 'Pentatonique mineure de La', '2 formes apprises sur 5 · 3 en tout', 2, 5],
+            ['Accords', '5 accords appris sur 35', 'prochain : Mi majeur', 5, 35]],
+    last: { what: 'Forme apprise', subject: 'Pentatonique mineure de La, forme 1', when: 'hier' },
+  },
+};
+
+const $ = (id) => document.getElementById(id);
+let current = 'session';
+
+function render() {
+  const st = STATES[current];
+  $('date').textContent = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+  const reached = st.goal >= 3;
+  const cells = [0, 1, 2].map((i) => `<i class="${i < st.goal ? 'on' : ''}"></i>`).join('');
+  $('day').className = 'day' + (reached ? ' reached' : '');
+  $('day').innerHTML = `<span class="cells" aria-hidden="true">${cells}</span><span>${reached ? `Objectif du jour atteint (${st.goal})` : `${st.goal} / 3 exercices aujourd’hui`}</span>`;
+  // la série ne s'affiche qu'à partir de deux jours (MUSIC_DESIGN §17.3)
+  $('streak').hidden = st.streak < 2;
+  $('streak').textContent = st.streak > 1 ? `Série : ${st.streak} jours d’affilée · prochain cap : ${st.cap} jours` : '';
+
+  $('set').innerHTML = st.set.map((c) => {
+    const mark = c.s === 'done' ? px('check') : c.s === 'current' ? px('cue') : px('dot');
+    const actions = c.go ? `<div class="cue-actions">
+        <button type="button" class="btn btn-go" id="go">${c.go}</button>
+        <span class="key-hint">ou <kbd>Espace</kbd></span>
+        ${c.alt ? `<button type="button" class="btn">${c.alt}</button>` : ''}
+        ${c.link ? `<a href="#/gammes" class="switch">${c.link}</a>` : ''}
+      </div>` : '';
+    return `<li class="cue ${c.s}"${c.s === 'current' ? ' aria-current="step"' : ''}>
+      <span class="cue-mark">${mark}</span>
+      ${c.s === 'current' ? `<h3 class="cue-title">${c.title}</h3>` : `<span class="cue-title">${c.title}${c.s === 'done' ? '<span class="sr-only"> (fait)</span>' : ''}</span>`}
+      <span class="cue-key">${c.key}</span>
+      <p class="cue-line">${c.line}</p>
+      ${c.note ? `<p class="cue-note">${c.note}</p>` : ''}
+      ${actions}
+    </li>`;
+  }).join('');
+
+  $('track').innerHTML = st.track.map(([name, what, count, done, total]) => `<li>
+    <a href="#/${name === 'Gammes' ? 'gammes' : 'accords'}">
+      <span class="track-name">${name}</span>
+      <span class="track-what">${what} · <span>${count}</span></span>
+      <span class="bar" aria-hidden="true"><i style="width:${Math.round((done / total) * 100)}%"></i></span>
+    </a></li>`).join('');
+
+  // pas de ligne vide au premier soir : elle n'existe qu'après une première réussite
+  $('last').hidden = !st.last;
+  $('last').innerHTML = st.last ? `${st.last.what} : <strong>${st.last.subject}</strong> · ${st.last.when} · <a href="#/gammes">Rejouer</a>` : '';
+}
+
+/* raccourci : Espace ou Entrée lancent la ligne en cours, sauf si le focus est sur un contrôle */
+addEventListener('keydown', (e) => {
+  if ((e.key !== ' ' && e.key !== 'Enter') || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  if (/^(BUTTON|A|INPUT|TEXTAREA|SELECT|SUMMARY|OPTION|LABEL)$/.test(e.target.tagName)) return;
+  const go = $('go'); if (!go) return;
+  e.preventDefault(); go.classList.add('pressed'); setTimeout(() => go.classList.remove('pressed'), 140);
+});
+
+document.querySelectorAll('[data-theme-set]').forEach((b) => b.addEventListener('click', () => {
+  document.documentElement.dataset.theme = b.dataset.themeSet;
+  document.querySelectorAll('[data-theme-set]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  drawStatic(); draw();
+}));
+document.querySelectorAll('[data-state-set]').forEach((b) => b.addEventListener('click', () => {
+  current = b.dataset.stateSet;
+  document.querySelectorAll('[data-state-set]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  render(); layoutScene(); draw();
+}));
+
+/* ---------- décor pixel : ciel en bandes, étoiles, soleil rayé, montagnes, grille qui défile ---------- */
+const cv = $('scene'), ctx = cv.getContext('2d');
+let S = 2, W = 0, H = 0, hz = 0, sunX = 0.5, sunR = 30, t = 0, stars = [], ridgeFar = [], ridgeNear = [];
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function rnd(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+function mix(a, b, k) {
+  const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [p(a), p(b)];
+  return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * k).toString(16).padStart(2, '0')).join('');
+}
+let pal = {};
+function drawStatic() {
+  pal = Object.fromEntries(['sky-top', 'sky-mid', 'sky-low', 'horizon', 'sun-outer', 'sun-mid', 'sun-core', 'grid-line', 'grid-far',
+    'mountain-far', 'mountain-near', 'mountain-rim', 'star', 'star-accent', 'ground'].map((k) => [k, css('--' + k)]));
+}
+function layoutScene() {
+  S = innerWidth >= 1500 ? 3 : 2;
+  W = Math.ceil(innerWidth / S); H = Math.ceil(innerHeight / S);
+  cv.width = W; cv.height = H;
+  const desk = innerWidth >= 900;
+  const brand = document.querySelector('.brand').getBoundingClientRect();
+  sunX = desk ? (brand.left + brand.width / 2) / innerWidth : 0.5;
+  // téléphone : l'horizon passe sous le haut de la feuille, posée au sol ; bureau : aux deux tiers
+  hz = desk ? Math.round(H * 0.66) : Math.round(($('sheet').getBoundingClientRect().top + scrollY + 10) / S);
+  sunR = Math.round(desk ? Math.min(H * 0.2, W * 0.12) : 30);
+  const r = rnd(7);
+  stars = Array.from({ length: Math.round(W * hz / 900) }, () => [Math.floor(r() * W), Math.floor(r() * hz * 0.8), r() < 0.18]);
+  const ridge = (seed, amp, base) => { const q = rnd(seed); let y = 0; return Array.from({ length: W }, (_, x) => {
+    y += (q() - 0.5) * 1.6; y *= 0.96;
+    return Math.round(base + amp * (0.55 * Math.sin(x / 23 + seed) + 0.3 * Math.sin(x / 9 + seed * 2)) + y);
+  }); };
+  ridgeFar = ridge(3, desk ? 9 : 6, desk ? 20 : 12);
+  ridgeNear = ridge(11, desk ? 6 : 4, desk ? 10 : 6);
+}
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  // ciel en 8 bandes franches, jamais un dégradé lisse
+  const bands = 8;
+  for (let i = 0; i < bands; i++) {
+    const k = i / (bands - 1);
+    ctx.fillStyle = k < 0.5 ? mix(pal['sky-top'], pal['sky-mid'], k * 2) : mix(pal['sky-mid'], pal['sky-low'], (k - 0.5) * 2);
+    const y0 = Math.floor(hz * i / bands), y1 = Math.floor(hz * (i + 1) / bands);
+    ctx.fillRect(0, y0, W, y1 - y0);
+  }
+  for (const [x, y, a] of stars) { ctx.fillStyle = a ? pal['star-accent'] : pal.star; ctx.fillRect(x, y, 1, 1); }
+  // soleil rayé : couleur par tiers, rayures de plus en plus larges vers l'horizon
+  const cx = Math.round(W * sunX), cy = hz - Math.round(sunR * 0.45);
+  for (let dy = -sunR; dy <= sunR; dy++) {
+    const y = cy + dy; if (y >= hz) break;
+    const k = (dy + sunR) / (2 * sunR);
+    if (dy > 0) { const gap = 1 + Math.floor(dy / (sunR / 4)); if ((dy % (gap + 3)) < gap) continue; }
+    const half = Math.floor(Math.sqrt(sunR * sunR - dy * dy));
+    ctx.fillStyle = k < 0.36 ? pal['sun-core'] : k < 0.66 ? pal['sun-mid'] : pal['sun-outer'];
+    ctx.fillRect(cx - half, y, half * 2 + 1, 1);
+  }
+  // montagnes : silhouette lointaine liserée, puis la proche
+  for (let x = 0; x < W; x++) {
+    const hf = Math.max(0, ridgeFar[x]), hn = Math.max(0, ridgeNear[x]);
+    ctx.fillStyle = pal['mountain-far']; ctx.fillRect(x, hz - hf, 1, hf);
+    ctx.fillStyle = pal['mountain-rim']; ctx.fillRect(x, hz - hf, 1, 1);
+    ctx.fillStyle = pal['mountain-near']; ctx.fillRect(x, hz - hn, 1, hn);
+  }
+  // sol et ligne d'horizon
+  ctx.fillStyle = pal.ground; ctx.fillRect(0, hz, W, H - hz);
+  ctx.fillStyle = pal.horizon; ctx.fillRect(0, hz, W, 1);
+  // grille en perspective : lignes horizontales en carré de la profondeur, verticales vers le point de fuite
+  const depth = H - hz, rows = 12;
+  for (let i = 0; i < rows; i++) {
+    const k = ((i + t) % rows) / rows, y = hz + Math.round(depth * k * k);
+    if (y <= hz) continue;
+    ctx.fillStyle = k < 0.3 ? pal['grid-far'] : pal['grid-line']; ctx.fillRect(0, y, W, 1);
+  }
+  const span = Math.max(W, 400), n = 14;
+  for (let y = hz + 1; y < H; y++) {
+    const f = (y - hz) / depth;
+    ctx.fillStyle = f < 0.15 ? pal['grid-far'] : pal['grid-line'];
+    for (let j = -n; j <= n; j++) ctx.fillRect(Math.round(cx + j * (span / n) * f * 1.6), y, 1, 1);
+  }
+}
+const still = matchMedia('(prefers-reduced-motion: reduce)');
+let last = 0;
+function loop(ts) {
+  if (!still.matches && !document.hidden && ts - last > 66) { t = (t + 0.04) % 12; draw(); last = ts; }
+  requestAnimationFrame(loop);
+}
+addEventListener('resize', () => { layoutScene(); draw(); });
+
+render(); drawStatic(); layoutScene(); draw(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>

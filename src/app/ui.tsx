@@ -161,7 +161,8 @@ export function Switch(props: {
 }
 
 // ---------------------------------------------------------------------------
-// Icônes bitmap 16×16 (aucune dépendance, nettes à toute échelle)
+// Icônes bitmap 16×16, sauf celles de la navigation en 10×10 (aucune dépendance ; nettes quand
+// la taille affichée est un multiple entier de la grille)
 // ---------------------------------------------------------------------------
 
 const ICONS = {
@@ -352,6 +353,12 @@ const ICONS = {
     '................',
     '................',
   ],
+  // barre de navigation : glyphes pleins 10×10, dessinés à ×2 (20 px) pour rester lisibles à un mètre
+  navHome: ['....##....', '...####...', '..##..##..', '.##....##.', '##########', '.#......#.', '.#..##..#.', '.#..##..#.', '.#..##..#.', '.########.'],
+  navScales: ['..........', '........##', '........##', '......####', '......####', '....######', '....######', '..########', '..########', '##########'],
+  navChords: ['##########', '#..#..#..#', '#..#.##..#', '##########', '#.##..#..#', '#.##..#..#', '##########', '#..#..#.##', '#..#..#.##', '##########'],
+  navTuner: ['.##....##.', '.##....##.', '.##....##.', '.##....##.', '.##....##.', '.###..###.', '..######..', '....##....', '....##....', '...####...'],
+  navSliders: ['...##.....', '##########', '...##.....', '..........', '......##..', '##########', '......##..', '..........', '.##.......', '##########'],
 } as const;
 
 export type IconName = keyof typeof ICONS;
@@ -371,7 +378,7 @@ export function PixelIcon(props: { name: IconName; size?: number; color?: string
       className={`picon ${className}`}
       width={size}
       height={size}
-      viewBox="0 0 16 16"
+      viewBox={`0 0 ${rows[0].length} ${rows.length}`}
       fill={color}
       shapeRendering="crispEdges"
       aria-hidden="true"

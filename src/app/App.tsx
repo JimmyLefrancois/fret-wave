@@ -28,15 +28,15 @@ import { ChordQuizPage } from '../modules/accords/ChordQuizPage';
 const SHORT_NAME: Record<string, string> = { nylon: 'GUITARE NYLON', electric: 'GUITARE ÉLECTRIQUE' };
 
 const NAV: { route: RouteName; label: string; icon: IconName }[] = [
-  { route: 'hub', label: 'Accueil', icon: 'home' },
-  { route: 'gammes', label: 'Gammes', icon: 'scales' },
+  { route: 'hub', label: 'Accueil', icon: 'navHome' },
+  { route: 'gammes', label: 'Gammes', icon: 'navScales' },
   // les accords retrouvent leur onglet : ils étaient passés en lien de pied de page, ce qui les
   // rendait invisibles alors que le module est complet depuis la 4b
-  { route: 'accords', label: 'Accords', icon: 'chords' },
-  { route: 'tuner', label: 'Accordeur', icon: 'ear' },
+  { route: 'accords', label: 'Accords', icon: 'navChords' },
+  { route: 'tuner', label: 'Accordeur', icon: 'navTuner' },
   // La page « Son » (outil de contrôle de la 1c) sort de la barre : elle reste joignable depuis les réglages
   // et par son URL (#/audio). Cinq onglets en police pixel ne tiennent pas sur un téléphone de 390 px.
-  { route: 'settings', label: 'Réglages', icon: 'sliders' },
+  { route: 'settings', label: 'Réglages', icon: 'navSliders' },
 ];
 
 const ACTIVE: Record<RouteName, RouteName> = {
@@ -138,7 +138,7 @@ export function App() {
             aria-current={ACTIVE[route] === n.route ? 'page' : undefined}
             onClick={() => navigate(n.route)}
           >
-            <PixelIcon name={n.icon} size={18} />
+            <PixelIcon name={n.icon} size={20} />
             <span>{n.label}</span>
           </button>
         ))}
