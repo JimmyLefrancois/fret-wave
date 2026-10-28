@@ -2168,12 +2168,34 @@ table.kv td:first-child { color: var(--muted); }
 .impro-summary { display: grid; gap: var(--gap-tight); padding-top: var(--gap-inside); border-top: 2px solid var(--line-soft); }
 .impro-summary .t-body { color: var(--text); }
 
-/* Bande « m'écouter » sous la tablature : même fond que les autres bandes, un seul réglage. */
+/* Bande « m'écouter » sous la tablature : **un seul cadre** — la bande. Le commutateur y perd son propre
+   fond et sa bordure (sinon on voit une boîte dans une boîte), sa case passe à 26 px et son libellé à
+   15 px : c'était un petit contrôle de formulaire, illisible au milieu de l'écran. */
 .listen-band {
-  padding: 8px 12px;
+  padding: 12px 14px;
   background: var(--surface);
   border: 2px solid var(--line-soft);
 }
+/* au bureau, la page est une grille de 12 colonnes : sans cette ligne la bande tombait dans UNE
+   colonne (90 px), et la phrase se repliait sur 158 px de haut (mesuré) */
+@media (min-width: 900px) {
+  .listen-band { grid-column: 1 / -1; }
+}
+.listen-band .switch {
+  margin: 0;
+  padding: 0;
+  min-height: 44px;
+  background: transparent;
+  border: 0;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 12px;
+}
+.listen-band .switch-box { width: 26px; height: 26px; }
+.listen-band .switch.on .switch-box::after { inset: 5px; }
+.listen-band .switch-label { font-size: 15px; font-weight: 700; }
+/* la phrase est une explication, pas une note de bas de page : 13 px et une couleur lisible (la nuance
+   `dim` était trop pâle sous 13 px) */
+.listen-band .switch-hint { font-size: 13px; line-height: 1.45; color: var(--muted); }
 
 /* Réglage de tempo : deux boutons carrés et une valeur, sur une seule ligne. */
 .impro-tempo-row { display: flex; align-items: center; gap: 8px; }
@@ -2181,9 +2203,9 @@ table.kv td:first-child { color: var(--muted); }
 /* Le nom d'accord se lit en clair : dans la police pixel, « Am » s'écrit « AM » et le mineur disparaît. */
 .impro-chord-name { font-family: var(--font-body); font-weight: 700; letter-spacing: 0; }
 
-/* Dans la bande « m'écouter », la précision est une phrase : elle a le droit d'aller à la ligne
-   (en `nowrap`, elle poussait la bande à 430 px sur un écran de 390). */
-.listen-band .switch.inline { grid-template-columns: 22px auto; }
+/* La précision de la bande « m'écouter » est une phrase : elle a le droit d'aller à la ligne (en
+   `nowrap` elle poussait la bande à 430 px sur un écran de 390), et elle suit le libellé. */
+.listen-band .switch.inline { grid-template-columns: 26px minmax(0, 1fr); }
 .listen-band .switch.inline .switch-hint { grid-column: 2; white-space: normal; }
 .listen-band .switch.inline .switch-hint::before { content: ''; }
 
