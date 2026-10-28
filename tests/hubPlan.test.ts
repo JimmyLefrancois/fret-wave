@@ -3,7 +3,7 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { hubPlan, micHeardBefore } from '../src/app/hubPlan';
+import { hubPlan, micHeardBefore, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
 import type { Attempt, Card } from '../src/core/progress';
 
@@ -85,3 +85,25 @@ describe('micHeardBefore', () => {
   });
 });
 
+
+describe('scaleStep', () => {
+  it('gamme jamais touchée : écouter d’abord', () => {
+    expect(scaleStep([], 'pentatonic-minor', 'A')).toBe('listen');
+  });
+
+  it('après une écoute seule, l’étape suivante est de jouer au micro', () => {
+    const j = [mk(T0, { kind: 'listen', correct: null, total: null })];
+    expect(scaleStep(j, 'pentatonic-minor', 'A')).toBe('play');
+  });
+
+  it('une autre tonique ou une autre gamme repart de l’écoute', () => {
+    const j = [mk(T0, { kind: 'listen', correct: null, total: null })];
+    expect(scaleStep(j, 'pentatonic-minor', 'E')).toBe('listen');
+    expect(scaleStep(j, 'major', 'A')).toBe('listen');
+  });
+
+  it('un accord sur la même tonique ne compte pas comme une écoute de la gamme', () => {
+    const j = [mk(T0, { module: 'accords', chordId: 'Am-x02210', scaleId: 'pentatonic-minor' })];
+    expect(scaleStep(j, 'pentatonic-minor', 'A')).toBe('listen');
+  });
+});

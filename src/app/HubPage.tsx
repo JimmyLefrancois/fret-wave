@@ -13,7 +13,7 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { hubPlan, micHeardBefore } from '../app/hubPlan';
+import { hubPlan, micHeardBefore, scaleStep } from '../app/hubPlan';
 import { Chip, Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
@@ -116,7 +116,8 @@ export function HubPage() {
     [journal, due, chordLearned, chordNext],
   );
   const nextMilestone = nextStreakMilestone(st.days);
-  const micHint = !micHeardBefore(journal) && (
+  const micHeard = micHeardBefore(journal);
+  const micHint = !micHeard && (
     <div className="home-mic">
       <p className="t-small">
         Première fois au micro ? Passe d’abord par l’accordeur : il demande l’accès au micro et montre ce qu’il entend.
@@ -214,6 +215,8 @@ export function HubPage() {
         </Panel>
       );
     }
+    // gamme : écouter tant qu'elle ne l'a jamais été, puis la jouer au micro (réécouter passe en second)
+    const step = scaleStep(journal, sel.scaleId, resolved.tonic);
     return (
       <Panel
         className="span-12 home-go"
@@ -223,11 +226,35 @@ export function HubPage() {
       >
         <h3 className="home-title">{resolved.title}</h3>
         <p className="t-small">{scaleLine}</p>
-        <div className="row home-actions">
-          <PixelButton variant="primary" onClick={() => navigate('scale')}>▶ Découvrir</PixelButton>
-          <PixelButton onClick={() => navigate('training')}>S’exercer au micro</PixelButton>
-        </div>
-        {micHint}
+        {step === 'listen' ? (
+          <div className="row home-actions">
+            <PixelButton variant="primary" onClick={() => navigate('scale')}>▶ Écouter</PixelButton>
+            <PixelButton onClick={() => navigate('training')}>Jouer au micro</PixelButton>
+          </div>
+        ) : micHeard ? (
+          <div className="row home-actions">
+            <PixelButton variant="primary" onClick={() => navigate('training')}>▶ Jouer au micro</PixelButton>
+            <PixelButton onClick={() => navigate('scale')}>Réécouter</PixelButton>
+          </div>
+        ) : (
+          <>
+            <ol className="home-steps">
+              <li>
+                <span className="home-step-n" aria-hidden="true">1</span>
+                <span className="home-step-text">Accorder la guitare (et autoriser le micro)</span>
+                <PixelButton onClick={() => navigate('tuner')}>Accordeur</PixelButton>
+              </li>
+              <li>
+                <span className="home-step-n" aria-hidden="true">2</span>
+                <span className="home-step-text">Jouer la gamme au micro</span>
+                <PixelButton variant="primary" onClick={() => navigate('training')}>▶ Jouer au micro</PixelButton>
+              </li>
+            </ol>
+            <p className="t-small home-again">
+              <button type="button" onClick={() => navigate('scale')}>Réécouter la gamme</button>
+            </p>
+          </>
+        )}
       </Panel>
     );
   })();

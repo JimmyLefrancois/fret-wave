@@ -43,6 +43,17 @@ export function hubPlan(
 }
 
 /**
+ * Étape suivante sur une gamme : tant qu'elle n'a été ni écoutée ni jouée, on la fait **écouter** ;
+ * dès la première écoute, l'étape suivante est de la **jouer au micro** (réécouter passe en second).
+ * Une gamme se reconnaît à son identifiant et sa tonique ; les tentatives d'accords n'y comptent pas.
+ */
+export function scaleStep(journal: readonly Attempt[], scaleId: string, tonic: string): 'listen' | 'play' {
+  return journal.some((a) => a.module !== 'accords' && !a.chordId && a.scaleId === scaleId && a.tonic === tonic)
+    ? 'play'
+    : 'listen';
+}
+
+/**
  * Le micro a-t-il déjà entendu l'élève ? Une tentative vérifiée suffit, sauf le QCM (sans instrument)
  * et le grattage auto-déclaré (une déclaration n'est jamais une preuve). Sans cela, l'accueil propose
  * de passer d'abord par l'accordeur, qui demande l'accès au micro.

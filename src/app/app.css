@@ -1647,7 +1647,24 @@ table.kv td:first-child { color: var(--muted); }
 .home-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: var(--gap-inside); }
 .home-step-n { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-family: var(--font-label); font-weight: 700; color: var(--magenta); border: var(--bw) solid var(--magenta); }
 .home-step-text { font-size: 16px; font-weight: 600; color: var(--text); }
+/* au téléphone, le bouton passe sous son étape : le texte garde toute la largeur */
+@media (max-width: 519px) {
+  .home-steps li { grid-template-columns: 28px minmax(0, 1fr); }
+  .home-steps li > .btn { grid-column: 2; justify-self: start; }
+}
 .home-next strong { color: var(--text); }
+/* « Réécouter » quand les étapes occupent le héros : un lien discret, pas un troisième bouton */
+.home-again button {
+  min-height: 38px;
+  padding: 0 2px;
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.home-again button:hover { color: var(--cyan); }
 /* invite micro (tant que le micro n'a jamais entendu l'élève) : sous les actions, en retrait, jamais primaire */
 .home-mic { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
 .home-mic p { flex: 1 1 32ch; text-wrap: pretty; }
