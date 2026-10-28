@@ -1720,25 +1720,34 @@ table.kv td:first-child { color: var(--muted); }
 .home-acc p { max-inline-size: 68ch; text-wrap: pretty; }
 .home-acc details > p + p { margin-block-start: var(--gap-inside); }
 
-.home-door { margin: 12px 0; }
-.door {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* bande « Parcours » : une ligne par module, sa progression réelle, et elle ouvre le module */
+.path-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gap-inside); }
+.path-row {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) minmax(6rem, 12rem);
+  align-items: center;
+  gap: var(--gap-inside) 16px;
   width: 100%;
-  padding: 12px 14px;
+  min-height: 56px;
+  padding: 8px 12px;
   text-align: left;
   font-family: var(--font-body);
+  font-size: 16px;
   color: var(--text);
-  background: var(--surface);
-  border: var(--bw) solid var(--line);
-  box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink);
+  background: var(--surface-hi);
+  border: var(--bw) solid var(--line-soft);
   cursor: pointer;
 }
-.door:hover, .door:focus-visible { border-color: var(--cyan); background: var(--surface-hi); }
-.door-kicker { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan); }
-.door-title { font-size: 18px; font-weight: 700; line-height: 1.2; text-wrap: balance; }
-.door-sub { font-size: 14.5px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+.path-row:hover { border-color: var(--cyan); }
+.path-name.t-label { font-size: var(--label-lg); color: var(--cyan); }
+.path-what { display: flex; flex-direction: column; gap: 2px; font-weight: 600; }
+.path-count { font-size: 15px; font-weight: 400; color: var(--muted); }
+/* barre pixel : cadre au trait, remplissage en aplat vert, pas de coin arrondi */
+.path-bar { display: block; height: 12px; background: var(--bg); border: var(--bw) solid var(--line); }
+.path-fill { display: block; height: 100%; background: var(--green); }
+@media (max-width: 519px) {
+  .path-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
 
 .home-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 0 8px; }
 .home-foot button {
@@ -2076,7 +2085,6 @@ table.kv td:first-child { color: var(--muted); }
   .shell { display: flex; flex-direction: column; gap: var(--gap-block); }
 }
 .panel,
-.home-door,
 .home-hero,
 .home-foot,
 .tabview,

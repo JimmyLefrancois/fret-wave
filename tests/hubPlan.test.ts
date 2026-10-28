@@ -180,6 +180,8 @@ describe('learnedScaleForms', () => {
 
   it('les accords et l’impro ne comptent pas comme formes de gamme', () => {
     const chords = [mk(T0, { module: 'accords', chordId: 'Em-022000' }), { ...mk(T0 + DAY, { module: 'accords', chordId: 'Em-022000' }), id: 'c' }];
+    expect(learnedScaleForms([mk(T0), { ...mk(T0 + DAY), id: 'b' }], 'pentatonic-minor', 'boxes')).toBe(1);
+    expect(learnedScaleForms([mk(T0), { ...mk(T0 + DAY), id: 'b' }], 'major', 'boxes')).toBe(0);
     const impro = [mk(T0, { kind: 'impro', level: 4 }), { ...mk(T0 + DAY, { kind: 'impro', level: 4 }), id: 'i' }];
     expect(learnedScaleForms([...chords, ...impro])).toBe(0);
   });

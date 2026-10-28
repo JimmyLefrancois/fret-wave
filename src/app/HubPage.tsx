@@ -123,6 +123,16 @@ function useMicPermission(): string | null {
   return state;
 }
 
+/** Barre de progression pixel : une proportion réelle, lisible sans le chiffre mais jamais sans lui. */
+function PathBar({ done, total }: { done: number; total: number }) {
+  const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+  return (
+    <span className="path-bar" aria-hidden="true">
+      <span className="path-fill" style={{ width: `${pct}%` }} />
+    </span>
+  );
+}
+
 /** L'action du héros : le seul bouton primaire de la page, et le raccourci Espace/Entrée qui la lance. */
 function HeroGo({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
@@ -156,6 +166,8 @@ export function HubPage() {
   );
   const nextMilestone = nextStreakMilestone(st.days);
   const scaleForms = useMemo(() => learnedScaleForms(journal), [journal]);
+  const scaleFormsHere = useMemo(() => learnedScaleForms(journal, sel.scaleId, resolved.selection.system), [journal, sel.scaleId, resolved.selection.system]);
+  const formTotal = resolved.positions.length;
   const micHeard = micHeardBefore(journal);
   const micHint = !micHeard && (
     <div className="home-mic">
@@ -368,29 +380,37 @@ export function HubPage() {
 
       {hero}
 
-      <div className="span-6 home-door">
-        <button type="button" className="door" onClick={() => navigate('gammes')}>
-          <span className="door-kicker">Gammes</span>
-          <span className="door-title">Une gamme, ses positions</span>
-          <span className="door-sub">
-            {scaleForms > 0
-              ? `${scaleForms} ${scaleForms > 1 ? 'formes apprises' : 'forme apprise'}`
-              : 'Aucune forme apprise pour l’instant'}
-          </span>
-        </button>
-      </div>
-
-      <div className="span-6 home-door">
-        <button type="button" className="door" onClick={() => navigate('accords')}>
-          <span className="door-kicker">Accords</span>
-          <span className="door-title">Les plaquer, les enchaîner</span>
-          <span className="door-sub">
-            {chordCount.done} / {chordCount.total} appris
-            {/* le héros montre déjà un accord : un second conseil (« Prochain ») le contredirait */}
-            {chordNext && resume.kind !== 'chord' ? ` · prochain : ${fmtChord(chordNext.chord, settings.chordNotation)}` : ''}
-          </span>
-        </button>
-      </div>
+      {/* parcours : les deux modules en une bande, chacun avec sa progression réelle (mêmes seuils que la maîtrise) */}
+      <Panel className="span-12 home-path" label="Parcours">
+        <ul className="path-list">
+          <li>
+            <button type="button" className="path-row" onClick={() => navigate('gammes')}>
+              <span className="path-name t-label">Gammes</span>
+              <span className="path-what">
+                {resolved.title}
+                <span className="path-count">
+                  {scaleFormsHere} forme{scaleFormsHere > 1 ? 's' : ''} apprise{scaleFormsHere > 1 ? 's' : ''} sur {formTotal}
+                  {scaleForms > scaleFormsHere ? ` · ${scaleForms} en tout` : ''}
+                </span>
+              </span>
+              <PathBar done={scaleFormsHere} total={formTotal} />
+            </button>
+          </li>
+          <li>
+            <button type="button" className="path-row" onClick={() => navigate('accords')}>
+              <span className="path-name t-label">Accords</span>
+              <span className="path-what">
+                {chordCount.done} accord{chordCount.done > 1 ? 's' : ''} appris sur {chordCount.total}
+                {/* le héros montre déjà un accord : un second conseil (« prochain ») le contredirait */}
+                {chordNext && resume.kind !== 'chord' && (
+                  <span className="path-count">prochain : {fmtChord(chordNext.chord, settings.chordNotation)}</span>
+                )}
+              </span>
+              <PathBar done={chordCount.done} total={chordCount.total} />
+            </button>
+          </li>
+        </ul>
+      </Panel>
 
       {/* le panneau n'existe qu'à partir de la première réussite : pas de case vide au premier écran */}
       {latest && (

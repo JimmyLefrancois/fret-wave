@@ -125,11 +125,13 @@ export function heroSteps(
 
 /**
  * Formes de gamme apprises ou maîtrisées (lecture seule, l'impro est une compétence à part) : l'état
- * réel que la porte « Gammes » affiche, avec les mêmes seuils que la maîtrise.
+ * réel que la bande « Parcours » affiche, avec les mêmes seuils que la maîtrise. Avec `scaleId` et
+ * `system`, seulement celles de cette gamme (une forme ne dépend pas de la tonique).
  */
-export function learnedScaleForms(journal: readonly Attempt[]): number {
+export function learnedScaleForms(journal: readonly Attempt[], scaleId?: string, system?: string): number {
+  const prefix = scaleId && system ? `gam:lecture:${scaleId}:${system}:` : 'gam:lecture:';
   return summarizeNodes(journal).filter(
-    (n) => n.nodeId.startsWith('gam:lecture:') && (n.state === 'learned' || n.state === 'mastered'),
+    (n) => n.nodeId.startsWith(prefix) && (n.state === 'learned' || n.state === 'mastered'),
   ).length;
 }
 
