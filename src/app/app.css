@@ -2053,3 +2053,40 @@ table.kv td:first-child { color: var(--muted); }
 .panel .t-body,
 .panel .t-label { margin-block: 0; }
 .home-foot { margin-block-start: 0; }
+
+/* --- écoute d'un accord plaqué (phase 5) ----------------------------------------------------------
+   Une ligne par corde : nom, barre de confiance, pourcentage. Une corde non entendue passe à l'orange
+   et le dit en mots (« pas entendue ») — un pourcentage seul laisserait croire à une nuance. --------- */
+.pluck-report { display: grid; gap: var(--gap-inside); margin-block-start: var(--gap-inside); }
+.pluck-strings { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gap-tight); }
+.pluck-strings li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 66px;
+  align-items: center;
+  gap: var(--gap-inside);
+  font-size: 12.5px;
+  color: var(--text);
+}
+.pluck-strings li.missing .pluck-string { color: var(--orange); }
+.pluck-bar {
+  display: block;
+  height: 8px;
+  background: var(--surface-hi);
+  border: 1px solid var(--line-soft);
+  overflow: hidden;
+}
+.pluck-bar i { display: block; height: 100%; background: var(--green); }
+.pluck-strings li.missing .pluck-bar i { background: var(--orange); }
+.pluck-pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  color: var(--dim);
+  white-space: nowrap;
+}
+/* Téléphone : la même ligne, resserrée. Deux lignes par corde (nom puis barre) donnaient 44 px par
+   corde et repoussaient le résultat sous le pli. */
+@media (max-width: 520px) {
+  .pluck-strings li { grid-template-columns: minmax(0, 1fr) 60px 66px; gap: 6px; }
+  .pluck-pct { font-size: 11px; }
+}

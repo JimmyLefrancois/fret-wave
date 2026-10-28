@@ -28,7 +28,7 @@ export const LESSON_STEPS: readonly { id: LessonStep; num: string; title: string
   { id: 'decouvrir', num: '01', title: 'Découvrir', short: 'Découvrir', goal: 'Nom, notes, couleur, écoute plaquée et arpégée' },
   { id: 'construire', num: '02', title: 'Construire', short: 'Construire', goal: 'Un doigt à la fois, dans l’ordre' },
   { id: 'verifier', num: '03', title: 'Vérifier', short: 'Vérifier', goal: 'Corde par corde, au micro ou à l’oreille' },
-  { id: 'plaquer', num: '04', title: 'Plaquer', short: 'Plaquer', goal: 'Le geste complet — déclaré, pas encore vérifié' },
+  { id: 'plaquer', num: '04', title: 'Plaquer', short: 'Plaquer', goal: 'Le geste complet — six cordes écoutées ensemble' },
   { id: 'fixer', num: '05', title: 'Fixer', short: 'Fixer', goal: 'Pose à froid, chronométrée, sans aide' },
   { id: 'enchainer', num: '06', title: 'Enchaîner', short: 'Enchaîner', goal: 'Changer d’accord, et mesurer le temps de changement' },
   { id: 'integrer', num: '07', title: 'Intégrer', short: 'Intégrer', goal: 'Une progression de quatre accords, en mesure' },

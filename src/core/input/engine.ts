@@ -15,6 +15,7 @@
  *  - le nœud worklet est relié à la sortie **par un gain à zéro** : il doit être dans le graphe pour
  *    être exécuté, mais le micro ne doit jamais s'entendre (larsen).
  */
+import { AudioRing } from './capture';
 import { NoteStabilizer, PitchTracker, type StableNote } from './pitch';
 import type { InputSettings } from './settings';
 import { rmsToDb } from './onset';
@@ -102,6 +103,11 @@ export class InputEngine {
   last: InputFrame | null = null;
   /** Échantillons de niveau pour la calibration (t en ms `performance.now`). */
   readonly levels: { t: number; db: number; peak: number }[] = [];
+  /**
+   * Les dernières secondes de son brut (phase 5) : c'est là que l'analyse polyphonique vient chercher
+   * un accord plaqué. Rempli bloc par bloc, jamais analysé en continu.
+   */
+  readonly audio: AudioRing;
   version = 0;
 
   private readonly ctx: AudioContext;
@@ -117,9 +123,12 @@ export class InputEngine {
   private windowSize = 2048;
   private anchorCtx = 0;
   private anchorPerf = 0;
+  /** Horloge du contexte (s) de la fin de la dernière fenêtre reçue : fin du tampon de capture. */
+  private captureEndCtx = 0;
 
   constructor(ctx: AudioContext) {
     this.ctx = ctx;
+    this.audio = new AudioRing(ctx.sampleRate, 1.5);
   }
 
   subscribe(fn: () => void): () => void {
@@ -256,6 +265,7 @@ export class InputEngine {
       minClarity: settings.clarityMin,
     });
     this.stabilizer.reset();
+    this.audio.reset();
 
     this.stream = stream;
     this.source = this.ctx.createMediaStreamSource(stream);
@@ -287,6 +297,11 @@ export class InputEngine {
     this.levels.push({ t: this.ctxToPerf(msg.t), db: rmsDb, peak: msg.peak });
     if (this.levels.length > 600) this.levels.splice(0, this.levels.length - 600); // 12 s environ
 
+    // seule la queue de la fenêtre est du son neuf (les fenêtres se recouvrent de windowSize − hop)
+    const fresh = msg.buf.length > HOP ? msg.buf.subarray(msg.buf.length - HOP) : msg.buf;
+    this.audio.push(fresh);
+    this.captureEndCtx = msg.t;
+
     const reading = this.tracker.detect(msg.buf);
     const step = this.stabilizer.push(reading);
     const stable = step.note;
@@ -306,6 +321,17 @@ export class InputEngine {
     };
     this.last = frame;
     this.emit();
+  }
+
+  /**
+   * Les `ms` dernières millisecondes de son, ou `null` si le tampon n'est pas encore rempli.
+   * `endedAt` dit à quel instant `performance.now()` finit cette fenêtre : c'est ce qui permet de
+   * rapporter une attaque mesurée dans la fenêtre à l'horloge de l'écran.
+   */
+  capture(ms: number): { samples: Float32Array; endedAt: number } | null {
+    const samples = this.audio.snapshot(ms);
+    if (!samples) return null;
+    return { samples, endedAt: this.ctxToPerf(this.captureEndCtx) };
   }
 
   /** Niveaux relevés depuis `ms` millisecondes (calibration du bruit de fond). */

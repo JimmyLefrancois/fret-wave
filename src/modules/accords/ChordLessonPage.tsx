@@ -9,7 +9,8 @@
  *  3. **Vérifier** — corde par corde, dans l'ordre grave → aiguë. C'est la seule étape qui **certifie**
  *     une forme : une corde étouffée, un doigt trop loin de la frette et une guitare désaccordée donnent
  *     trois messages différents ;
- *  4. **Plaquer** — le geste complet, **déclaré** (l'analyse polyphonique est en phase 5) ;
+ *  4. **Plaquer** — le geste complet, **écouté** depuis la phase 5 (analyse polyphonique : confiance
+ *     par corde), avec la déclaration conservée comme secours quand le micro est fermé ;
  *  5. **Fixer** (4b) — la pose à froid chronométrée. C'est elle qui manquait pour que « appris » tienne
  *     sa promesse : un accord su lentement n'est pas un accord su ;
  *  6. **Enchaîner** (4b) — deux accords, le temps de changement mesuré entre deux basses. La musique
@@ -31,6 +32,7 @@ import { AudioEngine } from '../../core/audio/engine';
 import { TabPlayer } from '../../core/audio/tabPlayer';
 import { describeInputError, type InputEngine, type InputFrame } from '../../core/input/engine';
 import { noteNameOf } from '../../core/input/match';
+import { analyzeChord, type ChordAnalysis } from '../../core/input/poly';
 import { useInputSettings } from '../../core/input/settings';
 import { readTuningRecord, tuningFreshness } from '../../core/input/tuningGuide';
 import { ensureInputEngine, inputEngineIfAny, windowFor } from '../../app/inputSession';
@@ -86,9 +88,13 @@ export function ChordLessonPage() {
   const [buildIndex, setBuildIndex] = useState(0);
   const [buildState, setBuildState] = useState(newCheck());
   const [check, setCheck] = useState(newCheck());
-  const [saved, setSaved] = useState<'arpeggio' | 'strum' | null>(null);
+  const [saved, setSaved] = useState<'arpeggio' | 'strum' | 'pluck' | null>(null);
   const [journal, setJournal] = useState<Attempt[]>(() => loadJournal(progressStore()));
   const [transport, setTransport] = useState<'stopped' | 'playing'>('stopped');
+  // --- étape 4 écoutée (phase 5)
+  const [pluckPhase, setPluckPhase] = useState<'idle' | 'armed' | 'listening'>('idle');
+  const [pluck, setPluck] = useState<ChordAnalysis | null>(null);
+  const pluckArm = useRef<{ timer: number } | null>(null);
   const [status, setStatus] = useState('');
 
   // --- étapes 5 à 7 (4b)
@@ -224,6 +230,10 @@ export function ChordLessonPage() {
     setSaved(null);
     setFeedback(null);
     setHeard(null);
+    setPluck(null);
+    setPluckPhase('idle');
+    if (pluckArm.current) window.clearTimeout(pluckArm.current.timer);
+    pluckArm.current = null;
     player.current?.stop();
     setTransport('stopped');
   }, [v.id]);
@@ -271,7 +281,13 @@ export function ChordLessonPage() {
     if (!engine) return;
     return engine.subscribe(() => {
       const f = engine.last;
-      if (f) onFrameRef.current(f);
+      if (!f) return;
+      if (pluckArm.current && f.onset) {
+        // la première attaque après l'armement, c'est le strum : on capte 380 ms plus tard
+        window.clearTimeout(pluckArm.current.timer);
+        pluckArm.current = { timer: window.setTimeout(() => finishPluckRef.current(), 380) };
+      }
+      onFrameRef.current(f);
     });
   }, [engine]);
 
@@ -370,6 +386,81 @@ export function ChordLessonPage() {
     if (advice) setFeedback({ ok: advice.code === 'dead' || advice.code === 'tune', text: advice.text });
     else if (verdict.kind === 'fill' && !isCold) setFeedback({ ok: true, text: `${naming.noteLabel} · ${target.fret === 0 ? 'à vide' : `case ${target.fret}`} — juste${Math.abs(verdict.cents) > 8 ? ` (${verdict.cents > 0 ? '+' : ''}${Math.round(verdict.cents)} ¢)` : ''}` });
   };
+
+  /**
+   * Écoute d'un accord plaqué (phase 5). On **arme**, on attend la vraie attaque (celle que l'entrée
+   * détecte), on laisse 380 ms de régime stable, puis on analyse la fenêtre. Un délai de secours de
+   * 4 s évite d'attendre indéfiniment si l'élève ne joue pas : l'analyse dira alors « rien entendu »,
+   * ce qui est une réponse honnête.
+   */
+  function finishPluck(): void {
+    if (pluckArm.current) window.clearTimeout(pluckArm.current.timer);
+    pluckArm.current = null;
+    if (!engine) return;
+    setPluckPhase('listening');
+    window.setTimeout(() => {
+      const cap = engine.capture(520);
+      setPluckPhase('idle');
+      if (!cap) {
+        setFeedback({ ok: false, text: 'Je n’ai pas encore assez de son (150 ms mini). Réessaie et plaque dès que j’écoute.' });
+        return;
+      }
+      const targets = checks.map((c) => ({ midi: c.midi, string: c.string }));
+      const a = analyzeChord(cap.samples, targets, { sampleRate: engine.sampleRate, a4: input.a4 });
+      setPluck(a);
+      const missed = a.notes.filter((n) => n.confidence < 0.45).map((n) => n.string);
+      writeAttempt({
+        kind: 'pluck',
+        correct: a.heard,
+        total: a.notes.length,
+        missedStrings: missed,
+        seconds: 0,
+        confidence: a.confidence,
+      });
+      setSaved('pluck');
+    }, 380);
+  }
+  const finishPluckRef = useRef(finishPluck);
+  finishPluckRef.current = finishPluck;
+
+  function startPluck(): void {
+    if (!engine || engine.state !== 'listening') {
+      setFeedback({ ok: false, text: 'Ouvre le micro : sans lui, je ne peux pas entendre l’accord.' });
+      return;
+    }
+    setPluck(null);
+    setFeedback(null);
+    setPluckPhase('armed');
+    const timer = window.setTimeout(() => finishPluckRef.current(), 4000);
+    pluckArm.current = { timer };
+  }
+
+  /**
+   * La phrase de diagnostic d'un accord raté : **quelle** corde n'a pas sonné, et **quelle** note a été
+   * entendue à la place. C'est le message qu'un professeur donnerait, et il n'accuse jamais un accord
+   * entier quand une seule corde est en cause.
+   */
+  function pluckAdvice(a: ChordAnalysis): string {
+    const missing = a.notes.filter((n) => n.confidence < 0.45);
+    if (missing.length === 0) return '';
+    const parts: string[] = [];
+    for (const m of missing) {
+      const c = checks.find((x) => x.string === m.string);
+      const label = c ? fmtStringLabel(c.stringName, c.string === tuning.strings.length - 1, settings.noteNotation) : `corde ${m.string + 1}`;
+      // une hauteur forte à un demi-ton de la note attendue : c'est un doigt mal placé, pas une corde muette
+      const fautive = a.extraNotes.find((e) => Math.abs(e.midi - m.midi) <= 2);
+      if (fautive) {
+        parts.push(`${fmtNote(noteNameOf(fautive.midi), settings.noteNotation)} à la place de ${c ? fmtNote(c.note, settings.noteNotation) : 'la note attendue'} (corde de ${label})`);
+      } else {
+        parts.push(`la corde de ${label} n’a pas sonné`);
+      }
+    }
+    const tete = missing.length === 1 ? 'Une corde manque : ' : 'Des cordes manquent : ';
+    const fin = a.extraNotes.length === 0 && missing.length > 0 && !a.extraNotes.find(() => true)
+      ? ' Vérifie qu’aucun doigt voisin ne l’étouffe.'
+      : '';
+    return `${tete}${parts.join(' · ')}.${fin}`;
+  }
 
   const onFrameRef = useRef(handleFrame);
   onFrameRef.current = handleFrame;
@@ -788,29 +879,73 @@ export function ChordLessonPage() {
         <>
           <Panel className="span-7" accent="cyan" label="Le geste complet">
             <p className="t-body">
-              Un accord plaqué, c’est six cordes qui sonnent ensemble. L’app ne sait pas encore l’écouter :
-              l’app ne sait pas encore écouter plusieurs cordes à la fois. Ici, tu déclares — et la tentative
-              garde la distinction.
+              Un accord plaqué, c’est six cordes qui sonnent ensemble.{' '}
+              {micOn
+                ? 'L’app les écoute et donne une confiance par corde : elle dit laquelle n’a pas sonné.'
+                : 'Ouvre le micro et elle t’entend vraiment ; sans micro, il ne reste que ta parole.'}
             </p>
             <div className="row">
               <PixelButton variant="primary" onClick={() => void play(scoreStrum)}>▶ Écouter plaqué</PixelButton>
               <PixelButton onClick={() => void play(scoreBoth)}>▶ Écouter arpégé</PixelButton>
             </div>
             <div className="row">
+              {micOn ? (
+                <PixelButton
+                  variant="primary"
+                  onClick={startPluck}
+                  disabled={pluckPhase !== 'idle'}
+                >
+                  {pluckPhase === 'armed' ? '● À toi — plaque l’accord' : pluckPhase === 'listening' ? '● J’écoute…' : '▶ Écouter mon accord'}
+                </PixelButton>
+              ) : (
+                <PixelButton onClick={() => setMicOn(true)}>Ouvrir le micro</PixelButton>
+              )}
               <PixelButton
+                variant="quiet"
                 onClick={() => {
                   writeAttempt({ kind: 'strum', correct: null, total: null, seconds: 0 });
                   setSaved('strum');
-                  setFeedback({ ok: true, text: 'Plaqué déclaré. Il ne rentre pas dans « appris » tant qu’il n’est pas entendu.' });
+                  setFeedback({ ok: true, text: 'Plaqué déclaré : non vérifié, donc il ne compte pas comme entendu.' });
                 }}
               >
-                Je l’ai plaqué proprement
-              </PixelButton>
-              <PixelButton variant="quiet" onClick={() => setFeedback({ ok: false, text: 'Pas de validation déclarée : c’est la bonne réponse quand ça frise. Reviens quand ça sonne.' })}>
-                Pas encore
+                Je le déclare, sans micro
               </PixelButton>
               <PixelButton variant="ghost" onClick={() => setStep('fixer')}>Fixer →</PixelButton>
             </div>
+            {pluck && (
+              <div className="pluck-report">
+                <p className={`t-small ${pluck.verdict === 'ok' ? 'ok' : 'ko'}`}>
+                  {pluck.verdict === 'ok'
+                    ? `Entendu : ${pluck.heard} cordes sur ${pluck.notes.length}, confiance ${Math.round(pluck.confidence * 100)} %. C’est écouté, pas déclaré.`
+                    : pluck.verdict === 'silent'
+                      ? 'Je n’ai rien entendu : plaque plus fort, ou plus près du micro.'
+                      : `${pluck.heard} corde${pluck.heard > 1 ? 's' : ''} sur ${pluck.notes.length} entendue${pluck.heard > 1 ? 's' : ''}, confiance ${Math.round(pluck.confidence * 100)} %.`}
+                </p>
+                {pluck.verdict !== 'silent' && (
+                  <ul className="pluck-strings">
+                    {pluck.notes.map((n) => {
+                      const c = checks.find((x) => x.string === n.string);
+                      const heard = n.confidence >= 0.45;
+                      return (
+                        <li key={n.string} className={heard ? 'heard' : 'missing'}>
+                          <span className="pluck-string">
+                            {c ? fmtStringLabel(c.stringName, c.string === tuning.strings.length - 1, settings.noteNotation) : `corde ${n.string + 1}`}
+                            {c && <> · {fmtNote(c.note, settings.noteNotation)}</>}
+                          </span>
+                          <span className="pluck-bar" aria-hidden="true">
+                            <i style={{ width: `${Math.round(n.confidence * 100)}%` }} />
+                          </span>
+                          <span className="pluck-pct">{heard ? `${Math.round(n.confidence * 100)} %` : 'absente'}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                {pluck.verdict !== 'ok' && pluck.verdict !== 'silent' && (
+                  <p className="t-small t-dim">{pluckAdvice(pluck)}</p>
+                )}
+              </div>
+            )}
             {feedback && <p className={`t-small ${feedback.ok ? 'ok' : 'ko'}`}>{feedback.text}</p>}
             {nodeStats && (
               <p className="t-small t-dim">

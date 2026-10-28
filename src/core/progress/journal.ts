@@ -24,9 +24,12 @@ export const ATTEMPT_CAP = 2000;
  *
  * Phase 4b : `cold` (pose à froid chronométrée, étape Fixer), `transition` (enchaînement mesuré, étape
  * Enchaîner) et `qcm` (reconnaissance sans instrument, statut **savoir**, jamais une preuve de geste).
+ *
+ * Phase 5 : `pluck` — un accord **plaqué écouté** (analyse polyphonique). C'est la première tentative du
+ * module Accords qui porte un vrai verdict sur six cordes à la fois ; `strum` reste la déclaration.
  */
-export type AttemptKind = 'listen' | 'holes' | 'recall' | 'arpeggio' | 'strum' | 'cold' | 'transition' | 'qcm';
-export const ATTEMPT_KINDS: readonly AttemptKind[] = ['listen', 'holes', 'recall', 'arpeggio', 'strum', 'cold', 'transition', 'qcm'];
+export type AttemptKind = 'listen' | 'holes' | 'recall' | 'arpeggio' | 'strum' | 'cold' | 'transition' | 'qcm' | 'pluck';
+export const ATTEMPT_KINDS: readonly AttemptKind[] = ['listen', 'holes', 'recall', 'arpeggio', 'strum', 'cold', 'transition', 'qcm', 'pluck'];
 
 /** Module d'appartenance d'une tentative. Absent = module Gammes (tentatives des phases 2-3). */
 export type AttemptModule = 'gammes' | 'accords';
@@ -64,6 +67,11 @@ export interface Attempt {
   missedStrings: number[];
   /** La grille rythmique a-t-elle été tenue (série finie dans le temps du métronome) ? */
   tempoOk: boolean;
+  /**
+   * Confiance de l'écoute polyphonique (0-1) pour une tentative `pluck`. Absent pour tout le reste :
+   * une déclaration n'a pas de confiance, elle a une parole.
+   */
+  confidence?: number;
   /** Module d'appartenance (absent = gammes, compatibilité avec les tentatives des phases 2-3). */
   module?: AttemptModule;
   /**
@@ -216,6 +224,9 @@ export function normalizeAttempt(v: unknown): Attempt | null {
       ? { limitSec: Math.round(a.limitSec) } : {}),
     ...(typeof a.changeMs === 'number' && Number.isFinite(a.changeMs) && a.changeMs > 0 && a.changeMs <= 60_000
       ? { changeMs: Math.round(a.changeMs) } : {}),
+    // confiance d'une écoute polyphonique : hors de 0-1, ce n'est pas une mesure — on la préfère absente
+    ...(typeof a.confidence === 'number' && Number.isFinite(a.confidence) && a.confidence >= 0 && a.confidence <= 1
+      ? { confidence: Math.round(a.confidence * 1000) / 1000 } : {}),
   };
 }
 
