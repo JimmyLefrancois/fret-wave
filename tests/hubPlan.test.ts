@@ -116,7 +116,7 @@ describe('reviewSummary', () => {
 });
 
 describe('dailyActivity', () => {
-  it('compte écoutes et exercices vérifiés, jamais un grattage déclaré', () => {
+  it('ne compte que les exercices vérifiés : ni une écoute, ni un grattage déclaré', () => {
     const j = [
       mk(T0, { kind: 'listen', correct: null, total: null }),
       mk(T0 + 1000),
@@ -124,7 +124,8 @@ describe('dailyActivity', () => {
     ];
     const day = summarizeDay(j, new Date(T0 + 3000));
     expect(day.selfAssessed).toBe(1);
-    expect(dailyActivity(day)).toBe(2);
+    expect(day.listens).toBe(1);
+    expect(dailyActivity(day)).toBe(1);
   });
 });
 
@@ -189,7 +190,7 @@ describe('learnedScaleForms', () => {
 
 describe('dayGoalText', () => {
   it('compte tant que l’objectif n’est pas atteint', () => {
-    expect(dayGoalText(0, 3)).toEqual({ text: '0 / 3 écoutes ou exercices aujourd’hui', reached: false });
+    expect(dayGoalText(0, 3)).toEqual({ text: '0 / 3 exercices aujourd’hui', reached: false });
     expect(dayGoalText(2, 3).reached).toBe(false);
   });
 

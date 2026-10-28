@@ -26,7 +26,7 @@ import {
   type Attempt,
 } from '../core/progress';
 
-/** Objectif proposé : 3 activités (une écoute ou un exercice), pas 3 « clics ». */
+/** Objectif proposé : 3 exercices vérifiés par jour (une écoute ne compte pas), pas 3 « clics ». */
 export const DAILY_GOAL = 3;
 
 /** Date relative courte : « il y a 12 min », « hier », « 3 j », puis la date. */
@@ -443,7 +443,10 @@ export function HubPage() {
               Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : un passage n’est réussi qu’au-dessus
               de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
             </p>
-            <p className="t-small t-dim">{DUE_CAP} révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
+            <p className="t-small t-dim">
+            L’objectif du jour compte les exercices vérifiés : une écoute n’y entre pas, un grattage déclaré non plus.
+          </p>
+          <p className="t-small t-dim">{DUE_CAP} révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
           </details>
         </Panel>
       )}

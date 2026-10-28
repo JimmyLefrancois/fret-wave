@@ -43,11 +43,12 @@ export function hubPlan(
 }
 
 /**
- * Activités du jour pour la jauge : écoutes et exercices vérifiés. Un grattage déclaré « sans micro »
- * n'y entre pas : une déclaration n'est jamais une preuve.
+ * Activités du jour pour la jauge : les exercices vérifiés, et eux seuls (décision de l'auteur). Une
+ * écoute ne compte pas : l'app a joué, pas l'élève. Un grattage déclaré « sans micro » non plus :
+ * une déclaration n'est jamais une preuve.
  */
-export function dailyActivity(day: Pick<DaySummary, 'listens' | 'exercises'>): number {
-  return day.listens + day.exercises;
+export function dailyActivity(day: Pick<DaySummary, 'exercises'>): number {
+  return day.exercises;
 }
 
 const LEVEL_NAME: Readonly<Record<AttemptLevel, string>> = {
@@ -143,5 +144,5 @@ export function dayGoalText(activity: number, goal: number): { text: string; rea
   if (activity >= goal) {
     return { text: `Objectif du jour atteint (${activity})`, reached: true };
   }
-  return { text: `${activity} / ${goal} écoutes ou exercices aujourd’hui`, reached: false };
+  return { text: `${activity} / ${goal} exercices aujourd’hui`, reached: false };
 }
