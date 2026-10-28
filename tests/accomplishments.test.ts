@@ -38,14 +38,14 @@ describe('accomplishments', () => {
     const [a] = accomplishments([mk(T0, 3, 3)]);
     expect(a?.kind).toBe('perfect');
     expect(a?.title).toBe('Sans faute');
-    expect(a?.detail).toContain('100 % au premier essai');
+    expect(a?.detail).toContain('100 % au premier essai');
     expect(a?.subject).toContain('La mineure pentatonique');
     expect(a?.subject).toContain('case');
   });
 
   it('80 % est une réussite, 79 % n’en est pas une', () => {
     const pass = accomplishments([mk(T0, 4, 5)]).find((e) => e.kind === 'pass');
-    expect(pass?.detail).toContain('80 %');
+    expect(pass?.detail).toContain('80 %');
     const none = accomplishments([mk(T0, 79, 100)]).filter((e) => e.kind === 'pass' || e.kind === 'perfect');
     expect(none).toHaveLength(0);
   });

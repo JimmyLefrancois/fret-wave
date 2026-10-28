@@ -85,7 +85,7 @@ function AccRow({ f, now }: { f: Accomplishment; now: number }) {
           type="button"
           className="acc-open"
           onClick={() => openAttempt(f.attempt!)}
-          aria-label={`Rejouer : ${f.subject}`}
+          aria-label={`Rejouer : ${f.subject}`}
           title="Rejouer cette forme"
         >
           ▶
@@ -119,7 +119,7 @@ export function HubPage() {
   const micHint = !micHeardBefore(journal) && (
     <div className="home-mic">
       <p className="t-small">
-        Première fois au micro ? Passe d’abord par l’accordeur : il demande l’accès au micro et montre ce qu’il entend.
+        Première fois au micro ? Passe d’abord par l’accordeur : il demande l’accès au micro et montre ce qu’il entend.
       </p>
       <PixelButton onClick={() => navigate('tuner')}>Accordeur</PixelButton>
     </div>
@@ -162,7 +162,7 @@ export function HubPage() {
           </div>
           {resume.kind !== 'start' && !sameAsReview && (
             <div className="home-resume">
-              <span className="t-small">Dernière activité : <strong>{resumeTitle}</strong></span>
+              <span className="t-small">Dernière activité : <strong>{resumeTitle}</strong></span>
               <PixelButton onClick={resumeGo}>Reprendre</PixelButton>
             </div>
           )}
@@ -180,7 +180,7 @@ export function HubPage() {
         >
           <h3 className="home-title">{chordName(resume.voicingId)}</h3>
           <p className="t-small">
-            Accord{palier ? ` · étape ${palier.id} « ${palier.title} »` : ''}
+            Accord{palier ? ` · étape ${palier.id} « ${palier.title} »` : ''}
           </p>
           <div className="row home-actions">
             <PixelButton variant="primary" onClick={() => openChord(resume.voicingId)}>▶ Ouvrir la leçon</PixelButton>
@@ -258,7 +258,7 @@ export function HubPage() {
         <button type="button" className="door" onClick={() => navigate('gammes')}>
           <span className="door-kicker">Apprendre</span>
           <span className="door-title">Une gamme, ses positions</span>
-          <span className="door-sub">Choisis la gamme, puis la position : elle s’ouvre en tablature.</span>
+          <span className="door-sub">Choisis la gamme, puis la position : elle s’ouvre en tablature.</span>
         </button>
       </div>
 
@@ -269,7 +269,7 @@ export function HubPage() {
           <span className="door-sub">
             {chordCount.done} / {chordCount.total} appris · doigt par doigt, puis corde par corde au micro.
             {/* le héros montre déjà un accord : un second conseil (« Prochain ») le contredirait */}
-            {chordNext && resume.kind !== 'chord' ? ` Prochain : ${fmtChord(chordNext.chord, settings.chordNotation)}.` : ''}
+            {chordNext && resume.kind !== 'chord' ? ` Prochain : ${fmtChord(chordNext.chord, settings.chordNotation)}.` : ''}
           </span>
         </button>
       </div>
@@ -280,11 +280,11 @@ export function HubPage() {
             <AccRow f={latest} now={now.getTime()} />
           </ul>
         ) : (
-          <p className="t-small">Rien encore : ta première série réussie apparaîtra ici.</p>
+          <p className="t-small">Rien encore : ta première série réussie apparaîtra ici.</p>
         )}
         {nextMilestone !== null && (
           <p className="t-small home-next">
-            Prochain palier : <strong>{nextMilestone} jours d’affilée</strong>
+            Prochain palier : <strong>{nextMilestone} jours d’affilée</strong>
             {st.days > 0 ? ` (encore ${nextMilestone - st.days})` : ''}
           </p>
         )}
@@ -297,12 +297,12 @@ export function HubPage() {
           </details>
         )}
         <details className="more-opts">
-          <summary>Comment ça compte ?</summary>
+          <summary>Comment ça compte ?</summary>
           <p className="t-small t-dim">
-            Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : une série ne compte qu’au-dessus
-            de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
+            Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : une série ne compte qu’au-dessus
+            de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
           </p>
-          <p className="t-small t-dim">8 révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
+          <p className="t-small t-dim">8 révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
         </details>
       </Panel>
 

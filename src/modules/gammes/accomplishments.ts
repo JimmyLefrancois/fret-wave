@@ -196,7 +196,7 @@ export function accomplishments(attempts: readonly Attempt[], opts: Accomplishme
       title: ACCOMPLISHMENT_LABEL[perfect ? 'perfect' : 'pass'],
       subject: chord ? chordSubject(a, notation) : scaleSubject(a, notation),
       detail: [
-        `${Math.round(score * 100)} % au premier essai`,
+        `${Math.round(score * 100)} % au premier essai`,
         levelLabel(a),
         a.tempoOk && (a.kind === 'holes' || a.kind === 'recall') ? 'grille tenue' : null,
         xp > 0 ? `+${xp} XP` : null,
