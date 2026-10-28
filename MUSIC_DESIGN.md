@@ -830,6 +830,6 @@ Branche `ui/simplification`, décisions D52 à D62. Aucune règle musicale n'a c
 | **R4** | **Fluidité chronométrée sur une position** — comme la pose à froid des accords (8 s → 5 s → 3 s) | moyen / faible | avant 5 | Le barème existe pour les accords (D45) ; rien d'équivalent pour une gamme tenue d'affilée. |
 | **R5** | **Transposer pour prouver** — même forme deux cases plus haut, une fois la position tenue | moyen / faible | avant 5 | C'est le test qui distingue « j'ai mémorisé un dessin » de « je connais la gamme ». Le journal conserve déjà les toniques travaillées par forme (`NodeStats.tonics`) : la cible se calcule. |
 
-« avant 5 » = travail d'interface à faire entre la 4b et la phase 5 (§9), non planifié comme une phase à part.
+« avant 5 » = travail d'interface à faire entre la 4b et la phase 5 (§9) — **fait** : la refonte d'interface est terminée et mergée sur `master` (D54-D66 de `PROJECT.md`), il ne reste rien d'interface en attente avant la phase 5.
 
 **Ce que je ne recommande pas** : ajouter un troisième module (oreille, rythme) avant que gammes et accords se rejoignent. La refonte a montré que le problème n'était pas le nombre d'écrans mais le nombre de décisions à prendre par écran — un module de plus, même bien fait, le recréerait.
