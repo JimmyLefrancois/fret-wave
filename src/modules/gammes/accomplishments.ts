@@ -5,8 +5,9 @@
  * est un **franchissement** mesuré, avec sa date et le détail qui la rend vérifiable :
  *  - `perfect`  : série sans une erreur ni une case révélée (100 % au premier essai) ;
  *  - `pass`     : série réussie à ≥ 80 % (le seuil de `PASS`, le même que la maîtrise) ;
- *  - `learned`  : la forme devient « apprise » au sens de la maîtrise (2 réussites sur 2 jours) ;
- *  - `mastered` : elle devient « maîtrisée » (révision tenue à 16 jours) ;
+ *  - `learned`  : la forme devient « apprise » au sens de la maîtrise (2 réussites sur 2 jours, dont une
+ *                 sur la position entière, de mémoire ou au micro) ;
+ *  - `mastered` : elle devient « maîtrisée » (révision tenue à 16 jours ; la vitesse est dite vérifiée ou non) ;
  *  - `chord`    : un accord passe à « appris » (3 vérifications propres sur 2 jours, D45) ;
  *  - `streak`   : 3, 7, 14 ou 30 jours d'affilée.
  *
@@ -135,10 +136,10 @@ function masteryTransitions(attempts: readonly Attempt[], notation: NoteNotation
           title: ACCOMPLISHMENT_LABEL[chordNode ? 'chord' : reachedMastered ? 'mastered' : 'learned'],
           subject: chordNode ? chordSubject(a, chords) : scaleSubject(a, notation),
           detail: reachedMastered
-            ? 'révision tenue à 16 jours'
+            ? `révision tenue à 16 jours · vitesse ${stats.speedVerified ? 'vérifiée au micro' : 'non vérifiée'}`
             : chordNode
               ? '3 vérifications propres sur 2 jours'
-              : '2 réussites sur 2 jours',
+              : '2 réussites sur 2 jours · position entière de mémoire ou au micro',
           accent: reachedMastered || chordNode ? 'green' : 'violet',
           attempt: a,
         });

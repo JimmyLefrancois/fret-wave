@@ -3,7 +3,7 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { dailyActivity, dayGoalText, heroSteps, hubPlan, learnedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
+import { dailyActivity, dayGoalText, heroSteps, hubPlan, learnedScaleForms, regressedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
 import { summarizeDay, type Attempt, type Card } from '../src/core/progress';
 
@@ -173,18 +173,33 @@ describe('étapes du premier pas', () => {
 
 describe('learnedScaleForms', () => {
   const DAY = 86_400_000;
-  it('une forme compte une fois apprise (2 réussites sur 2 jours), pas avant', () => {
+  it('une forme compte une fois apprise (2 réussites sur 2 jours, dont une forte), pas avant', () => {
+    // réussite forte : la position entière, de mémoire
+    const strong = (ts: number, id: string) => ({ ...mk(ts, { level: 3, kind: 'recall', strings: 6 }), id });
     expect(learnedScaleForms([])).toBe(0);
     expect(learnedScaleForms([mk(T0)])).toBe(0);
-    expect(learnedScaleForms([mk(T0), { ...mk(T0 + DAY), id: 'b' }])).toBe(1);
+    // deux réussites sur deux jours, mais sur un segment de trous : plus assez depuis le lot « mémoire et vitesse »
+    expect(learnedScaleForms([mk(T0), { ...mk(T0 + DAY), id: 'b' }])).toBe(0);
+    expect(learnedScaleForms([mk(T0), strong(T0 + DAY, 'b')])).toBe(1);
   });
 
   it('les accords et l’impro ne comptent pas comme formes de gamme', () => {
     const chords = [mk(T0, { module: 'accords', chordId: 'Em-022000' }), { ...mk(T0 + DAY, { module: 'accords', chordId: 'Em-022000' }), id: 'c' }];
-    expect(learnedScaleForms([mk(T0), { ...mk(T0 + DAY), id: 'b' }], 'pentatonic-minor', 'boxes')).toBe(1);
-    expect(learnedScaleForms([mk(T0), { ...mk(T0 + DAY), id: 'b' }], 'major', 'boxes')).toBe(0);
+    const forms = [mk(T0), { ...mk(T0 + DAY, { level: 3, kind: 'recall', strings: 6 }), id: 'b' }];
+    expect(learnedScaleForms(forms, 'pentatonic-minor', 'boxes')).toBe(1);
+    expect(learnedScaleForms(forms, 'major', 'boxes')).toBe(0);
     const impro = [mk(T0, { kind: 'impro', level: 4 }), { ...mk(T0 + DAY, { kind: 'impro', level: 4 }), id: 'i' }];
     expect(learnedScaleForms([...chords, ...impro])).toBe(0);
+  });
+});
+
+describe('regressedScaleForms', () => {
+  const DAY = 86_400_000;
+  it('compte les formes apprises selon les anciennes règles et plus aujourd’hui', () => {
+    const weak = [mk(T0), { ...mk(T0 + DAY), id: 'b' }];
+    expect(regressedScaleForms(weak)).toBe(1);
+    expect(regressedScaleForms([mk(T0), { ...mk(T0 + DAY, { level: 3, kind: 'recall' }), id: 'b' }])).toBe(0);
+    expect(regressedScaleForms([])).toBe(0);
   });
 });
 

@@ -196,11 +196,24 @@ describe('grille rythmique (métronome sans notes)', () => {
     expect(g.score.measures.flatMap((m) => m.events).every((e) => e.kind === 'rest' && e.notes.length === 0)).toBe(true);
   });
 
-  it('le tempo reste dans 30-120 BPM et la durée suit', () => {
+  it('le tempo reste dans 30-200 BPM et la durée suit', () => {
     expect(tempoGrid(4, 10).score.tempo).toBe(30);
-    expect(tempoGrid(4, 500).score.tempo).toBe(120);
+    expect(tempoGrid(4, 500).score.tempo).toBe(200);
     expect(tempoGrid(4, 50).beats).toBe(4);
     expect(tempoGrid(4, 50).seconds).toBeCloseTo(4.8, 6);
+    expect(tempoGrid(4, 50).npm).toBe(50);
+  });
+
+  it('en croches : deux trous par temps, débit doublé, durée moitié', () => {
+    // 12 notes d'une box : 12 temps en noires, 6 → 8 temps (mesures entières) en croches
+    const q = tempoGrid(12, 80, 1);
+    const e = tempoGrid(12, 80, 2);
+    expect(q.beats).toBe(12);
+    expect(e.beats).toBe(8);
+    expect(e.perBeat).toBe(2);
+    expect(e.npm).toBe(160); // 80 BPM en croches = 160 notes par minute
+    expect(e.seconds).toBeCloseTo(6, 6);
+    expect(validateScore(e.score)).toEqual([]);
   });
 
   it('dans la grille avec une tolérance d’un dixième de temps', () => {

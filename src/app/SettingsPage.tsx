@@ -11,6 +11,7 @@ import { Panel, PixelButton, Segmented, Switch } from './ui';
 import { Mixer, InstrumentPicker } from './AudioControls';
 import { useInputSettings } from '../core/input/settings';
 import { LOOK_SECONDS, type LookSeconds } from '../modules/gammes/coldReview';
+import { SPEED_TARGET_MAX, SPEED_TARGET_MIN } from '../core/progress/mastery';
 
 import { PRACTICE_KEY } from '../core/progress/practiceLog';
 import {
@@ -165,11 +166,26 @@ export function SettingsPage() {
               <span className="tempo-val">♩ {settings.trainingTempo}</span>
               <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.min(MAX_TEMPO, settings.trainingTempo + 5) })} aria-label="Plus vite">+</button>
             </div>
-            <span className="t-small t-dim">un temps par trou</span>
+            <span className="t-small t-dim">{settings.gridSubdivision === 2 ? 'deux trous par temps (croches)' : 'un temps par trou'}</span>
           </div>
           <p className="t-small t-dim">
             Le métronome ne joue aucune note. Au pavé, ce tempo mesure la rapidité à écrire une case ; avec le micro
             (bouton « Ouvrir le micro » de l’écran d’exercice), il mesure le moment où la note est jouée, latence retranchée.
+          </p>
+        </div>
+        <div className="field">
+          <span className="t-label">Tempo cible de la vitesse</span>
+          <div className="tempo-row">
+            <div className="tempo">
+              <button type="button" className="tempo-btn" onClick={() => setSettings({ speedTargetBpm: Math.max(SPEED_TARGET_MIN, settings.speedTargetBpm - 4) })} aria-label="Tempo cible plus lent">−</button>
+              <span className="tempo-val">♪ {settings.speedTargetBpm}</span>
+              <button type="button" className="tempo-btn" onClick={() => setSettings({ speedTargetBpm: Math.min(SPEED_TARGET_MAX, settings.speedTargetBpm + 4) })} aria-label="Tempo cible plus rapide">+</button>
+            </div>
+            <span className="t-small t-dim">BPM en croches · {settings.speedTargetBpm * 2} notes/min</span>
+          </div>
+          <p className="t-small t-dim">
+            Une forme « maîtrisée » dit sa vitesse vérifiée quand tu l’as jouée de mémoire, au micro, propre (≥ 95 %), à ce
+            tempo : grille N3 en croches tenue, ou séquence validée. 80 par défaut : le tempo où une gamme devient un geste.
           </p>
         </div>
         <div className="field">

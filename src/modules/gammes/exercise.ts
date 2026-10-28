@@ -193,18 +193,32 @@ export interface TempoGrid {
   beats: number;
   /** Durée de la grille en secondes au tempo demandé. */
   seconds: number;
+  /** Notes par temps : 1 (noires) ou 2 (croches). */
+  perBeat: GridSubdivision;
+  /** Débit nominal, en notes par minute (tempo × notes par temps) — c'est ce que juge la vitesse. */
+  npm: number;
 }
 
+/** Notes par clic de la grille : une par temps (noires) ou deux (croches). */
+export type GridSubdivision = 1 | 2;
+/** Bornes du tempo de la grille (BPM). 200 en noires = 200 notes/min ; en croches, 400. */
+export const GRID_TEMPO_MIN = 30;
+export const GRID_TEMPO_MAX = 200;
+
 /**
- * Grille de travail : **un temps par trou**, en mesures entières de 4/4. Le métronome de la 1c joue
+ * Grille de travail : **un temps par trou** (ou deux trous par temps en croches), en mesures entières de 4/4.
+ * Les croches existent pour la vitesse : à 160 notes/min en noires, chaque note tomberait sur un clic,
+ * que le masque du micro (± 90 ms, `nearClick`) effacerait ; en croches à 80 BPM, une note sur deux
+ * tombe entre deux clics et le masque ne couvre que 24 % du temps. Le métronome de la 1c joue
  * les clics (aucune note : le score ne contient que des silences), donc l'élève entend la grille sans
  * que l'app lui donne les réponses.
  *
  * Limite assumée : tant que la validation passe par le pavé, ce temps mesure la **rapidité à écrire**
  * une case, pas à la jouer. La phase 3 (entrée audio) rendra la mesure honnête.
  */
-export function tempoGrid(holes: number, tempo: number): TempoGrid {
-  const beats = Math.max(4, Math.ceil(Math.max(1, holes) / 4) * 4);
+export function tempoGrid(holes: number, tempo: number, perBeat: GridSubdivision = 1): TempoGrid {
+  // en croches, deux trous par temps : la grille est deux fois plus courte au même tempo
+  const beats = Math.max(4, Math.ceil(Math.max(1, holes) / perBeat / 4) * 4);
   // `startTick` est RELATIF à la mesure (invariant du modèle) : chaque mesure porte 4 silences de noire
   const measures = Array.from({ length: beats / 4 }, () => ({
     events: [0, 1, 2, 3].map((b) => ({ startTick: b * PPQ, durTick: PPQ, kind: 'rest' as const, notes: [] })),
@@ -215,11 +229,11 @@ export function tempoGrid(holes: number, tempo: number): TempoGrid {
     tuning: TUNINGS.standard!,
     stringCount: 6,
     ppq: PPQ,
-    tempo: Math.max(30, Math.min(120, Math.round(tempo))),
+    tempo: Math.max(GRID_TEMPO_MIN, Math.min(GRID_TEMPO_MAX, Math.round(tempo))),
     timeSig: [4, 4],
     measures,
   };
-  return { score, beats, seconds: (beats * 60) / score.tempo };
+  return { score, beats, seconds: (beats * 60) / score.tempo, perBeat, npm: score.tempo * perBeat };
 }
 
 /** Le trou a-t-il été posé dans la grille ? (tolérance : la dernière case sur le dernier temps) */

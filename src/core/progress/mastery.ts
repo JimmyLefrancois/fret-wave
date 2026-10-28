@@ -8,11 +8,19 @@
  *  - réussite = ≥ 80 % de trous justes **au premier essai** ;
  *  - « appris » = 2 réussites sur **2 jours différents** (une leçon apprise un soir se consolide la nuit) ;
  *  - « maîtrisé » = appris **et** boîte de Leitner ≥ 5 (révision à 16 j tenue) **et** dernière tentative réussie.
+ *
+ * Lot « mémoire et vitesse » (forme de gamme seulement) :
+ *  - « apprise » exige en plus une **réussite forte** : la position **entière**, de mémoire (N3, pavé ou
+ *    micro) ou jouée au micro (N2). Deux trous comblés sur deux cordes ne disent pas qu'on sait la forme ;
+ *  - « maîtrisée » garde ses conditions ; la **vitesse** (`speedVerified`) est prouvée par une série
+ *    propre au micro au tempo cible. Sans elle, l'état reste « maîtrisée », affiché « vitesse non
+ *    vérifiée » — on ne bloque pas l'élève sans micro, on ne lui certifie rien non plus.
  */
 import {
   chordIdOfNode, dayKey, isProof, isVerified, nodeIdOf, progressionIdOfNode, scoreOf, transitionOfNode, zoneOf, type Attempt,
 } from './journal';
 import { cardsFrom, type Card } from './scheduler';
+import { TUNINGS } from '../theory/tunings';
 
 export const PASS = 0.8;
 export const EXCELLENT = 0.95;
@@ -88,6 +96,12 @@ export interface NodeStats {
   box: number | null;
   due: number | null;
   lastLevel: Attempt['level'];
+  /** Réussites **fortes** (position entière, N3 ou N2 au micro) — exigées pour une forme de gamme. */
+  strongSuccesses: number;
+  /** Vitesse prouvée : une série propre au micro au tempo cible (forme de gamme seulement). */
+  speedVerified: boolean;
+  /** État selon les règles d'avant ce lot : sert seulement à expliquer une forme « repassée en apprentissage ». */
+  legacyState: NodeState;
 }
 
 /**
@@ -142,6 +156,52 @@ export function isColdPass(a: Attempt): boolean {
   return a.seconds <= (a.limitSec ?? 8);
 }
 
+/**
+ * Tempo cible de la vitesse, en **BPM de croches** (2 notes par temps) : 80 BPM en croches = 160 notes
+ * par minute. Avis de prof : c'est le tempo où une gamme cesse d'être lue note à note et devient un geste,
+ * sans exiger la virtuosité. Réglable (60-160).
+ */
+export const SPEED_TARGET_BPM = 80;
+export const SPEED_TARGET_MIN = 60;
+export const SPEED_TARGET_MAX = 160;
+/** Une série « propre » pour la vitesse : le seuil du bonus de vitesse (95 %). */
+export const SPEED_CLEAN = 0.95;
+/** Réussites fortes exigées pour qu'une forme de gamme soit « apprise ». */
+export const SCALE_STRONG = 1;
+
+function stringsOfTuning(tuningId: string): number {
+  return TUNINGS[tuningId]?.strings.length ?? 6;
+}
+
+/** Série de lecture d'une forme (trous ou rappel), pas une impro, un accord ou une séquence. */
+function isFormSeries(a: Attempt): boolean {
+  return a.module !== 'accords' && (a.kind === 'holes' || a.kind === 'recall');
+}
+
+/**
+ * La série couvrait-elle toute la position ? Champ explicite depuis ce lot ; avant, on le déduit du
+ * nombre de cordes (un segment « 1/2/3 cordes » n'atteint jamais le nombre de cordes de l'accordage).
+ */
+export function isFullPosition(a: Attempt): boolean {
+  return a.fullPosition === true || a.strings >= stringsOfTuning(a.tuningId);
+}
+
+/** Réussite **forte** : ≥ 80 %, position entière, de mémoire (N3) ou jouée au micro (N2). */
+export function isStrongSuccess(a: Attempt): boolean {
+  if (!isFormSeries(a) || !isProof(a) || (scoreOf(a) ?? 0) < PASS || !isFullPosition(a)) return false;
+  return a.level >= 3 || a.mic === true;
+}
+
+/**
+ * Preuve de vitesse : un rappel N3 **au micro**, position entière, propre (≥ 95 %), grille **tenue** à un
+ * débit d'au moins le tempo cible en croches (`2 × cible` notes par minute).
+ */
+export function isSpeedProof(a: Attempt, targetBpm = SPEED_TARGET_BPM): boolean {
+  if (!isFormSeries(a) || !isProof(a) || a.mic !== true || a.level < 3 || !isFullPosition(a)) return false;
+  if ((scoreOf(a) ?? 0) < SPEED_CLEAN || !a.tempoOk) return false;
+  return (a.gridNpm ?? 0) >= 2 * targetBpm;
+}
+
 export function stateOf(opts: {
   attempts: number; successes: number; successDays: number; last: number; box: number | null;
   /** Seuil de réussites exigé (2 pour une forme de gamme, 3 pour un accord). */
@@ -149,10 +209,14 @@ export function stateOf(opts: {
   /** Poses à froid réussies et seuil exigé (un accord seulement). */
   coldPasses?: number;
   minCold?: number;
+  /** Réussites fortes et seuil exigé (une forme de gamme seulement). */
+  strongSuccesses?: number;
+  minStrong?: number;
 }): NodeState {
   if (opts.attempts === 0) return 'available';
   const learned = opts.successes >= (opts.minSuccesses ?? 2) && opts.successDays >= 2
-    && (opts.coldPasses ?? 0) >= (opts.minCold ?? 0);
+    && (opts.coldPasses ?? 0) >= (opts.minCold ?? 0)
+    && (opts.strongSuccesses ?? 0) >= (opts.minStrong ?? 0);
   if (!learned) return 'learning';
   if (opts.box !== null && opts.box >= 5 && opts.last >= PASS) return 'mastered';
   return 'learned';
@@ -167,8 +231,21 @@ export function nodeKindOf(nodeId: string): NodeStats['nodeKind'] {
   return 'gamme';
 }
 
-export function summarizeNodes(attempts: readonly Attempt[]): NodeStats[] {
+export interface SummaryOptions {
+  /** Tempo cible de la vitesse (BPM de croches), réglage de l'élève. */
+  speedTargetBpm?: number;
+}
+
+/** Nœud de lecture d'une forme auquel une tentative de gamme apporte une preuve (vitesse comprise). */
+function lectureKey(a: Attempt): string {
+  return `gam:lecture:${a.scaleId}:${a.system}:${a.formIndex}`;
+}
+
+export function summarizeNodes(attempts: readonly Attempt[], opts: SummaryOptions = {}): NodeStats[] {
+  const target = opts.speedTargetBpm ?? SPEED_TARGET_BPM;
   const cards = new Map(cardsFrom(attempts).map((c) => [c.nodeId, c] as const));
+  // la vitesse se prouve aussi sur un autre écran que la lecture (séquences) : on la rattache à la forme
+  const speedNodes = new Set(attempts.filter((a) => a.module !== 'accords' && isSpeedProof(a, target)).map(lectureKey));
   const groups = new Map<string, Attempt[]>();
   for (const a of attempts) {
     if (!isProof(a)) continue;
@@ -223,8 +300,12 @@ export function summarizeNodes(attempts: readonly Attempt[]): NodeStats[] {
       box: card ? card.box : null,
       due: card ? card.due : null,
       lastLevel: last.level,
+      strongSuccesses: sorted.filter(isStrongSuccess).length,
+      speedVerified: false,
+      legacyState: 'available',
     };
-    stats.state = stateOf({
+    const isLecture = nodeId.startsWith('gam:lecture:');
+    const base = {
       attempts: stats.attempts,
       successes: stats.successes,
       successDays,
@@ -233,10 +314,39 @@ export function summarizeNodes(attempts: readonly Attempt[]): NodeStats[] {
       // une forme d'accord exige 3 vérifications propres sur 2 jours (MUSIC_DESIGN §4.6) **et** une
       // pose à froid réussie (4b) ; un savoir (QCM) et une transition gardent le seuil des gammes (2)
       ...(isChord ? { minSuccesses: CHORD_SUCCESSES, coldPasses: stats.coldPasses, minCold: CHORD_COLD } : {}),
-    });
+    };
+    // une forme de gamme exige en plus une réussite forte (position entière, de mémoire ou au micro)
+    stats.state = stateOf(isLecture ? { ...base, strongSuccesses: stats.strongSuccesses, minStrong: SCALE_STRONG } : base);
+    stats.legacyState = stateOf(base);
+    stats.speedVerified = isLecture && speedNodes.has(nodeId);
     out.push(stats);
   }
   return out.sort((a, b) => b.mastery - a.mastery);
+}
+
+/** Étiquette d'état : « maîtrisée » ne se dit sans réserve que si la vitesse a été entendue. */
+export function stateLabel(n: Pick<NodeStats, 'state' | 'speedVerified' | 'nodeKind'>): string {
+  if (n.state === 'mastered' && n.nodeKind === 'gamme' && !n.speedVerified) return `${STATE_LABEL.mastered} (vitesse non vérifiée)`;
+  return STATE_LABEL[n.state];
+}
+
+/** Ce qui manque à une forme de gamme pour être « apprise » (vide si rien ne manque). */
+export type LearnedGap = 'successes' | 'days' | 'strong';
+export function learnedGaps(n: Pick<NodeStats, 'successes' | 'successDays' | 'strongSuccesses'>): LearnedGap[] {
+  const out: LearnedGap[] = [];
+  if (n.successes < 2) out.push('successes');
+  if (n.successDays < 2) out.push('days');
+  if (n.strongSuccesses < SCALE_STRONG) out.push('strong');
+  return out;
+}
+
+/**
+ * Formes de gamme « apprises » (ou « maîtrisées ») selon les anciennes règles et « en apprentissage »
+ * selon les nouvelles : la maîtrise se recalcule depuis le journal, l'écran doit dire pourquoi.
+ */
+export function regressedForms(nodes: readonly NodeStats[]): NodeStats[] {
+  return nodes.filter((n) => n.nodeId.startsWith('gam:lecture:')
+    && (n.legacyState === 'learned' || n.legacyState === 'mastered') && n.state === 'learning');
 }
 
 export function findNode(nodes: readonly NodeStats[], nodeId: string): NodeStats | null {

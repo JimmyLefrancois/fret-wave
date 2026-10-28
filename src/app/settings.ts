@@ -9,6 +9,8 @@ import type { KeyValueStore } from '../core/audio/mixer';
 import { DEFAULT_THEME, THEMES, getTheme } from '../core/themes/registry';
 import type { ThemeTokens } from '../core/themes/tokens';
 import { DEFAULT_LOOK_SECONDS, LOOK_SECONDS, type LookSeconds } from '../modules/gammes/coldReview';
+import { GRID_TEMPO_MAX, GRID_TEMPO_MIN, type GridSubdivision } from '../modules/gammes/exercise';
+import { SPEED_TARGET_BPM, SPEED_TARGET_MAX, SPEED_TARGET_MIN } from '../core/progress/mastery';
 
 export const SETTINGS_KEY = 'fretwave.settings.v1';
 
@@ -24,8 +26,12 @@ export interface AppSettings {
   showDegreeRow: boolean;
   /** Part des notes masquées au niveau 2 (20 / 35 / 50 %). */
   holeRate: HoleRate;
-  /** Tempo de la grille de l'exercice (un clic par trou), en BPM. */
+  /** Tempo de la grille de l'exercice (un clic par temps), en BPM. */
   trainingTempo: number;
+  /** Notes par temps de la grille : 1 (noires, défaut) ou 2 (croches, pour viser la vitesse). */
+  gridSubdivision: GridSubdivision;
+  /** Tempo cible de la vitesse (« maîtrisée »), en BPM de croches. */
+  speedTargetBpm: number;
   /**
    * Boîte d'accord dans les étapes « Découvrir » et « Construire » du module Accords (D1 = B).
    * Désactivable : la tablature seule reste la règle par défaut du brief.
@@ -43,8 +49,8 @@ export interface AppSettings {
 /** Taux de trous du niveau 2 : trois crans, pas un curseur continu. */
 export type HoleRate = 0.2 | 0.35 | 0.5;
 export const HOLE_RATES: readonly HoleRate[] = [0.2, 0.35, 0.5];
-export const MIN_TEMPO = 30;
-export const MAX_TEMPO = 120;
+export const MIN_TEMPO = GRID_TEMPO_MIN;
+export const MAX_TEMPO = GRID_TEMPO_MAX;
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: DEFAULT_THEME,
@@ -55,6 +61,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showDegreeRow: true,
   holeRate: 0.35,
   trainingTempo: 50,
+  gridSubdivision: 1,
+  speedTargetBpm: SPEED_TARGET_BPM,
   showChordBox: true,
   coldReview: true,
   lookSeconds: DEFAULT_LOOK_SECONDS,
@@ -82,6 +90,10 @@ export function loadAppSettings(store: KeyValueStore | null): AppSettings {
     if (HOLE_RATES.includes(o.holeRate as HoleRate)) out.holeRate = o.holeRate as HoleRate;
     if (typeof o.trainingTempo === 'number' && Number.isFinite(o.trainingTempo)) {
       out.trainingTempo = Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, Math.round(o.trainingTempo)));
+    }
+    if (o.gridSubdivision === 1 || o.gridSubdivision === 2) out.gridSubdivision = o.gridSubdivision;
+    if (typeof o.speedTargetBpm === 'number' && Number.isFinite(o.speedTargetBpm)) {
+      out.speedTargetBpm = Math.max(SPEED_TARGET_MIN, Math.min(SPEED_TARGET_MAX, Math.round(o.speedTargetBpm)));
     }
   } catch {
     /* JSON cassé : on garde les défauts */

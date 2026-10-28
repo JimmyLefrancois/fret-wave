@@ -13,7 +13,7 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { dailyActivity, dayGoalText, heroSteps, hubPlan, learnedScaleForms, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
+import { dailyActivity, dayGoalText, heroSteps, hubPlan, learnedScaleForms, regressedScaleForms, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
 import { Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, headline, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
@@ -167,6 +167,7 @@ export function HubPage() {
   );
   const nextMilestone = nextStreakMilestone(st.days);
   const scaleForms = useMemo(() => learnedScaleForms(journal), [journal]);
+  const regressed = useMemo(() => regressedScaleForms(journal), [journal]);
   const scaleFormsHere = useMemo(() => learnedScaleForms(journal, sel.scaleId, resolved.selection.system), [journal, sel.scaleId, resolved.selection.system]);
   const formTotal = resolved.positions.length;
   const micHeard = micHeardBefore(journal);
@@ -422,6 +423,13 @@ export function HubPage() {
             </button>
           </li>
         </ul>
+        {regressed > 0 && (
+          <p className="t-small t-dim">
+            {regressed} forme{regressed > 1 ? 's' : ''} repassée{regressed > 1 ? 's' : ''} en apprentissage : « apprise » exige
+            maintenant une réussite sur la position entière, de mémoire (N3) ou jouée au micro. Rien n’est effacé, le compte
+            est recalculé depuis tes tentatives.
+          </p>
+        )}
       </Panel>
 
       {/* le panneau n'existe qu'à partir de la première réussite : pas de case vide au premier écran */}
@@ -442,7 +450,9 @@ export function HubPage() {
             <summary>Comment ça compte ?</summary>
             <p className="t-small t-dim">
               Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : un passage n’est réussi qu’au-dessus
-              de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
+              de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours,
+              dont une sur la position entière, de mémoire (N3) ou jouée au micro. Un essai fait juste après avoir revu la
+              forme est enregistré, mais ne compte pas.
             </p>
             <p className="t-small t-dim">
             L’objectif du jour et la série comptent les exercices vérifiés : une écoute n’y entre pas, un grattage déclaré non plus.

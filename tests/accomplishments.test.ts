@@ -59,10 +59,14 @@ describe('accomplishments', () => {
     const oneSession = accomplishments([mk(T0, 3, 3), mk(T0 + 60_000, 3, 3)]);
     expect(oneSession.filter((e) => e.kind === 'learned')).toHaveLength(0);
 
-    const twoDays = accomplishments([mk(T0, 3, 3), mk(T0 + DAY, 3, 3)]);
+    // deux jours, mais aucune réussite forte (position entière, de mémoire ou au micro) : pas encore
+    const twoDaysWeak = accomplishments([mk(T0, 3, 3), mk(T0 + DAY, 3, 3)]);
+    expect(twoDaysWeak.filter((e) => e.kind === 'learned')).toHaveLength(0);
+
+    const twoDays = accomplishments([mk(T0, 3, 3), mk(T0 + DAY, 3, 3, { level: 3, kind: 'recall', strings: 6 })]);
     const learned = twoDays.filter((e) => e.kind === 'learned');
     expect(learned).toHaveLength(1);
-    expect(learned[0]?.detail).toBe('2 réussites sur 2 jours');
+    expect(learned[0]?.detail).toBe('2 réussites sur 2 jours · position entière de mémoire ou au micro');
     expect(learned[0]?.ts).toBe(T0 + DAY);
   });
 

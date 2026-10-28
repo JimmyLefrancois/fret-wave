@@ -103,6 +103,20 @@ export interface Attempt {
    * essai réussi la réponse sous les yeux ne prouve rien (MUSIC_DESIGN §5).
    */
   afterReveal?: true;
+  /**
+   * Série validée **au micro** : toutes les cases trouvées l'ont été en jouant, aucune au pavé. Absent sur
+   * les tentatives d'avant ce champ : « inconnu », donc traité comme non joué (on ne réécrit rien).
+   */
+  mic?: true;
+  /** La série couvrait la **position entière** (montée ou aller-retour), pas un segment de cordes. */
+  fullPosition?: true;
+  /**
+   * Débit nominal de la grille rythmique lancée pendant la série, en **notes par minute** (tempo ×
+   * notes par temps). Absent sans grille. Sert à juger la vitesse (« maîtrisée »), avec `tempoOk`.
+   */
+  gridNpm?: number;
+  /** Série jouée **à l'aveugle** : aucune tablature dessinée pendant le jeu, verdict à la fin seulement. */
+  blind?: true;
 }
 
 export function zoneOf(fret: number): number {
@@ -252,6 +266,12 @@ export function normalizeAttempt(v: unknown): Attempt | null {
     ...(typeof a.confidence === 'number' && Number.isFinite(a.confidence) && a.confidence >= 0 && a.confidence <= 1
       ? { confidence: Math.round(a.confidence * 1000) / 1000 } : {}),
     ...(a.afterReveal === true ? { afterReveal: true as const } : {}),
+    ...(a.mic === true ? { mic: true as const } : {}),
+    ...(a.fullPosition === true ? { fullPosition: true as const } : {}),
+    ...(a.blind === true ? { blind: true as const } : {}),
+    // un débit hors de 20-400 notes/min n'est pas une grille de l'app : absent plutôt que faux
+    ...(typeof a.gridNpm === 'number' && Number.isFinite(a.gridNpm) && a.gridNpm >= 20 && a.gridNpm <= 400
+      ? { gridNpm: Math.round(a.gridNpm) } : {}),
   };
 }
 

@@ -20,7 +20,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
 import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
-import { setSettings, useSettings } from '../../app/settings';
+import { MAX_TEMPO, MIN_TEMPO, setSettings, useSettings } from '../../app/settings';
 import { TabView, type TabPick } from '../../app/TabView';
 import { Panel, PixelButton, Segmented, Switch } from '../../app/ui';
 import { MicStrip } from '../../app/MicStrip';
@@ -33,15 +33,16 @@ import { fmtNote } from '../../core/theory';
 import { positionToScore } from '../../core/tab';
 import { TabPlayer } from '../../core/audio/tabPlayer';
 import {
-  appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, streak, summarizeDay, xpForAttempt, xpSummary,
-  type Attempt, type AttemptLevel,
+  appendAttempt, learnedGaps, newAttemptId, nodeIdOf, progressStore, readAttempts, stateLabel, streak, summarizeDay,
+  summarizeNodes, xpForAttempt, xpSummary,
+  type Attempt, type AttemptLevel, type LearnedGap, type NodeStats,
 } from '../../core/progress';
 import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
 import { Celebration } from './Celebration';
 import {
   SEGMENTS, buildExercise, holeKey, insideGrid, mulberry32, nearClick, segmentPlan, starsFor, tempoGrid, withRevealed,
-  type GridOutcome, type Segment,
+  type GridOutcome, type GridSubdivision, type Segment,
 } from './exercise';
 import { REVIEW_MAX, buildReviewQueue, type ReviewTarget } from './review';
 import { coldNext, countsAsProof, lookRemaining, type ColdStep } from './coldReview';
@@ -64,6 +65,28 @@ function mmss(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+/** Ce qui manque pour « apprise », en mots d'élève (une phrase, pas une liste de codes). */
+const GAP_TEXT: Readonly<Record<LearnedGap, string>> = {
+  successes: 'encore une réussite (≥ 80 %)',
+  days: 'une réussite un autre jour',
+  strong: 'une réussite sur la position entière, de mémoire (N3) ou au micro',
+};
+
+/**
+ * État de la forme en une phrase, là où l'élève le lit : ce qui manque pour « apprise », ou pour la vitesse.
+ * La maîtrise se recalcule depuis le journal : si les règles changent, cette phrase dit ce qui compte.
+ */
+function formStateLine(n: NodeStats | null, speedTarget: number): string {
+  if (!n) return 'Cette forme : jamais vérifiée. « Apprise » = 2 réussites sur 2 jours, dont une sur la position entière, de mémoire (N3) ou au micro.';
+  if (n.state === 'learning' || n.state === 'available') {
+    const gaps = learnedGaps(n);
+    return `Cette forme : en apprentissage. Pour « apprise », il manque ${gaps.map((g) => GAP_TEXT[g]).join(' et ')}.`;
+  }
+  if (n.state === 'learned') return 'Cette forme : apprise. « Maîtrisée » viendra avec la révision tenue à 16 jours.';
+  return `Cette forme : ${stateLabel(n)}.`
+    + (n.speedVerified ? '' : ` Pour la vitesse : de mémoire (N3), au micro, grille en croches tenue à ${speedTarget} BPM, ≥ 95 %.`);
 }
 
 function starRow(n: number): string {
@@ -128,6 +151,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   /** Dernière note validée au micro (horloge `performance`, latence retranchée). */
   const lastNotePerf = useRef<number | null>(null);
   const gridStartPerf = useRef(0);
+  /** Une case validée au pavé pendant la série : la série n'est plus « au micro ». */
+  const padUsed = useRef(false);
+  /** Cases remplies en jouant (micro). */
+  const micFills = useRef(0);
   /** Anti-rebond : une même hauteur ne produit qu'un verdict toutes les 400 ms. */
   const actedRef = useRef<{ midi: number; at: number } | null>(null);
 
@@ -154,6 +181,11 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
   const revealed = useMemo(() => new Set(Object.keys(marks)), [marks]);
   const display = useMemo(() => (exercise ? withRevealed(exercise.score, revealed) : null), [exercise, revealed]);
+  const formNode = useMemo(() => {
+    if (!r.position) return null;
+    const id = nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index });
+    return summarizeNodes(journal, { speedTargetBpm: settings.speedTargetBpm }).find((n) => n.nodeId === id) ?? null;
+  }, [journal, r, settings.speedTargetBpm]);
 
   const done = Object.keys(marks).length;
   const total = exercise?.total ?? 0;
@@ -183,6 +215,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     setResult(null);
     lastNotePerf.current = null;
     actedRef.current = null;
+    padUsed.current = false;
+    micFills.current = 0;
     player.current?.stop();
     setGrid('off');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -206,7 +240,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const startGrid = async () => {
     if (total === 0 || grid === 'running') return;
     const p = player.current!;
-    const g = tempoGrid(total, settings.trainingTempo);
+    const g = tempoGrid(total, settings.trainingTempo, settings.gridSubdivision);
     try {
       await p.init(); // en premier : reprend le contexte audio dans le geste
       await p.load(g.score, { loop: false });
@@ -254,7 +288,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     const playedSeconds = lastNotePerf.current !== null && gridStartPerf.current > 0
       ? (lastNotePerf.current - gridStartPerf.current) / 1000
       : seconds;
-    const gridOutcome: GridOutcome = grid === 'off' ? 'off' : grid === 'running' && insideGrid(playedSeconds, tempoGrid(totalHoles, settings.trainingTempo)) ? 'kept' : 'missed';
+    const gridOutcome: GridOutcome = grid === 'off' ? 'off' : grid === 'running' && insideGrid(playedSeconds, tempoGrid(totalHoles, settings.trainingTempo, settings.gridSubdivision)) ? 'kept' : 'missed';
     if (grid !== 'off') stopGrid();
     const attempt: Attempt = {
       id: newAttemptId(Date.now(), nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index }), readAttempts(progressStore()).length),
@@ -276,6 +310,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       missedStrings: [...new Set(Object.keys(errorCount).map((k) => Number(k.split(':')[1] ?? 0)).filter((s) => Number.isInteger(s)))],
       tempoOk: gridOutcome === 'kept',
       ...(proofless ? { afterReveal: true as const } : {}),
+      // au micro = toutes les cases trouvées l'ont été en jouant (aucune au pavé)
+      ...(!padUsed.current && micFills.current > 0 ? { mic: true as const } : {}),
+      ...(segment === 'all' || segment === 'updown' ? { fullPosition: true as const } : {}),
+      ...(grid !== 'off' ? { gridNpm: tempoGrid(totalHoles, settings.trainingTempo, settings.gridSubdivision).npm } : {}),
     };
     setJournal(appendAttempt(progressStore(), attempt));
     const res: Result = {
@@ -299,7 +337,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     // réussite = au moins une étoile ; en dessous, le panneau de résultat dit la vérité sans fête.
     // Un rattrapage ne se fête pas : la réponse venait d'être montrée.
     if (res.stars > 0 && res.proof) setCelebrate(true);
-  }, [exercise, plan, r, level, startedAt, grid, settings.trainingTempo, stopGrid, proofless, mixed, coldStep]);
+  }, [exercise, plan, r, level, segment, startedAt, grid, settings.trainingTempo, settings.gridSubdivision, stopGrid, proofless, mixed, coldStep]);
 
   /** Réponse juste : la pastille reprend sa couleur, le curseur passe au trou suivant. */
   const applyRight = useCallback((key: string, cents: number | null) => {
@@ -346,6 +384,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     if (!activeHole || entry === '') return;
     const value = Number(entry);
     setEntry('');
+    padUsed.current = true;
     if (value === activeHole.fret) applyRight(activeHole.key, null);
     else applyWrong(activeHole.key, null);
   }, [activeHole, entry, applyRight, applyWrong]);
@@ -356,6 +395,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       case 'fill': {
         const latency = inputRef.current.latencies[inputRef.current.source] ?? 0;
         lastNotePerf.current = performance.now() - latency;
+        micFills.current += 1;
         applyRight(v.target.key, v.cents);
         break;
       }
@@ -654,7 +694,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const activeStringLabel = activeHole
     ? `${fmtNote(r.tuning.strings[activeHole.string]!.replace(/-?\d+$/, ''), settings.noteNotation)} ${activeHole.string === 0 ? '(grave)' : activeHole.string === r.tuning.strings.length - 1 ? '(aiguë)' : ''}`.trim()
     : null;
-  const gridSpec = tempoGrid(total, settings.trainingTempo);
+  const gridSpec = tempoGrid(total, settings.trainingTempo, settings.gridSubdivision);
   // XP total et XP du jour : recalculés depuis le journal, comme partout ailleurs
   const totals = useMemo(() => xpSummary(journal, new Date()), [journal]);
   const streakDays = useMemo(() => streak(journal, new Date()).days, [journal]);
@@ -794,18 +834,30 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           )}
           <div className="grid-row">
             <div className="tempo">
-              <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.max(30, settings.trainingTempo - 5) })} aria-label="Grille moins vite">−</button>
+              <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.max(MIN_TEMPO, settings.trainingTempo - 5) })} aria-label="Grille moins vite">−</button>
               <span className="tempo-val">♩ {settings.trainingTempo}</span>
-              <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.min(120, settings.trainingTempo + 5) })} aria-label="Grille plus vite">+</button>
+              <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.min(MAX_TEMPO, settings.trainingTempo + 5) })} aria-label="Grille plus vite">+</button>
             </div>
+            <Segmented<GridSubdivision>
+              size="sm"
+              label="Notes par temps"
+              value={settings.gridSubdivision}
+              onChange={(v) => setSettings({ gridSubdivision: v })}
+              options={[{ value: 1, label: 'noires' }, { value: 2, label: 'croches' }]}
+            />
             <PixelButton variant={grid === 'running' ? 'primary' : 'ghost'} onClick={() => (grid === 'running' ? stopGrid() : void startGrid())} disabled={!!result}>
               {grid === 'running' ? 'Arrêter la grille' : 'Grille (métronome)'}
             </PixelButton>
             <span className="t-small t-dim">{gridSpec.beats} temps ≈ {gridSpec.seconds.toFixed(1)} s</span>
           </div>
           <p className="t-small t-dim">
-            Un temps par trou, en mesures entières. Finir dans la grille et juste à ≥ 95 % vaut ★★,
-            parfait sans une erreur vaut ★★★. Le métronome ne joue aucune note : il ne donne pas les réponses.
+            {settings.gridSubdivision === 2 ? 'Deux trous par temps' : 'Un temps par trou'}, en mesures entières
+            ({gridSpec.npm} notes/min). Finir dans la grille et juste à ≥ 95 % vaut ★★, parfait sans une erreur vaut ★★★.
+            Le métronome ne joue aucune note : il ne donne pas les réponses.
+          </p>
+          <p className="t-small t-dim">
+            Vitesse « maîtrisée » : de mémoire (N3), au micro, position entière, ≥ 95 %, grille tenue à
+            {' '}{settings.speedTargetBpm} BPM en croches ({settings.speedTargetBpm * 2} notes/min) — réglage du tempo cible dans Réglages.
           </p>
         </details>
       </Panel>
@@ -876,6 +928,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
                 ? `+${result.xp} XP. Tentative enregistrée : elle entre dans la répétition espacée.`
                 : '0 XP. La tentative est enregistrée quand même : elle dit où tu en es, et rien n’est bloqué.'}
           </p>
+          <p className="t-small">{formStateLine(formNode, settings.speedTargetBpm)}</p>
           {coldStep === 'look' && (
             <>
               <p className="t-small">
@@ -926,6 +979,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             Les trous justes <strong>au premier essai</strong>. Une case trouvée du deuxième coup n’est pas « sue »,
             elle est reconnue. Le score d’aujourd’hui déplace la case dans la file de révision, il ne la certifie pas.
           </p>
+          <p className="t-small">{formStateLine(formNode, settings.speedTargetBpm)}</p>
           <p className="t-small t-dim">
             Série de {total} trou{total > 1 ? 's' : ''} sur {exercise.notes} note{exercise.notes > 1 ? 's' : ''} ({plan.strings} corde{plan.strings > 1 ? 's' : ''}).
             {journal.length > 0 ? ` ${journal.length} tentative${journal.length > 1 ? 's' : ''} déjà enregistrée${journal.length > 1 ? 's' : ''} sur cet appareil.` : ' Aucune tentative enregistrée pour l’instant.'}

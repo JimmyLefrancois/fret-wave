@@ -5,7 +5,10 @@ import {
 } from '../src/core/progress/journal';
 import { PRACTICE_KEY, logPractice } from '../src/core/progress/practiceLog';
 import { BOX_INTERVALS_MS, cardsFrom, dueNow, leitner, outcomeFor } from '../src/core/progress/scheduler';
-import { masteryOf, stateOf, stringWeakness, summarizeNodes, weakTonics } from '../src/core/progress/mastery';
+import {
+  isFullPosition, isSpeedProof, isStrongSuccess, learnedGaps, masteryOf, regressedForms, stateLabel, stateOf, stringWeakness,
+  summarizeNodes, weakTonics,
+} from '../src/core/progress/mastery';
 import { DAILY_XP_CAP, badgeStatus, streak, xpForAttempt, xpSummary } from '../src/core/progress/rewards';
 import { exportFilename, exportText, mergeAttempts, parseImport } from '../src/core/progress/exportData';
 
@@ -249,7 +252,7 @@ describe('maîtrise', () => {
     const list = [
       attempt({ ts: at(6), tonic: 'A', correct: 5, total: 5 }),
       attempt({ ts: at(3), tonic: 'A', correct: 4, total: 5 }),
-      attempt({ ts: at(0), tonic: 'C', correct: 4, total: 5, fretMin: 12 }),
+      attempt({ ts: at(0), tonic: 'C', correct: 4, total: 5, fretMin: 12, level: 3, kind: 'recall', strings: 6 }),
       attempt({ ts: at(0, 12), kind: 'listen', correct: null, total: null, tonic: 'G' }),
     ];
     const nodes = summarizeNodes(list);
@@ -388,5 +391,96 @@ describe('essai après révélation (rattrapage du rappel à froid)', () => {
   it('compte pourtant comme pratique du jour (série, objectif)', () => {
     expect(streak([retry], new Date(at(2, 12))).days).toBe(1);
     expect(summarizeDay([retry], new Date(at(2, 12))).exercises).toBe(1);
+  });
+});
+
+describe('« apprise » et « maîtrisée » plus exigeantes (lot mémoire et vitesse)', () => {
+  const lecture = (list: Attempt[], opts?: { speedTargetBpm?: number }) =>
+    summarizeNodes(list, opts).find((n) => n.nodeId.startsWith('gam:lecture:'))!;
+  const n2 = (daysAgo: number, patch: Partial<Attempt> = {}) => attempt({ ts: at(daysAgo), correct: 5, total: 5, ...patch });
+  const full = { strings: 6, fullPosition: true as const };
+  const n3 = (daysAgo: number, patch: Partial<Attempt> = {}) => n2(daysAgo, { level: 3, kind: 'recall', ...full, ...patch });
+
+  it('2 jours de N2 au pavé, même sur la position entière : en apprentissage', () => {
+    expect(lecture([n2(1, full), n2(0, full)]).state).toBe('learning');
+    expect(learnedGaps(lecture([n2(1, full), n2(0, full)]))).toEqual(['strong']);
+  });
+
+  it('une réussite N3 au pavé sur la position entière suffit (un élève sans guitare peut apprendre)', () => {
+    const n = lecture([n2(1), n3(0)]);
+    expect(n.strongSuccesses).toBe(1);
+    expect(n.state).toBe('learned');
+    expect(learnedGaps(n)).toEqual([]);
+  });
+
+  it('un N3 sur 2 cordes ne suffit pas : il faut la position entière', () => {
+    const seg = n2(0, { level: 3, kind: 'recall', strings: 2 });
+    expect(lecture([n2(1), seg]).state).toBe('learning');
+  });
+
+  it('un N2 validé au micro sur la position entière suffit ; au micro sur un segment, non', () => {
+    expect(lecture([n2(1), n2(0, { ...full, mic: true })]).state).toBe('learned');
+    expect(lecture([n2(1), n2(0, { strings: 2, mic: true })]).state).toBe('learning');
+  });
+
+  it('sans le champ `fullPosition` (ancien journal), la position entière se déduit du nombre de cordes', () => {
+    expect(isFullPosition(n2(0, { strings: 6 }))).toBe(true);
+    expect(isFullPosition(n2(0, { strings: 3 }))).toBe(false);
+    expect(isFullPosition(n2(0, { strings: 6, tuningId: 'standard7' }))).toBe(false);
+    expect(isFullPosition(n2(0, { strings: 3, fullPosition: true }))).toBe(true);
+  });
+
+  it('une réussite forte faite après révélation ne compte pas', () => {
+    expect(lecture([n2(1), n3(0, { afterReveal: true })]).state).toBe('learning');
+  });
+
+  it('ancienne entrée sans `mic` : traitée comme non jouée ; valeurs bizarres écartées', () => {
+    const legacy = normalizeAttempt({ ...n2(0, full), mic: 'yes', gridNpm: 9999 })!;
+    expect(legacy.mic).toBeUndefined();
+    expect(legacy.gridNpm).toBeUndefined();
+    expect(isStrongSuccess(legacy)).toBe(false);
+    const fresh = normalizeAttempt(n3(0, { mic: true, gridNpm: 160.4, blind: true }))!;
+    expect(fresh).toMatchObject({ mic: true, gridNpm: 160, blind: true, fullPosition: true });
+  });
+
+  it('maîtrisée sans preuve de vitesse : l’état reste, l’étiquette le dit', () => {
+    // 4 réussites nettes → boîte 5 ; une forte au milieu
+    const list = [n2(30), n3(20), n2(10), n2(0)];
+    const n = lecture(list);
+    expect(n.box).toBe(5);
+    expect(n.state).toBe('mastered');
+    expect(n.speedVerified).toBe(false);
+    expect(stateLabel(n)).toBe('maîtrisée (vitesse non vérifiée)');
+  });
+
+  it('vitesse : N3 au micro, propre, grille tenue à 160 notes/min (80 BPM en croches)', () => {
+    const fast = n3(0, { mic: true, tempoOk: true, gridNpm: 160 });
+    const list = [n2(30), n3(20), n2(10), fast];
+    const n = lecture(list);
+    expect(n.state).toBe('mastered');
+    expect(n.speedVerified).toBe(true);
+    expect(stateLabel(n)).toBe('maîtrisée');
+    expect(isSpeedProof(fast)).toBe(true);
+    // trop lent, grille manquée, pavé, ou pas propre : non
+    expect(isSpeedProof({ ...fast, gridNpm: 150 })).toBe(false);
+    expect(isSpeedProof({ ...fast, tempoOk: false })).toBe(false);
+    expect(isSpeedProof({ ...fast, mic: undefined })).toBe(false);
+    expect(isSpeedProof({ ...fast, correct: 9, total: 10 })).toBe(false);
+    // le tempo cible est un réglage : à 60 BPM en croches, 120 notes/min suffisent
+    expect(isSpeedProof({ ...fast, gridNpm: 120 }, 60)).toBe(true);
+    expect(lecture([n2(30), n3(20), n2(10), { ...fast, gridNpm: 120 }], { speedTargetBpm: 60 }).speedVerified).toBe(true);
+  });
+
+  it('les accords ne changent pas de règle', () => {
+    const chord = (daysAgo: number, kind: Attempt['kind'] = 'arpeggio') =>
+      attempt({ ts: at(daysAgo), module: 'accords', chordId: 'Em-022000', kind, correct: 6, total: 6, level: 2, strings: 6, seconds: 3, limitSec: 8 });
+    const n = summarizeNodes([chord(2), chord(1), chord(0), chord(0, 'cold')]).find((x) => x.nodeKind === 'accord')!;
+    expect(n.state).not.toBe('learning');
+  });
+
+  it('formes repassées en apprentissage : apprises hier, plus aujourd’hui', () => {
+    const nodes = summarizeNodes([n2(1), n2(0)]);
+    expect(regressedForms(nodes).map((n) => n.nodeId)).toEqual(['gam:lecture:pentatonic-minor:boxes:0']);
+    expect(regressedForms(summarizeNodes([n2(1), n3(0)]))).toEqual([]);
   });
 });

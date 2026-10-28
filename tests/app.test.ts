@@ -64,14 +64,22 @@ describe('réglages globaux', () => {
     expect(loaded.scanlines).toBe(DEFAULT_SETTINGS.scanlines);
   });
 
-  it('réglages d’exercice : taux de trous borné aux trois crans, tempo borné 30-120', () => {
+  it('réglages d’exercice : taux de trous borné aux trois crans, tempo borné 30-200', () => {
     const s = fakeStore({ [SETTINGS_KEY]: JSON.stringify({ holeRate: 0.5, trainingTempo: 500 }) });
     const loaded = loadAppSettings(s);
     expect(loaded.holeRate).toBe(0.5);
-    expect(loaded.trainingTempo).toBe(120);
+    expect(loaded.trainingTempo).toBe(200);
     const bad = loadAppSettings(fakeStore({ [SETTINGS_KEY]: JSON.stringify({ holeRate: 0.42, trainingTempo: 10 }) }));
     expect(bad.holeRate).toBe(DEFAULT_SETTINGS.holeRate);
     expect(bad.trainingTempo).toBe(30);
+  });
+
+  it('mémoire et vitesse : rappel à froid, observation, subdivision et tempo cible lus avec tolérance', () => {
+    expect(DEFAULT_SETTINGS).toMatchObject({ coldReview: true, lookSeconds: 20, gridSubdivision: 1, speedTargetBpm: 80 });
+    const ok = loadAppSettings(fakeStore({ [SETTINGS_KEY]: JSON.stringify({ coldReview: false, lookSeconds: 30, gridSubdivision: 2, speedTargetBpm: 999 }) }));
+    expect(ok).toMatchObject({ coldReview: false, lookSeconds: 30, gridSubdivision: 2, speedTargetBpm: 160 });
+    const bad = loadAppSettings(fakeStore({ [SETTINGS_KEY]: JSON.stringify({ coldReview: 'non', lookSeconds: 15, gridSubdivision: 3, speedTargetBpm: 'vite' }) }));
+    expect(bad).toMatchObject({ coldReview: true, lookSeconds: 20, gridSubdivision: 1, speedTargetBpm: 80 });
   });
 
   it('JSON cassé : aucun exception', () => {

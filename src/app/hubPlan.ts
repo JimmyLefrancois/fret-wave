@@ -4,7 +4,7 @@
  * Ordre : une révision due passe avant tout (c'est la répétition espacée qui fait progresser), puis on
  * reprend le dernier module touché (gamme ou accord), et un journal vide donne « Commencer ».
  */
-import { isVerified, summarizeNodes, type Attempt, type AttemptLevel, type Card, type DaySummary } from '../core/progress';
+import { isVerified, regressedForms, summarizeNodes, type Attempt, type AttemptLevel, type Card, type DaySummary } from '../core/progress';
 
 export type HubResume =
   | { kind: 'start' }
@@ -134,6 +134,14 @@ export function learnedScaleForms(journal: readonly Attempt[], scaleId?: string,
   return summarizeNodes(journal).filter(
     (n) => n.nodeId.startsWith(prefix) && (n.state === 'learned' || n.state === 'mastered'),
   ).length;
+}
+
+/**
+ * Formes de gamme « apprises » selon les règles d'avant le lot « mémoire et vitesse », et « en
+ * apprentissage » aujourd'hui : le hub le dit, sinon l'élève croirait avoir perdu sa progression.
+ */
+export function regressedScaleForms(journal: readonly Attempt[]): number {
+  return regressedForms(summarizeNodes(journal)).length;
 }
 
 /**

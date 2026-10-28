@@ -6,6 +6,8 @@
  *
  * Chemin 1 — rappel à froid : une carte due s'ouvre en N3 position entière ; tout faux → « Regarde la
  * forme » → rattrapage juste, écrit `afterReveal: true`, 0 XP, aucune fête.
+ * Chemin 2 — règles durcies : deux réussites N2 au pavé sur deux jours → le hub annonce une forme
+ * « repassée en apprentissage », l'écran d'exercice dit ce qui manque.
  */
 import { mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
@@ -57,5 +59,17 @@ console.log('after retry', await st());
 const j = await page.evaluate(() => JSON.parse(localStorage.getItem('fretwave.attempts.v1')).attempts.map((a) => ({ level: a.level, strings: a.strings, c: a.correct, t: a.total, ar: a.afterReveal ?? null })));
 console.log('journal', j);
 console.log('celebration?', await page.locator('.celebration, [role=dialog]').count());
+
+// --- chemin 2 : règles durcies
+await page.evaluate((list) => localStorage.setItem('fretwave.attempts.v1', JSON.stringify({ v: 1, attempts: list })), [mk(10, 2, 5, 5), mk(11, 1, 5, 5)]);
+await page.goto(`${BASE}/#/hub`);
+await page.waitForTimeout(800);
+const hubText = await page.textContent('body');
+console.log('hub notice', hubText.match(/\d+ formes? repassées? en apprentissage[^.]*\./)?.[0] ?? 'ABSENTE');
+await page.screenshot({ path: `${SHOTS}/hub-regressed.png`, fullPage: true });
+await page.goto(`${BASE}/#/gammes/entrainement`);
+await page.waitForFunction(() => window.__training?.exercise);
+console.log('state line', (await page.textContent('body')).match(/Cette forme : [^.]*\./)?.[0] ?? 'ABSENTE');
+
 console.log('errors', errors);
 await browser.close();
