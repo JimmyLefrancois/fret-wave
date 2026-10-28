@@ -4,7 +4,7 @@
  * Ordre : une révision due passe avant tout (c'est la répétition espacée qui fait progresser), puis on
  * reprend le dernier module touché (gamme ou accord), et un journal vide donne « Commencer ».
  */
-import { isVerified, type Attempt, type AttemptLevel, type Card } from '../core/progress';
+import { isVerified, type Attempt, type AttemptLevel, type Card, type DaySummary } from '../core/progress';
 
 export type HubResume =
   | { kind: 'start' }
@@ -40,6 +40,14 @@ export function hubPlan(
     if (id) return { review, resume: { kind: 'chord', voicingId: id } };
   }
   return { review, resume: { kind: 'scale' } };
+}
+
+/**
+ * Activités du jour pour la jauge : écoutes et exercices vérifiés. Un grattage déclaré « sans micro »
+ * n'y entre pas : une déclaration n'est jamais une preuve.
+ */
+export function dailyActivity(day: Pick<DaySummary, 'listens' | 'exercises'>): number {
+  return day.listens + day.exercises;
 }
 
 const LEVEL_NAME: Readonly<Record<AttemptLevel, string>> = {

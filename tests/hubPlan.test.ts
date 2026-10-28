@@ -3,9 +3,9 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { hubPlan, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
+import { dailyActivity, hubPlan, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
-import type { Attempt, Card } from '../src/core/progress';
+import { summarizeDay, type Attempt, type Card } from '../src/core/progress';
 
 const T0 = new Date(2026, 9, 20, 19, 0, 0).getTime();
 
@@ -112,5 +112,18 @@ describe('reviewSummary', () => {
   it('dit le niveau et le score du dernier passage, rien de plus', () => {
     expect(reviewSummary({ lastLevel: 2, lastScore: 0.85 })).toBe('Dernier passage : trous (N2) à 85\u00a0%');
     expect(reviewSummary({ lastLevel: 3, lastScore: 1 })).toBe('Dernier passage : rappel (N3) à 100\u00a0%');
+  });
+});
+
+describe('dailyActivity', () => {
+  it('compte écoutes et exercices vérifiés, jamais un grattage déclaré', () => {
+    const j = [
+      mk(T0, { kind: 'listen', correct: null, total: null }),
+      mk(T0 + 1000),
+      mk(T0 + 2000, { module: 'accords', kind: 'strum', chordId: 'Em-022000', correct: null, total: null }),
+    ];
+    const day = summarizeDay(j, new Date(T0 + 3000));
+    expect(day.selfAssessed).toBe(1);
+    expect(dailyActivity(day)).toBe(2);
   });
 });

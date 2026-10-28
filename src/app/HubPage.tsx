@@ -13,7 +13,7 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { hubPlan, micHeardBefore, reviewSummary, scaleStep } from '../app/hubPlan';
+import { dailyActivity, hubPlan, micHeardBefore, reviewSummary, scaleStep } from '../app/hubPlan';
 import { Chip, Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
@@ -105,7 +105,7 @@ export function HubPage() {
   const st = useMemo(() => streak(journal, now), [journal, now]);
   // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran
   const due = useMemo(() => dueNow(journal, now.getTime()).filter((c) => !c.nodeId.startsWith('acc:')), [journal, now]);
-  const activity = day.listens + day.exercises + day.selfAssessed;
+  const activity = dailyActivity(day);
   const feats = useMemo(() => accomplishments(journal, { limit: 10, notation: settings.noteNotation }), [journal, settings.noteNotation]);
   // parcours d'accords : le compte et le prochain accord, calculés par le module Accords
   const chordLearned = useMemo(() => learnedChordIds(journal), [journal]);
