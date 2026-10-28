@@ -322,10 +322,13 @@ a { color: var(--cyan); }
   font-weight: 500;
   font-size: 13.5px;
   border: var(--bw) solid var(--line);
-  background: transparent;
+  /* une pastille est un **bouton** : elle porte un fond, sinon elle se lit comme une étiquette posée
+     sur le décor (même règle que `.btn-quiet`, D75) */
+  background: var(--surface-hi);
   color: var(--muted);
   cursor: pointer;
   white-space: nowrap;
+  text-align: center;
 }
 .chip:hover { border-color: var(--cyan); color: var(--text); }
 .chip.on {
@@ -2183,3 +2186,99 @@ table.kv td:first-child { color: var(--muted); }
 .listen-band .switch.inline { grid-template-columns: 22px auto; }
 .listen-band .switch.inline .switch-hint { grid-column: 2; white-space: normal; }
 .listen-band .switch.inline .switch-hint::before { content: ''; }
+
+/* --- rien de transparent sur le décor (D75) --------------------------------------------------------
+   La scène (soleil, grille, étoiles) est un canvas derrière l'application : un bouton ou un texte sans
+   fond propre se lit par-dessus, avec un contraste qui dépend de ce qui passe dessous. Règle : tout ce
+   qui se lit ou se touche porte un fond opaque ; ce qui flotte sur le décor est une **bande**.
+   Audit : `node tools/contrast-audit.mjs` (0 élément attendu). ---------------------------------- */
+
+/* les boutons secondaires se voyaient comme du texte cliquable, pas comme des boutons */
+.btn-quiet {
+  background: var(--surface-hi);
+  color: var(--muted);
+  border-color: var(--line-soft);
+}
+.btn-quiet:hover { color: var(--text); border-color: var(--cyan); }
+
+/* un lien d'action au fil d'une phrase prend un fond de pastille */
+.linkish {
+  background: var(--surface-hi);
+  border: 2px solid var(--line-soft);
+  padding: 2px 6px;
+  color: var(--cyan);
+}
+.linkish:hover { border-color: var(--cyan); color: var(--text); }
+
+/* l'en-tête devient une bande pleine : titre, sous-titre et étiquette ne reposent plus sur l'ombre */
+.page-head {
+  background: var(--surface);
+  border: 2px solid var(--line-soft);
+  padding: 10px 12px;
+  /* un peu d'air au-dessus de la bande : collée au bord haut, elle se lisait comme une barre système */
+  margin-block-start: 8px;
+}
+.page-head::before { content: none; }
+@media (max-width: 519px) {
+  .page-head { row-gap: 6px; }
+}
+
+/* L'affiche d'accueil garde son soleil : le voile est **juste assez** dense pour que le titre et la
+   ligne d'activité ne dépendent pas de ce qui passe dessous, sans éteindre le disque (à 0,72 il
+   devenait olive — mesuré à l'œil sur la capture). */
+.home-hero {
+  /* Dégradé et non voile uniforme : le soleil reste **franc** en haut (à 0,52 d'opacité il devenait
+     olive, mesuré sur capture), et le titre repose en bas sur une plaque à 0,95 — opaque, donc lisible
+     quel que soit ce qui passe derrière. */
+  background: linear-gradient(
+    180deg,
+    rgba(var(--veil-rgb), 0) 0%,
+    rgba(var(--veil-rgb), 0) 60%,
+    rgba(var(--veil-rgb), 0.9) 74%,
+    rgba(var(--veil-rgb), 0.96) 100%
+  );
+  border: 2px solid var(--line-soft);
+}
+/* l'étiquette du haut est seule sur sa ligne : elle porte sa propre plaque */
+.home-kicker {
+  align-self: flex-start;
+  padding: 3px 8px;
+  background: rgba(var(--veil-rgb), 0.78);
+  border: 2px solid var(--line-soft);
+}
+.home-hero-title,
+.home-kicker,
+.home-hero-line { text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.85), 0 0 6px rgba(var(--veil-rgb), 0.9); }
+
+/* pied d'accueil et pieds de page : une bande, et des boutons qui se voient */
+.home-foot,
+.foot-note {
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 2px solid var(--line-soft);
+}
+.home-foot button {
+  min-height: 32px;
+  padding: 6px 10px;
+  background: var(--surface-hi);
+  border: 2px solid var(--line-soft);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+}
+.home-foot button:hover { border-color: var(--cyan); }
+
+/* barre de positions et bloc « étape suivante » : bandes, comme les autres */
+.pos-nav,
+.next-step {
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 2px solid var(--line-soft);
+}
+
+/* En-tête en bande : l'étiquette va à droite au bureau (elle se collait au titre, et la bande pleine
+   largeur avait l'air à moitié vide). Sur téléphone elle reste sous le titre (règle de D51). */
+@media (min-width: 900px) {
+  .page-head { grid-template-columns: 44px minmax(0, 1fr) auto; }
+  .page-head > .tag { justify-self: end; margin-left: 0; }
+}

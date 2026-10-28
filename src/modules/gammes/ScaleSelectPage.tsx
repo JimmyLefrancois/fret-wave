@@ -50,7 +50,7 @@ export function ScaleSelectPage() {
         <button type="button" className="back" onClick={() => navigate('hub')} aria-label="Retour à l’accueil">‹</button>
         <div>
           <h1 className="page-title">Gammes</h1>
-          <p className="t-small t-dim">Choisis la gamme, puis la position à travailler.</p>
+          <p className="t-small t-dim">Choisis la gamme, puis la position.</p>
         </div>
       </header>
 

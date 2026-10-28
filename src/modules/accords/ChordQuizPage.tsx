@@ -124,10 +124,12 @@ export function ChordQuizPage() {
         <span className="tag">{finished ? `${score} / ${total}` : `${Math.min(index + 1, total)} / ${total}`}</span>
       </header>
 
-      <p className="t-small span-12">
-        Six questions sur ce qu’un accord <strong>écrit</strong> veut dire. C’est le seul entraînement du module qui
-        ne demande ni instrument ni micro — et il ne vaut pas une preuve de jeu : il travaille la lecture, pas le geste.
-      </p>
+      <div className="lead-band span-12">
+        <p className="t-small">
+          Six questions sur ce qu’un accord <strong>écrit</strong> veut dire. C’est le seul entraînement du module qui
+          ne demande ni instrument ni micro — et il ne vaut pas une preuve de jeu : il travaille la lecture, pas le geste.
+        </p>
+      </div>
 
       <Panel className="span-7" accent="cyan" label={finished ? 'Résultat' : KIND_LABEL[q.kind]}>
         {!finished ? (
