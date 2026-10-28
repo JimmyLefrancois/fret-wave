@@ -125,20 +125,12 @@ export function HubPage() {
       </div>
 
       <div className="span-6 home-door">
-        <button type="button" className="door" onClick={() => navigate('tuner')}>
-          <span className="door-kicker">Accorder</span>
-          <span className="door-title">La guitare, corde par corde</span>
-          <span className="door-sub">Au micro ou en USB, avant de jouer : une guitare désaccordée fait échouer des notes justes.</span>
-        </button>
-      </div>
-
-      <div className="span-12 home-door">
         <button type="button" className="door" onClick={() => navigate('accords')}>
           <span className="door-kicker">Accords</span>
-          <span className="door-title">Les plaquer, les enchaîner, les jouer en progression</span>
+          <span className="door-title">Les plaquer, les enchaîner</span>
           <span className="door-sub">
             {chordCount.done} / {chordCount.total} appris · doigt par doigt, puis corde par corde au micro.
-            {chordNext ? ` Prochain : ${fmtChord(chordNext.chord, settings.chordNotation)} (palier ${chordNext.palier.id}).` : ''}
+            {chordNext ? ` Prochain : ${fmtChord(chordNext.chord, settings.chordNotation)}.` : ''}
           </span>
         </button>
       </div>
