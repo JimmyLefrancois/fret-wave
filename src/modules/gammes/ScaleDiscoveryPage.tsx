@@ -507,7 +507,7 @@ export function ScaleDiscoveryPage() {
       </div>
 
       <Panel
-        className="span-5"
+        className="span-12"
         accent="green"
         label="Sans instrument"
         right={quiz ? <span className="tag">{score.right}/{score.right + score.wrong}</span> : undefined}
@@ -532,7 +532,7 @@ export function ScaleDiscoveryPage() {
       </Panel>
 
       {neighbourId && neighbour && (
-        <Panel className="span-7" accent="cyan" label={`Comparer à ${neighbour.nameFr.toLowerCase()}`}>
+        <Panel className="span-12" accent="cyan" label={`Comparer à ${neighbour.nameFr.toLowerCase()}`}>
           <Switch
             checked={compare}
             onChange={setCompare}
@@ -585,7 +585,7 @@ export function ScaleDiscoveryPage() {
         </Panel>
       )}
 
-      <Panel className="span-5" accent="violet" label="Couleurs = fonctions">
+      <Panel className="span-12" accent="violet" label="Couleurs = fonctions">
         <div className="legend">
           {legend.map((it) => (
             <div key={it.fn} className="legend-item">
@@ -602,12 +602,12 @@ export function ScaleDiscoveryPage() {
       </Panel>
 
       {r.hint && (
-        <Panel className="span-7" accent="yellow" label="Ce que tu écoutes">
+        <Panel className="span-12" accent="yellow" label="Ce que tu écoutes">
           <p className="t-body">{r.hint}</p>
         </Panel>
       )}
 
-      <Panel className="span-5" label="Instrument">
+      <Panel className="span-12" label="Instrument">
         <InstrumentPicker />
       </Panel>
 
@@ -616,7 +616,9 @@ export function ScaleDiscoveryPage() {
         <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
       </div>
       <p className="t-small t-dim foot-note">
-        Niveaux 2 (trous) et 3 (rappel) ; le niveau 4 (improvisation) n’est pas encore ouvert. Cordes {tuningLabel} · notation {noteSummary(settings.noteNotation)}.
+        Niveaux 2 (trous) et 3 (rappel) ; le niveau 4 s’improvise :{' '}
+        <button type="button" className="linkish" onClick={() => navigate('impro')}>accompagnement et analyse des notes</button>.
+        Cordes {tuningLabel} · notation {noteSummary(settings.noteNotation)}.
         Son : {AudioEngine.get().settings.instrument === 'nylon' ? 'nylon' : 'électrique'} (CC0, crédits dans la page Audio).
       </p>
     </main>

@@ -803,8 +803,17 @@ canvas.pix-loading { display: block; image-rendering: pixelated; }
 .loading-actions { display: flex; gap: 12px; }
 .mixer { display: grid; gap: 4px; margin: 8px 0; }
 .mixer.compact { flex-basis: 100%; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 2px 16px; margin: 0; }
-.mix-row { display: grid; grid-template-columns: 150px minmax(80px, 1fr) 70px; align-items: center; gap: 8px; margin: 2px 0; }
-.mix-row input[type='range'] { width: 100%; }
+/* Une rangée de mixeur est un `<label class="inline mix-row">` : `label.inline` (spécificité 0,1,1)
+   l'emportait sur `.mix-row` (0,1,0) — la rangée restait un flex et le curseur gardait ses 140 px au
+   milieu d'une carte de 1 256 px (mesuré). D'où les sélecteurs à deux classes. */
+.mixer .mix-row {
+  display: grid;
+  grid-template-columns: 150px minmax(120px, 340px) 64px;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0;
+}
+.mixer .mix-row input[type='range'] { width: 100%; }
 .mix-name { color: var(--muted); }
 .mix-db { text-align: right; }
 table.kv { border-collapse: collapse; margin-top: 8px; font-size: 15px; width: 100%; table-layout: fixed; }

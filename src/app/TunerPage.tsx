@@ -196,7 +196,7 @@ export function TunerPage() {
         <span className={`tag ${listening ? 'tag-on' : ''}`}>{listening ? 'micro ouvert' : 'micro fermé'}</span>
       </header>
 
-      <Panel className="span-7" accent="cyan" label="Entrée" right={<span className="badge">{input.a4} Hz</span>}>
+      <Panel className="span-12" accent="cyan" label="Entrée" right={<span className="badge">{input.a4} Hz</span>}>
         <MicStrip
           engine={engine}
           notation={settings.noteNotation}
@@ -345,7 +345,7 @@ export function TunerPage() {
         <TunerList engine={engine} tuning={tuning} notation={settings.noteNotation} a4={input.a4} />
       </Panel>
 
-      <Panel className="span-5" accent="violet" label="Latence" right={<span className="badge">{latencyMs > 0 ? `${latencyMs} ms` : '—'}</span>}>
+      <Panel className="span-6" accent="violet" label="Latence" right={<span className="badge">{latencyMs > 0 ? `${latencyMs} ms` : '—'}</span>}>
         <p className="t-body">
           Le temps entre le moment où l’app joue un clic et celui où elle l’entend revenir. C’est cette valeur qui est
           retranchée du chronomètre quand tu joues sur la grille.

@@ -173,7 +173,7 @@ export function SettingsPage() {
         </div>
       </Panel>
 
-      <Panel className="span-5" label="Mouvement">
+      <Panel className="span-6" label="Mouvement">
         <Switch
           checked={settings.reduceMotion}
           onChange={(v) => setSettings({ reduceMotion: v })}
@@ -200,9 +200,9 @@ export function SettingsPage() {
         />
       </Panel>
 
-      <Panel className="span-7" accent="yellow" label="Son">
+      <Panel className="span-12" accent="yellow" label="Son">
         <InstrumentPicker />
-        <Mixer channels={['master', 'guitar', 'drone', 'metronome']} />
+        <Mixer channels={['master', 'guitar', 'backing', 'drone', 'metronome']} />
         <p className="t-small t-dim">
           Échantillons CC0 (FreePats nylon, Karoryfer électrique). Crédits et licences complets sur la page Audio.
         </p>
@@ -238,7 +238,7 @@ export function SettingsPage() {
         </div>
       </Panel>
 
-      <Panel className="span-6" accent="orange" label="Données locales">
+      <Panel className="span-12" accent="orange" label="Données locales">
         <p className="t-small">
           Ta progression et ta gamme en cours, conservées dans ce navigateur. Rien n’est envoyé sur un serveur.
         </p>

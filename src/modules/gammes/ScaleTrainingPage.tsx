@@ -824,7 +824,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           </p>
         </Panel>
       ) : (
-        <Panel className="span-7" accent="violet" label="Ce que cet exercice mesure">
+        <Panel className="span-12" accent="violet" label="Ce que cet exercice mesure">
           <p className="t-body">
             Les trous justes <strong>au premier essai</strong>. Une case trouvée du deuxième coup n’est pas « sue »,
             elle est reconnue. Le score d’aujourd’hui déplace la case dans la file de révision, il ne la certifie pas.
