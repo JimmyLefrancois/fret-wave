@@ -58,7 +58,7 @@ describe('session de révision mélangée', () => {
     // les cartes dues ouvrent la file, dans l'ordre du planificateur
     due.forEach((c, i) => expect(q[i]!.nodeId).toBe(c.nodeId));
     expect(q[0]!.reason).toContain('due');
-    expect(q.every((t) => t.mode === 'practice' && t.segment === 'strings2')).toBe(true);
+    expect(q.every((t) => t.mode === 'practice' && t.segment === 'updown')).toBe(true);
     // une carte à boîte ≥ 3 se révise de mémoire (N3), une boîte 1 avec les notes visibles (N2)
     const pent = q.find((t) => t.nodeId === 'gam:lecture:pentatonic-minor:boxes:0')!;
     const box = cardsFrom(list).find((c) => c.nodeId === pent.nodeId)!.box;
@@ -109,7 +109,7 @@ describe('session de révision mélangée', () => {
     expect(buildReviewQueue(list, NOW, 2).length).toBe(2);
   });
 
-  it('rappel à froid (défaut) : une carte due se révise en N3 sur la position entière', () => {
+  it('rappel à froid (défaut) : une carte due se révise en N3 sur la position entière, en aller-retour', () => {
     const list = [
       ionian(at(2), { correct: 4, total: 5 }),           // boîte 1, due
       attempt({ ts: at(3), correct: 5, total: 5 }),      // due
@@ -122,12 +122,12 @@ describe('session de révision mélangée', () => {
       if (due.includes(t.nodeId)) {
         expect(t.mode).toBe('cold');
         expect(t.level).toBe(3);
-        expect(t.segment).toBe('all');
+        expect(t.segment).toBe('updown');
         expect(t.reason).toContain('rappel à froid');
       } else {
         expect(t.mode).toBe('practice');
         expect(t.level).toBe(2);
-        expect(t.segment).toBe('strings2');
+        expect(t.segment).toBe('updown');
       }
     }
   });

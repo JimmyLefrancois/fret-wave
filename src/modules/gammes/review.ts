@@ -10,7 +10,7 @@
  * Deux formes voisines ne se suivent pas quand une alternative existe : c'est tout l'intérêt.
  *
  * **Rappel à froid** (lot « mémoire et vitesse ») : une carte **due** se révise d'abord en N3 sur la
- * position entière, tablature vide, sans revoir la forme. Un N2 se devine en comptant les cases depuis
+ * position entière en aller-retour, tablature vide, sans revoir la forme. Un N2 se devine en comptant les cases depuis
  * une note voisine : ce n'est pas un rappel. Seul cet essai à froid compte (voir `coldReview.ts`).
  */
 import { cardsFrom, dueCards, summarizeNodes, type Attempt, type NodeStats } from '../../core/progress';
@@ -36,8 +36,8 @@ export interface ReviewTarget {
 /** Plafond par défaut : 5 formes, assez pour une session de 10 minutes. */
 export const REVIEW_MAX = 5;
 
-/** Découpage d'une révision ordinaire (inchangé depuis la phase 2 : le défaut de l'écran). */
-export const PRACTICE_SEGMENT: Segment = 'strings2';
+/** Découpage d'une révision ordinaire : le défaut de l'écran, la position entière en aller-retour. */
+export const PRACTICE_SEGMENT: Segment = 'updown';
 
 export interface ReviewOptions {
   /** Rappel à froid des cartes dues (réglage, activé par défaut). */
@@ -119,7 +119,7 @@ export function buildReviewQueue(
     if (!node || !last) continue;
     // la forme a déjà été travaillée (sinon pas de carte) : à froid, de mémoire, sur toute la position
     const t = cold
-      ? target(node, last, 3, `due · boîte ${card.box} sur 6 · rappel à froid`, 'cold', 'all')
+      ? target(node, last, 3, `due · boîte ${card.box} sur 6 · rappel à froid`, 'cold', 'updown')
       : target(node, last, levelFor(card.box), `due · boîte ${card.box} sur 6`);
     if (!t) continue;
     seen.add(card.nodeId);

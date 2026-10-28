@@ -100,7 +100,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
 
   const [level, setLevel] = useState<AttemptLevel>(2);
-  const [segment, setSegment] = useState<Segment>('strings2');
+  // par défaut, la position entière en aller-retour : c'est la gamme qu'on joue, pas un fragment
+  const [segment, setSegment] = useState<Segment>('updown');
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
   const [marks, setMarks] = useState<Record<string, HoleMark>>({});
   const [errors, setErrors] = useState<Record<string, number>>({});
