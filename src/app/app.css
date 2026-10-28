@@ -1463,11 +1463,12 @@ table.kv td:first-child { color: var(--muted); }
   background: var(--surface);
   border: 2px solid var(--line-soft);
 }
-.step-goal-text { margin: 0; flex: 1 1 260px; min-width: 0; }
+.step-goal-text { margin: 0; flex: 1 1 0; min-width: 0; }
 @media (min-width: 520px) {
   .step-box-toggle { margin-left: auto; }
 }
 .step-box-toggle {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1736,8 +1737,8 @@ table.kv td:first-child { color: var(--muted); }
   background: linear-gradient(
     180deg,
     rgba(var(--veil-rgb), 0.97) 0%,
-    rgba(var(--veil-rgb), 0.9) 55%,
-    rgba(var(--veil-rgb), 0.45) 80%,
+    rgba(var(--veil-rgb), 0.95) 70%,
+    rgba(var(--veil-rgb), 0.6) 88%,
     rgba(var(--veil-rgb), 0) 100%
   );
   pointer-events: none;
@@ -2090,3 +2091,35 @@ table.kv td:first-child { color: var(--muted); }
   .pluck-strings li { grid-template-columns: minmax(0, 1fr) 60px 66px; gap: 6px; }
   .pluck-pct { font-size: 11px; }
 }
+
+/* --- bande d'introduction (pages qui n'ont pas d'objectif d'étape) ---------------------------------
+   Une phrase seule écrite à même le décor passe sous le soleil de l'affiche et les étoiles : elle a le
+   même fond que les panneaux, comme la bande d'objectif des étapes (D66). --------------------------- */
+.lead-band {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 2px solid var(--line-soft);
+}
+.lead-band p { margin: 0; }
+
+/* --- rangées de boutons sur téléphone ---------------------------------------------------------------
+   Cinq boutons de largeurs différentes empilés (156, 250, 218, 272, 172 px mesurés sur l'étape
+   « Plaquer ») font un escalier : sur téléphone ils s'apparient deux par deux à largeur égale, et un
+   bouton seul occupe la ligne. Les pastilles (chips) gardent leur largeur de texte. ------------------ */
+@media (max-width: 520px) {
+  .row { gap: 8px; }
+  .row > .btn { flex: 1 1 44%; }
+  .row > .btn:only-child { flex: 1 1 100%; }
+}
+
+/* Deux boutons côte à côte gardent la même hauteur, même si un libellé tient sur deux lignes
+   (« S'EXERCER AU MICRO » à côté de « DÉCOUVRIR » mesurait 12 px de moins). */
+.row { align-items: stretch; }
+.row > .chip,
+.row > .tag,
+.row > .switch { align-self: center; }
+
+/* La tablature du QCM est dans un conteneur intermédiaire (`.quiz-tab`) : elle n'héritait donc pas des
+   marges négatives de `.panel > .tabview` et débordait du panneau de 28 px, puis de la fenêtre de 8 px
+   dès qu'elle prenait sa marge gauche. Elle prend la largeur du panneau, comme les autres. */
+.quiz-tab { margin-inline: -14px; }

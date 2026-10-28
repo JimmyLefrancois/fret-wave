@@ -103,7 +103,9 @@ export function drawScore(s: Surface, layout: ScoreLayout, theme: TabTheme): voi
       if (b.kind === 'thick') s.fillRect(b.x + 2, top, 2, bottom - top + 1, theme.barLine);
     }
     for (const t of sys.texts) drawText(s, t.x, t.y, t.text, TEXT_COLOR[t.role](theme));
-    if (sys.timeSig) {
+    // Pas de signature rythmique en mode débutant : sans hampes ni ligatures, un « 4 / 4 » empilé au
+    // début de la portée se lit comme un doigté et se confond avec la colonne des noms de cordes.
+    if (sys.timeSig && !layout.options.hideRhythm) {
       // Signature rythmique **empilée** (4 au-dessus de 4), comme sur une portée : un chiffre de large,
       // donc elle ne mord jamais sur la première pastille d'un accord. Petite, en tête de portée.
       const num = String(sys.timeSig.num);

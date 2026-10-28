@@ -111,9 +111,6 @@ export function HubPage() {
           <PixelButton variant="primary" onClick={() => navigate('scale')}>▶ Découvrir</PixelButton>
           <PixelButton onClick={() => navigate('training')}>S’exercer au micro</PixelButton>
         </div>
-        <p className="t-small t-dim">
-          Découvrir : la position s’affiche et s’écoute. S’exercer : le micro vérifie chaque note.
-        </p>
       </Panel>
 
       <div className="span-6 home-door">

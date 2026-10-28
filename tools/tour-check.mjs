@@ -86,8 +86,18 @@ async function geometry(page) {
       // (une tablature déborde volontairement le padding du panneau sur téléphone : la portée occupe
       // le panneau, le texte garde sa marge — on mesure ce que la feuille de style demande vraiment)
       const ecs = getComputedStyle(el);
-      const ml = parseFloat(ecs.marginLeft) || 0;
-      const mr = parseFloat(ecs.marginRight) || 0;
+      let ml = parseFloat(ecs.marginLeft) || 0;
+      let mr = parseFloat(ecs.marginRight) || 0;
+      // Les marges négatives peuvent être portées par un **conteneur intermédiaire** et non par l'élément
+      // lui-même (la tablature du QCM est dans `.quiz-tab`, qui prend la largeur du panneau). On additionne
+      // donc celles de tous les ancêtres jusqu'au panneau : mesurer le seul élément le déclarait trop large.
+      for (let anc = el.parentElement; anc && anc !== parent; anc = anc.parentElement) {
+        const acs = getComputedStyle(anc);
+        const al = parseFloat(acs.marginLeft) || 0;
+        const ar = parseFloat(acs.marginRight) || 0;
+        if (al < 0) ml += al;
+        if (ar < 0) mr += ar;
+      }
       const target = base ? { x: Math.round(base.x + ml), w: Math.round(base.w - ml - mr) } : null;
       if (!target) continue;
       const b = box(el);

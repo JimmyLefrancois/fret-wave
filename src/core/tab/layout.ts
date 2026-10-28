@@ -59,10 +59,17 @@ export interface LayoutOptions {
   emphasizeChordTones?: boolean;
   /** Trou actuellement désigné dans un exercice de mémorisation (`${columnIndex}:${string}`). */
   activeHoleKey?: string;
+  /**
+   * Marge gauche en pixels logiques, avant les noms de cordes. La tablature déborde volontairement de son
+   * panneau (marges négatives = son rembourrage, pour que la portée occupe toute la largeur) : sans cette
+   * marge, les noms de cordes et les doigtés se posaient sur la bordure du panneau et sur les pastilles
+   * de la première colonne (constaté à 390 px).
+   */
+  padLeft?: number;
 }
 
 export const DEFAULT_LAYOUT: LayoutOptions = {
-  mode: 'wrap', maxWidth: 190, notes: 'fr', chords: 'en', annotation: 'none', stacks: 'change',
+  mode: 'wrap', maxWidth: 190, notes: 'fr', chords: 'en', annotation: 'none', stacks: 'change', padLeft: 4,
 };
 
 export type TextRole = 'chord' | 'roman' | 'label' | 'annotation' | 'string' | 'tempo';
@@ -356,7 +363,8 @@ export function layoutScore(score: TabScore, options: LayoutOptions = DEFAULT_LA
   // --- colonne d'étiquettes (noms des cordes)
   const labels = stringLabels(score, o.notes);
   const labelW = Math.max(...labels.map(textWidth));
-  const x0 = 1 + labelW + 2;
+  const padLeft = o.padLeft ?? 4;
+  const x0 = padLeft + 1 + labelW + 2;
 
   // --- répartition des mesures en lignes
   const maxW = o.maxWidth ?? 190;
@@ -408,7 +416,7 @@ export function layoutScore(score: TabScore, options: LayoutOptions = DEFAULT_LA
     };
 
     // étiquettes de cordes
-    labels.forEach((text, row) => sys.texts.push({ x: 1, y: stringYs[row]! - 3, text, role: 'string' }));
+    labels.forEach((text, row) => sys.texts.push({ x: padLeft + 1, y: stringYs[row]! - 3, text, role: 'string' }));
 
     let mx = x0;
     let lastChord: string | undefined;

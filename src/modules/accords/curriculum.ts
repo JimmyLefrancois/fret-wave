@@ -11,6 +11,15 @@
  */
 import { VOICINGS } from '../../data/voicings';
 
+/**
+ * Les textes de palier sont écrits comme une **suite** (« le premier accord : … ») : ils suivent le nom
+ * du palier dans une phrase (« palier P1 · Un ou deux doigts — le premier accord… »). Affichés seuls,
+ * ils prennent une majuscule — sinon l'écran montre une phrase qui commence par « le ».
+ */
+export function whySentence(why: string): string {
+  return why.charAt(0).toUpperCase() + why.slice(1);
+}
+
 export interface ChordEntry {
   /** Identifiant d'un voicing de `src/data/voicings.ts`. */
   voicingId: string;

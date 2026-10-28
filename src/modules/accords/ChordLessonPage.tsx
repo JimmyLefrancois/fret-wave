@@ -48,7 +48,7 @@ import {
   appendAttempt, loadJournal, newAttemptId, nodeIdOf, progressStore, readAttempts, summarizeNodes,
   type Attempt,
 } from '../../core/progress';
-import { entryOf, palierOfVoicing } from './curriculum';
+import { entryOf, palierOfVoicing, whySentence } from './curriculum';
 import {
   LESSON_STEPS, MAX_TRIES, adviceFor, applyVerdict, arpeggioCheck, checkSummary,
   judgeString, mutedAdvice, newCheck, type ArpeggioCheck, type LessonStep, type StringOutcome,
@@ -671,7 +671,7 @@ export function ChordLessonPage() {
                       ? 'La tierce majeure (3) rend l’accord majeur ; la quinte (5) est la note la plus stable après la fondamentale.'
                       : `Formule : ${info.degrees.map(fmtDegree).join(' ')} — ${info.quality.nameFr}.`}
                 </p>
-                {entry && <p className="t-small t-dim">{entry.why}</p>}
+                {entry && <p className="t-small t-dim">{whySentence(entry.why)}</p>}
                 <p className="t-small t-dim">
                   {v.frets.filter((f) => f !== null).length} cordes jouées
                   {v.frets.some((f) => f === 0) ? `, dont ${v.frets.filter((f) => f === 0).length} à vide` : ''}
@@ -965,7 +965,7 @@ export function ChordLessonPage() {
                     variant="ghost"
                     onClick={() => { setChordSelection({ voicingId: next.voicingId }); }}
                   >
-                    Ouvrir {fmtChord(next.chord, settings.chordNotation)}
+                    Apprendre {fmtChord(next.chord, settings.chordNotation)}
                   </PixelButton>
                   <PixelButton variant="quiet" onClick={() => navigate('accords')}>Tout le parcours</PixelButton>
                 </div>

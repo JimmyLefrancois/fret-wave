@@ -124,10 +124,13 @@ export function TabView(props: TabViewProps) {
   const k = Math.max(1, Math.round(S * dpr));
   const cssPerLogical = k / dpr;
   const viewLogical = Math.max(60, Math.floor(box.w / cssPerLogical));
+  /** Marge gauche des noms de cordes, en pixels logiques : elle fait partie du budget de largeur. */
+  const PAD_LEFT = 4;
 
   const layout: ScoreLayout = useMemo(
     () => layoutScore(score, {
-      mode, maxWidth: viewLogical, notes, chords, annotation, stacks: 'change',
+      mode, maxWidth: Math.max(60, viewLogical - PAD_LEFT), padLeft: PAD_LEFT,
+      notes, chords, annotation, stacks: 'change',
       emphasizeChordTones, hideRhythm,
       ...(highlightFn ? { highlightFn } : {}),
       ...(activeHoleKey ? { activeHoleKey } : {}),

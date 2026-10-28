@@ -21,7 +21,7 @@ import { type AnnotationKind, type Direction, defaultChordForScale, positionToSc
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
 import { AudioEngine } from '../../core/audio/engine';
 import { appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts } from '../../core/progress';
-import { degreeName, fmtDegree, legendFor, positionLabel, positionLabelPlain, resolveScale } from './resolve';
+import { degreeName, fmtDegree, legendFor, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
 import {
   COMPARISON_LABEL, counterpartPosition, differingDegrees, markDegrees, neighbourDef, neighbourMode, neighbourPositions,
@@ -94,7 +94,7 @@ export function ScaleDiscoveryPage() {
         tempo,
         fingers: true,
         markChordTones: true,
-        labelText: positionLabel(shownPos, settings.noteNotation),
+        labelText: positionLabelPlain(shownPos, settings.noteNotation),
         ...(r.chord ? { chord: r.chord } : {}),
       });
     } catch {
@@ -304,6 +304,9 @@ export function ScaleDiscoveryPage() {
       </Panel>
 
       <Panel className="span-5 panel-fill" accent="violet" label="Lecture">
+        {/* Une phrase sur la gamme elle-même (« mêmes notes que Do majeur ») : elle ouvre le panneau,
+            au lieu de traîner en bas après les options, où elle n'avait ni sujet ni étiquette. */}
+        {r.parent && <p className="t-small t-dim">{r.parent}</p>}
         <div className="field">
           <span className="t-label">Sens</span>
           <Segmented
@@ -351,11 +354,6 @@ export function ScaleDiscoveryPage() {
           )}
         </details>
         {status && <p className="t-small t-dim status">{status}</p>}
-        {r.parent && (
-          <div className="panel-foot">
-            <span className="t-small t-dim">{r.parent}</span>
-          </div>
-        )}
       </Panel>
 
       {quiz && (
@@ -512,7 +510,6 @@ export function ScaleDiscoveryPage() {
       {r.hint && (
         <Panel className="span-7" accent="yellow" label="Ce que tu écoutes">
           <p className="t-body">{r.hint}</p>
-          {r.parent && <p className="t-small t-dim">{r.parent}</p>}
         </Panel>
       )}
 

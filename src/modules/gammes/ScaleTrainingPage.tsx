@@ -36,7 +36,7 @@ import {
   appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, streak, summarizeDay, xpForAttempt, xpSummary,
   type Attempt, type AttemptLevel,
 } from '../../core/progress';
-import { degreeName, fmtDegree, positionLabel, positionLabelPlain, resolveScale } from './resolve';
+import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
 import { Celebration } from './Celebration';
 import {
@@ -126,7 +126,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       return positionToScore(plan.position, r.tuning, {
         direction: plan.direction,
         fingers: true,
-        labelText: positionLabel(r.position, settings.noteNotation),
+        labelText: positionLabelPlain(r.position, settings.noteNotation),
         ...(r.chord ? { chord: r.chord } : {}),
       });
     } catch {
@@ -842,7 +842,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       {result && celebrate && result.stars > 0 && (
         <Celebration
           title={r.title}
-          position={positionLabel(r.position, settings.noteNotation)}
+          position={positionLabelPlain(r.position, settings.noteNotation)}
           stars={result.stars}
           accuracy={result.accuracy}
           seconds={result.seconds}

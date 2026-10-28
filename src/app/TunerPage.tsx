@@ -224,7 +224,7 @@ export function TunerPage() {
         {engine?.warning && <p className="t-small calib-warn">{engine.warning}</p>}
 
         <details className="adv-settings">
-          <summary className="t-label">Réglages d’entrée · source, seuil, tolérance, La</summary>
+          <summary className="t-label">Réglages d’entrée</summary>
         <div className="field">
           <span className="t-label">Source</span>
           <Segmented<InputSource>

@@ -14,7 +14,7 @@ import { Bar, Chip, Panel, PixelButton } from '../../app/ui';
 import { fmtChord, fmtNote } from '../../core/theory';
 import { interpretChord } from '../../core/theory/chords';
 import { loadJournal, progressStore, summarizeNodes } from '../../core/progress';
-import { CURRICULUM } from './curriculum';
+import { CURRICULUM, whySentence } from './curriculum';
 import { chordCards, chordProgress, learnedChordIds, startedChordIds, palierStates, nextChord } from './recommend';
 import { CYCLE_LIMITS } from './lesson';
 
@@ -58,10 +58,14 @@ export function ChordsPage() {
         <span className="tag tag-on">P1 → P7</span>
       </header>
 
-      <p className="t-small span-12">
-        Un accord s’apprend doigt par doigt, puis corde par corde, puis <strong>en changement</strong>. Chaque
-        corde est vérifiée au micro — c’est ce qu’un micro peut vérifier honnêtement.
-      </p>
+      {/* Bande posée sur le décor : une phrase seule à même le fond passait sous le soleil de
+          l'affiche et devenait illisible (même défaut que l'objectif des étapes). */}
+      <div className="lead-band span-12">
+        <p className="t-small">
+          Un accord s’apprend doigt par doigt, puis corde par corde, puis <strong>en changement</strong>. Chaque
+          corde est vérifiée au micro — c’est ce qu’un micro peut vérifier honnêtement.
+        </p>
+      </div>
 
       <Panel
         className="span-7"
@@ -71,15 +75,16 @@ export function ChordsPage() {
       >
         {next ? (
           <>
+            {/* Trois informations, trois lignes distinctes : quelle forme, pourquoi celle-là, et ce
+                qu'elle demande. Les fondre dans une phrase (« palier P1 · Un ou deux doigts — le premier
+                accord : … ») donnait un pavé de cinq lignes où plus rien ne se distinguait. */}
             <h3 className="card-title">{fmtChord(next.chord, settings.chordNotation)}</h3>
-            <p className="t-small">
-              palier {next.palier.id} · {next.palier.title} — {next.why}
-            </p>
-            <p className="t-small t-dim">Pourquoi maintenant : {next.reason}.</p>
+            <p className="t-small"><strong>{next.palier.id}</strong> · {next.palier.title}</p>
+            <p className="t-small">{whySentence(next.why)}</p>
             <div className="row">
               <PixelButton variant="primary" onClick={() => open(next.voicingId)}>Apprendre</PixelButton>
               <PixelButton variant="quiet" onClick={() => setBranch((b) => !b)}>
-                {branch ? 'Masquer la branche rock' : 'Voir aussi les power chords'}
+                {branch ? 'Masquer les power chords' : 'Power chords'}
               </PixelButton>
             </div>
           </>
@@ -90,7 +95,7 @@ export function ChordsPage() {
           </>
         )}
         <Bar value={progress.done} max={Math.max(1, progress.total)} accent="cyan" />
-        <p className="t-small t-dim">{progress.done} accord{progress.done > 1 ? 's' : ''} appris sur {progress.total} — les sept étapes du cycle sont là. Les barrés mobiles et les doigtés avancés arrivent plus tard.</p>
+        <p className="t-small t-dim">Les sept étapes du cycle sont là. Les barrés mobiles et les doigtés avancés arrivent plus tard.</p>
         <p className="t-small t-dim">
           « Appris » = 3 vérifications propres en mode arpège sur au moins 2 jours différents <strong>et</strong> une
           pose à froid réussie (étape Fixer). Un plaqué écouté compte comme une vérification ; un plaqué seulement déclaré, non.
@@ -157,7 +162,7 @@ export function ChordsPage() {
                         {info.notes.map((n) => fmtNote(n, settings.noteNotation)).join(' – ')}
                         {card.missing.length > 0 ? ` · d’abord ${card.missing.map((m) => fmtChord(m, settings.chordNotation)).join(', ')}` : ''}
                       </p>
-                      <p className="t-small">{card.entry.why}</p>
+                      <p className="t-small">{whySentence(card.entry.why)}</p>
                     </div>
                     <div className="chord-side">
                       <span className={`tag ${card.status === 'learned' ? 'tag-on' : ''}`}>{STATUS_LABEL[card.status]}</span>

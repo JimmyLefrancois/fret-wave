@@ -96,27 +96,34 @@ export function scaleTitle(def: ScaleDef, tonic: NoteName, notation: NoteNotatio
   return `${n} ${def.nameFr.toLowerCase()}`;
 }
 
+/**
+ * Les libellés de parenté sont écrits comme des **suites** (« mêmes notes que Do majeur ») : ils
+ * s'affichaient seuls, en bas d'un panneau, commençant par une minuscule — une phrase cassée. On les
+ * rend autonomes en les capitalisant à la source, puisqu'ils ne servent que sur leur propre ligne.
+ */
+const asSentence = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+
 function parentLabel(def: ScaleDef, tonic: NoteName, notation: NoteNotation): string | null {
   const n = (x: NoteName) => fmtNote(x, notation);
   if (def.family === 'diatonic') {
     const parent = parentMajorTonic(def, tonic);
     if (!parent) return null;
     const rotation = def.parent?.rotation ?? 0;
-    if (rotation === 0) return `tonalité : ${n(parent)} majeur`;
+    if (rotation === 0) return asSentence(`tonalité : ${n(parent)} majeur`);
     const playable = MAJOR_KEYS.includes(parent);
     return playable
-      ? `mode parent : ${n(parent)} majeur (${rotation + 1}${rotation === 1 ? 'er' : 'e'} degré)`
-      : `mode parent : ${n(parent)} majeur — 7 altérations ou double altération : couleur à écouter, pas une tonalité jouable`;
+      ? asSentence(`mode parent : ${n(parent)} majeur (${rotation + 1}${rotation === 1 ? 'er' : 'e'} degré`) + ')'
+      : asSentence(`mode parent : ${n(parent)} majeur — 7 altérations ou double altération : couleur à écouter, pas une tonalité jouable`);
   }
   if (def.id === 'pentatonic-minor') {
-    return `mêmes notes que ${n(simpleSpellings((pitchClassOf(tonic) + 3) % 12)[0]!)} majeur`;
+    return asSentence(`mêmes notes que ${n(simpleSpellings((pitchClassOf(tonic) + 3) % 12)[0]!)} majeur`);
   }
   if (def.id === 'pentatonic-major') {
-    return `mêmes notes que ${n(simpleSpellings((pitchClassOf(tonic) + 9) % 12)[0]!)} mineure`;
+    return asSentence(`mêmes notes que ${n(simpleSpellings((pitchClassOf(tonic) + 9) % 12)[0]!)} mineure`);
   }
   if (def.parent && (def.family === 'harmonic-minor' || def.family === 'melodic-minor')) {
     const parentDef = getScale(def.parent.scaleId);
-    return `${def.parent.rotation + 1}e mode de la ${parentDef.nameFr.toLowerCase()}`;
+    return asSentence(`${def.parent.rotation + 1}e mode de la ${parentDef.nameFr.toLowerCase()}`);
   }
   if (def.family === 'symmetric') {
     const t = distinctTranspositions(def);
