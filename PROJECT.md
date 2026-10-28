@@ -2,7 +2,7 @@
 
 **Statut : phases 0, 1a, 1b, 1c, 1d, 2, 3, 4a et 4b terminées, **refonte d'interface terminée et mergée sur `master`**, déploiement GitHub Pages câblé, **phase 5 : écoute polyphonique livrée** (accord plaqué écouté, matrice publiée) · 4b = module Accords, partie B : les **sept étapes** du cycle du brief sont là (Découvrir → Construire → Vérifier → Plaquer → **Fixer** (pose à froid chronométrée) → **Enchaîner** (changement mesuré entre deux notes repères) → **Intégrer** (progression + strum)), plus le **QCM sans matériel**, l'**accordage guidé corde par corde** et les paliers **P5-P7** (couleurs, slash, Fa et Si m) · « appris » exige enfin une pose à froid · **tour complet des pages** (19 écrans, largeurs et alignements mesurés) · D1-D69 tranchées (D13 écartée, D7 remplacée par D14) · aucune décision en attente · **584 tests (583 verts, 1 ignoré)**.**
 Documents liés : `BRIEF.md` (cahier des charges), `MUSIC_DESIGN.md` (conventions musicales, curriculum, avis de prof).
-**Repères** : *État exact* juste en dessous · **hypothèses** §8 (1-88) et §8 bis (ce qui a changé) · **plan des phases** §9 · **décisions** §10 (D1-D69) · **prochaine étape** §12. Pages de l'app (hash) : `#/hub`, `#/gammes`, `#/gammes/jouer`, `#/gammes/entrainement`, `#/gammes/revision`, `#/accords`, `#/accords/lecon`, `#/accords/qcm`, `#/accordeur`, `#/reglages`, plus les outils de contrôle `#/tab`, `#/audio`, `#/theorie` (la page « Son » a quitté la barre de navigation en phase 3 : elle reste joignable depuis les réglages). `npm run dev` → http://localhost:5173/ (un seul serveur à la fois : deux instances Vite sur le même port servent une version périmée du CSS).
+**Repères** : *État exact* juste en dessous · **hypothèses** §8 (1-88) et §8 bis (ce qui a changé) · **plan des phases** §9 · **propositions pédagogiques placées** §9.1 (phase 3) et §9.2 (phase 5) · **décisions** §10 (D1-D69) · **prochaine étape** §12. Pages de l'app (hash) : `#/hub`, `#/gammes`, `#/gammes/jouer`, `#/gammes/entrainement`, `#/gammes/revision`, `#/accords`, `#/accords/lecon`, `#/accords/qcm`, `#/accordeur`, `#/reglages`, plus les outils de contrôle `#/tab`, `#/audio`, `#/theorie` (la page « Son » a quitté la barre de navigation en phase 3 : elle reste joignable depuis les réglages). `npm run dev` → http://localhost:5173/ (un seul serveur à la fois : deux instances Vite sur le même port servent une version périmée du CSS).
 Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** décision qui t'appartient · **[RISQUE]** voir section 7.
 
 ---
@@ -1039,7 +1039,7 @@ Pile dessinée **au changement d'accord** (répétition « simile »), flèches 
 | **4b** ✔ `8cda4a8` | **Fixer** (pose à froid chronométrée), **Enchaîner** (changements mesurés entre notes repères), **Intégrer** (8 progressions + strum + métronome) · **QCM** sans matériel (3 types) · **accordage guidé** corde par corde (P4 de la phase 3) · paliers **P5-P7** | Cycle des 7 étapes complet **dans l'écran** ; Em enchaîné à Am avec un temps de changement mesuré (1 749 ms au micro simulé) ; QCM jouable sans guitare ; « appris » exigeant la pose à froid — **atteint** (558 tests, mesures dans « État exact ») |
 | **Refonte UI** ✔ `532b52f`…`78b96e2` | Navigation simplifiée (accueil à deux portes, Gammes en une liste, tablature en tête d'exercice), thème clair « Aube », panneau de réussite, dix accomplissements, comètes, **rythme vertical unifié** (D64), **aération du contenu** (D66), **déploiement GitHub Pages** | Balayage 0 problème sur 19 écrans aux deux tailles, écarts sur **cinq valeurs** (0/4/8/12/20), thème clair au contraste mesuré, `dist` vérifié servi sous `/fret-wave/` — **atteint** (567 tests) |
 | **5** ✔ (livré, sauf les deux points ci-dessous) | **Analyse polyphonique** (`core/input/poly.ts`), **capture** (`capture.ts`), étapes **Plaquer** et journal (`pluck`) vérifiées · **+ P5 (phase 3, §9.1)** reste à faire | Matrice de confusion **publiée** (11 accords × 7 conditions : 91 %, 224/224 cordes) et **accord plaqué réellement écouté** dans le navigateur (faux micro sur échantillons de la banque : 6/6 à 80 %, « Sol♯ à la place de Sol », corde étouffée vue) — **atteint**. **Restent** : validation sur **vraie guitare / interface USB**, timing d'attaque **contre la grille** (l'onset est mesuré, la comparaison au clic n'est pas faite), et l'étape **Intégrer** (progression à quatre accords) toujours déclarée |
-| 6 | Défi Accords, strumming, familles d'accords, harmonisation | Setlist complète |
+| 6 | Défi Accords, strumming, familles d'accords, harmonisation · **Q1, Q2, Q7** (§9.2) | Setlist complète |
 | 7 | Improvisation + backing tracks + classification · **+ P3 (phase 3, §9.1)** | Synthwave + Lo-fi jouables |
 | 8 | Thèmes, ear training, dashboard, badges, PWA, polish | — |
 À chaque phase : l'app tourne (`npm run dev`), code typé, tests unitaires ; captures d'écran ; bilan en fin de phase + 3 à 5 propositions pédagogiques.
@@ -1059,6 +1059,20 @@ Les cinq propositions du bilan de la phase 3 (`MUSIC_DESIGN.md` §14.3) sont **p
 Deux conséquences à garder en tête quand ces phases s'ouvriront : **P1 et P4 ne sont pas des gadgets de confort** — ce sont les deux conditions pour que la validation audio du module Accords soit juste (savoir viser une case, partir d'une guitare accordée) ; et **P2 est une correction de contresens**, pas une amélioration : aujourd'hui l'app envoie vers l'accordeur un élève qui doit simplement presser plus près de la frette.
 
 ---
+
+### 9.2 Propositions de la phase 5 → phase où elles atterrissent
+
+Les cinq propositions du bilan de la phase 5 sont **placées**, pas notées. Trois d'entre elles étaient déjà au plan (`MUSIC_DESIGN` §16.3, Q1, Q2, Q5) : la phase 5 les a rendues **possibles** sans les livrer, et la colonne « phase » dit maintenant précisément où elles tombent. Deux sont nouvelles (Q6, Q7).
+
+| # | Proposition | Phase | État réel / dépendance |
+|---|---|---|---|
+| **Q1** | **Diagnostic par corde dans le temps** — « sur Am, c'est la corde de Sol que tu étouffes, 7 fois sur 10 », agrégé depuis `missedStrings` | **fin de la 5** | **Donnée prête** : `missedStrings` est journalisé par l'arpège, la pose à froid et — depuis D69 — par le plaqué écouté. Il ne manque que l'écran (un bloc sur la page Accords). Effort très faible, impact fort |
+| **Q2** | **QCM d'oreille** — les mêmes questions, mais **entendues** au lieu d'être lues | **6** | **Moteur prêt** : `scoreHypothesis` compare des accords voisins, `chordToScore` sait jouer la question. Le QCM existant (`quiz.ts`) change de source, pas de logique |
+| **Q5** | **Métronome dans l'enchaînement** — mesurer l'attaque **contre le clic**, pas seulement entre deux repères | **fin de la 5** | **Mesure prête** : `onsetMs` existe dans `poly.ts`. Il reste à le rapporter à la grille du métronome et à l'afficher (« tu joues 38 ms avant le clic ») : de l'affichage, plus de l'analyse |
+| **Q6** | **La confiance expliquée, pas seulement affichée** — une ligne sous les six barres : « la barre dit *ce que j'entends*, pas *ce que tu vaux* » | **fin de la 5** | **Constat mesuré** : un accord à 5 cordes sur 6 affiche **31 %** de confiance globale, parce qu'elle suit la corde la plus faible. Le chiffre est juste, la phrase qui l'accompagne manque. Texte seul |
+| **Q7** | **Le plaqué comme test de sortie de palier** — « appris » exigerait aussi un plaqué écouté à ≥ 80 %, en **remplacement** d'un des trois arpèges | **6**, **après** la validation sur instrument réel | **Bloqué volontairement** : les 91 % de la matrice sont un plafond optimiste (synthèse, échantillons propres). Durcir un seuil d'apprentissage sur ces chiffres bloquerait des élèves sur une mesure qui n'a pas encore vu une vraie guitare |
+
+**Ce que la phase 5 ne déplace pas** : les propositions P1-P5 du §9.1 restent où elles sont (P1 et P2 faites en 4a, P3 en phase 7, P4 faite en 4b, P5 en fin de phase 5 = Q5).
 
 ## 10. Décisions
 
@@ -1187,7 +1201,9 @@ Deux conséquences à garder en tête quand ces phases s'ouvriront : **P1 et P4 
 2. **Comparer l'attaque mesurée aux clics du métronome** (`onsetMs` existe, la comparaison non) → P5 de la phase 3, « tu joues 40 ms avant le clic ».
 3. **Segmenter et analyser les quatre strums d'une progression** pour rendre l'étape « Intégrer » vérifiable.
 
-**La phase 6 ensuite** — défi Accords, strumming, familles d'accords, harmonisation : le moteur d'écoute est là, il manque le jeu.
+**Les propositions du bilan sont placées en §9.2** : deux d'entre elles (Q1, Q5) se font en **fin de la phase 5** parce que la donnée existe déjà, une troisième (Q6) est un texte à écrire, et les deux autres (Q2, Q7) tombent en phase 6.
+
+**La phase 6 ensuite** — défi Accords, strumming, familles d'accords, harmonisation · **Q1, Q2, Q7** : le moteur d'écoute est là, il manque le jeu.
 
 **Objectif** : entendre **six cordes ensemble**. C'est la seule chose que le module Accords ne sait pas faire, et c'est celle qui manque pour que « plaqué » et « tempo » cessent d'être des déclarations.
 
