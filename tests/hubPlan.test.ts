@@ -3,7 +3,7 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { dailyActivity, heroSteps, hubPlan, learnedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
+import { dailyActivity, dayGoalText, heroSteps, hubPlan, learnedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
 import { summarizeDay, type Attempt, type Card } from '../src/core/progress';
 
@@ -182,5 +182,17 @@ describe('learnedScaleForms', () => {
     const chords = [mk(T0, { module: 'accords', chordId: 'Em-022000' }), { ...mk(T0 + DAY, { module: 'accords', chordId: 'Em-022000' }), id: 'c' }];
     const impro = [mk(T0, { kind: 'impro', level: 4 }), { ...mk(T0 + DAY, { kind: 'impro', level: 4 }), id: 'i' }];
     expect(learnedScaleForms([...chords, ...impro])).toBe(0);
+  });
+});
+
+describe('dayGoalText', () => {
+  it('compte tant que l’objectif n’est pas atteint', () => {
+    expect(dayGoalText(0, 3)).toEqual({ text: '0 / 3 écoutes ou exercices aujourd’hui', reached: false });
+    expect(dayGoalText(2, 3).reached).toBe(false);
+  });
+
+  it('le dit quand il est atteint, et garde le vrai compte au-delà', () => {
+    expect(dayGoalText(3, 3)).toEqual({ text: 'Objectif du jour atteint (3)', reached: true });
+    expect(dayGoalText(5, 3).text).toBe('Objectif du jour atteint (5)');
   });
 });

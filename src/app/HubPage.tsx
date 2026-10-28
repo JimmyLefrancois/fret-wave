@@ -13,7 +13,7 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { dailyActivity, heroSteps, hubPlan, learnedScaleForms, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
+import { dailyActivity, dayGoalText, heroSteps, hubPlan, learnedScaleForms, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
 import { Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, headline, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
@@ -144,6 +144,7 @@ export function HubPage() {
   // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran
   const due = useMemo(() => dueNow(journal, now.getTime()).filter((c) => !c.nodeId.startsWith('acc:')), [journal, now]);
   const activity = dailyActivity(day);
+  const goal = dayGoalText(activity, DAILY_GOAL);
   const feats = useMemo(() => accomplishments(journal, { limit: 10, notation: settings.noteNotation, chordNotation: settings.chordNotation }), [journal, settings.noteNotation, settings.chordNotation]);
   // parcours d'accords : le compte et le prochain accord, calculés par le module Accords
   const chordLearned = useMemo(() => learnedChordIds(journal), [journal]);
@@ -352,13 +353,16 @@ export function HubPage() {
                 <span key={i} className={`day-cell ${i < activity ? 'on' : ''}`} />
               ))}
             </span>
-            <span className="day-text">{Math.min(activity, DAILY_GOAL)} / {DAILY_GOAL} écoutes ou exercices aujourd’hui</span>
+            <span className={`day-text${goal.reached ? ' day-done' : ''}`}>{goal.text}</span>
           </p>
           {/* série et prochain palier sur leur propre ligne, ensemble : un seul sujet, jamais une ligne orpheline */}
-          <p className="day-streak">
-            {st.days > 0 ? `Série : ${st.days} ${st.days > 1 ? 'jours' : 'jour'} d’affilée` : 'Pas encore de série'}
+          {/* pas de série : rien à dire (un « 0 » de plus sur le premier écran n'aide personne) */}
+          {st.days > 0 && (
+            <p className="day-streak">
+              {`Série : ${st.days} ${st.days > 1 ? 'jours' : 'jour'} d’affilée`}
             {nextMilestone !== null && <span className="day-next"> · prochain palier à {nextMilestone}</span>}
-          </p>
+            </p>
+          )}
         </div>
       </header>
 
@@ -388,31 +392,30 @@ export function HubPage() {
         </button>
       </div>
 
-      <Panel className="span-12 home-acc" label="Dernière réussite">
-        {latest ? (
+      {/* le panneau n'existe qu'à partir de la première réussite : pas de case vide au premier écran */}
+      {latest && (
+        <Panel className="span-12 home-acc" label="Dernière réussite">
           <ul className="acc-list">
             <AccRow f={latest} now={now.getTime()} />
           </ul>
-        ) : (
-          <p className="t-small">Rien encore : ton premier passage réussi apparaîtra ici.</p>
-        )}
-        {older.length > 0 && (
+          {older.length > 0 && (
+            <details className="more-opts">
+              <summary>{older.length} de plus</summary>
+              <ul className="acc-list">
+                {older.map((f) => <AccRow key={f.id} f={f} now={now.getTime()} full />)}
+              </ul>
+            </details>
+          )}
           <details className="more-opts">
-            <summary>{older.length} de plus</summary>
-            <ul className="acc-list">
-              {older.map((f) => <AccRow key={f.id} f={f} now={now.getTime()} full />)}
-            </ul>
+            <summary>Comment ça compte ?</summary>
+            <p className="t-small t-dim">
+              Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : un passage n’est réussi qu’au-dessus
+              de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
+            </p>
+            <p className="t-small t-dim">8 révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
           </details>
-        )}
-        <details className="more-opts">
-          <summary>Comment ça compte ?</summary>
-          <p className="t-small t-dim">
-            Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : un passage n’est réussi qu’au-dessus
-            de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
-          </p>
-          <p className="t-small t-dim">8 révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
-        </details>
-      </Panel>
+        </Panel>
+      )}
 
       <p className="home-foot t-small t-dim">
         <button type="button" onClick={() => navigate('audio')}>Crédits audio</button>

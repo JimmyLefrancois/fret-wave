@@ -132,3 +132,14 @@ export function learnedScaleForms(journal: readonly Attempt[]): number {
     (n) => n.nodeId.startsWith('gam:lecture:') && (n.state === 'learned' || n.state === 'mastered'),
   ).length;
 }
+
+/**
+ * Ligne de jauge du jour. L'objectif atteint se **dit** (c'est la fin d'une séance, pas trois cases
+ * vertes de plus) ; au-delà, le compte continue sans fausse surenchère.
+ */
+export function dayGoalText(activity: number, goal: number): { text: string; reached: boolean } {
+  if (activity >= goal) {
+    return { text: `Objectif du jour atteint (${activity})`, reached: true };
+  }
+  return { text: `${activity} / ${goal} écoutes ou exercices aujourd’hui`, reached: false };
+}

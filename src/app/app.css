@@ -1644,6 +1644,7 @@ table.kv td:first-child { color: var(--muted); }
 .day-cells { display: inline-flex; gap: var(--gap-tight); }
 /* chaque morceau reste entier : la série passe à la ligne d'un bloc, jamais « d'affilée » seul */
 .day-text { white-space: nowrap; }
+.day-done { color: var(--green); font-weight: 700; }
 .day-streak { margin: 2px 0 0; font-size: 15px; color: var(--muted); }
 .day-next { color: var(--dim); }
 .day-cell { width: 16px; height: 16px; border: var(--bw) solid var(--line); background: var(--bg); }
