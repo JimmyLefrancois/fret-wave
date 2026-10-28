@@ -378,10 +378,10 @@ export function HubPage() {
               <span className={`day-text${goal.reached ? ' day-done' : ''}`}>{goal.text}</span>
             </p>
             {/* série et prochain cap (« palier » est réservé au parcours d'accords) sur leur propre ligne, ensemble : un seul sujet, jamais une ligne orpheline */}
-            {/* pas de série : rien à dire (un « 0 » de plus sur le premier écran n'aide personne) */}
-            {st.days > 0 && (
+            {/* la série commence à deux jours (MUSIC_DESIGN §17.3) : ni « 0 » ni « 1 jour d'affilée » */}
+            {st.days > 1 && (
               <p className="day-streak">
-                {`Série : ${st.days} ${st.days > 1 ? 'jours' : 'jour'} d’affilée`}
+                {`Série : ${st.days} jours d’affilée`}
               {nextMilestone !== null && <span className="day-next"> · prochain cap : {nextMilestone} jours</span>}
               </p>
             )}
