@@ -300,6 +300,13 @@ describe('XP, série et badges', () => {
     expect(streak([attempt({ ts: at(2) }), attempt({ ts: at(3) })], new Date(today)).days).toBe(0);
   });
 
+  it('série : une écoute ou un grattage déclaré ne fait pas un jour joué', () => {
+    const listen = attempt({ ts: at(1), kind: 'listen', correct: null, total: null });
+    const strum = attempt({ ts: at(1), module: 'accords', kind: 'strum', chordId: 'Em-022000', correct: null, total: null });
+    expect(streak([attempt({ ts: at(0) }), listen, strum, attempt({ ts: at(2) })], new Date(today)).days).toBe(1);
+    expect(streak([listen], new Date(today))).toEqual({ days: 0, today: false });
+  });
+
   it('badges : chacun dérivé du journal, avec sa raison', () => {
     const empty = badgeStatus([], new Date(today));
     expect(empty.length).toBeGreaterThanOrEqual(8);

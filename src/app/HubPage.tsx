@@ -444,7 +444,7 @@ export function HubPage() {
               de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
             </p>
             <p className="t-small t-dim">
-            L’objectif du jour compte les exercices vérifiés : une écoute n’y entre pas, un grattage déclaré non plus.
+            L’objectif du jour et la série comptent les exercices vérifiés : une écoute n’y entre pas, un grattage déclaré non plus.
           </p>
           <p className="t-small t-dim">{DUE_CAP} révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
           </details>

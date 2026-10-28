@@ -75,12 +75,15 @@ describe('accomplishments', () => {
     expect(milestone[0]?.ts).toBe(T0 + (first - 1) * DAY);
   });
 
-  it('une journée d’écoute seule fait durer la série, et le détail le dit', () => {
+  it('une journée d’écoute seule ne fait pas durer la série', () => {
     const listen = mk(T0 + DAY, 0, 0, { kind: 'listen', correct: null, total: null });
-    const milestone = accomplishments([mk(T0, 3, 3), listen, mk(T0 + 2 * DAY, 3, 3, { formIndex: 1 })])
+    const withListen = accomplishments([mk(T0, 3, 3), listen, mk(T0 + 2 * DAY, 3, 3, { formIndex: 1 })])
       .filter((e) => e.kind === 'streak');
-    expect(milestone).toHaveLength(1);
-    expect(milestone[0]?.detail).toBe('au moins une écoute ou un exercice chaque jour');
+    expect(withListen).toHaveLength(0);
+    const played = accomplishments([mk(T0, 3, 3), mk(T0 + DAY, 3, 3, { formIndex: 2 }), mk(T0 + 2 * DAY, 3, 3, { formIndex: 1 })])
+      .filter((e) => e.kind === 'streak');
+    expect(played).toHaveLength(1);
+    expect(played[0]?.detail).toBe('au moins un exercice vérifié chaque jour');
   });
 
   it('la liste est triée du plus récent au plus ancien et plafonnée', () => {

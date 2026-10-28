@@ -74,18 +74,20 @@ export function xpSummary(attempts: readonly Attempt[], now: Date): XpSummary {
 }
 
 export interface StreakSummary {
-  /** Jours consécutifs avec au moins une tentative (écoute comprise), jusqu'à aujourd'hui ou hier. */
+  /** Jours consécutifs avec au moins un exercice vérifié (ni écoute ni déclaration), jusqu'à aujourd'hui ou hier. */
   days: number;
   /** Une activité a-t-elle eu lieu aujourd'hui ? */
   today: boolean;
 }
 
 /**
- * Série : on compte les jours d'activité consécutifs. Si rien aujourd'hui mais quelque chose hier,
+ * Série : on compte les jours consécutifs où l'élève a **joué** — au moins un exercice vérifié. Une
+ * écoute (l'app a joué, pas l'élève) et un grattage déclaré (jamais une preuve) ne comptent pas :
+ * décision de l'auteur, la même règle que l'objectif du jour. Si rien aujourd'hui mais quelque chose hier,
  * la série est encore vivante (on ne la casse pas à minuit pile avant que l'utilisateur n'ait joué).
  */
 export function streak(attempts: readonly Attempt[], now: Date): StreakSummary {
-  const days = new Set(attempts.map((a) => dayKey(a.ts)));
+  const days = new Set(attempts.filter(isVerified).map((a) => dayKey(a.ts)));
   const dayMs = 86_400_000;
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const has = (offset: number) => days.has(dayKey(start - offset * dayMs));

@@ -169,8 +169,8 @@ function streakMilestones(attempts: readonly Attempt[]): Accomplishment[] {
       ts: last.ts,
       title: ACCOMPLISHMENT_LABEL.streak,
       subject: `${days} jours d’affilée`,
-      // `streak()` compte tout jour actif, écoute comprise : le détail le dit tel quel
-      detail: 'au moins une écoute ou un exercice chaque jour',
+      // `streak()` ne compte que les jours avec un exercice vérifié : le détail le dit tel quel
+      detail: 'au moins un exercice vérifié chaque jour',
       accent: 'cyan',
     });
   }
