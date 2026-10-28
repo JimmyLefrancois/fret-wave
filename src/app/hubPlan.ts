@@ -81,3 +81,20 @@ export function scaleStep(journal: readonly Attempt[], scaleId: string, tonic: s
 export function micHeardBefore(journal: readonly Attempt[]): boolean {
   return journal.some((a) => a.kind !== 'qcm' && a.kind !== 'strum' && isVerified(a));
 }
+
+/** Les balises qui ont déjà leur propre usage d'Espace et d'Entrée. */
+const OWN_KEYS = new Set(['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'SELECT', 'SUMMARY', 'OPTION', 'LABEL']);
+
+/**
+ * Espace ou Entrée lancent l'action du héros, guitare en main, **seulement** quand le focus n'est sur
+ * aucun contrôle (un bouton, un lien, un champ garde son propre geste) et sans touche de modification.
+ */
+export function isHeroShortcut(
+  e: { key: string; repeat?: boolean; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean },
+  target: { tagName?: string; isContentEditable?: boolean } | null,
+): boolean {
+  if (e.key !== ' ' && e.key !== 'Enter') return false;
+  if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return false;
+  if (!target) return true;
+  return !target.isContentEditable && !OWN_KEYS.has((target.tagName ?? '').toUpperCase());
+}

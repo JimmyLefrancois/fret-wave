@@ -3,7 +3,7 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { dailyActivity, hubPlan, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
+import { dailyActivity, hubPlan, isHeroShortcut, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
 import { summarizeDay, type Attempt, type Card } from '../src/core/progress';
 
@@ -125,5 +125,28 @@ describe('dailyActivity', () => {
     const day = summarizeDay(j, new Date(T0 + 3000));
     expect(day.selfAssessed).toBe(1);
     expect(dailyActivity(day)).toBe(2);
+  });
+});
+
+describe('isHeroShortcut', () => {
+  const body = { tagName: 'BODY' };
+  it('Espace et Entrée sur la page lancent le héros', () => {
+    expect(isHeroShortcut({ key: ' ' }, body)).toBe(true);
+    expect(isHeroShortcut({ key: 'Enter' }, body)).toBe(true);
+    expect(isHeroShortcut({ key: 'Enter' }, null)).toBe(true);
+  });
+
+  it('un contrôle focalisé garde son propre geste', () => {
+    for (const tagName of ['BUTTON', 'A', 'INPUT', 'SUMMARY', 'select']) {
+      expect(isHeroShortcut({ key: ' ' }, { tagName })).toBe(false);
+    }
+    expect(isHeroShortcut({ key: ' ' }, { tagName: 'DIV', isContentEditable: true })).toBe(false);
+  });
+
+  it('autres touches, répétition et modificateurs ne déclenchent rien', () => {
+    expect(isHeroShortcut({ key: 'a' }, body)).toBe(false);
+    expect(isHeroShortcut({ key: ' ', repeat: true }, body)).toBe(false);
+    expect(isHeroShortcut({ key: 'Enter', ctrlKey: true }, body)).toBe(false);
+    expect(isHeroShortcut({ key: ' ', shiftKey: true }, body)).toBe(false);
   });
 });

@@ -8,12 +8,12 @@
  * Le reste se range dessous : les deux portes, le dernier accomplissement (la liste complète se déplie)
  * et les règles de comptage, repliées. Rien n'est inventé ici : tout vient de `fretwave.attempts.v1`.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { dailyActivity, hubPlan, micHeardBefore, reviewSummary, scaleStep } from '../app/hubPlan';
+import { dailyActivity, hubPlan, isHeroShortcut, micHeardBefore, reviewSummary, scaleStep } from '../app/hubPlan';
 import { Chip, Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
@@ -95,6 +95,16 @@ function AccRow({ f, now }: { f: Accomplishment; now: number }) {
   );
 }
 
+/** L'action du héros : le seul bouton primaire de la page, et le raccourci Espace/Entrée qui la lance. */
+function HeroGo({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <PixelButton variant="primary" onClick={onClick} keyShortcuts="Space Enter">
+      {children}
+      <kbd className="home-key" aria-hidden="true">Espace</kbd>
+    </PixelButton>
+  );
+}
+
 export function HubPage() {
   const settings = useSettings();
   const sel = useScaleSelection();
@@ -155,6 +165,26 @@ export function HubPage() {
   const resumeGo = () => (resume.kind === 'chord' ? openChord(resume.voicingId) : navigate('scale'));
   const scaleLine = `${positionLabelPlain(resolved.position, settings.noteNotation)}${resolved.formula ? ` · ${resolved.formula}` : ''}`;
 
+  // gamme : écouter tant qu'elle ne l'a jamais été, puis la jouer au micro (réécouter passe en second)
+  const step = scaleStep(journal, sel.scaleId, resolved.tonic);
+  // ce que lance le raccourci : toujours le bouton primaire affiché
+  const heroGo = plan.review
+    ? review
+    : resume.kind === 'chord'
+      ? () => openChord(resume.voicingId)
+      : resume.kind === 'scale' && step === 'play'
+        ? () => navigate('training')
+        : () => navigate('scale');
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!isHeroShortcut(e, e.target as HTMLElement | null)) return;
+      e.preventDefault();
+      heroGo();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [heroGo]);
+
   const hero = (() => {
     if (plan.review) {
       return (
@@ -176,7 +206,7 @@ export function HubPage() {
               : 'La seule forme à revoir aujourd’hui'}
           </p>
           <div className="row home-actions">
-            <PixelButton variant="primary" onClick={review}>▶ Réviser maintenant</PixelButton>
+            <HeroGo onClick={review}>▶ Réviser maintenant</HeroGo>
           </div>
           {resume.kind !== 'start' && !sameAsReview && (
             <div className="home-resume">
@@ -201,7 +231,7 @@ export function HubPage() {
             Accord{palier ? ` · étape ${palier.id} « ${palier.title} »` : ''}
           </p>
           <div className="row home-actions">
-            <PixelButton variant="primary" onClick={() => openChord(resume.voicingId)}>▶ Ouvrir la leçon</PixelButton>
+            <HeroGo onClick={() => openChord(resume.voicingId)}>▶ Ouvrir la leçon</HeroGo>
           </div>
           {micHint}
         </Panel>
@@ -226,14 +256,12 @@ export function HubPage() {
             <li>
               <span className="home-step-n" aria-hidden="true">2</span>
               <span className="home-step-text">Écouter la gamme</span>
-              <PixelButton variant="primary" onClick={() => navigate('scale')}>▶ Écouter</PixelButton>
+              <HeroGo onClick={() => navigate('scale')}>▶ Écouter</HeroGo>
             </li>
           </ol>
         </Panel>
       );
     }
-    // gamme : écouter tant qu'elle ne l'a jamais été, puis la jouer au micro (réécouter passe en second)
-    const step = scaleStep(journal, sel.scaleId, resolved.tonic);
     return (
       <Panel
         className="span-12 home-go"
@@ -245,12 +273,12 @@ export function HubPage() {
         <p className="t-small">{scaleLine}</p>
         {step === 'listen' ? (
           <div className="row home-actions">
-            <PixelButton variant="primary" onClick={() => navigate('scale')}>▶ Écouter</PixelButton>
+            <HeroGo onClick={() => navigate('scale')}>▶ Écouter</HeroGo>
             <PixelButton onClick={() => navigate('training')}>Jouer au micro</PixelButton>
           </div>
         ) : micHeard ? (
           <div className="row home-actions">
-            <PixelButton variant="primary" onClick={() => navigate('training')}>▶ Jouer au micro</PixelButton>
+            <HeroGo onClick={() => navigate('training')}>▶ Jouer au micro</HeroGo>
             <PixelButton onClick={() => navigate('scale')}>Réécouter</PixelButton>
           </div>
         ) : (
@@ -264,7 +292,7 @@ export function HubPage() {
               <li>
                 <span className="home-step-n" aria-hidden="true">2</span>
                 <span className="home-step-text">Jouer la gamme au micro</span>
-                <PixelButton variant="primary" onClick={() => navigate('training')}>▶ Jouer au micro</PixelButton>
+                <HeroGo onClick={() => navigate('training')}>▶ Jouer au micro</HeroGo>
               </li>
             </ol>
             <p className="t-small home-again">

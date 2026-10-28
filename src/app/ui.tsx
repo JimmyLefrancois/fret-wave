@@ -46,8 +46,10 @@ export function PixelButton(props: {
   className?: string;
   ariaLabel?: string;
   type?: 'button' | 'submit';
+  /** Raccourci clavier annoncé aux lecteurs d'écran (`aria-keyshortcuts`). */
+  keyShortcuts?: string;
 }) {
-  const { children, onClick, variant = 'ghost', disabled, title, className = '', ariaLabel, type = 'button' } = props;
+  const { children, onClick, variant = 'ghost', disabled, title, className = '', ariaLabel, type = 'button', keyShortcuts } = props;
   return (
     <button
       type={type}
@@ -56,6 +58,7 @@ export function PixelButton(props: {
       disabled={disabled}
       title={title}
       aria-label={ariaLabel}
+      aria-keyshortcuts={keyShortcuts}
     >
       {children}
     </button>
