@@ -180,7 +180,7 @@ export function HubPage() {
         >
           <h3 className="home-title">{chordName(resume.voicingId)}</h3>
           <p className="t-small">
-            Accord{palier ? ` · étape ${palier.id} « ${palier.title} »` : ''} · {chordCount.done} / {chordCount.total} appris
+            Accord{palier ? ` · étape ${palier.id} « ${palier.title} »` : ''}
           </p>
           <div className="row home-actions">
             <PixelButton variant="primary" onClick={() => openChord(resume.voicingId)}>▶ Ouvrir la leçon</PixelButton>
@@ -268,7 +268,8 @@ export function HubPage() {
           <span className="door-title">Les plaquer, les enchaîner</span>
           <span className="door-sub">
             {chordCount.done} / {chordCount.total} appris · doigt par doigt, puis corde par corde au micro.
-            {chordNext ? ` Prochain : ${fmtChord(chordNext.chord, settings.chordNotation)}.` : ''}
+            {/* le héros montre déjà un accord : un second conseil (« Prochain ») le contredirait */}
+            {chordNext && resume.kind !== 'chord' ? ` Prochain : ${fmtChord(chordNext.chord, settings.chordNotation)}.` : ''}
           </span>
         </button>
       </div>

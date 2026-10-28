@@ -75,6 +75,14 @@ describe('accomplishments', () => {
     expect(milestone[0]?.ts).toBe(T0 + (first - 1) * DAY);
   });
 
+  it('une journée d’écoute seule fait durer la série, et le détail le dit', () => {
+    const listen = mk(T0 + DAY, 0, 0, { kind: 'listen', correct: null, total: null });
+    const milestone = accomplishments([mk(T0, 3, 3), listen, mk(T0 + 2 * DAY, 3, 3, { formIndex: 1 })])
+      .filter((e) => e.kind === 'streak');
+    expect(milestone).toHaveLength(1);
+    expect(milestone[0]?.detail).toBe('au moins une écoute ou un exercice chaque jour');
+  });
+
   it('la liste est triée du plus récent au plus ancien et plafonnée', () => {
     const many = Array.from({ length: 30 }, (_, i) => mk(T0 + i * 60_000, 3, 3, { formIndex: i % 5 }));
     const ten = accomplishments(many);
