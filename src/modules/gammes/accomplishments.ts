@@ -51,6 +51,11 @@ export const ACCOMPLISHMENT_LABEL: Readonly<Record<AccomplishmentKind, string>> 
 
 export const STREAK_MILESTONES = [3, 7, 14, 30] as const;
 
+/** Prochain palier de série au-dessus de `days`, ou `null` quand le dernier est franchi. */
+export function nextStreakMilestone(days: number): number | null {
+  return STREAK_MILESTONES.find((m) => m > days) ?? null;
+}
+
 function levelLabel(a: Attempt): string {
   if (a.kind === 'recall' || a.level === 3) return 'Rappel (N3)';
   if (a.kind === 'cold') return 'Pose à froid';

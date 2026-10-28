@@ -1,26 +1,27 @@
 /**
- * Accueil — refonte « simplicité » (branche ui/simplification).
+ * Accueil — lanceur (branche ui/hub-lanceur).
  *
- * L'ancien hub alignait dix panneaux de prose (aujourd'hui, révision, niveau, reprise, accords, badges,
- * modules, code couleur…) : on ne savait pas par où commencer, ni où faire un exercice. Celui-ci ne
- * garde que **ce qui sert à agir** :
- *  1. une seule action évidente : reprendre la gamme en cours, en l'écoutant ou en la jouant au micro ;
- *  2. deux portes : choisir une gamme et sa position, accorder la guitare ;
- *  3. la révision, uniquement quand quelque chose est réellement dû.
- * Les compteurs détaillés (XP, niveau, badges, modules, code couleur) sont retirés de l'accueil : ils
- * restent dans le journal et dans les réglages. Rien n'est inventé ici : tout vient de `fretwave.attempts.v1`.
+ * L'élève ouvre l'app guitare en main et regarde l'écran à un mètre : l'accueil répond à « je fais
+ * quoi, là ? » par **une seule action**, choisie depuis le journal (`hubPlan`) :
+ *  1. une révision due ; sinon 2. reprendre le dernier module touché (gamme ou accord) ; sinon
+ *  3. commencer (accorder, puis écouter la gamme).
+ * Le reste se range dessous : les deux portes, le dernier accomplissement (la liste complète se déplie)
+ * et les règles de comptage, repliées. Rien n'est inventé ici : tout vient de `fretwave.attempts.v1`.
  */
 import { useMemo, useState } from 'react';
 import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
+import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
+import { hubPlan } from '../app/hubPlan';
 import { Chip, Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
-import { accomplishments, type Accomplishment } from '../modules/gammes/accomplishments';
-import { chordProgress, learnedChordIds, nextChord } from '../modules/accords/recommend';
+import { accomplishments, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
+import { chordProgress, learnedChordIds, nextChord, palierOf } from '../modules/accords/recommend';
+import { VOICINGS } from '../data/voicings';
 import { fmtChord } from '../core/theory';
 import {
-  dueNow, loadJournal, nodeIdOf, progressStore, streak, summarizeDay, xpSummary,
+  dueNow, loadJournal, nodeIdOf, progressStore, streak, summarizeDay,
   type Attempt,
 } from '../core/progress';
 
@@ -60,6 +61,40 @@ export function openAttempt(a: Attempt): void {
   navigate('training');
 }
 
+function openChord(voicingId: string): void {
+  setChordSelection({ voicingId });
+  navigate('chord');
+}
+
+function AccRow({ f, now }: { f: Accomplishment; now: number }) {
+  return (
+    <li className={`acc-row acc-${f.accent}`}>
+      <span className="acc-glyph" aria-hidden="true">{ACC_GLYPH[f.kind]}</span>
+      <span className="acc-body">
+        <span className="acc-head">
+          <span className="acc-title">{f.title}</span>
+          <span className="acc-when">{whenLabel(f.ts, now)}</span>
+        </span>
+        <span className="acc-line">
+          <span className="acc-subject">{f.subject}</span>
+          <span className="acc-detail"> · {f.detail}</span>
+        </span>
+      </span>
+      {f.attempt && f.kind !== 'streak' && (
+        <button
+          type="button"
+          className="acc-open"
+          onClick={() => openAttempt(f.attempt!)}
+          aria-label={`Rejouer : ${f.subject}`}
+          title="Rejouer cette forme"
+        >
+          ▶
+        </button>
+      )}
+    </li>
+  );
+}
+
 export function HubPage() {
   const settings = useSettings();
   const sel = useScaleSelection();
@@ -67,7 +102,6 @@ export function HubPage() {
   const [journal] = useState<Attempt[]>(() => loadJournal(progressStore()));
   const now = useMemo(() => new Date(), []);
   const day = useMemo(() => summarizeDay(journal, now), [journal, now]);
-  const xp = useMemo(() => xpSummary(journal, now), [journal, now]);
   const st = useMemo(() => streak(journal, now), [journal, now]);
   // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran
   const due = useMemo(() => dueNow(journal, now.getTime()).filter((c) => !c.nodeId.startsWith('acc:')), [journal, now]);
@@ -77,41 +111,136 @@ export function HubPage() {
   const chordLearned = useMemo(() => learnedChordIds(journal), [journal]);
   const chordCount = chordProgress(chordLearned);
   const chordNext = useMemo(() => nextChord(chordLearned), [chordLearned]);
+  const plan = useMemo(
+    () => hubPlan(journal, due, chordLearned, chordNext?.voicingId ?? null),
+    [journal, due, chordLearned, chordNext],
+  );
+  const nextMilestone = nextStreakMilestone(st.days);
 
-  const review = () => {
-    const card = due[0];
-    if (!card) return;
-    const a = [...journal].reverse().find((x) => nodeIdOf(x) === card.nodeId && x.correct !== null);
-    if (a) openAttempt(a);
-    else navigate('training');
-  };
+  const resume = plan.resume;
+  // la dernière tentative du nœud dû : elle rouvre la bonne gamme à la bonne position
+  const reviewAttempt = plan.review
+    ? [...journal].reverse().find((x) => nodeIdOf(x) === plan.review!.first.nodeId && x.correct !== null) ?? null
+    : null;
+  const reviewScale = reviewAttempt
+    ? resolveScale({ scaleId: reviewAttempt.scaleId, tonic: reviewAttempt.tonic, tuningId: reviewAttempt.tuningId, system: reviewAttempt.system as never, positionIndex: 0 }, settings.noteNotation)
+    : null;
+  const reviewPos = reviewAttempt && reviewScale
+    ? reviewScale.positions.find((p) => (p.formIndex ?? p.index) === reviewAttempt.formIndex) ?? null
+    : null;
+  // « Ou reprendre » ne répète pas la carte due : même gamme, même tonique, même forme = même geste
+  const sameAsReview = resume.kind === 'scale' && !!reviewAttempt
+    && reviewAttempt.scaleId === sel.scaleId && reviewAttempt.tonic === resolved.tonic
+    && reviewAttempt.formIndex === (resolved.position?.formIndex ?? resolved.position?.index);
+  const review = () => (reviewAttempt ? openAttempt(reviewAttempt) : navigate('training'));
 
-  return (
-    <main className="shell">
-      <header className="home-hero">
-        <p className="home-kicker t-label">Apprendre la guitare en tablature</p>
-        <div className="home-hero-bottom">
-          <h1 className="home-hero-title">Fretwave</h1>
-          <p className="home-hero-line">
-            {activity} / {DAILY_GOAL} activités aujourd’hui · {xp.total} XP
-            {st.days > 0 ? ` · ${st.days} j d’affilée` : ''}
+  const chordName = (id: string) => fmtChord(VOICINGS.find((v) => v.id === id)?.chord ?? id, settings.chordNotation);
+  const resumeTitle = resume.kind === 'chord' ? chordName(resume.voicingId) : resolved.title;
+  const resumeGo = () => (resume.kind === 'chord' ? openChord(resume.voicingId) : navigate('scale'));
+  const scaleLine = `${positionLabelPlain(resolved.position, settings.noteNotation)}${resolved.formula ? ` · ${resolved.formula}` : ''}`;
+
+  const hero = (() => {
+    if (plan.review) {
+      return (
+        <Panel className="span-12 home-go" accent="magenta" label="À réviser" right={<span className="badge">{plan.review.count}</span>}>
+          <h3 className="home-title">{reviewScale ? reviewScale.title : 'Révision du jour'}</h3>
+          {reviewPos && <p className="t-small">{positionLabelPlain(reviewPos, settings.noteNotation)}</p>}
+          <div className="row home-actions">
+            <PixelButton variant="primary" onClick={review}>▶ Réviser maintenant</PixelButton>
+          </div>
+          {resume.kind !== 'start' && !sameAsReview && (
+            <div className="home-resume">
+              <span className="t-small">Ou reprendre <strong>{resumeTitle}</strong></span>
+              <PixelButton onClick={resumeGo}>Reprendre</PixelButton>
+            </div>
+          )}
+        </Panel>
+      );
+    }
+    if (resume.kind === 'chord') {
+      const palier = palierOf(resume.voicingId);
+      return (
+        <Panel
+          className="span-12 home-go"
+          accent="magenta"
+          label="Continuer"
+          right={<Chip small onClick={() => navigate('accords')}>Changer</Chip>}
+        >
+          <h3 className="home-title">{chordName(resume.voicingId)}</h3>
+          <p className="t-small">
+            Accord{palier ? ` · étape ${palier.id} « ${palier.title} »` : ''} · {chordCount.done} / {chordCount.total} appris
           </p>
-        </div>
-      </header>
-
+          <div className="row home-actions">
+            <PixelButton variant="primary" onClick={() => openChord(resume.voicingId)}>▶ Ouvrir la leçon</PixelButton>
+          </div>
+        </Panel>
+      );
+    }
+    if (resume.kind === 'start') {
+      return (
+        <Panel
+          className="span-12 home-go"
+          accent="magenta"
+          label="Commencer"
+          right={<Chip small onClick={() => navigate('gammes')}>Changer</Chip>}
+        >
+          <h3 className="home-title">{resolved.title}</h3>
+          <p className="t-small">{scaleLine}</p>
+          <ol className="home-steps">
+            <li>
+              <span className="home-step-n" aria-hidden="true">1</span>
+              <span className="home-step-text">Accorder la guitare</span>
+              <PixelButton onClick={() => navigate('tuner')}>Accordeur</PixelButton>
+            </li>
+            <li>
+              <span className="home-step-n" aria-hidden="true">2</span>
+              <span className="home-step-text">Écouter la gamme</span>
+              <PixelButton variant="primary" onClick={() => navigate('scale')}>▶ Écouter</PixelButton>
+            </li>
+          </ol>
+        </Panel>
+      );
+    }
+    return (
       <Panel
         className="span-12 home-go"
         accent="magenta"
         label="Continuer"
         right={<Chip small onClick={() => navigate('gammes')}>Changer</Chip>}
       >
-        <h2 className="home-title">{resolved.title}</h2>
-        <p className="t-small">{positionLabelPlain(resolved.position, settings.noteNotation)}{resolved.formula ? ` · ${resolved.formula}` : ''}</p>
+        <h3 className="home-title">{resolved.title}</h3>
+        <p className="t-small">{scaleLine}</p>
         <div className="row home-actions">
           <PixelButton variant="primary" onClick={() => navigate('scale')}>▶ Découvrir</PixelButton>
           <PixelButton onClick={() => navigate('training')}>S’exercer au micro</PixelButton>
         </div>
       </Panel>
+    );
+  })();
+
+  const [latest, ...older] = feats;
+
+  return (
+    <main className="shell">
+      <header className="home-hero">
+        <div className="home-hero-bottom">
+          <h1 className="home-hero-title">Fretwave</h1>
+          <p className="home-tagline t-label">Apprendre la guitare en tablature</p>
+          <p className="home-day">
+            <span className="day-cells" aria-hidden="true">
+              {Array.from({ length: DAILY_GOAL }, (_, i) => (
+                <span key={i} className={`day-cell ${i < activity ? 'on' : ''}`} />
+              ))}
+            </span>
+            <span>
+              {Math.min(activity, DAILY_GOAL)} / {DAILY_GOAL} activités aujourd’hui
+              {st.days > 0 ? ` · ${st.days} j d’affilée` : ''}
+            </span>
+          </p>
+        </div>
+      </header>
+
+      {hero}
 
       <div className="span-6 home-door">
         <button type="button" className="door" onClick={() => navigate('gammes')}>
@@ -132,86 +261,39 @@ export function HubPage() {
         </button>
       </div>
 
-      {due.length > 0 && (
-        <Panel className="span-12" accent="yellow" label="À réviser" right={<span className="badge">{due.length}</span>}>
-          <div className="review-list">
-            {due.slice(0, 3).map((card) => {
-              const lastA = [...journal].reverse().find((x) => nodeIdOf(x) === card.nodeId);
-              const r = lastA
-                ? resolveScale({ scaleId: lastA.scaleId, tonic: lastA.tonic, tuningId: lastA.tuningId, system: lastA.system as never, positionIndex: 0 })
-                : null;
-              const idx = lastA && r ? r.positions.findIndex((p) => (p.formIndex ?? p.index) === lastA.formIndex) : -1;
-              return (
-                <div key={card.nodeId} className="review-row">
-                  <div className="review-body">
-                    <span className="review-title">{r ? r.title : card.nodeId}</span>
-                    <span className="t-small t-dim">
-                      {r && idx >= 0 ? positionLabelPlain(r.positions[idx] ?? null, settings.noteNotation) : 'position'}
-                      {' · '}boîte {card.box}
-                    </span>
-                  </div>
-                  {lastA && <PixelButton variant="quiet" onClick={() => openAttempt(lastA)}>Ouvrir</PixelButton>}
-                </div>
-              );
-            })}
-          </div>
-          <div className="row">
-            <PixelButton variant="primary" onClick={review}>Réviser maintenant</PixelButton>
-          </div>
-          <p className="t-small t-dim">Plafond de 8 cartes par session : une absence ne crée pas de dette impossible.</p>
-        </Panel>
-      )}
-
-      <Panel
-        className="span-12"
-        accent="green"
-        label="Derniers accomplissements"
-        right={<span className="badge">{feats.length}</span>}
-      >
-        {feats.length === 0 ? (
-          <p className="t-small t-dim">
-            Rien encore. La première série réussie à 80 % apparaîtra ici, puis chaque forme apprise,
-            chaque sans-faute et chaque palier de jours d’affilée.
-          </p>
-        ) : (
+      <Panel className="span-12" label="Dernier accomplissement">
+        {latest ? (
           <ul className="acc-list">
-            {feats.map((f) => (
-              <li key={f.id} className={`acc-row acc-${f.accent}`}>
-                <span className="acc-glyph" aria-hidden="true">{ACC_GLYPH[f.kind]}</span>
-                <span className="acc-body">
-                  <span className="acc-head">
-                    <span className="acc-title">{f.title}</span>
-                    <span className="acc-when">{whenLabel(f.ts, now.getTime())}</span>
-                  </span>
-                  <span className="acc-line">
-                    <span className="acc-subject">{f.subject}</span>
-                    <span className="acc-detail"> · {f.detail}</span>
-                  </span>
-                </span>
-                {f.attempt && f.kind !== 'streak' && (
-                  <button
-                    type="button"
-                    className="acc-open"
-                    onClick={() => openAttempt(f.attempt!)}
-                    aria-label={`Rejouer : ${f.subject}`}
-                    title="Rejouer cette forme"
-                  >
-                    ▶
-                  </button>
-                )}
-              </li>
-            ))}
+            <AccRow f={latest} now={now.getTime()} />
           </ul>
+        ) : (
+          <p className="t-small">Rien encore : ta première série réussie apparaîtra ici.</p>
         )}
-        <p className="t-small t-dim">
-          Calculés depuis tes tentatives enregistrées, jamais comptés à part : une série ne compte qu’au-dessus de 80 % de trous
-          justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
-        </p>
+        {nextMilestone !== null && (
+          <p className="t-small home-next">
+            Prochain palier : <strong>{nextMilestone} jours d’affilée</strong>
+            {st.days > 0 ? ` (encore ${nextMilestone - st.days})` : ''}
+          </p>
+        )}
+        {older.length > 0 && (
+          <details className="more-opts">
+            <summary>Tout voir ({feats.length})</summary>
+            <ul className="acc-list">
+              {older.map((f) => <AccRow key={f.id} f={f} now={now.getTime()} />)}
+            </ul>
+          </details>
+        )}
+        <details className="more-opts">
+          <summary>Comment ça compte ?</summary>
+          <p className="t-small t-dim">
+            Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : une série ne compte qu’au-dessus
+            de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
+          </p>
+          <p className="t-small t-dim">Plafond de 8 cartes par session : une absence ne crée pas de dette impossible.</p>
+        </details>
       </Panel>
 
       <p className="home-foot t-small t-dim">
-        <button type="button" onClick={() => navigate('settings')}>Réglages</button>
-        <span aria-hidden="true">·</span>
         <button type="button" onClick={() => navigate('audio')}>Crédits audio</button>
       </p>
     </main>

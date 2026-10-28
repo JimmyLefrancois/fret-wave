@@ -1616,13 +1616,13 @@ table.kv td:first-child { color: var(--muted); }
 .home-hero {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   min-height: 258px;
   padding: 0 0 10px;
 }
 .home-hero-bottom { display: flex; flex-direction: column; gap: 2px; }
-.home-kicker { color: var(--cyan); margin: 0; }
+.home-tagline { color: var(--cyan); }
 .home-hero-title {
   margin: 0;
   font-family: var(--font-display);
@@ -1631,14 +1631,30 @@ table.kv td:first-child { color: var(--muted); }
   color: var(--text);
   text-shadow: 0 3px 0 rgba(var(--veil-rgb), 0.55), 0 0 26px rgba(255, 42, 109, 0.35);
 }
-.home-hero-line { margin: 2px 0 0; font-size: 13px; color: var(--text); text-shadow: 0 2px 0 rgba(var(--veil-rgb), 0.85); }
+/* jauge du jour : trois crans pixel, lisibles à un mètre (le texte courant est à 16 px) */
+.home-day { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-inside); margin-block-start: var(--gap-inside); font-size: 16px; color: var(--text); }
+.day-cells { display: inline-flex; gap: var(--gap-tight); }
+.day-cell { width: 16px; height: 16px; border: var(--bw) solid var(--line); background: var(--bg); }
+.day-cell.on { border-color: var(--green); background: var(--green); }
 @media (min-width: 900px) {
   .home-hero { min-height: 300px; }
   .home-hero-title { font-size: 46px; }
 }
+@media (max-width: 899px) {
+  /* téléphone : l'affiche cède de la hauteur au héros, qui doit tenir sans défiler */
+  .home-hero { min-height: 200px; }
+}
 .home-title { margin: 2px 0 4px; font-family: var(--font-body); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
 .home-actions { margin: 12px 0 10px; }
 .home-actions .btn { flex: 1 1 150px; }
+/* révision en héros : la reprise reste à portée, en ligne secondaire sous l'action principale */
+.home-resume { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
+/* premier lancement : deux étapes numérotées, une seule action primaire */
+.home-steps { list-style: none; display: grid; gap: var(--gap-inside); padding: 0; }
+.home-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: var(--gap-inside); }
+.home-step-n { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-family: var(--font-label); font-weight: 700; color: var(--magenta); border: var(--bw) solid var(--magenta); }
+.home-step-text { font-size: 16px; font-weight: 600; color: var(--text); }
+.home-next strong { color: var(--text); }
 
 .home-door { margin: 12px 0; }
 .door {
@@ -2272,16 +2288,7 @@ table.kv td:first-child { color: var(--muted); }
   /* pas de bordure : le cadre traçait un rectangle sur toute l'affiche, qui se lisait comme une boîte
      posée sur le décor alors que l'affiche EST le décor (le titre repose déjà sur la plaque opaque) */
 }
-/* l'étiquette du haut est seule sur sa ligne : elle porte sa propre plaque, sans cadre — l'accueil n'a
-   plus aucun rectangle tracé, ni autour de l'affiche ni autour de cette ligne */
-.home-kicker {
-  align-self: flex-start;
-  padding: 3px 8px;
-  background: rgba(var(--veil-rgb), 0.82);
-}
-.home-hero-title,
-.home-kicker,
-.home-hero-line { text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.85), 0 0 6px rgba(var(--veil-rgb), 0.9); }
+.home-hero-title { text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.85), 0 0 6px rgba(var(--veil-rgb), 0.9); }
 
 /* pied d'accueil et pieds de page : une bande, et des boutons qui se voient */
 .home-foot,
