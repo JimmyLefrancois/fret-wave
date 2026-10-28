@@ -1629,7 +1629,6 @@ table.kv td:first-child { color: var(--muted); }
   font-size: clamp(26px, 9vw, 44px);
   line-height: 1.12;
   color: var(--text);
-  text-shadow: 0 3px 0 rgba(var(--veil-rgb), 0.55), 0 0 26px rgba(255, 42, 109, 0.35);
 }
 /* jauge du jour : trois crans pixel, lisibles à un mètre (le texte courant est à 16 px) */
 .home-day { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-inside); margin-block-start: var(--gap-inside); font-size: 16px; color: var(--text); }
@@ -1953,7 +1952,10 @@ table.kv td:first-child { color: var(--muted); }
   border-top: 1px solid var(--line-soft);
 }
 .acc-row:first-child { border-top: 0; }
+/* pastille au trait, pas en aplat : la couleur dit le genre sans faire un arc-en-ciel quand la liste est
+   dépliée (le seul aplat saturé de l'accueil reste le bouton principal) */
 .acc-glyph {
+  --acc: var(--green);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1961,14 +1963,14 @@ table.kv td:first-child { color: var(--muted); }
   height: 24px;
   font-size: 13px;
   line-height: 1;
-  color: var(--bg-deep);
-  background: var(--green);
+  color: var(--acc);
+  background: var(--surface-hi);
+  border: var(--bw) solid var(--acc);
 }
-.acc-green .acc-glyph { background: var(--green); }
-.acc-yellow .acc-glyph { background: var(--yellow); }
-.acc-magenta .acc-glyph { background: var(--magenta); color: var(--on-accent); }
-.acc-cyan .acc-glyph { background: var(--cyan); }
-.acc-violet .acc-glyph { background: var(--violet); }
+.acc-yellow .acc-glyph { --acc: var(--yellow); }
+.acc-magenta .acc-glyph { --acc: var(--magenta); }
+.acc-cyan .acc-glyph { --acc: var(--cyan); }
+.acc-violet .acc-glyph { --acc: var(--violet); }
 .acc-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .acc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .acc-title { font-size: 13.5px; font-weight: 700; }
