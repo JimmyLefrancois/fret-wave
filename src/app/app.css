@@ -65,6 +65,9 @@
   --gap-tight: 4px;
   /* étiquette pixel lue à un mètre (héros et accroche de l'accueil) : 11 px ne passe pas la distance */
   --label-lg: 13px;
+  /* bouton du héros de l'accueil : la seule chose à lire depuis le tabouret, guitare en main */
+  --hero-btn-size: 17px;
+  --hero-btn-h: 56px;
 }
 
 * { box-sizing: border-box; }
@@ -1664,6 +1667,7 @@ table.kv td:first-child { color: var(--muted); }
    fixe, le secondaire à sa droite. L'œil et la main le retrouvent au même endroit chaque jour. */
 @media (min-width: 900px) {
   .row.home-actions > .btn { flex: 0 0 20rem; }
+  .row.home-actions > .btn:not(.btn-primary) { flex: 0 0 auto; padding-inline: 20px; }
 }
 /* révision en héros : la reprise reste à portée, en ligne secondaire sous l'action principale */
 .home-resume { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
@@ -1687,9 +1691,12 @@ table.kv td:first-child { color: var(--muted); }
   letter-spacing: 0.04em;
   color: inherit;
   border: 1px solid currentColor;
-  opacity: 0.85;
 }
 @media (hover: none), (pointer: coarse) { .home-key { display: none; } }
+/* le héros se lit à un mètre : action en 17 px sur 56 px de haut, lignes d'explication à 16 px */
+.home-actions .btn { min-height: var(--hero-btn-h); }
+.home-actions .btn-primary { font-size: var(--hero-btn-size); }
+.home-go > .t-small { font-size: 16px; color: var(--muted); }
 /* invite micro (tant que le micro n'a jamais entendu l'élève) : sous les actions, en retrait, jamais primaire */
 .home-mic { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
 .home-mic p { flex: 1 1 32ch; text-wrap: pretty; }

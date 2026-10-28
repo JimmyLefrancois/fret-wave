@@ -235,7 +235,7 @@ export function HubPage() {
         >
           <h3 className="home-title">{reviewScale ? reviewScale.title : 'Révision du jour'}</h3>
           {reviewPos && <p className="t-small">{positionLabelPlain(reviewPos, settings.noteNotation)}</p>}
-          <p className="t-small t-dim home-why">
+          <p className="t-small home-why">
             {reviewSummary(reviewCard!)} · {whenLabel(reviewCard!.lastTs, now.getTime())}
             <br />
             {plan.review.count > 1
