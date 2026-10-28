@@ -4,7 +4,7 @@
  * « apprise » après une seule séance, et la liste ne dépasse jamais la limite demandée.
  */
 import { describe, expect, it } from 'vitest';
-import { accomplishments, STREAK_MILESTONES } from '../src/modules/gammes/accomplishments';
+import { accomplishments, headline, STREAK_MILESTONES } from '../src/modules/gammes/accomplishments';
 import type { Attempt } from '../src/core/progress';
 
 const DAY = 86_400_000;
@@ -113,5 +113,22 @@ describe('accomplishments', () => {
     const [a] = accomplishments([mk(T0, 3, 3)]);
     expect(a?.subject).toMatch(/· Position \d+ · cases/);
     expect(a?.subject).not.toMatch(/Box/);
+  });
+
+  it('en tête : la dernière réussite mesurée passe devant un palier de jours plus récent', () => {
+    const first = STREAK_MILESTONES[0]!;
+    const days = Array.from({ length: first }, (_, i) => mk(T0 + i * DAY, 3, 3, { formIndex: i }));
+    const list = accomplishments(days);
+    expect(list[0]?.kind).toBe('streak');
+    const { latest, rest } = headline(list);
+    expect(latest?.kind).not.toBe('streak');
+    expect(rest).toHaveLength(list.length - 1);
+    expect(rest).not.toContain(latest);
+  });
+
+  it('en tête : un palier seul reste affiché, une liste vide ne donne rien', () => {
+    const streakOnly = [{ id: 's', kind: 'streak', ts: T0, title: 't', subject: 's', detail: 'd', accent: 'cyan' } as const];
+    expect(headline(streakOnly).latest?.id).toBe('s');
+    expect(headline([])).toEqual({ latest: null, rest: [] });
   });
 });

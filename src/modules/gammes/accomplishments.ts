@@ -163,6 +163,16 @@ function streakMilestones(attempts: readonly Attempt[]): Accomplishment[] {
   return out;
 }
 
+/**
+ * Ce que l'accueil met en tête : la dernière réussite **mesurée** (une série, une forme, un accord),
+ * pas un palier de jours qui ne dit rien de ce qu'on a joué. À défaut, le plus récent tel quel.
+ * `rest` garde les autres dans l'ordre, sans doublon.
+ */
+export function headline(list: readonly Accomplishment[]): { latest: Accomplishment | null; rest: Accomplishment[] } {
+  const latest = list.find((e) => e.kind !== 'streak') ?? list[0] ?? null;
+  return { latest, rest: list.filter((e) => e !== latest) };
+}
+
 export interface AccomplishmentOptions {
   limit?: number;
   notation?: NoteNotation;

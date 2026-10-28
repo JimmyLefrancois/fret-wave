@@ -16,7 +16,7 @@ import { useSettings } from '../app/settings';
 import { dailyActivity, hubPlan, isHeroShortcut, micHeardBefore, reviewSummary, scaleStep } from '../app/hubPlan';
 import { Chip, Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
-import { accomplishments, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
+import { accomplishments, headline, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
 import { chordProgress, learnedChordIds, nextChord, palierOf } from '../modules/accords/recommend';
 import { VOICINGS } from '../data/voicings';
 import { fmtChord } from '../core/theory';
@@ -304,7 +304,7 @@ export function HubPage() {
     );
   })();
 
-  const [latest, ...older] = feats;
+  const { latest, rest: older } = headline(feats);
 
   return (
     <main className="shell">
@@ -348,7 +348,7 @@ export function HubPage() {
         </button>
       </div>
 
-      <Panel className="span-12 home-acc" label="Dernier accomplissement">
+      <Panel className="span-12 home-acc" label="Dernière réussite">
         {latest ? (
           <ul className="acc-list">
             <AccRow f={latest} now={now.getTime()} />

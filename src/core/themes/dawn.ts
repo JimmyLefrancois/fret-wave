@@ -58,7 +58,8 @@ export const DAWN: ThemeTokens = {
     magenta: '#C2185B',
     cyan: '#0B6E7A',
     orange: '#B4530A',
-    yellow: '#8A6A00',
+    // 4,98:1 sur surfaceHi (4,26 avec #8A6A00) : la ★ d'un sans-faute se lit sur sa pastille
+    yellow: '#7D6000',
     violet: '#5B2A9E',
     green: '#1C6B36',
     danger: '#B3122F',
