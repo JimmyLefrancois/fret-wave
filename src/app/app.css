@@ -1646,7 +1646,7 @@ table.kv td:first-child { color: var(--muted); }
   .home-hero { min-height: 300px; }
   .home-hero-title { font-size: 46px; }
   /* étapes : le bouton reste à portée de son texte, pas rejeté au bord d'un panneau de 1 100 px */
-  .home-steps { max-inline-size: 60ch; }
+  .home-steps { max-inline-size: 46rem; }
 }
 /* grand écran : l'affiche cède de la hauteur pour que le héros entre sans défiler ; le soleil passe
    derrière le titre, comme prévu par l'affiche */
@@ -1665,10 +1665,17 @@ table.kv td:first-child { color: var(--muted); }
 /* premier lancement : deux étapes numérotées, une seule action primaire */
 .home-steps { list-style: none; display: grid; gap: var(--gap-inside); padding: 0; }
 .home-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: var(--gap-inside); }
+/* les étapes partagent leurs colonnes : le bouton le plus large fixe la colonne, aucun texte ne se coupe pour l'autre */
+@supports (grid-template-columns: subgrid) {
+  .home-steps { grid-template-columns: 28px minmax(0, 1fr) auto; }
+  .home-steps li { grid-column: 1 / -1; grid-template-columns: subgrid; }
+  .home-steps li > .btn { justify-self: end; }
+}
 .home-step-n { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-family: var(--font-label); font-weight: 700; color: var(--magenta); border: var(--bw) solid var(--magenta); }
 .home-step-text { font-size: 16px; font-weight: 600; color: var(--text); }
-/* au téléphone, le bouton passe sous son étape : le texte garde toute la largeur */
-@media (max-width: 519px) {
+/* sous 900 px (colonne de 560 px au plus), le bouton passe sous son étape : le texte garde toute la largeur */
+@media (max-width: 899px) {
+  .home-steps,
   .home-steps li { grid-template-columns: 28px minmax(0, 1fr); }
   .home-steps li > .btn { grid-column: 2; justify-self: start; }
 }
