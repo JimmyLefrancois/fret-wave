@@ -3,7 +3,7 @@ import { TUNINGS, generatePositions, getScale, pitchClassOf, tonicSpellings } fr
 import { layoutScore, positionToScore, validateScore } from '../src/core/tab';
 import {
   HOLES_RATIO, SEGMENTS, buildExercise, checkAnswer, holeKey, insideGrid, mulberry32, segmentPlan, starsFor,
-  tempoGrid, withRevealed,
+  tempoGrid, withRevealed, clickMasked, isClickPitch,
 } from '../src/modules/gammes/exercise';
 import { unseenTonic } from '../src/modules/gammes/transpose';
 
@@ -183,6 +183,24 @@ describe('transposition : proposer une tonique jamais vue', () => {
     const all: string[] = [];
     for (let pc = 0; pc < 12; pc++) all.push(...tonicSpellings(getScale('dorian'), pc));
     expect(unseenTonic('dorian', all)).toBeNull();
+  });
+});
+
+describe('masque des clics du métronome (hauteur et temps)', () => {
+  it('une note de guitare jouée sur le temps n’est pas masquée ; un clic entendu l’est', () => {
+    // 60 BPM : un clic par seconde ; 3,02 s est à 20 ms d'un clic
+    expect(clickMasked(3.02, 60, 45)).toBe(false); // La2 sur le temps : c'est ce qu'on demande
+    expect(clickMasked(3.02, 60, 72)).toBe(false); // Do5, haut d'une box : toujours pas un clic
+    expect(clickMasked(3.02, 60, 84)).toBe(true); // Do6 : le clic du temps
+    expect(clickMasked(3.02, 60, 91)).toBe(true); // Sol6 : le clic du premier temps
+    expect(clickMasked(3.5, 60, 84)).toBe(false); // loin d'un clic : une vraie note, même aiguë
+  });
+
+  it('la bande des clics couvre leur glissement (+8 % / −10 %) et rien d’une position grave', () => {
+    expect(isClickPitch(82.3)).toBe(true);
+    expect(isClickPitch(92.3)).toBe(true);
+    expect(isClickPitch(88)).toBe(false); // Mi6, Mi aigu case 24
+    expect(isClickPitch(76)).toBe(false);
   });
 });
 

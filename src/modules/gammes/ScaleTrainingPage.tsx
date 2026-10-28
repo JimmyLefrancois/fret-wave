@@ -41,11 +41,12 @@ import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resol
 import { TabLegend } from './TabLegend';
 import { Celebration } from './Celebration';
 import {
-  SEGMENTS, buildExercise, holeKey, insideGrid, mulberry32, nearClick, segmentPlan, starsFor, tempoGrid, withRevealed,
+  SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, mulberry32, segmentPlan, starsFor, tempoGrid, withRevealed,
   type GridOutcome, type GridSubdivision, type Segment,
 } from './exercise';
 import { REVIEW_MAX, buildReviewQueue, type ReviewTarget } from './review';
 import { coldNext, countsAsProof, lookRemaining, type ColdStep } from './coldReview';
+import { blindGrid, countInBeat, scoreBlind, type BlindGrid, type HeardNote } from './blind';
 
 type HoleMark = 'right' | 'revealed';
 
@@ -134,6 +135,18 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const [lookStart, setLookStart] = useState<number | null>(null);
   /** « Refaire celle-ci » en révision : la forme vient d'être montrée, l'essai ne prouve plus rien. */
   const [retake, setRetake] = useState(false);
+  // --- série à l'aveugle (N3 au micro) : aucune tablature dessinée pendant le jeu
+  const [blindOn, setBlindOn] = useState(false);
+  const [blindPhase, setBlindPhase] = useState<'idle' | 'countin' | 'running'>('idle');
+  const blindHeard = useRef<HeardNote[]>([]);
+  /** Instant (horloge `performance`) du premier temps de la série, après le décompte. */
+  const blindStartPerf = useRef(0);
+  /** Instant du premier clic (décompte compris) : les clics tombent sur des temps comptés d'ici. */
+  const blindClickPerf = useRef(0);
+  const blindGridRef = useRef<BlindGrid | null>(null);
+  /** Attaques écartées par le masque des clics (diagnostic du crochet de développement). */
+  const blindMasked = useRef<{ midi: number; t: number }[]>([]);
+  const blindLive = blindPhase !== 'idle';
   const proofless = (coldStep !== null && !countsAsProof(coldStep) && coldStep !== 'next') || (mixed && retake);
   const coldActive = coldStep === 'cold' || coldStep === 'retry';
 
@@ -217,6 +230,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     actedRef.current = null;
     padUsed.current = false;
     micFills.current = 0;
+    blindHeard.current = [];
+    setBlindPhase('idle');
     player.current?.stop();
     setGrid('off');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -263,6 +278,71 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     }
   };
 
+  /** Série à l'aveugle : une mesure de décompte, puis la grille ; la tablature n'est plus dessinée. */
+  const startBlind = async () => {
+    if (!exercise || total === 0 || blindLive || micState !== 'listening') return;
+    const p = player.current!;
+    const bg = blindGrid(total, settings.trainingTempo, settings.gridSubdivision);
+    try {
+      await p.init();
+      await p.load(bg.score, { loop: false });
+      p.setMetronome(true);
+      p.onEnded = null;
+      await p.play();
+      const t0 = performance.now();
+      blindClickPerf.current = t0;
+      blindStartPerf.current = t0 + bg.countIn * 1000;
+      blindGridRef.current = bg;
+      blindHeard.current = [];
+      blindMasked.current = [];
+      actedRef.current = null;
+      setMarks({});
+      setErrors({});
+      setFeedback(null);
+      setStartedAt(Date.now());
+      setNow(Date.now());
+      setBlindPhase('countin');
+    } catch (e) {
+      setFeedback({ ok: false, text: `métronome indisponible : ${(e as Error).message}` });
+    }
+  };
+
+  // décompte puis série : l'horloge de l'écran avance, la phase suit
+  useEffect(() => {
+    if (!blindLive) return;
+    const t = window.setInterval(() => {
+      setNow(Date.now());
+      if (performance.now() >= blindStartPerf.current) setBlindPhase('running');
+    }, 100);
+    return () => window.clearInterval(t);
+  }, [blindLive]);
+
+  /** Fin de la série à l'aveugle (toutes les notes jouées, ou « Terminer ») : verdict d'un coup. */
+  function finishBlind() {
+    const bg = blindGridRef.current;
+    if (!exercise || !bg) return;
+    player.current?.stop();
+    const sc = scoreBlind(targetsFor(exercise.holes, r.tuning), blindHeard.current, { centsTolerance: input.centsTolerance, finished: true });
+    const finalMarks: Record<string, HoleMark> = {};
+    const errorCount: Record<string, number> = {};
+    for (const h of exercise.holes) {
+      if (sc.marks[h.key] === 'right') finalMarks[h.key] = 'right';
+      else {
+        finalMarks[h.key] = 'revealed';
+        errorCount[h.key] = 1;
+      }
+    }
+    const kept = sc.lastAttack !== null && insideGrid(sc.lastAttack, bg.grid);
+    setBlindPhase('idle');
+    setMarks(finalMarks);
+    setErrors(errorCount);
+    setFeedback({
+      ok: sc.correct === sc.total,
+      text: `à l’aveugle : ${sc.correct} / ${sc.total} justes · ${kept ? 'grille tenue' : 'hors grille'}`,
+    });
+    finish(finalMarks, errorCount, { grid: kept ? 'kept' : 'missed', npm: bg.grid.npm });
+  }
+
   const nextOpen = useCallback((after: string | null): string | null => {
     if (!exercise) return null;
     const order = exercise.holes.map((h) => h.key);
@@ -274,7 +354,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     return null;
   }, [exercise, marks]);
 
-  const finish = useCallback((finalMarks: Record<string, HoleMark>, errorCount: Record<string, number>) => {
+  const finish = useCallback((
+    finalMarks: Record<string, HoleMark>, errorCount: Record<string, number>,
+    blindResult?: { grid: GridOutcome; npm: number },
+  ) => {
     if (!exercise || !plan || !r.position) return;
     const right = Object.values(finalMarks).filter((m) => m === 'right').length;
     const totalHoles = exercise.total;
@@ -288,7 +371,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     const playedSeconds = lastNotePerf.current !== null && gridStartPerf.current > 0
       ? (lastNotePerf.current - gridStartPerf.current) / 1000
       : seconds;
-    const gridOutcome: GridOutcome = grid === 'off' ? 'off' : grid === 'running' && insideGrid(playedSeconds, tempoGrid(totalHoles, settings.trainingTempo, settings.gridSubdivision)) ? 'kept' : 'missed';
+    const gridOutcome: GridOutcome = blindResult ? blindResult.grid : grid === 'off' ? 'off' : grid === 'running' && insideGrid(playedSeconds, tempoGrid(totalHoles, settings.trainingTempo, settings.gridSubdivision)) ? 'kept' : 'missed';
     if (grid !== 'off') stopGrid();
     const attempt: Attempt = {
       id: newAttemptId(Date.now(), nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index }), readAttempts(progressStore()).length),
@@ -311,9 +394,11 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       tempoOk: gridOutcome === 'kept',
       ...(proofless ? { afterReveal: true as const } : {}),
       // au micro = toutes les cases trouvées l'ont été en jouant (aucune au pavé)
-      ...(!padUsed.current && micFills.current > 0 ? { mic: true as const } : {}),
+      ...((!padUsed.current && micFills.current > 0) || blindResult ? { mic: true as const } : {}),
       ...(segment === 'all' || segment === 'updown' ? { fullPosition: true as const } : {}),
-      ...(grid !== 'off' ? { gridNpm: tempoGrid(totalHoles, settings.trainingTempo, settings.gridSubdivision).npm } : {}),
+      ...(blindResult
+        ? { gridNpm: blindResult.npm, blind: true as const }
+        : grid !== 'off' ? { gridNpm: tempoGrid(totalHoles, settings.trainingTempo, settings.gridSubdivision).npm } : {}),
     };
     setJournal(appendAttempt(progressStore(), attempt));
     const res: Result = {
@@ -431,8 +516,23 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     const now = performance.now();
     const prev = actedRef.current;
     if (prev && prev.midi === note.midi && now - prev.at < 400) return;
+    if (blindLive) {
+      // à l'aveugle : on écoute, on ne dit rien. Le décompte et les clics ne comptent pas.
+      const bg = blindGridRef.current;
+      if (!bg || now < blindStartPerf.current - 60) return;
+      if (clickMasked((now - blindClickPerf.current) / 1000, bg.grid.score.tempo, note.midi + note.cents / 100)) {
+        blindMasked.current.push({ midi: note.midi, t: (now - blindStartPerf.current) / 1000 });
+        return;
+      }
+      actedRef.current = { midi: note.midi, at: now };
+      const latency = inputRef.current.latencies[inputRef.current.source] ?? 0;
+      blindHeard.current.push({ midi: note.midi + note.cents / 100, t: (now - latency - blindStartPerf.current) / 1000 });
+      const sc = scoreBlind(targetsFor(exercise.holes, r.tuning), blindHeard.current, { centsTolerance: input.centsTolerance });
+      if (sc.consumed >= exercise.holes.length) finishBlind();
+      return;
+    }
     // masque des clics du métronome : le micro les entend comme une attaque
-    if (grid === 'running' && nearClick((now - gridStartPerf.current) / 1000, settings.trainingTempo)) return;
+    if (grid === 'running' && clickMasked((now - gridStartPerf.current) / 1000, settings.trainingTempo, note.midi + note.cents / 100)) return;
     const open = exercise.holes.filter((h) => !marks[h.key]);
     if (open.length === 0) return;
     const targets = targetsFor(open, r.tuning);
@@ -499,6 +599,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     if (!micOn) {
       engine?.stop();
       setMicState('idle');
+      setBlindOn(false);
       return;
     }
     let cancelled = false;
@@ -660,6 +761,12 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       nextInQueue: () => nextInQueue(),
       // rappel à froid : étape courante et raccourcis de l'écran « Regarde la forme »
       cold: { step: coldStep, lookStart, startLook: () => setLookStart(Date.now()), endLook: () => beginRetry() },
+      // série à l'aveugle : phase, notes entendues (le verdict reste caché à l'écran)
+      blind: {
+        on: blindOn, phase: blindPhase, set: (v: boolean) => setBlindOn(v), start: () => void startBlind(),
+        finish: () => finishBlind(), heard: () => blindHeard.current.length,
+        log: () => ({ heard: blindHeard.current, masked: blindMasked.current }),
+      },
       journalLength: journal.length,
       // micro (phase 3) : état observable pour la vérification au navigateur
       // fonctions et non valeurs : l'état du moteur change 47 fois par seconde sans re-rendu de la page
@@ -671,7 +778,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         lastNotePerf: () => lastNotePerf.current,
       },
     };
-  }, [exercise, plan, marks, errors, activeKey, result, level, segment, total, done, grid, mixed, queue, qIndex, press, validate, journal.length, micOn, engine, coldStep, lookStart, beginRetry]);
+  }, [exercise, plan, marks, errors, activeKey, result, level, segment, total, done, grid, mixed, queue, qIndex, press, validate, journal.length, micOn, engine, coldStep, lookStart, beginRetry, blindOn, blindPhase]);
 
   if (!r.position || !exercise || !display || !plan) {
     return (
@@ -713,6 +820,37 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         </span>
       </header>
 
+      {blindLive ? (
+        <Panel className="span-12" accent="cyan" label="À l’aveugle">
+          {(() => {
+            const bg = blindGridRef.current!;
+            const elapsed = (performance.now() - blindClickPerf.current) / 1000;
+            const count = countInBeat(elapsed, bg);
+            const beat = Math.min(bg.grid.beats, Math.floor(Math.max(0, elapsed - bg.countIn) / (60 / bg.grid.score.tempo)) + 1);
+            return count !== null ? (
+              <p className="blind-count" aria-live="assertive">{count}</p>
+            ) : (
+              <p className="t-body" aria-live="polite">
+                Joue la position, dans l’ordre · temps {beat} / {bg.grid.beats}
+                {elapsed - bg.countIn > bg.grid.seconds ? ' · grille finie, termine quand tu veux' : ''}
+              </p>
+            );
+          })()}
+          <MicStrip
+            engine={engine}
+            notation={settings.noteNotation}
+            thresholdDb={input.thresholds[input.source]}
+            tolerance={input.centsTolerance}
+            tuning={r.tuning}
+            a4={input.a4}
+          />
+          <p className="t-small t-dim">Aucun verdict pendant le jeu : la tablature et les cases justes ou fausses reviennent à la fin.</p>
+          <div className="row">
+            <PixelButton variant="primary" onClick={finishBlind}>Terminer</PixelButton>
+          </div>
+        </Panel>
+      ) : (
+      <>
       <TabView
         score={display}
         notes={settings.noteNotation}
@@ -787,6 +925,17 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             />
           </div>
         )}
+        {!mixed && level === 3 && (
+          <Switch
+            checked={blindOn && micState === 'listening'}
+            onChange={setBlindOn}
+            disabled={micState !== 'listening'}
+            label="À l’aveugle"
+            hint={micState === 'listening'
+              ? 'aucune tablature pendant le jeu, verdict à la fin'
+              : 'ouvre le micro : à l’aveugle, seul le son est jugé'}
+          />
+        )}
         <p className="t-small">
           {level === 2
             ? `${Math.round(settings.holeRate * 100)} % des notes masquées (au moins 2, jamais toutes) : ici ${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes}. `
@@ -802,6 +951,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             <PixelButton variant="quiet" onClick={nextInQueue}>Passer · forme suivante</PixelButton>
           ) : coldStep === 'look' ? null : (
             <>
+              {!mixed && level === 3 && blindOn && micState === 'listening' && !result && (
+                <PixelButton variant="primary" onClick={() => void startBlind()}>▶ Lancer à l’aveugle</PixelButton>
+              )}
               <PixelButton variant="primary" onClick={() => restart()} title="Même gamme, nouveaux trous">▶ Nouvelle série</PixelButton>
               <PixelButton variant="quiet" onClick={() => navigate('scale')}>Écouter d’abord</PixelButton>
             </>
@@ -1021,6 +1173,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         Niveau 4 (improvisation) : <button type="button" className="linkish" onClick={() => navigate('impro')}>improviser sur un accompagnement</button>.
         Une note masquée n’est jamais jouée par l’app avant d’être trouvée.
       </p>
+      </>
+      )}
     </main>
   );
 }

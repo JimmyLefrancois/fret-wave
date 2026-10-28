@@ -256,3 +256,22 @@ export function nearClick(elapsedSeconds: number, bpm: number, windowMs = 90): b
   const ms = phase * 1000;
   return Math.min(ms, beat * 1000 - ms) <= windowMs;
 }
+
+/**
+ * Le clic du métronome est un sinus court de Do6 (1 046,5 Hz, temps) ou Sol6 (1 568 Hz, premier temps),
+ * dont la hauteur glisse de +8 % à −10 % (`core/audio/metronome.ts`). Entendu par le micro, il donne une
+ * note de cette bande — très au-dessus d'une position de guitare (Mi aigu case 24 = Mi6, MIDI 88).
+ */
+export function isClickPitch(midi: number): boolean {
+  return (midi >= 81.5 && midi <= 86) || (midi >= 88.5 && midi <= 93);
+}
+
+/**
+ * Attaque à écarter : proche d'un clic **et** à la hauteur d'un clic. Lot « mémoire et vitesse » : le
+ * masque par le temps seul effaçait toute note jouée **sur** le temps — mesuré au micro simulé à 60 BPM,
+ * 3 notes sur 12 perdues, exactement celles qui tombaient sur un clic. Or jouer sur le temps est
+ * précisément ce qu'on demande à la grille, à l'aveugle et en séquence.
+ */
+export function clickMasked(elapsedSeconds: number, bpm: number, heardMidi: number, windowMs = 90): boolean {
+  return nearClick(elapsedSeconds, bpm, windowMs) && isClickPitch(heardMidi);
+}

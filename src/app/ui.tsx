@@ -143,14 +143,17 @@ export function Switch(props: {
   hint?: string;
   /** Libellé et précision sur la même ligne (au lieu de deux) : pour un réglage court et explicite. */
   inline?: boolean;
+  /** Indisponible (la raison va dans `hint`) : on montre l'option, on ne la cache pas. */
+  disabled?: boolean;
 }) {
-  const { checked, onChange, label, hint, inline = false } = props;
+  const { checked, onChange, label, hint, inline = false, disabled = false } = props;
   return (
     <button
       type="button"
       className={`switch ${checked ? 'on' : ''} ${inline ? 'inline' : ''}`}
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
     >
       <span className="switch-box" aria-hidden="true" />

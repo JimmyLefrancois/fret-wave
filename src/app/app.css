@@ -391,6 +391,11 @@ a { color: var(--cyan); }
   position: relative;
 }
 .switch.on .switch-box { background: var(--cyan); border-color: var(--cyan); }
+/* série à l'aveugle : le décompte se lit de loin, la guitare dans les mains (police d'étiquette : un chiffre) */
+.blind-count { font-family: var(--font-display); font-size: 56px; line-height: 1.2; text-align: center; color: var(--cyan); margin: 12px 0; }
+/* indisponible : la case et le libellé s'effacent, la raison (hint) reste lisible */
+.switch:disabled { cursor: default; }
+.switch:disabled .switch-box, .switch:disabled .switch-label { opacity: 0.45; }
 .switch.on .switch-box::after {
   content: '';
   position: absolute;
