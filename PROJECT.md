@@ -76,6 +76,8 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 
 **Ce qui n'a pas été touché** : aucune règle musicale, aucun barème d'XP, aucun seuil de maîtrise. Les accords ont retrouvé un onglet de barre et une porte sur l'accueil (D61) : ils n'étaient plus joignables que par un lien de pied de page. Les sessions mélangées gardent leur panneau « Session terminée » (pas de panneau de réussite animé).
 
+**Déploiement (GitHub Pages)** — `vite.config.ts` prend `base = '/fret-wave/'` quand `GITHUB_PAGES=1`, posé par `.github/workflows/deploy.yml` (build + `actions/deploy-pages` sur `master`). Tout ce qui construit une URL d'asset passe par `import.meta.env.BASE_URL`, donc les échantillons suivent (`/fret-wave/samples/…`). Le routeur est en `#/…` : aucune réécriture ni `404.html` n'est nécessaire. **Vérifié en servant `dist/` sous un sous-chemin** : l'app démarre, les cinq onglets sont là, deux échantillons se chargent en 200, aucune erreur console ni requête en échec. **Prérequis côté dépôt** : Settings → Pages → Source = « GitHub Actions ».
+
 **Ce que la refonte laisse ouvert** (assumé, à trancher plus tard)
 - **L'écran de découverte reste le plus dense** : sept réglages d'affichage (annotation, cordes affichées, fondamentales, rythme, drone, métronome, boucle) cohabitent avec le sujet, la position. « Plus d'options » n'en replie qu'une partie. C'est le prochain écran à alléger.
 - **Les sessions mélangées** n'ont pas le panneau de réussite : elles gardent leur carte « Session terminée », sans animation ni récap XP.
