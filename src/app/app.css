@@ -2241,11 +2241,11 @@ table.kv td:first-child { color: var(--muted); }
 }
 .linkish:hover { border-color: var(--cyan); color: var(--text); }
 
-/* l'en-tête devient une bande pleine : titre, sous-titre et étiquette ne reposent plus sur l'ombre.
-   Pas de bordure : le cadre traçait un rectangle autour du titre, qui se lisait comme une boîte
-   posée sur le décor. La bande reste (fond de panneau) pour que le texte ne tombe jamais sur la scène. */
+/* l'en-tête est une carte comme les autres : même fond, même filet (`--bw solid --line`) que `.panel`,
+   pour que titre, sous-titre et étiquette ne reposent jamais sur la scène */
 .page-head {
   background: var(--surface);
+  border: var(--bw) solid var(--line);
   padding: 10px 12px;
   /* un peu d'air au-dessus de la bande : collée au bord haut, elle se lisait comme une barre système */
   margin-block-start: 8px;
@@ -2269,14 +2269,15 @@ table.kv td:first-child { color: var(--muted); }
     rgba(var(--veil-rgb), 0.9) 74%,
     rgba(var(--veil-rgb), 0.96) 100%
   );
-  border: 2px solid var(--line-soft);
+  /* pas de bordure : le cadre traçait un rectangle sur toute l'affiche, qui se lisait comme une boîte
+     posée sur le décor alors que l'affiche EST le décor (le titre repose déjà sur la plaque opaque) */
 }
-/* l'étiquette du haut est seule sur sa ligne : elle porte sa propre plaque */
+/* l'étiquette du haut est seule sur sa ligne : elle porte sa propre plaque, sans cadre — l'accueil n'a
+   plus aucun rectangle tracé, ni autour de l'affiche ni autour de cette ligne */
 .home-kicker {
   align-self: flex-start;
   padding: 3px 8px;
-  background: rgba(var(--veil-rgb), 0.78);
-  border: 2px solid var(--line-soft);
+  background: rgba(var(--veil-rgb), 0.82);
 }
 .home-hero-title,
 .home-kicker,
