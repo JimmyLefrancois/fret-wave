@@ -4,7 +4,7 @@
  * Ordre : une révision due passe avant tout (c'est la répétition espacée qui fait progresser), puis on
  * reprend le dernier module touché (gamme ou accord), et un journal vide donne « Commencer ».
  */
-import { isVerified, type Attempt, type Card } from '../core/progress';
+import { isVerified, type Attempt, type AttemptLevel, type Card } from '../core/progress';
 
 export type HubResume =
   | { kind: 'start' }
@@ -40,6 +40,18 @@ export function hubPlan(
     if (id) return { review, resume: { kind: 'chord', voicingId: id } };
   }
   return { review, resume: { kind: 'scale' } };
+}
+
+const LEVEL_NAME: Readonly<Record<AttemptLevel, string>> = {
+  1: 'écoute', 2: 'trous (N2)', 3: 'rappel (N3)', 4: 'impro (N4)',
+};
+
+/**
+ * Pourquoi cette forme revient : son dernier passage réussi, tel que la carte l'a retenu
+ * (« Dernier passage : trous (N2) à 85 % »). Aucune durée ni consigne inventée.
+ */
+export function reviewSummary(card: Pick<Card, 'lastLevel' | 'lastScore'>): string {
+  return `Dernier passage : ${LEVEL_NAME[card.lastLevel]} à ${Math.round(card.lastScore * 100)}\u00a0%`;
 }
 
 /**

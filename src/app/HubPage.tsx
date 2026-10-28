@@ -13,7 +13,7 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { hubPlan, micHeardBefore, scaleStep } from '../app/hubPlan';
+import { hubPlan, micHeardBefore, reviewSummary, scaleStep } from '../app/hubPlan';
 import { Chip, Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
@@ -127,9 +127,12 @@ export function HubPage() {
   );
 
   const resume = plan.resume;
+  // « Une autre » fait tourner les cartes dues, dans l'ordre de la file (la plus en retard d'abord)
+  const [reviewIdx, setReviewIdx] = useState(0);
+  const reviewCard = plan.review ? due[reviewIdx % due.length] ?? plan.review.first : null;
   // la dernière tentative du nœud dû : elle rouvre la bonne gamme à la bonne position
-  const reviewAttempt = plan.review
-    ? [...journal].reverse().find((x) => nodeIdOf(x) === plan.review!.first.nodeId && x.correct !== null) ?? null
+  const reviewAttempt = reviewCard
+    ? [...journal].reverse().find((x) => nodeIdOf(x) === reviewCard.nodeId && x.correct !== null) ?? null
     : null;
   const reviewScale = reviewAttempt
     ? resolveScale({ scaleId: reviewAttempt.scaleId, tonic: reviewAttempt.tonic, tuningId: reviewAttempt.tuningId, system: reviewAttempt.system as never, positionIndex: 0 }, settings.noteNotation)
@@ -155,9 +158,23 @@ export function HubPage() {
   const hero = (() => {
     if (plan.review) {
       return (
-        <Panel className="span-12 home-go" accent="magenta" label="À réviser" right={<span className="badge">{plan.review.count}</span>}>
+        <Panel
+          className="span-12 home-go"
+          accent="magenta"
+          label="À réviser"
+          right={plan.review.count > 1 && (
+            <Chip small onClick={() => setReviewIdx((i) => i + 1)}>Une autre</Chip>
+          )}
+        >
           <h3 className="home-title">{reviewScale ? reviewScale.title : 'Révision du jour'}</h3>
           {reviewPos && <p className="t-small">{positionLabelPlain(reviewPos, settings.noteNotation)}</p>}
+          <p className="t-small t-dim home-why">
+            {reviewSummary(reviewCard!)} · {whenLabel(reviewCard!.lastTs, now.getTime())}
+            <br />
+            {plan.review.count > 1
+              ? `Forme ${(reviewIdx % plan.review.count) + 1} sur ${plan.review.count} à revoir aujourd’hui`
+              : 'La seule forme à revoir aujourd’hui'}
+          </p>
           <div className="row home-actions">
             <PixelButton variant="primary" onClick={review}>▶ Réviser maintenant</PixelButton>
           </div>
@@ -283,7 +300,7 @@ export function HubPage() {
 
       <div className="span-6 home-door">
         <button type="button" className="door" onClick={() => navigate('gammes')}>
-          <span className="door-kicker">Apprendre</span>
+          <span className="door-kicker">Gammes</span>
           <span className="door-title">Une gamme, ses positions</span>
           <span className="door-sub">Choisis la gamme, puis la position : elle s’ouvre en tablature.</span>
         </button>
@@ -317,7 +334,7 @@ export function HubPage() {
         )}
         {older.length > 0 && (
           <details className="more-opts">
-            <summary>Tout voir ({feats.length})</summary>
+            <summary>{older.length} de plus</summary>
             <ul className="acc-list">
               {older.map((f) => <AccRow key={f.id} f={f} now={now.getTime()} />)}
             </ul>

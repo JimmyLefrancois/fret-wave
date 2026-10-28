@@ -1670,7 +1670,6 @@ table.kv td:first-child { color: var(--muted); }
 .home-mic p { flex: 1 1 32ch; text-wrap: pretty; }
 /* compte du héros : lu à un mètre, il ne peut pas rester le plus petit texte du panneau */
 /* chiffre en sans-serif : en Silkscreen 14 px le « 1 » se lisait comme une tache */
-.home-go .panel-right .badge { font-family: var(--font-body); font-size: 15px; padding: 3px 10px; }
 /* texte replié de l'accueil : une mesure de lecture, pas la largeur du panneau (150 caractères au bureau) */
 .home-acc p { max-inline-size: 68ch; text-wrap: pretty; }
 .home-acc details > p + p { margin-block-start: var(--gap-inside); }

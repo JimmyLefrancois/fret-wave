@@ -3,7 +3,7 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { hubPlan, micHeardBefore, scaleStep } from '../src/app/hubPlan';
+import { hubPlan, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
 import type { Attempt, Card } from '../src/core/progress';
 
@@ -105,5 +105,12 @@ describe('scaleStep', () => {
   it('un accord sur la même tonique ne compte pas comme une écoute de la gamme', () => {
     const j = [mk(T0, { module: 'accords', chordId: 'Am-x02210', scaleId: 'pentatonic-minor' })];
     expect(scaleStep(j, 'pentatonic-minor', 'A')).toBe('listen');
+  });
+});
+
+describe('reviewSummary', () => {
+  it('dit le niveau et le score du dernier passage, rien de plus', () => {
+    expect(reviewSummary({ lastLevel: 2, lastScore: 0.85 })).toBe('Dernier passage : trous (N2) à 85\u00a0%');
+    expect(reviewSummary({ lastLevel: 3, lastScore: 1 })).toBe('Dernier passage : rappel (N3) à 100\u00a0%');
   });
 });
