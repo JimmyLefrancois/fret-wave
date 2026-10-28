@@ -35,9 +35,10 @@ export const LESSON_STEPS: readonly { id: LessonStep; num: string; title: string
 ];
 
 /**
- * Ce que le cycle ne prouve pas encore, dit à l'écran : le **plaqué** n'est pas écouté (phase 5) et le
- * temps de changement est mesuré sur la **basse** seule (monophonie). Un écran qui laisse croire le
- * contraire serait la même malhonnêteté qu'un chiffre inventé.
+ * Ce que le cycle ne prouve pas encore, et qui est dit à l'écran : la **progression** reste déclarée
+ * (les quatre strums ne sont pas segmentés dans le temps) et le temps de changement se mesure encore
+ * sur une **note repère** monophonique. Un écran qui laisserait croire le contraire serait la même
+ * malhonnêteté qu'un chiffre inventé.
  */
 export const CYCLE_LIMITS =
   'Deux limites assumées : l’accord plaqué n’est pas encore écouté (l’app ne sait pas analyser plusieurs cordes à la fois), et l’enchaînement mesure une note repère, pas les six cordes.';

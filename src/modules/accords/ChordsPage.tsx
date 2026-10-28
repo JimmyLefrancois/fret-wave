@@ -93,7 +93,7 @@ export function ChordsPage() {
         <p className="t-small t-dim">{progress.done} accord{progress.done > 1 ? 's' : ''} appris sur {progress.total} — les sept étapes du cycle sont là. Les barrés mobiles et les doigtés avancés arrivent plus tard.</p>
         <p className="t-small t-dim">
           « Appris » = 3 vérifications propres en mode arpège sur au moins 2 jours différents <strong>et</strong> une
-          pose à froid réussie (étape Fixer). Une lecture d’accord ou un plaqué déclaré ne compte pas.
+          pose à froid réussie (étape Fixer). Un plaqué écouté compte comme une vérification ; un plaqué seulement déclaré, non.
         </p>
       </Panel>
 
@@ -102,7 +102,7 @@ export function ChordsPage() {
           <li className="t-small">Découvrir — nom, notes, degrés, écoute plaquée et arpégée</li>
           <li className="t-small">Construire — un doigt à la fois, dans l’ordre, validé au micro</li>
           <li className="t-small">Vérifier — corde par corde (étouffée, fausse, trop basse)</li>
-          <li className="t-small">Plaquer — le geste complet, <strong>déclaré</strong> (l’app ne l’écoute pas encore)</li>
+          <li className="t-small">Plaquer — le geste complet, <strong>écouté</strong> : six cordes ensemble, une confiance par corde</li>
           <li className="t-small">Fixer — pose à froid chronométrée (8 s → 5 s → 3 s)</li>
           <li className="t-small">Enchaîner — changement mesuré entre deux accords</li>
           <li className="t-small">Intégrer — quatre accords en mesure, avec un motif de strum</li>

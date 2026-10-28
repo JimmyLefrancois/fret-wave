@@ -6,7 +6,8 @@
  * envie de continuer. Le moteur existe depuis la 1b (`progressionToScore`) ; ce fichier n'ajoute que
  * des **données** (quelles progressions, pourquoi, avec quel motif) et le choix de ce qui est jouable.
  *
- * Honnêteté : l'accord plaqué n'est pas écouté (phase 5). L'élève déclare qu'il a joué la progression ;
+ * Honnêteté : la **progression** n'est pas segmentée (l'accord plaqué isolé, lui, est écouté depuis la
+ * phase 5). L'élève déclare qu'il a joué la progression ;
  * le journal enregistre une activité sous le nœud `acc:progression:{id}`, jamais une preuve de justesse.
  * Ce qui est réellement entraîné ici, et qui n'a pas besoin du micro : la **mémoire de l'enchaînement**
  * et la tenue du tempo avec le métronome.
