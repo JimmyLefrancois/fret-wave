@@ -13,7 +13,7 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { dailyActivity, heroSteps, hubPlan, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
+import { dailyActivity, heroSteps, hubPlan, learnedScaleForms, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
 import { Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, headline, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
@@ -144,7 +144,7 @@ export function HubPage() {
   // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran
   const due = useMemo(() => dueNow(journal, now.getTime()).filter((c) => !c.nodeId.startsWith('acc:')), [journal, now]);
   const activity = dailyActivity(day);
-  const feats = useMemo(() => accomplishments(journal, { limit: 10, notation: settings.noteNotation }), [journal, settings.noteNotation]);
+  const feats = useMemo(() => accomplishments(journal, { limit: 10, notation: settings.noteNotation, chordNotation: settings.chordNotation }), [journal, settings.noteNotation, settings.chordNotation]);
   // parcours d'accords : le compte et le prochain accord, calculés par le module Accords
   const chordLearned = useMemo(() => learnedChordIds(journal), [journal]);
   const chordCount = chordProgress(chordLearned);
@@ -154,6 +154,7 @@ export function HubPage() {
     [journal, due, chordLearned, chordNext],
   );
   const nextMilestone = nextStreakMilestone(st.days);
+  const scaleForms = useMemo(() => learnedScaleForms(journal), [journal]);
   const micHeard = micHeardBefore(journal);
   const micHint = !micHeard && (
     <div className="home-mic">
@@ -352,9 +353,11 @@ export function HubPage() {
               ))}
             </span>
             <span className="day-text">{Math.min(activity, DAILY_GOAL)} / {DAILY_GOAL} écoutes ou exercices aujourd’hui</span>
-            {st.days > 0 && (
-              <span className="day-text day-streak">{st.days} {st.days > 1 ? 'jours' : 'jour'} d’affilée</span>
-            )}
+          </p>
+          {/* série et prochain palier sur leur propre ligne, ensemble : un seul sujet, jamais une ligne orpheline */}
+          <p className="day-streak">
+            {st.days > 0 ? `Série : ${st.days} ${st.days > 1 ? 'jours' : 'jour'} d’affilée` : 'Pas encore de série'}
+            {nextMilestone !== null && <span className="day-next"> · prochain palier à {nextMilestone}</span>}
           </p>
         </div>
       </header>
@@ -365,7 +368,11 @@ export function HubPage() {
         <button type="button" className="door" onClick={() => navigate('gammes')}>
           <span className="door-kicker">Gammes</span>
           <span className="door-title">Une gamme, ses positions</span>
-          <span className="door-sub">Choisis la gamme, puis la position : elle s’ouvre en tablature.</span>
+          <span className="door-sub">
+            {scaleForms > 0
+              ? `${scaleForms} ${scaleForms > 1 ? 'formes apprises' : 'forme apprise'}`
+              : 'Aucune forme apprise pour l’instant'}
+          </span>
         </button>
       </div>
 
@@ -374,9 +381,9 @@ export function HubPage() {
           <span className="door-kicker">Accords</span>
           <span className="door-title">Les plaquer, les enchaîner</span>
           <span className="door-sub">
-            {chordCount.done} / {chordCount.total} appris · doigt par doigt, puis corde par corde au micro.
+            {chordCount.done} / {chordCount.total} appris
             {/* le héros montre déjà un accord : un second conseil (« Prochain ») le contredirait */}
-            {chordNext && resume.kind !== 'chord' ? ` Prochain : ${fmtChord(chordNext.chord, settings.chordNotation)}.` : ''}
+            {chordNext && resume.kind !== 'chord' ? ` · prochain : ${fmtChord(chordNext.chord, settings.chordNotation)}` : ''}
           </span>
         </button>
       </div>
@@ -387,13 +394,7 @@ export function HubPage() {
             <AccRow f={latest} now={now.getTime()} />
           </ul>
         ) : (
-          <p className="t-small">Rien encore : ta première série réussie apparaîtra ici.</p>
-        )}
-        {nextMilestone !== null && (
-          <p className="t-small home-next">
-            Prochain palier : <strong>{nextMilestone} jours d’affilée</strong>
-            {st.days > 0 ? ` (encore ${nextMilestone - st.days})` : ''}
-          </p>
+          <p className="t-small">Rien encore : ton premier passage réussi apparaîtra ici.</p>
         )}
         {older.length > 0 && (
           <details className="more-opts">

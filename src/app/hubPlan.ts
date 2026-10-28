@@ -4,7 +4,7 @@
  * Ordre : une révision due passe avant tout (c'est la répétition espacée qui fait progresser), puis on
  * reprend le dernier module touché (gamme ou accord), et un journal vide donne « Commencer ».
  */
-import { isVerified, type Attempt, type AttemptLevel, type Card, type DaySummary } from '../core/progress';
+import { isVerified, summarizeNodes, type Attempt, type AttemptLevel, type Card, type DaySummary } from '../core/progress';
 
 export type HubResume =
   | { kind: 'start' }
@@ -121,4 +121,14 @@ export function heroSteps(
     steps: [{ id: 'tune', done: tuneDone }, { id: second, done: false }],
     current: tuneDone ? second : 'tune',
   };
+}
+
+/**
+ * Formes de gamme apprises ou maîtrisées (lecture seule, l'impro est une compétence à part) : l'état
+ * réel que la porte « Gammes » affiche, avec les mêmes seuils que la maîtrise.
+ */
+export function learnedScaleForms(journal: readonly Attempt[]): number {
+  return summarizeNodes(journal).filter(
+    (n) => n.nodeId.startsWith('gam:lecture:') && (n.state === 'learned' || n.state === 'mastered'),
+  ).length;
 }

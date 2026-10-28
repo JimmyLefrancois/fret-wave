@@ -3,7 +3,7 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { dailyActivity, heroSteps, hubPlan, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
+import { dailyActivity, heroSteps, hubPlan, learnedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
 import { summarizeDay, type Attempt, type Card } from '../src/core/progress';
 
@@ -167,5 +167,20 @@ describe('étapes du premier pas', () => {
       steps: [{ id: 'tune', done: true }, { id: 'play', done: false }],
       current: 'play',
     });
+  });
+});
+
+describe('learnedScaleForms', () => {
+  const DAY = 86_400_000;
+  it('une forme compte une fois apprise (2 réussites sur 2 jours), pas avant', () => {
+    expect(learnedScaleForms([])).toBe(0);
+    expect(learnedScaleForms([mk(T0)])).toBe(0);
+    expect(learnedScaleForms([mk(T0), { ...mk(T0 + DAY), id: 'b' }])).toBe(1);
+  });
+
+  it('les accords et l’impro ne comptent pas comme formes de gamme', () => {
+    const chords = [mk(T0, { module: 'accords', chordId: 'Em-022000' }), { ...mk(T0 + DAY, { module: 'accords', chordId: 'Em-022000' }), id: 'c' }];
+    const impro = [mk(T0, { kind: 'impro', level: 4 }), { ...mk(T0 + DAY, { kind: 'impro', level: 4 }), id: 'i' }];
+    expect(learnedScaleForms([...chords, ...impro])).toBe(0);
   });
 });

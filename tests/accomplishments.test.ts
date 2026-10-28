@@ -146,4 +146,9 @@ describe('accomplishments', () => {
     const [e] = accomplishments([a], { notation: 'en' });
     expect(e?.subject).toBe('Em');
   });
+
+  it('les noms d’accords suivent leur propre réglage de notation', () => {
+    const a = mk(T0, 3, 3, { module: 'accords', kind: 'arpeggio', chordId: 'Em-022000', scaleId: '', tonic: 'E' });
+    expect(accomplishments([a], { notation: 'fr', chordNotation: 'en' })[0]?.subject).toBe('Em');
+  });
 });

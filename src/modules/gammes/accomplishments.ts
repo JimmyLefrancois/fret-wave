@@ -19,7 +19,7 @@ import {
   type Attempt, type NodeState,
 } from '../../core/progress';
 import { fmtChord } from '../../core/theory';
-import type { NoteNotation } from '../../core/theory';
+import type { ChordNotation, NoteNotation } from '../../core/theory';
 import { positionLabelPlain, resolveScale } from './resolve';
 import { VOICINGS } from '../../data/voicings';
 
@@ -81,7 +81,7 @@ function scaleSubject(a: Attempt, notation: NoteNotation): string {
  * Nom d'accord affichable depuis l'identifiant de doigté (« Am-x02210 » → « Am ») ; un identifiant
  * illisible (vieux journal, import) s'affiche tel quel au lieu de tout faire tomber.
  */
-function chordName(id: string, notation: NoteNotation): string {
+function chordName(id: string, notation: ChordNotation): string {
   const symbol = VOICINGS.find((v) => v.id === id)?.chord ?? id;
   try {
     return fmtChord(symbol, notation);
@@ -91,7 +91,7 @@ function chordName(id: string, notation: NoteNotation): string {
 }
 
 /** Sujet lisible d'une tentative d'accord. */
-function chordSubject(a: Attempt, notation: NoteNotation): string {
+function chordSubject(a: Attempt, notation: ChordNotation): string {
   if (a.progressionId) return `Progression ${a.progressionId}`;
   if (a.chordIdB) return `${chordName(a.chordId ?? '', notation)} → ${chordName(a.chordIdB, notation)}`;
   return chordName(a.chordId ?? '', notation);
@@ -101,7 +101,7 @@ function chordSubject(a: Attempt, notation: NoteNotation): string {
  * Franchissements de maîtrise, trouvés par rejeu : pour chaque nœud, on avance dans ses tentatives et
  * on note le passage à `learned` puis à `mastered`.
  */
-function masteryTransitions(attempts: readonly Attempt[], notation: NoteNotation): Accomplishment[] {
+function masteryTransitions(attempts: readonly Attempt[], notation: NoteNotation, chords: ChordNotation): Accomplishment[] {
   const byNode = new Map<string, Attempt[]>();
   for (const a of attempts) {
     const id = nodeIdOf(a);
@@ -128,7 +128,7 @@ function masteryTransitions(attempts: readonly Attempt[], notation: NoteNotation
           kind: chordNode ? 'chord' : reachedMastered ? 'mastered' : 'learned',
           ts: a.ts,
           title: ACCOMPLISHMENT_LABEL[chordNode ? 'chord' : reachedMastered ? 'mastered' : 'learned'],
-          subject: chordNode ? chordSubject(a, notation) : scaleSubject(a, notation),
+          subject: chordNode ? chordSubject(a, chords) : scaleSubject(a, notation),
           detail: reachedMastered
             ? 'révision tenue à 16 jours'
             : chordNode
@@ -185,6 +185,8 @@ export function headline(list: readonly Accomplishment[]): { latest: Accomplishm
 export interface AccomplishmentOptions {
   limit?: number;
   notation?: NoteNotation;
+  /** Notation des noms d'accords (réglage à part : « Am » même en solfège) ; par défaut, celle des notes. */
+  chordNotation?: ChordNotation;
 }
 
 /**
@@ -193,8 +195,8 @@ export interface AccomplishmentOptions {
  * franchissements de maîtrise produisent en plus `learned` / `mastered` / `chord`.
  */
 export function accomplishments(attempts: readonly Attempt[], opts: AccomplishmentOptions = {}): Accomplishment[] {
-  const { limit = 10, notation = 'fr' } = opts;
-  const transitions = masteryTransitions(attempts, notation);
+  const { limit = 10, notation = 'fr', chordNotation = notation } = opts;
+  const transitions = masteryTransitions(attempts, notation, chordNotation);
   const out: Accomplishment[] = [...transitions, ...streakMilestones(attempts)];
   // la tentative qui a fait franchir un palier de maîtrise ne compte qu'une fois : c'est le palier
   // qui est la nouvelle, pas la série qui l'a provoqué
@@ -213,7 +215,7 @@ export function accomplishments(attempts: readonly Attempt[], opts: Accomplishme
       kind: perfect ? 'perfect' : 'pass',
       ts: a.ts,
       title: ACCOMPLISHMENT_LABEL[perfect ? 'perfect' : 'pass'],
-      subject: chord ? chordSubject(a, notation) : scaleSubject(a, notation),
+      subject: chord ? chordSubject(a, chordNotation) : scaleSubject(a, notation),
       detail: `${Math.round(score * 100)}\u00a0% au premier essai · ${levelLabel(a)}`,
       // le détail technique (grille, XP) vient en second : il ne fait pas la ligne principale
       extra: [

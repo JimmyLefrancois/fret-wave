@@ -1644,7 +1644,8 @@ table.kv td:first-child { color: var(--muted); }
 .day-cells { display: inline-flex; gap: var(--gap-tight); }
 /* chaque morceau reste entier : la série passe à la ligne d'un bloc, jamais « d'affilée » seul */
 .day-text { white-space: nowrap; }
-.day-streak { color: var(--muted); }
+.day-streak { margin: 2px 0 0; font-size: 15px; color: var(--muted); }
+.day-next { color: var(--dim); }
 .day-cell { width: 16px; height: 16px; border: var(--bw) solid var(--line); background: var(--bg); }
 .day-cell.on { border-color: var(--green); background: var(--green); }
 @media (min-width: 900px) {
@@ -1657,8 +1658,8 @@ table.kv td:first-child { color: var(--muted); }
   .home-hero { min-height: 220px; }
 }
 @media (max-width: 899px) {
-  /* téléphone : l'affiche cède de la hauteur au héros, qui doit tenir sans défiler */
-  .home-hero { min-height: 200px; }
+  /* téléphone : l'affiche se réduit à son contenu (titre, accroche, jauge) ; le héros monte d'autant */
+  .home-hero { min-height: 150px; }
 }
 .home-title { overflow-wrap: anywhere; text-wrap: balance; margin: 2px 0 4px; font-family: var(--font-body); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
 .home-actions { margin: 12px 0 10px; }
@@ -1680,7 +1681,6 @@ table.kv td:first-child { color: var(--muted); }
 .home-steps li.done .home-step-n { color: var(--green); border-color: var(--green); }
 .home-steps li.done .home-step-text { color: var(--muted); font-weight: 400; }
 .home-steps li.current .home-step-n { color: var(--on-accent); background: var(--magenta); }
-.home-next strong { color: var(--text); }
 /* touche du raccourci, dans le bouton primaire : un clavier physique seulement (rien au tactile) */
 .home-key {
   margin-inline-start: 10px;
@@ -1725,8 +1725,7 @@ table.kv td:first-child { color: var(--muted); }
   flex-direction: column;
   gap: 6px;
   width: 100%;
-  min-height: 128px;
-  padding: 14px;
+  padding: 12px 14px;
   text-align: left;
   font-family: var(--font-body);
   color: var(--text);
@@ -2390,3 +2389,15 @@ table.kv td:first-child { color: var(--muted); }
   .page-head { grid-template-columns: 44px minmax(0, 1fr) auto; }
   .page-head > .tag { justify-self: end; margin-left: 0; }
 }
+
+/* pied d'accueil : une ligne, pas un bouton encadré ; la bande reste (D75), le lien s'efface */
+.home-foot { padding-block: 4px; }
+.home-foot button {
+  padding: 0 2px;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.home-foot button:hover { color: var(--cyan); }
