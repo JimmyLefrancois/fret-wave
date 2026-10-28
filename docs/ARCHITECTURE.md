@@ -209,7 +209,7 @@ Métronome (clic sinus court) ────────────────�
 
 ### 4.8 Pipeline audio d'entrée — *tel que construit en 3* (`src/core/input/`)
 ```
-getUserMedia({ deviceId?, echoCancellation:false, noiseSuppression:false, autoGainControl:false, channelCount:1 })
+getUserMedia({ deviceId?, echoCancellation:false, noiseSuppression:false, autoGainControl:false })  // pas de channelCount : Firefox + interface stéréo → flux muet ; le worklet mixe en mono
   → track.getSettings() relu : si le navigateur a gardé l'AGC ou la réduction de bruit, l'écran l'affiche (R3)
   → AudioContext NATIF (celui que Tone enveloppe) : un AudioWorkletNode n'accepte pas l'enveloppe
   → AudioWorklet « fretwave-input » (JS pur, public/worklets/) : anneau windowSize + RMS par bloc + attaque
