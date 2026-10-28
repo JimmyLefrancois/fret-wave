@@ -8,15 +8,24 @@
  *   3. celles **vues dans une seule zone** du manche (« tonique à varier »).
  *
  * Deux formes voisines ne se suivent pas quand une alternative existe : c'est tout l'intérêt.
+ *
+ * **Rappel à froid** (lot « mémoire et vitesse ») : une carte **due** se révise d'abord en N3 sur la
+ * position entière, tablature vide, sans revoir la forme. Un N2 se devine en comptant les cases depuis
+ * une note voisine : ce n'est pas un rappel. Seul cet essai à froid compte (voir `coldReview.ts`).
  */
 import { cardsFrom, dueCards, summarizeNodes, type Attempt, type NodeStats } from '../../core/progress';
 import type { ScaleSelection } from '../../app/scaleSession';
 import type { PositionSystem } from '../../core/theory';
+import type { Segment } from './exercise';
 import { positionLabel, resolveScale } from './resolve';
 
 export interface ReviewTarget {
   selection: ScaleSelection;
   level: 2 | 3;
+  /** `cold` : essai à froid (N3, position entière, rien revu avant) ; `practice` : exercice ordinaire. */
+  mode: 'cold' | 'practice';
+  /** Découpage imposé par la révision (le rappel à froid porte sur toute la position). */
+  segment: Segment;
   /** Pourquoi cette forme est proposée (affiché). */
   reason: string;
   title: string;
@@ -27,12 +36,23 @@ export interface ReviewTarget {
 /** Plafond par défaut : 5 formes, assez pour une session de 10 minutes. */
 export const REVIEW_MAX = 5;
 
+/** Découpage d'une révision ordinaire (inchangé depuis la phase 2 : le défaut de l'écran). */
+export const PRACTICE_SEGMENT: Segment = 'strings2';
+
+export interface ReviewOptions {
+  /** Rappel à froid des cartes dues (réglage, activé par défaut). */
+  cold?: boolean;
+}
+
 function levelFor(box: number | null): 2 | 3 {
   // boîte 1-2 : on rappelle avec les notes visibles ; à partir de la boîte 3, on écrit de mémoire
   return box !== null && box >= 3 ? 3 : 2;
 }
 
-function target(node: NodeStats, last: Attempt, level: 2 | 3, reason: string): ReviewTarget | null {
+function target(
+  node: NodeStats, last: Attempt, level: 2 | 3, reason: string,
+  mode: ReviewTarget['mode'] = 'practice', segment: Segment = PRACTICE_SEGMENT,
+): ReviewTarget | null {
   const resolved = resolveScale({
     scaleId: node.scaleId,
     tonic: last.tonic,
@@ -51,6 +71,8 @@ function target(node: NodeStats, last: Attempt, level: 2 | 3, reason: string): R
       positionIndex: index,
     },
     level,
+    mode,
+    segment,
     reason,
     title: resolved.title,
     positionLabel: positionLabel(resolved.positions[index] ?? null),
@@ -73,12 +95,17 @@ function interleave(items: ReviewTarget[]): ReviewTarget[] {
   return out;
 }
 
-export function buildReviewQueue(attempts: readonly Attempt[], now: number, max = REVIEW_MAX): ReviewTarget[] {
+export function buildReviewQueue(
+  attempts: readonly Attempt[], now: number, max = REVIEW_MAX, opts: ReviewOptions = {},
+): ReviewTarget[] {
+  const cold = opts.cold ?? true;
   const nodes = summarizeNodes(attempts);
   const byId = new Map(nodes.map((n) => [n.nodeId, n] as const));
   const lastByNode = new Map<string, Attempt>();
   for (const a of [...attempts].sort((x, y) => x.ts - y.ts)) {
     if (a.correct === null || a.total === null) continue;
+    // seules les séries de lecture d'une forme : une prise d'impro ou un accord ne rouvrent pas une forme
+    if (a.module === 'accords' || (a.kind !== 'holes' && a.kind !== 'recall')) continue;
     lastByNode.set(`gam:lecture:${a.scaleId}:${a.system}:${a.formIndex}`, a);
   }
   const seen = new Set<string>();
@@ -90,7 +117,10 @@ export function buildReviewQueue(attempts: readonly Attempt[], now: number, max 
     const node = byId.get(card.nodeId);
     const last = lastByNode.get(card.nodeId);
     if (!node || !last) continue;
-    const t = target(node, last, levelFor(card.box), `due · boîte ${card.box} sur 6`);
+    // la forme a déjà été travaillée (sinon pas de carte) : à froid, de mémoire, sur toute la position
+    const t = cold
+      ? target(node, last, 3, `due · boîte ${card.box} sur 6 · rappel à froid`, 'cold', 'all')
+      : target(node, last, levelFor(card.box), `due · boîte ${card.box} sur 6`);
     if (!t) continue;
     seen.add(card.nodeId);
     picked.push(t);

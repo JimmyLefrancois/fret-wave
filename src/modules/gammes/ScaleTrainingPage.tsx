@@ -43,7 +43,8 @@ import {
   SEGMENTS, buildExercise, holeKey, insideGrid, mulberry32, nearClick, segmentPlan, starsFor, tempoGrid, withRevealed,
   type GridOutcome, type Segment,
 } from './exercise';
-import { buildReviewQueue, type ReviewTarget } from './review';
+import { REVIEW_MAX, buildReviewQueue, type ReviewTarget } from './review';
+import { coldNext, countsAsProof, lookRemaining, type ColdStep } from './coldReview';
 
 type HoleMark = 'right' | 'revealed';
 
@@ -55,6 +56,8 @@ interface Result {
   revealed: number;
   errors: number;
   grid: GridOutcome;
+  /** La tentative vaut-elle preuve ? (`false` : rattrapage, écrit `afterReveal`) */
+  proof: boolean;
 }
 
 function mmss(seconds: number): string {
@@ -100,6 +103,16 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const [sessionDone, setSessionDone] = useState<{ forms: number; accuracy: number; xp: number } | null>(null);
   // accumulateur de session : une ref, pour que le bilan soit juste dès le dernier clic (pas un rendu plus tard)
   const sessionAcc = useRef({ forms: 0, accuracy: 0, xp: 0 });
+  /**
+   * Rappel à froid (carte due) : `cold` = essai qui compte ; `look` = « Regarde la forme » ; `retry` =
+   * rattrapage écrit `afterReveal` ; `next` = fini pour cette forme. `null` hors rappel à froid.
+   */
+  const [coldStep, setColdStep] = useState<ColdStep | null>(null);
+  const [lookStart, setLookStart] = useState<number | null>(null);
+  /** « Refaire celle-ci » en révision : la forme vient d'être montrée, l'essai ne prouve plus rien. */
+  const [retake, setRetake] = useState(false);
+  const proofless = (coldStep !== null && !countsAsProof(coldStep) && coldStep !== 'next') || (mixed && retake);
+  const coldActive = coldStep === 'cold' || coldStep === 'retry';
 
   // --- micro (phase 3) : jouer la note au lieu de taper la case
   const input = useInputSettings();
@@ -262,6 +275,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       // diagnostic par corde : les trous qui ont coûté une erreur (ou une révélation)
       missedStrings: [...new Set(Object.keys(errorCount).map((k) => Number(k.split(':')[1] ?? 0)).filter((s) => Number.isInteger(s)))],
       tempoOk: gridOutcome === 'kept',
+      ...(proofless ? { afterReveal: true as const } : {}),
     };
     setJournal(appendAttempt(progressStore(), attempt));
     const res: Result = {
@@ -272,11 +286,20 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       revealed: revealedCount,
       errors: errorTotal,
       grid: gridOutcome,
+      proof: !proofless,
     };
     setResult(res);
-    // réussite = au moins une étoile ; en dessous, le panneau de résultat dit la vérité sans fête
-    if (res.stars > 0) setCelebrate(true);
-  }, [exercise, plan, r, level, startedAt, grid, settings.trainingTempo, stopGrid]);
+    // la session n'agrège que les essais qui prouvent : un rattrapage ne remonte pas la moyenne
+    if (mixed && res.proof) {
+      const acc = sessionAcc.current;
+      const forms = acc.forms + 1;
+      sessionAcc.current = { forms, accuracy: (acc.accuracy * acc.forms + res.accuracy) / forms, xp: acc.xp + res.xp };
+    }
+    if (coldStep === 'cold' || coldStep === 'retry') setColdStep(coldNext(coldStep, { type: 'finished', accuracy }));
+    // réussite = au moins une étoile ; en dessous, le panneau de résultat dit la vérité sans fête.
+    // Un rattrapage ne se fête pas : la réponse venait d'être montrée.
+    if (res.stars > 0 && res.proof) setCelebrate(true);
+  }, [exercise, plan, r, level, startedAt, grid, settings.trainingTempo, stopGrid, proofless, mixed, coldStep]);
 
   /** Réponse juste : la pastille reprend sa couleur, le curseur passe au trou suivant. */
   const applyRight = useCallback((key: string, cents: number | null) => {
@@ -512,12 +535,34 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
   const applyTarget = (t: ReviewTarget) => {
     setLevel(t.level);
+    setSegment(t.segment);
     setScaleSelection(t.selection);
     setSeed(Math.floor(Math.random() * 1e9));
+    setColdStep(t.mode === 'cold' ? 'cold' : null);
+    setLookStart(null);
+    setRetake(false);
   };
 
+  /** Fin de « Regarde la forme » : la forme se masque, nouvel essai de mémoire (rattrapage). */
+  const beginRetry = useCallback(() => {
+    setColdStep('retry');
+    setLookStart(null);
+    setResult(null);
+    setSeed(Math.floor(Math.random() * 1e9));
+  }, []);
+
+  // compte à rebours de l'observation : à zéro, la forme se masque d'elle-même
+  useEffect(() => {
+    if (coldStep !== 'look' || lookStart === null) return;
+    const t = window.setInterval(() => {
+      setNow(Date.now());
+      if (lookRemaining(lookStart, Date.now(), settings.lookSeconds) === 0) beginRetry();
+    }, 250);
+    return () => window.clearInterval(t);
+  }, [coldStep, lookStart, settings.lookSeconds, beginRetry]);
+
   const startMixed = () => {
-    const q = buildReviewQueue(readAttempts(progressStore()), Date.now());
+    const q = buildReviewQueue(readAttempts(progressStore()), Date.now(), REVIEW_MAX, { cold: settings.coldReview });
     setJournal(readAttempts(progressStore()));
     if (q.length === 0) {
       setFeedback({ ok: false, text: 'aucune forme à réviser : commence par une écoute ou une série de trous' });
@@ -532,13 +577,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     applyTarget(q[0]!);
   };
 
+  // la session est agrégée dans `finish` (essais qui prouvent seulement) : avancer ne compte rien
   const nextInQueue = () => {
-    if (result) {
-      // la série vient de finir : on agrège la session avant d'avancer
-      const a = sessionAcc.current;
-      const forms = a.forms + 1;
-      sessionAcc.current = { forms, accuracy: (a.accuracy * a.forms + result.accuracy) / forms, xp: a.xp + result.xp };
-    }
     const next = qIndex + 1;
     if (next >= queue.length) {
       // dernière forme : on affiche le bilan, avec la dernière série déjà comptée
@@ -558,6 +598,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     if (!on) {
       setQueue([]);
       setQIndex(0);
+      setColdStep(null);
+      setLookStart(null);
+      setRetake(false);
     } else {
       startMixed();
     }
@@ -575,6 +618,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       gridClicks: () => player.current?.clicksPlayed ?? 0,
       startMixed: () => startMixed(),
       nextInQueue: () => nextInQueue(),
+      // rappel à froid : étape courante et raccourcis de l'écran « Regarde la forme »
+      cold: { step: coldStep, lookStart, startLook: () => setLookStart(Date.now()), endLook: () => beginRetry() },
       journalLength: journal.length,
       // micro (phase 3) : état observable pour la vérification au navigateur
       // fonctions et non valeurs : l'état du moteur change 47 fois par seconde sans re-rendu de la page
@@ -586,7 +631,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         lastNotePerf: () => lastNotePerf.current,
       },
     };
-  }, [exercise, plan, marks, errors, activeKey, result, level, segment, total, done, grid, mixed, queue, qIndex, press, validate, journal.length, micOn, engine]);
+  }, [exercise, plan, marks, errors, activeKey, result, level, segment, total, done, grid, mixed, queue, qIndex, press, validate, journal.length, micOn, engine, coldStep, lookStart, beginRetry]);
 
   if (!r.position || !exercise || !display || !plan) {
     return (
@@ -623,14 +668,17 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           <h1 className="page-title">{r.title}</h1>
           <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {plan.label}</p>
         </div>
-        <span className="tag tag-on">{mixed && queue.length > 0 ? `Session ${qIndex + 1} / ${queue.length}` : `N${level}`}</span>
+        <span className="tag tag-on">
+          {mixed && queue.length > 0 ? `Session ${qIndex + 1} / ${queue.length}${coldActive ? ' · à froid' : ''}` : `N${level}`}
+        </span>
       </header>
 
       <TabView
         score={display}
         notes={settings.noteNotation}
         chords={settings.chordNotation}
-        annotation="degree"
+        // à froid, rien ne fuit : ni degré, ni doigté, ni légende — sauf une fois la série finie
+        annotation={coldActive && !result ? 'none' : 'degree'}
         mode="wrap"
         scale="auto"
         reduceMotion={settings.reduceMotion}
@@ -641,7 +689,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         {...(activeKey ? { activeHoleKey: activeKey } : {})}
       />
 
-      <TabLegend def={r.def} readonly={settings.reduceMotion} />
+      {!(coldActive && !result) && <TabLegend def={r.def} readonly={settings.reduceMotion} />}
 
 
       <Panel className="span-7" accent="magenta" label="Exercice" right={<span className="badge">{done} / {total}</span>}>
@@ -672,6 +720,18 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             {queue[qIndex] ? ` Celle-ci : ${queue[qIndex]!.reason}.` : ''}
           </p>
         )}
+        {coldStep === 'cold' && (
+          <p className="t-small">
+            <strong>Rappel à froid</strong> : la position entière, de mémoire, sans la revoir avant. Seul ce premier
+            essai compte pour la révision, la maîtrise et l’XP.
+          </p>
+        )}
+        {coldStep === 'retry' && (
+          <p className="t-small">
+            <strong>Essai de rattrapage</strong> : enregistré comme pratique, sans effet sur la révision, la maîtrise
+            ni l’XP — tu viens de voir la forme.
+          </p>
+        )}
         {!mixed && (
           <div className="field">
             <span className="t-label">Niveau</span>
@@ -697,8 +757,15 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               + (micOn ? ' Joue-les dans l’ordre que tu veux.' : '')}
         </p>
         <div className="row exercise-start">
-          <PixelButton variant="primary" onClick={() => restart()} title="Même gamme, nouveaux trous">▶ Nouvelle série</PixelButton>
-          <PixelButton variant="quiet" onClick={() => navigate('scale')}>Écouter d’abord</PixelButton>
+          {coldActive ? (
+            // à froid, pas de nouvelle série (elle effacerait les cases déjà révélées) ni d'écoute : « Passer » suffit
+            <PixelButton variant="quiet" onClick={nextInQueue}>Passer · forme suivante</PixelButton>
+          ) : coldStep === 'look' ? null : (
+            <>
+              <PixelButton variant="primary" onClick={() => restart()} title="Même gamme, nouveaux trous">▶ Nouvelle série</PixelButton>
+              <PixelButton variant="quiet" onClick={() => navigate('scale')}>Écouter d’abord</PixelButton>
+            </>
+          )}
           {startedAt !== null && !result && <span className="t-label">{mmss(elapsed)}</span>}
         </div>
 
@@ -706,6 +773,12 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           <summary className="t-label">Réglages de la série · découpage, mélange, métronome</summary>
           <div className="row">
             <Switch checked={mixed} onChange={toggleMixed} label="Session mélangée" hint="3 à 5 formes différentes d’affilée" />
+            <Switch
+              checked={settings.coldReview}
+              onChange={(v) => setSettings({ coldReview: v })}
+              label="Rappel à froid en révision"
+              hint="une forme due : de mémoire d’abord, sans la revoir (prochaine session)"
+            />
           </div>
           {!mixed && (
             <div className="field">
@@ -786,7 +859,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         </Panel>
       ) : result ? (
         <Panel className="span-7" accent={result.stars > 0 ? 'green' : 'orange'} label="Résultat">
-          <p className="result-stars">{starRow(result.stars)}</p>
+          {/* pas d'étoiles sur un rattrapage : on ne félicite que ce qui prouve (MUSIC_DESIGN §17.1) */}
+          {result.proof ? <p className="result-stars">{starRow(result.stars)}</p> : <p className="t-label">Rattrapage</p>}
           <p className="stat-line">
             <strong>{Math.round(result.accuracy * 100)} %</strong> de trous justes au premier essai · {result.revealed} révélé{result.revealed > 1 ? 's' : ''} · {result.errors} erreur{result.errors > 1 ? 's' : ''}
           </p>
@@ -796,17 +870,40 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               : result.grid === 'missed'
                 ? `hors grille (${mmss(result.seconds)} pour ${gridSpec.seconds.toFixed(1)} s) · `
                 : ''}
-            {result.xp > 0
-              ? `+${result.xp} XP. Tentative enregistrée : elle entre dans la répétition espacée.`
-              : '0 XP. La tentative est enregistrée quand même : elle dit où tu en es, et rien n’est bloqué.'}
+            {!result.proof
+              ? 'Essai de rattrapage : enregistré, sans effet sur la révision, la maîtrise ni l’XP.'
+              : result.xp > 0
+                ? `+${result.xp} XP. Tentative enregistrée : elle entre dans la répétition espacée.`
+                : '0 XP. La tentative est enregistrée quand même : elle dit où tu en es, et rien n’est bloqué.'}
           </p>
+          {coldStep === 'look' && (
+            <>
+              <p className="t-small">
+                {lookStart === null
+                  ? `${Math.round(result.accuracy * 100)} % à froid, sous les 80 % : la carte revient bientôt. Regarde la forme ${settings.lookSeconds} s, puis rejoue-la de mémoire — ce second essai ne compte pas.`
+                  : `Regarde la forme : elle se masque dans ${lookRemaining(lookStart, now, settings.lookSeconds)} s.`}
+              </p>
+              <div className="row">
+                {lookStart === null ? (
+                  <PixelButton variant="primary" onClick={() => { setLookStart(Date.now()); setNow(Date.now()); }}>
+                    ▶ Regarde la forme ({settings.lookSeconds} s)
+                  </PixelButton>
+                ) : (
+                  <PixelButton variant="primary" onClick={beginRetry}>J’ai vu, masquer</PixelButton>
+                )}
+                <PixelButton variant="quiet" onClick={nextInQueue}>Passer · forme suivante</PixelButton>
+              </div>
+            </>
+          )}
           <div className="row">
-            {mixed ? (
+            {coldStep === 'look' ? null : mixed ? (
               <>
                 <PixelButton variant="primary" onClick={nextInQueue} disabled={queue.length === 0}>
                   {qIndex + 1 >= queue.length ? 'Terminer la session' : `Suivant · ${queue[qIndex + 1]?.title ?? ''}`}
                 </PixelButton>
-                <PixelButton variant="quiet" onClick={() => restart()}>Refaire celle-ci</PixelButton>
+                <PixelButton variant="quiet" onClick={() => { setRetake(true); restart(); }} title="Juste après la correction : l’essai est enregistré sans compter">
+                  Refaire celle-ci
+                </PixelButton>
               </>
             ) : (
               <>

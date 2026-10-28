@@ -363,3 +363,30 @@ describe('export / import', () => {
     expect(merged.map((m) => m.id)).toEqual(['x', 'y', 'z']);
   });
 });
+
+describe('essai après révélation (rattrapage du rappel à froid)', () => {
+  const cold = attempt({ ts: at(2), level: 3, kind: 'recall', correct: 2, total: 10 });
+  const retry = attempt({ ts: at(2, 11), level: 3, kind: 'recall', correct: 10, total: 10, afterReveal: true });
+
+  it('lecture tolérante : le champ survit à la normalisation, une valeur bizarre est ignorée', () => {
+    expect(normalizeAttempt(retry)!.afterReveal).toBe(true);
+    expect(normalizeAttempt({ ...retry, afterReveal: 'oui' })!.afterReveal).toBeUndefined();
+    expect('afterReveal' in normalizeAttempt(cold)!).toBe(false);
+  });
+
+  it('ne bouge ni la carte Leitner, ni la maîtrise, ni l’XP', () => {
+    const before = cardsFrom([cold]);
+    const after = cardsFrom([cold, retry]);
+    expect(after).toEqual(before);
+    const n = summarizeNodes([cold, retry])[0]!;
+    expect(n.attempts).toBe(1);
+    expect(n.successes).toBe(0);
+    expect(n.best).toBeCloseTo(0.2);
+    expect(xpForAttempt(retry)).toBe(0);
+  });
+
+  it('compte pourtant comme pratique du jour (série, objectif)', () => {
+    expect(streak([retry], new Date(at(2, 12))).days).toBe(1);
+    expect(summarizeDay([retry], new Date(at(2, 12))).exercises).toBe(1);
+  });
+});

@@ -8,6 +8,7 @@ import type { ChordNotation, NoteNotation } from '../core/theory';
 import type { KeyValueStore } from '../core/audio/mixer';
 import { DEFAULT_THEME, THEMES, getTheme } from '../core/themes/registry';
 import type { ThemeTokens } from '../core/themes/tokens';
+import { DEFAULT_LOOK_SECONDS, LOOK_SECONDS, type LookSeconds } from '../modules/gammes/coldReview';
 
 export const SETTINGS_KEY = 'fretwave.settings.v1';
 
@@ -30,6 +31,13 @@ export interface AppSettings {
    * Désactivable : la tablature seule reste la règle par défaut du brief.
    */
   showChordBox: boolean;
+  /**
+   * Rappel à froid en révision : une carte due se révise d'abord en N3 sur la position entière, sans
+   * revoir la forme (MUSIC_DESIGN §5). Désactivable : la révision reprend alors le choix de la phase 2.
+   */
+  coldReview: boolean;
+  /** Durée de l'écran « Regarde la forme » après un rappel à froid manqué (s). */
+  lookSeconds: LookSeconds;
 }
 
 /** Taux de trous du niveau 2 : trois crans, pas un curseur continu. */
@@ -48,6 +56,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   holeRate: 0.35,
   trainingTempo: 50,
   showChordBox: true,
+  coldReview: true,
+  lookSeconds: DEFAULT_LOOK_SECONDS,
 };
 
 const NOTATIONS: NoteNotation[] = ['fr', 'en'];
@@ -67,6 +77,8 @@ export function loadAppSettings(store: KeyValueStore | null): AppSettings {
     if (typeof o.scanlines === 'boolean') out.scanlines = o.scanlines;
     if (typeof o.showDegreeRow === 'boolean') out.showDegreeRow = o.showDegreeRow;
     if (typeof o.showChordBox === 'boolean') out.showChordBox = o.showChordBox;
+    if (typeof o.coldReview === 'boolean') out.coldReview = o.coldReview;
+    if (LOOK_SECONDS.includes(o.lookSeconds as LookSeconds)) out.lookSeconds = o.lookSeconds as LookSeconds;
     if (HOLE_RATES.includes(o.holeRate as HoleRate)) out.holeRate = o.holeRate as HoleRate;
     if (typeof o.trainingTempo === 'number' && Number.isFinite(o.trainingTempo)) {
       out.trainingTempo = Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, Math.round(o.trainingTempo)));

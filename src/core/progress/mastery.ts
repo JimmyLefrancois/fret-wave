@@ -10,7 +10,7 @@
  *  - « maîtrisé » = appris **et** boîte de Leitner ≥ 5 (révision à 16 j tenue) **et** dernière tentative réussie.
  */
 import {
-  chordIdOfNode, dayKey, isVerified, nodeIdOf, progressionIdOfNode, scoreOf, transitionOfNode, zoneOf, type Attempt,
+  chordIdOfNode, dayKey, isProof, isVerified, nodeIdOf, progressionIdOfNode, scoreOf, transitionOfNode, zoneOf, type Attempt,
 } from './journal';
 import { cardsFrom, type Card } from './scheduler';
 
@@ -171,7 +171,7 @@ export function summarizeNodes(attempts: readonly Attempt[]): NodeStats[] {
   const cards = new Map(cardsFrom(attempts).map((c) => [c.nodeId, c] as const));
   const groups = new Map<string, Attempt[]>();
   for (const a of attempts) {
-    if (!isVerified(a)) continue;
+    if (!isProof(a)) continue;
     const id = nodeIdOf(a);
     const list = groups.get(id);
     if (list) list.push(a);

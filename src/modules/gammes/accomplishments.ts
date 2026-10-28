@@ -15,7 +15,7 @@
  * avant/après chaque tentative, avec les mêmes fonctions que le hub (`summarizeNodes`, `stateOf`).
  */
 import {
-  PASS, isVerified, nodeIdOf, scoreOf, streak, summarizeNodes, xpForAttempt,
+  PASS, isProof, isVerified, nodeIdOf, scoreOf, streak, summarizeNodes, xpForAttempt,
   type Attempt, type NodeState,
 } from '../../core/progress';
 import { fmtChord } from '../../core/theory';
@@ -208,7 +208,7 @@ export function accomplishments(attempts: readonly Attempt[], opts: Accomplishme
   const causedTransition = new Set(transitions.map((t) => t.attempt?.id).filter(Boolean));
 
   for (const a of attempts) {
-    if (!isVerified(a)) continue;
+    if (!isProof(a)) continue;
     if (causedTransition.has(a.id)) continue;
     const score = scoreOf(a) ?? 0;
     if (score < PASS) continue;

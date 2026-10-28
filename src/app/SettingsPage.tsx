@@ -10,6 +10,7 @@ import { DEFAULT_SETTINGS, HOLE_RATES, MAX_TEMPO, MIN_TEMPO, setSettings, useSet
 import { Panel, PixelButton, Segmented, Switch } from './ui';
 import { Mixer, InstrumentPicker } from './AudioControls';
 import { useInputSettings } from '../core/input/settings';
+import { LOOK_SECONDS, type LookSeconds } from '../modules/gammes/coldReview';
 
 import { PRACTICE_KEY } from '../core/progress/practiceLog';
 import {
@@ -169,6 +170,25 @@ export function SettingsPage() {
           <p className="t-small t-dim">
             Le métronome ne joue aucune note. Au pavé, ce tempo mesure la rapidité à écrire une case ; avec le micro
             (bouton « Ouvrir le micro » de l’écran d’exercice), il mesure le moment où la note est jouée, latence retranchée.
+          </p>
+        </div>
+        <div className="field">
+          <Switch
+            checked={settings.coldReview}
+            onChange={(v) => setSettings({ coldReview: v })}
+            label="Rappel à froid en révision"
+            hint="une forme due se joue d’abord de mémoire, position entière, sans la revoir"
+          />
+          <span className="t-label">Regarder la forme après un rappel manqué</span>
+          <Segmented<LookSeconds>
+            value={settings.lookSeconds}
+            onChange={(v) => setSettings({ lookSeconds: v })}
+            label="Temps d’observation"
+            options={LOOK_SECONDS.map((s) => ({ value: s, label: `${s} s` }))}
+          />
+          <p className="t-small t-dim">
+            Seul l’essai à froid compte : celui qui suit l’observation est enregistré comme pratique, sans effet sur la
+            révision, la maîtrise ni l’XP. Un essai réussi la réponse sous les yeux ne prouve rien.
           </p>
         </div>
       </Panel>

@@ -9,7 +9,7 @@
  *  3. **déterministe** — la gigue ±15 % est dérivée d'un hachage du nœud, pas de `Math.random` :
  *     deux calculs successifs donnent la même échéance (sans quoi un test ne peut rien affirmer).
  */
-import { hash32, isVerified, nodeIdOf, scoreOf, type Attempt, type AttemptLevel } from './journal';
+import { hash32, isProof, nodeIdOf, scoreOf, type Attempt, type AttemptLevel } from './journal';
 
 const MIN = 60_000;
 export const DAY = 86_400_000;
@@ -92,7 +92,7 @@ export function cardsFrom(attempts: readonly Attempt[], scheduler: Scheduler = l
   const cards = new Map<string, Card>();
   for (const a of [...attempts].sort((x, y) => x.ts - y.ts)) {
     const score = scoreOf(a);
-    if (!isVerified(a) || score === null) continue;
+    if (!isProof(a) || score === null) continue;
     const nodeId = nodeIdOf(a);
     const card = cards.get(nodeId) ?? null;
     cards.set(nodeId, scheduler.next(card, nodeId, outcomeFor(score), a.ts, a.level, score));

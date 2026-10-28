@@ -6,7 +6,7 @@
  *  - le bonus de vitesse n'existe qu'à ≥ 95 % de précision ;
  *  - un badge dit ce qu'il récompense et ne décorera jamais un chiffre faux.
  */
-import { dayKey, isVerified, nodeIdOf, scoreOf, type Attempt } from './journal';
+import { dayKey, isProof, isVerified, nodeIdOf, scoreOf, type Attempt } from './journal';
 import { PASS, summarizeNodes } from './mastery';
 
 export const XP_HOLES = 10;
@@ -32,7 +32,7 @@ export const SPEED_THRESHOLD = 0.95;
 /** XP d'une tentative, avant plafond journalier. */
 export function xpForAttempt(a: Attempt): number {
   const score = scoreOf(a);
-  if (!isVerified(a) || score === null) return 0;
+  if (!isProof(a) || score === null) return 0;
   const base = a.kind === 'qcm'
     ? XP_QUIZ
     : a.kind === 'impro'

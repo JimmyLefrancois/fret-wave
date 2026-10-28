@@ -97,6 +97,12 @@ export interface Attempt {
   limitSec?: number;
   /** Transition : temps de changement **médian** mesuré (ms). Le détail par changement n'est pas stocké. */
   changeMs?: number;
+  /**
+   * Essai fait **juste après avoir revu la forme** (rattrapage du rappel à froid, « refaire » en révision) :
+   * vérifié, donc compté comme pratique du jour, mais exclu de Leitner, de la maîtrise et de l'XP — un
+   * essai réussi la réponse sous les yeux ne prouve rien (MUSIC_DESIGN §5).
+   */
+  afterReveal?: true;
 }
 
 export function zoneOf(fret: number): number {
@@ -163,6 +169,15 @@ export function scoreOf(a: Pick<Attempt, 'correct' | 'total'>): number | null {
 
 export function isVerified(a: Pick<Attempt, 'correct' | 'total'>): boolean {
   return scoreOf(a) !== null;
+}
+
+/**
+ * Tentative qui vaut **preuve** : vérifiée, et pas faite juste après avoir revu la réponse. C'est le filtre
+ * de Leitner, de la maîtrise et de l'XP ; la série et l'objectif du jour gardent `isVerified` (un
+ * rattrapage est de la pratique réelle, pas une preuve de mémoire).
+ */
+export function isProof(a: Pick<Attempt, 'correct' | 'total' | 'afterReveal'>): boolean {
+  return isVerified(a) && a.afterReveal !== true;
 }
 
 export function newAttemptId(ts: number, nodeId: string, seq: number): string {
@@ -236,6 +251,7 @@ export function normalizeAttempt(v: unknown): Attempt | null {
     // confiance d'une écoute polyphonique : hors de 0-1, ce n'est pas une mesure — on la préfère absente
     ...(typeof a.confidence === 'number' && Number.isFinite(a.confidence) && a.confidence >= 0 && a.confidence <= 1
       ? { confidence: Math.round(a.confidence * 1000) / 1000 } : {}),
+    ...(a.afterReveal === true ? { afterReveal: true as const } : {}),
   };
 }
 

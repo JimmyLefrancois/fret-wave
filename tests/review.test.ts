@@ -52,11 +52,13 @@ describe('session de révision mélangée', () => {
     ];
     const due = dueCards(cardsFrom(list), NOW);
     expect(due.length).toBe(2);
-    const q = buildReviewQueue(list, NOW);
+    // rappel à froid désactivé : le choix de niveau de la phase 2
+    const q = buildReviewQueue(list, NOW, REVIEW_MAX, { cold: false });
     expect(q.length).toBe(3);
     // les cartes dues ouvrent la file, dans l'ordre du planificateur
     due.forEach((c, i) => expect(q[i]!.nodeId).toBe(c.nodeId));
     expect(q[0]!.reason).toContain('due');
+    expect(q.every((t) => t.mode === 'practice' && t.segment === 'strings2')).toBe(true);
     // une carte à boîte ≥ 3 se révise de mémoire (N3), une boîte 1 avec les notes visibles (N2)
     const pent = q.find((t) => t.nodeId === 'gam:lecture:pentatonic-minor:boxes:0')!;
     const box = cardsFrom(list).find((c) => c.nodeId === pent.nodeId)!.box;
@@ -105,5 +107,37 @@ describe('session de révision mélangée', () => {
     const list = Array.from({ length: 8 }, (_, i) => attempt({ ts: at(3), correct: 5, total: 5, formIndex: i % 4 }));
     expect(buildReviewQueue(list, NOW).length).toBeLessThanOrEqual(REVIEW_MAX);
     expect(buildReviewQueue(list, NOW, 2).length).toBe(2);
+  });
+
+  it('rappel à froid (défaut) : une carte due se révise en N3 sur la position entière', () => {
+    const list = [
+      ionian(at(2), { correct: 4, total: 5 }),           // boîte 1, due
+      attempt({ ts: at(3), correct: 5, total: 5 }),      // due
+      dorian(NOW, { correct: 5, total: 5 }),             // pas due : forme fragile, exercice ordinaire
+    ];
+    const q = buildReviewQueue(list, NOW);
+    const due = dueCards(cardsFrom(list), NOW).map((c) => c.nodeId);
+    expect(due.length).toBe(2);
+    for (const t of q) {
+      if (due.includes(t.nodeId)) {
+        expect(t.mode).toBe('cold');
+        expect(t.level).toBe(3);
+        expect(t.segment).toBe('all');
+        expect(t.reason).toContain('rappel à froid');
+      } else {
+        expect(t.mode).toBe('practice');
+        expect(t.level).toBe(2);
+        expect(t.segment).toBe('strings2');
+      }
+    }
+  });
+
+  it('une prise d’impro ne sert pas de « dernière tentative » à une forme', () => {
+    const impro = attempt({ ts: at(1), kind: 'impro', level: 4, tonic: 'E', correct: 3, total: 10 });
+    const list = [attempt({ ts: at(3), correct: 5, total: 5, tonic: 'A' }), impro];
+    const q = buildReviewQueue(list, NOW);
+    const lecture = q.find((t) => t.nodeId === 'gam:lecture:pentatonic-minor:boxes:0')!;
+    // la forme rouvre dans la tonique de la dernière série de lecture, pas dans celle de l'impro
+    expect(lecture.selection.tonic).toBe('A');
   });
 });
