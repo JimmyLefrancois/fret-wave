@@ -1,7 +1,7 @@
 /** Écran de chargement : canvas pixel (voir loadingScreen.ts), mis à l'échelle ENTIÈRE, centré. */
 import { useEffect, useRef, useState } from 'react';
 import { CanvasSurface } from '../core/tab';
-import { LOADING_H, LOADING_W, drawLoadingScreen, type LoadingState } from './loadingScreen';
+import { LOADING_H, LOADING_W, drawLoadingScreen, type LoadingState } from './loadingDraw';
 
 export function LoadingScreen(props: LoadingState & { onRetry?: () => void; onSkip?: () => void }) {
   const { onRetry, onSkip, ...state } = props;

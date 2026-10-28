@@ -95,6 +95,20 @@ export function describeInputError(state: InputState, detail: string | null): In
   }
 }
 
+/**
+ * Contraintes de `getUserMedia`. Pas de `channelCount: 1` : sur une interface stéréo (Focusrite
+ * « Analogue 1 + 2 »), Firefox livrait alors un flux quasi muet (−100 dBFS constant, constaté).
+ * Le nœud worklet (`channelCountMode: 'explicit'`, 1 voie) fait lui-même le mixage en mono.
+ */
+export function inputConstraints(settings: Pick<InputSettings, 'deviceId'>): MediaTrackConstraints {
+  return {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+    ...(settings.deviceId ? { deviceId: { exact: settings.deviceId } } : {}),
+  };
+}
+
 export class InputEngine {
   state: InputState = 'idle';
   error: string | null = null;
@@ -200,17 +214,9 @@ export class InputEngine {
       return;
     }
 
-    const audio: MediaTrackConstraints = {
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false,
-      channelCount: 1,
-      ...(settings.deviceId ? { deviceId: { exact: settings.deviceId } } : {}),
-    };
-
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio, video: false });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: inputConstraints(settings), video: false });
     } catch (e) {
       const name = (e as DOMException).name;
       this.state =
