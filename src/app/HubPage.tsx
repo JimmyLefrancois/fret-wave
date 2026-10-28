@@ -367,22 +367,25 @@ export function HubPage() {
         <div className="home-hero-bottom">
           <h1 className="home-hero-title">Fretwave</h1>
           <p className="home-tagline t-label">Apprendre la guitare en tablature</p>
-          <p className="home-day">
-            <span className="day-cells" aria-hidden="true">
-              {Array.from({ length: DAILY_GOAL }, (_, i) => (
-                <span key={i} className={`day-cell ${i < activity ? 'on' : ''}`} />
-              ))}
-            </span>
-            <span className={`day-text${goal.reached ? ' day-done' : ''}`}>{goal.text}</span>
-          </p>
-          {/* série et prochain cap (« palier » est réservé au parcours d'accords) sur leur propre ligne, ensemble : un seul sujet, jamais une ligne orpheline */}
-          {/* pas de série : rien à dire (un « 0 » de plus sur le premier écran n'aide personne) */}
-          {st.days > 0 && (
-            <p className="day-streak">
-              {`Série : ${st.days} ${st.days > 1 ? 'jours' : 'jour'} d’affilée`}
-            {nextMilestone !== null && <span className="day-next"> · prochain cap : {nextMilestone} jours</span>}
+          {/* jauge et série sur une plaque opaque (D75) : leur contraste ne dépend plus du décor */}
+          <div className="home-status">
+            <p className="home-day">
+              <span className="day-cells" aria-hidden="true">
+                {Array.from({ length: DAILY_GOAL }, (_, i) => (
+                  <span key={i} className={`day-cell ${i < activity ? 'on' : ''}`} />
+                ))}
+              </span>
+              <span className={`day-text${goal.reached ? ' day-done' : ''}`}>{goal.text}</span>
             </p>
-          )}
+            {/* série et prochain cap (« palier » est réservé au parcours d'accords) sur leur propre ligne, ensemble : un seul sujet, jamais une ligne orpheline */}
+            {/* pas de série : rien à dire (un « 0 » de plus sur le premier écran n'aide personne) */}
+            {st.days > 0 && (
+              <p className="day-streak">
+                {`Série : ${st.days} ${st.days > 1 ? 'jours' : 'jour'} d’affilée`}
+              {nextMilestone !== null && <span className="day-next"> · prochain cap : {nextMilestone} jours</span>}
+              </p>
+            )}
+          </div>
         </div>
       </header>
 

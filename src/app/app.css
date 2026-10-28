@@ -1627,14 +1627,14 @@ table.kv td:first-child { color: var(--muted); }
 .home-hero-bottom { display: flex; flex-direction: column; gap: 2px; }
 .home-tagline {
   align-self: flex-start;
-  /* plaque de voile : en Aube, l'accroche passe devant le soleil */
+  /* plaque opaque (D75) : en Aube, l'accroche passe devant le soleil */
   padding: 0 4px;
   margin-inline-start: -4px;
   font-size: var(--label-lg);
   letter-spacing: 0.02em;
   text-wrap: balance;
   color: var(--cyan);
-  background: rgba(var(--veil-rgb), 0.82);
+  background: rgb(var(--veil-rgb));
 }
 .home-go .panel-head .t-label { font-size: var(--label-lg); }
 .home-hero-title {
@@ -1650,6 +1650,8 @@ table.kv td:first-child { color: var(--muted); }
 .day-cells { display: inline-flex; gap: var(--gap-tight); }
 /* chaque morceau reste entier : la série passe à la ligne d'un bloc, jamais « d'affilée » seul */
 .day-text { white-space: nowrap; }
+.home-status { align-self: flex-start; max-inline-size: 100%; margin-block-start: var(--gap-inside); padding: 4px 8px; margin-inline-start: -8px; background: rgb(var(--veil-rgb)); }
+.home-status .home-day { margin-block-start: 0; }
 .day-done { color: var(--green); font-weight: 700; }
 .day-streak { margin: 2px 0 0; font-size: 15px; color: var(--muted); }
 .day-next { color: var(--dim); }
@@ -2070,8 +2072,8 @@ table.kv td:first-child { color: var(--muted); }
 .acc-line { font-size: 14.5px; line-height: 1.5; color: var(--text); text-wrap: pretty; }
 .acc-detail { color: var(--muted); }
 .acc-open {
-  min-height: 38px;
-  min-width: 38px;
+  min-height: 44px;
+  min-width: 44px;
   padding: 0 6px;
   font-family: var(--font-body);
   font-size: 12px;
