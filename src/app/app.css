@@ -1669,7 +1669,9 @@ table.kv td:first-child { color: var(--muted); }
   .home-hero { min-height: 150px; }
 }
 .home-title { overflow-wrap: anywhere; text-wrap: balance; margin: 2px 0 4px; font-family: var(--font-body); font-size: var(--hero-title); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; }
-.home-actions { margin: 12px 0 10px; align-items: center; }
+.home-actions { margin: 12px 0 10px; }
+/* `.row` étire ses enfants (règle globale plus bas) : ici l'autre étape et le lien gardent leur hauteur */
+.row.home-actions { align-items: center; }
 .home-actions .btn { flex: 1 1 150px; }
 /* une seule règle de placement, quel que soit l'état : le primaire ouvre la rangée à gauche, à largeur
    fixe, le secondaire à sa droite. L'œil et la main le retrouvent au même endroit chaque jour. */
