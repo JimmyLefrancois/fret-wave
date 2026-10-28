@@ -3,7 +3,7 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { hubPlan } from '../src/app/hubPlan';
+import { hubPlan, micHeardBefore } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
 import type { Attempt, Card } from '../src/core/progress';
 
@@ -71,3 +71,17 @@ describe('nextStreakMilestone', () => {
     expect(nextStreakMilestone(30)).toBeNull();
   });
 });
+
+describe('micHeardBefore', () => {
+  it('une écoute, un QCM ou un grattage déclaré ne prouvent pas que le micro marche', () => {
+    expect(micHeardBefore([])).toBe(false);
+    expect(micHeardBefore([mk(T0, { kind: 'listen', correct: null, total: null })])).toBe(false);
+    expect(micHeardBefore([mk(T0, { kind: 'qcm', module: 'accords', chordId: 'Em-022000' })])).toBe(false);
+    expect(micHeardBefore([mk(T0, { kind: 'strum', module: 'accords', chordId: 'Em-022000' })])).toBe(false);
+  });
+
+  it('une série vérifiée au micro suffit', () => {
+    expect(micHeardBefore([mk(T0)])).toBe(true);
+  });
+});
+

@@ -13,7 +13,7 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { hubPlan } from '../app/hubPlan';
+import { hubPlan, micHeardBefore } from '../app/hubPlan';
 import { Chip, Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
@@ -116,6 +116,14 @@ export function HubPage() {
     [journal, due, chordLearned, chordNext],
   );
   const nextMilestone = nextStreakMilestone(st.days);
+  const micHint = !micHeardBefore(journal) && (
+    <div className="home-mic">
+      <p className="t-small">
+        Première fois au micro ? Passe d’abord par l’accordeur : il demande l’accès au micro et montre ce qu’il entend.
+      </p>
+      <PixelButton onClick={() => navigate('tuner')}>Accordeur</PixelButton>
+    </div>
+  );
 
   const resume = plan.resume;
   // la dernière tentative du nœud dû : elle rouvre la bonne gamme à la bonne position
@@ -177,6 +185,7 @@ export function HubPage() {
           <div className="row home-actions">
             <PixelButton variant="primary" onClick={() => openChord(resume.voicingId)}>▶ Ouvrir la leçon</PixelButton>
           </div>
+          {micHint}
         </Panel>
       );
     }
@@ -218,6 +227,7 @@ export function HubPage() {
           <PixelButton variant="primary" onClick={() => navigate('scale')}>▶ Découvrir</PixelButton>
           <PixelButton onClick={() => navigate('training')}>S’exercer au micro</PixelButton>
         </div>
+        {micHint}
       </Panel>
     );
   })();
@@ -263,7 +273,7 @@ export function HubPage() {
         </button>
       </div>
 
-      <Panel className="span-12" label="Dernier accomplissement">
+      <Panel className="span-12 home-acc" label="Dernier accomplissement">
         {latest ? (
           <ul className="acc-list">
             <AccRow f={latest} now={now.getTime()} />

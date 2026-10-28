@@ -1650,7 +1650,7 @@ table.kv td:first-child { color: var(--muted); }
   /* téléphone : l'affiche cède de la hauteur au héros, qui doit tenir sans défiler */
   .home-hero { min-height: 200px; }
 }
-.home-title { overflow-wrap: anywhere; margin: 2px 0 4px; font-family: var(--font-body); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.home-title { overflow-wrap: anywhere; text-wrap: balance; margin: 2px 0 4px; font-family: var(--font-body); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
 .home-actions { margin: 12px 0 10px; }
 .home-actions .btn { flex: 1 1 150px; }
 /* révision en héros : la reprise reste à portée, en ligne secondaire sous l'action principale */
@@ -1661,6 +1661,15 @@ table.kv td:first-child { color: var(--muted); }
 .home-step-n { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-family: var(--font-label); font-weight: 700; color: var(--magenta); border: var(--bw) solid var(--magenta); }
 .home-step-text { font-size: 16px; font-weight: 600; color: var(--text); }
 .home-next strong { color: var(--text); }
+/* invite micro (tant que le micro n'a jamais entendu l'élève) : sous les actions, en retrait, jamais primaire */
+.home-mic { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
+.home-mic p { flex: 1 1 32ch; text-wrap: pretty; }
+/* compte du héros : lu à un mètre, il ne peut pas rester le plus petit texte du panneau */
+/* chiffre en sans-serif : en Silkscreen 14 px le « 1 » se lisait comme une tache */
+.home-go .panel-right .badge { font-family: var(--font-body); font-size: 15px; padding: 3px 10px; }
+/* texte replié de l'accueil : une mesure de lecture, pas la largeur du panneau (150 caractères au bureau) */
+.home-acc p { max-inline-size: 68ch; text-wrap: pretty; }
+.home-acc details > p + p { margin-block-start: var(--gap-inside); }
 
 .home-door { margin: 12px 0; }
 .door {
@@ -1680,8 +1689,8 @@ table.kv td:first-child { color: var(--muted); }
 }
 .door:hover, .door:focus-visible { border-color: var(--cyan); background: var(--surface-hi); }
 .door-kicker { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan); }
-.door-title { font-size: 18px; font-weight: 700; line-height: 1.2; }
-.door-sub { font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.door-title { font-size: 18px; font-weight: 700; line-height: 1.2; text-wrap: balance; }
+.door-sub { font-size: 14.5px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
 
 .home-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 0 8px; }
 .home-foot button {
@@ -1735,7 +1744,9 @@ table.kv td:first-child { color: var(--muted); }
   .pos-item { grid-template-columns: 32px minmax(0, 1fr); row-gap: 8px; }
   .pos-acts { grid-column: 2; }
   .pos-act { flex: 1 1 auto; }
-  .home-actions .btn { flex: 1 1 100%; }
+  /* `.row.home-actions` : plus spécifique que l'appariement global `.row > .btn` (44 %), qui coupait
+     « S'EXERCER AU MICRO » sur deux lignes à côté de l'action principale */
+  .row.home-actions > .btn { flex: 1 1 100%; }
 }
 
 /* geste suivant sur l'écran de découverte, et bandeau micro de l'exercice */
@@ -1980,9 +1991,9 @@ table.kv td:first-child { color: var(--muted); }
 .acc-violet .acc-glyph { --acc: var(--violet); }
 .acc-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .acc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.acc-title { font-size: 13.5px; font-weight: 700; }
-.acc-when { font-size: 11.5px; color: var(--dim); white-space: nowrap; }
-.acc-line { font-size: 12px; line-height: 1.45; color: var(--text); }
+.acc-title { font-size: 15.5px; font-weight: 700; }
+.acc-when { font-size: 13px; color: var(--dim); white-space: nowrap; }
+.acc-line { font-size: 14.5px; line-height: 1.5; color: var(--text); text-wrap: pretty; }
 .acc-detail { color: var(--muted); }
 .acc-open {
   min-height: 38px;
@@ -2003,7 +2014,7 @@ table.kv td:first-child { color: var(--muted); }
      de hauteur (10 entrées × 3 lignes faisaient une page de 2 200 px) */
   .acc-row { grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; }
   .acc-glyph { width: 20px; height: 20px; font-size: 11px; }
-  .acc-when { font-size: 11px; }
+  .acc-when { font-size: 12.5px; }
 }
 
 /* --- rythme vertical (dernier bloc du fichier : il tranche sur les marges locales) -----------------
@@ -2313,7 +2324,7 @@ table.kv td:first-child { color: var(--muted); }
   border: 2px solid var(--line-soft);
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .home-foot button:hover { border-color: var(--cyan); }
 

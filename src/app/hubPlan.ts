@@ -4,7 +4,7 @@
  * Ordre : une révision due passe avant tout (c'est la répétition espacée qui fait progresser), puis on
  * reprend le dernier module touché (gamme ou accord), et un journal vide donne « Commencer ».
  */
-import type { Attempt, Card } from '../core/progress';
+import { isVerified, type Attempt, type Card } from '../core/progress';
 
 export type HubResume =
   | { kind: 'start' }
@@ -40,4 +40,13 @@ export function hubPlan(
     if (id) return { review, resume: { kind: 'chord', voicingId: id } };
   }
   return { review, resume: { kind: 'scale' } };
+}
+
+/**
+ * Le micro a-t-il déjà entendu l'élève ? Une tentative vérifiée suffit, sauf le QCM (sans instrument)
+ * et le grattage auto-déclaré (une déclaration n'est jamais une preuve). Sans cela, l'accueil propose
+ * de passer d'abord par l'accordeur, qui demande l'accès au micro.
+ */
+export function micHeardBefore(journal: readonly Attempt[]): boolean {
+  return journal.some((a) => a.kind !== 'qcm' && a.kind !== 'strum' && isVerified(a));
 }
