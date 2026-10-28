@@ -63,6 +63,8 @@
   --gap-block: 12px;
   --gap-inside: 8px;
   --gap-tight: 4px;
+  /* étiquette pixel lue à un mètre (héros et accroche de l'accueil) : 11 px ne passe pas la distance */
+  --label-lg: 13px;
 }
 
 * { box-sizing: border-box; }
@@ -1613,7 +1615,18 @@ table.kv td:first-child { color: var(--muted); }
   padding: 0 0 10px;
 }
 .home-hero-bottom { display: flex; flex-direction: column; gap: 2px; }
-.home-tagline { color: var(--cyan); }
+.home-tagline {
+  align-self: flex-start;
+  /* plaque de voile : en Aube, l'accroche passe devant le soleil */
+  padding: 0 4px;
+  margin-inline-start: -4px;
+  font-size: var(--label-lg);
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+  color: var(--cyan);
+  background: rgba(var(--veil-rgb), 0.82);
+}
+.home-go .panel-head .t-label { font-size: var(--label-lg); }
 .home-hero-title {
   margin: 0;
   font-family: var(--font-display);

@@ -291,7 +291,9 @@ export function HubPage() {
               ))}
             </span>
             <span className="day-text">{Math.min(activity, DAILY_GOAL)} / {DAILY_GOAL} écoutes ou exercices aujourd’hui</span>
-            {st.days > 0 && <span className="day-text day-streak">{st.days} j d’affilée</span>}
+            {st.days > 0 && (
+              <span className="day-text day-streak">{st.days} {st.days > 1 ? 'jours' : 'jour'} d’affilée</span>
+            )}
           </p>
         </div>
       </header>
