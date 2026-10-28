@@ -49,6 +49,13 @@ describe('hubPlan', () => {
     expect(hubPlan(j, [], new Set(['Em-022000']), null).resume).toEqual({ kind: 'chord', voicingId: 'Em-022000' });
   });
 
+  it('accord inconnu des données : on propose le suivant du parcours, sinon la gamme', () => {
+    const j = [mk(T0, { module: 'accords', chordId: 'Zz-999999' })];
+    const known = (id: string) => id !== 'Zz-999999';
+    expect(hubPlan(j, [], none, 'Em-022000', known).resume).toEqual({ kind: 'chord', voicingId: 'Em-022000' });
+    expect(hubPlan(j, [], none, null, known).resume).toEqual({ kind: 'scale' });
+  });
+
   it('une révision due passe devant, la reprise reste calculée', () => {
     const p = hubPlan([mk(T0)], [card, { ...card, nodeId: 'gam:y' }], none, null);
     expect(p.review).toEqual({ count: 2, first: card });

@@ -93,4 +93,11 @@ describe('accomplishments', () => {
     // l'accord exige 3 vérifications propres et une pose à froid : deux arpèges ne suffisent pas
     expect(events).toHaveLength(0);
   });
+
+  it('un accord inconnu (vieux journal) ne fait pas tomber la liste : son id s’affiche tel quel', () => {
+    const a = mk(T0, 3, 3, { module: 'accords', kind: 'arpeggio', chordId: 'Zz-999999', scaleId: '', tonic: 'C' });
+    const events = accomplishments([a]);
+    expect(events.length).toBeGreaterThan(0);
+    expect(events[0]?.subject).toBe('Zz-999999');
+  });
 });

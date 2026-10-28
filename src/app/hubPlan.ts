@@ -27,13 +27,16 @@ export function hubPlan(
   due: readonly Card[],
   learnedChords: ReadonlySet<string>,
   nextChordId: string | null,
+  /** Un accord absent des données (vieux journal, import) ne se rouvre pas : on passe au suivant du parcours. */
+  isKnownChord: (id: string) => boolean = () => true,
 ): HubPlan {
   const review = due.length > 0 ? { count: due.length, first: due[0]! } : null;
   let last: Attempt | null = null;
   for (const a of journal) if (!last || a.ts >= last.ts) last = a;
   if (!last) return { review, resume: { kind: 'start' } };
   if (last.module === 'accords' || last.chordId) {
-    const id = last.chordId && !learnedChords.has(last.chordId) ? last.chordId : nextChordId ?? last.chordId;
+    const lastId = last.chordId && isKnownChord(last.chordId) ? last.chordId : undefined;
+    const id = lastId && !learnedChords.has(lastId) ? lastId : nextChordId ?? lastId;
     if (id) return { review, resume: { kind: 'chord', voicingId: id } };
   }
   return { review, resume: { kind: 'scale' } };

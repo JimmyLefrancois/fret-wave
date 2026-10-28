@@ -112,7 +112,7 @@ export function HubPage() {
   const chordCount = chordProgress(chordLearned);
   const chordNext = useMemo(() => nextChord(chordLearned), [chordLearned]);
   const plan = useMemo(
-    () => hubPlan(journal, due, chordLearned, chordNext?.voicingId ?? null),
+    () => hubPlan(journal, due, chordLearned, chordNext?.voicingId ?? null, (id) => VOICINGS.some((v) => v.id === id)),
     [journal, due, chordLearned, chordNext],
   );
   const nextMilestone = nextStreakMilestone(st.days);
@@ -134,7 +134,11 @@ export function HubPage() {
     && reviewAttempt.formIndex === (resolved.position?.formIndex ?? resolved.position?.index);
   const review = () => (reviewAttempt ? openAttempt(reviewAttempt) : navigate('training'));
 
-  const chordName = (id: string) => fmtChord(VOICINGS.find((v) => v.id === id)?.chord ?? id, settings.chordNotation);
+  // un voicing retiré des données (vieux journal) ne doit pas faire tomber l'accueil : on montre l'id tel quel
+  const chordName = (id: string) => {
+    const v = VOICINGS.find((x) => x.id === id);
+    return v ? fmtChord(v.chord, settings.chordNotation) : id;
+  };
   const resumeTitle = resume.kind === 'chord' ? chordName(resume.voicingId) : resolved.title;
   const resumeGo = () => (resume.kind === 'chord' ? openChord(resume.voicingId) : navigate('scale'));
   const scaleLine = `${positionLabelPlain(resolved.position, settings.noteNotation)}${resolved.formula ? ` · ${resolved.formula}` : ''}`;

@@ -71,11 +71,20 @@ function scaleSubject(a: Attempt, notation: NoteNotation): string {
   return `${r.title} · ${positionLabel(idx >= 0 ? r.positions[idx]! : null, notation)}`;
 }
 
+/** Nom d'accord affichable ; un identifiant illisible (vieux journal, import) s'affiche tel quel au lieu de tout faire tomber. */
+function chordName(id: string, notation: NoteNotation): string {
+  try {
+    return fmtChord(id, notation);
+  } catch {
+    return id;
+  }
+}
+
 /** Sujet lisible d'une tentative d'accord. */
 function chordSubject(a: Attempt, notation: NoteNotation): string {
   if (a.progressionId) return `Progression ${a.progressionId}`;
-  if (a.chordIdB) return `${fmtChord(a.chordId ?? '', notation)} → ${fmtChord(a.chordIdB, notation)}`;
-  return fmtChord(a.chordId ?? '', notation);
+  if (a.chordIdB) return `${chordName(a.chordId ?? '', notation)} → ${chordName(a.chordIdB, notation)}`;
+  return chordName(a.chordId ?? '', notation);
 }
 
 /**
