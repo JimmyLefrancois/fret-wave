@@ -102,8 +102,9 @@ function AccRow({ f, now, full = false }: { f: Accomplishment; now: number; full
  * Changer de sujet (une autre forme, une autre gamme) : discret, **après** l'action dans l'ordre de
  * tabulation et à portée du pouce, au lieu d'un coin opposé du panneau.
  */
+/** Action secondaire de la carte : un bouton ordinaire, opaque, à la même taille que les autres (D75). */
 function Switch({ onClick, children }: { onClick: () => void; children: ReactNode }) {
-  return <PixelButton variant="quiet" className="home-switch" onClick={onClick}>{children}</PixelButton>;
+  return <PixelButton onClick={onClick}>{children}</PixelButton>;
 }
 
 /**

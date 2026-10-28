@@ -1686,28 +1686,13 @@ table.kv td:first-child { color: var(--muted); }
 }
 @media (hover: none), (pointer: coarse) { .home-key { display: none; } }
 /* le héros se lit à un mètre : action en 17 px sur 56 px de haut, lignes d'explication à 16 px */
-/* deux poids, pas trois : l'action (56 px, 17 px) ; l'autre étape, un bouton ordinaire à sa taille ;
-   changer de sujet, un lien. Le panneau est opaque, le lien n'a pas besoin de fond (D75). */
+/* deux poids, pas trois : l'action (56 px, 17 px) ; les autres actions de la carte, des boutons ordinaires
+   à la même taille, opaques (D75 : aucun bouton transparent). Changer de sujet n'est pas un lien à part. */
 .home-actions .btn { white-space: nowrap; }
 .row.home-actions > .btn:not(.btn-primary) { flex: 0 1 auto; padding-inline: 18px; }
 .home-actions .btn-primary { min-height: var(--hero-btn-h); font-size: var(--hero-btn-size); }
 .home-go > .t-small { font-size: 16px; color: var(--muted); }
 .home-blocked { margin-block-start: var(--gap-inside); padding: 8px 10px; font-size: 15px; color: var(--text); background: var(--surface-hi); border-inline-start: 4px solid var(--orange); }
-.row.home-actions > .btn.home-switch {
-  min-height: 44px;
-  padding-inline: 4px;
-  text-transform: none;
-  letter-spacing: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--muted);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  background: none;
-  border-color: transparent;
-  box-shadow: none;
-}
-.row.home-actions > .btn.home-switch:hover { color: var(--cyan); border-color: transparent; }
 /* la barre fixe ne cache jamais l'élément qui a le focus (WCAG 2.4.11) : en bas au téléphone, en haut au bureau */
 @media (max-width: 899px) { html { scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); } }
 @media (min-width: 900px) { html { scroll-padding-top: 72px; } }
