@@ -20,6 +20,10 @@ import { filterPosition, fmtNote, type NoteNotation } from '../../core/theory';
 import { type AnnotationKind, type Direction, defaultChordForScale, positionToScore } from '../../core/tab';
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
 import { AudioEngine } from '../../core/audio/engine';
+import { describeInputError, type InputEngine, type InputFrame } from '../../core/input/engine';
+import { useInputSettings } from '../../core/input/settings';
+import { ensureInputEngine, windowFor } from '../../app/inputSession';
+import { locateInScore, scoreNotes } from '../../core/impro/locate';
 import { appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts } from '../../core/progress';
 import { degreeName, fmtDegree, legendFor, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
@@ -50,6 +54,19 @@ export function ScaleDiscoveryPage() {
   const [tempo, setTempo] = useState(70);
   const [loop, setLoop] = useState(false);
   const [drone, setDrone] = useState(true);
+  /**
+   * P3 de la phase 3 (livrée ici, en phase 7) : **s'écouter sur la position**. La note entendue s'allume
+   * à sa place dans la tablature — c'est le seul retour qui relie « ce que j'entends » à « ce que je lis ».
+   */
+  const [listenOn, setListenOn] = useState(false);
+  const [listenEngine, setListenEngine] = useState<InputEngine | null>(null);
+  const [listenBusy, setListenBusy] = useState(false);
+  const [flash, setFlash] = useState<{ string: number; fret: number }[]>([]);
+  const previousNote = useRef<{ string: number; fret: number; midi: number } | null>(null);
+  const flashTimer = useRef<number | null>(null);
+  const lastFlash = useRef<{ midi: number; at: number } | null>(null);
+  const input = useInputSettings();
+  const listenRef = useRef<(f: InputFrame) => void>(() => {});
   const [metro, setMetro] = useState(false);
   const [chordLayer, setChordLayer] = useState(false);
   const [rootsOnly, setRootsOnly] = useState(false);
@@ -149,6 +166,65 @@ export function ScaleDiscoveryPage() {
     const p = player.current!;
     return () => p.dispose();
   }, []);
+
+  // --- P3 : s'écouter sur la position (micro ouvert à la demande, refermé en quittant)
+  useEffect(() => {
+    if (!listenOn) {
+      listenEngine?.stop();
+      return;
+    }
+    let cancelled = false;
+    setListenBusy(true);
+    void (async () => {
+      try {
+        await AudioEngine.get().unlock();
+        const e = await ensureInputEngine();
+        if (cancelled) return;
+        setListenEngine(e);
+        await e.start(input, { windowSize: windowFor(r.tuning.id) });
+        if (cancelled) {
+          e.stop();
+          return;
+        }
+        if (e.state !== 'listening') {
+          const d = describeInputError(e.state, e.error);
+          setStatus(`${d.message} — ${d.hint}`);
+          setListenOn(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setStatus(`micro indisponible : ${(err as Error).message}`);
+          setListenOn(false);
+        }
+      } finally {
+        if (!cancelled) setListenBusy(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listenOn]);
+
+  useEffect(() => {
+    if (!listenEngine || !scoreTab) return;
+    const notes = scoreNotes(scoreTab);
+    listenRef.current = (f: InputFrame) => {
+      if (!f.stable || !f.isNew) return;
+      const now = performance.now();
+      const last = lastFlash.current;
+      if (last && last.midi === f.midi && now - last.at < 400) return;
+      lastFlash.current = { midi: f.midi, at: now };
+      const at = locateInScore(notes, f.midi, previousNote.current);
+      if (!at) return; // note hors de la position : rien à allumer, et on ne ment pas en allumant ailleurs
+      previousNote.current = at;
+      setFlash([{ string: at.string, fret: at.fret }]);
+      if (flashTimer.current !== null) window.clearTimeout(flashTimer.current);
+      flashTimer.current = window.setTimeout(() => setFlash([]), 900);
+    };
+    return listenEngine.subscribe(() => {
+      const f = listenEngine.last;
+      if (f) listenRef.current(f);
+    });
+  }, [listenEngine, scoreTab]);
 
   const droneAvailable = scoreTab !== null && scoreTonic(scoreTab) !== null;
 
@@ -385,12 +461,25 @@ export function ScaleDiscoveryPage() {
           hideRhythm={!showRhythm}
           {...(reveal ? { highlightFn: reveal } : {})}
           {...(quiz ? { onPick } : {})}
+          {...(flash.length > 0 ? { flash } : {})}
         />
       ) : (
         <Panel accent="yellow">
           <p className="t-body">Aucune position pour cette gamme / cet accordage.</p>
           <PixelButton onClick={() => navigate('gammes')}>Changer de système</PixelButton>
         </Panel>
+      )}
+
+      {scoreTab && (
+        <div className="listen-band">
+          <Switch
+            checked={listenOn}
+            onChange={setListenOn}
+            label={listenBusy ? 'Micro…' : 'M’écouter'}
+            hint="la note que tu joues s’allume sur la position"
+            inline
+          />
+        </div>
       )}
 
       <TabLegend def={r.def} readonly={settings.reduceMotion} />
@@ -401,10 +490,15 @@ export function ScaleDiscoveryPage() {
         <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2}>Position ›</PixelButton>
       </div>
 
-      {/* le geste suivant, écrit noir sur blanc : on a vu la position, on la joue */}
+      {/* Le geste suivant, écrit noir sur blanc : on a vu la position, on la joue. Deux suites, et pas
+          une seule : répéter la position (justesse) ou improviser dessus (musique) — c'est la même
+          position, ce ne sont pas les mêmes compétences. */}
       <div className="next-step">
         <PixelButton variant="primary" className="wide" onClick={() => navigate('training')}>
           ▶ S’exercer sur cette position, au micro
+        </PixelButton>
+        <PixelButton className="wide" onClick={() => navigate('impro')}>
+          ▶ Improviser sur cette position, avec un accompagnement
         </PixelButton>
         <p className="t-small t-dim">
           Le micro valide chaque note : tu la joues, la case se remplit. Sans micro, le pavé numérique

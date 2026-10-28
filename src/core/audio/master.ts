@@ -19,7 +19,7 @@ import { sliderToGain, type Channel, type Volumes } from './mixer';
 type ToneModule = typeof import('tone');
 
 /** Compensations de niveau entre sources (dB), réglées par mesure (MUSIC_DESIGN.md §11.4). */
-export const TRIM_DB: Record<Channel, number> = { master: 0, guitar: -2, drone: 0, metronome: 0 };
+export const TRIM_DB: Record<Channel, number> = { master: 0, guitar: -2, backing: -3, drone: 0, metronome: 0 };
 
 /** Plafond dur : début de la saturation (linéaire, −3,1 dBFS) et plafond (linéaire, −1 dBFS). */
 export const CEILING = { knee: 0.7, ceiling: 10 ** (-1 / 20) } as const;
@@ -109,11 +109,15 @@ export function buildMasterChain(Tone: ToneModule, volumes: Volumes, reverb: num
 
   const buses = {
     guitar: new Tone.Gain(trimGain('guitar') * sliderToGain(volumes.guitar)),
+    // l'accompagnement (basse, pads, batterie) est **derrière** la guitare : c'est un support, pas un
+    // partenaire de volume. Il ne part pas dans la réverbère : un backing réverbéré noie la guitare.
+    backing: new Tone.Gain(trimGain('backing') * sliderToGain(volumes.backing)),
     drone: new Tone.Gain(trimGain('drone') * sliderToGain(volumes.drone)),
     metronome: new Tone.Gain(trimGain('metronome') * sliderToGain(volumes.metronome)),
   };
   buses.guitar.connect(mix);
   buses.guitar.connect(reverbSend);
+  buses.backing.connect(mix);
   buses.drone.connect(mix);
   buses.metronome.connect(mix);
 

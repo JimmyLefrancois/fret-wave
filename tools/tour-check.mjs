@@ -28,6 +28,7 @@ const ROUTES = [
   ['gammes-jouer', '#/gammes/jouer'],
   ['gammes-entrainement', '#/gammes/entrainement'],
   ['gammes-revision', '#/gammes/revision'],
+  ['gammes-impro', '#/gammes/impro'],
   ['accords', '#/accords'],
   ['accords-qcm', '#/accords/qcm'],
   ['accordeur', '#/accordeur'],

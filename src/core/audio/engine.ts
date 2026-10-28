@@ -104,7 +104,15 @@ export class AudioEngine {
   }
 
   /** Les bus Tone exposent un nœud d'entrée natif : les sources Web Audio s'y branchent directement. */
-  private nativeInput(bus: 'guitar' | 'drone' | 'metronome'): AudioNode {
+  /**
+   * Entrée du bus **accompagnement**, pour les sources programmées hors de Tone (basse, pads, batterie
+   * de l'improvisation). Le bus applique déjà son volume et son trim : la source n'a rien à régler.
+   */
+  backingInput(): AudioNode {
+    return this.nativeInput('backing');
+  }
+
+  private nativeInput(bus: 'guitar' | 'backing' | 'drone' | 'metronome'): AudioNode {
     return this.chain!.buses[bus].input as unknown as AudioNode;
   }
 

@@ -2123,3 +2123,63 @@ table.kv td:first-child { color: var(--muted); }
    marges négatives de `.panel > .tabview` et débordait du panneau de 28 px, puis de la fenêtre de 8 px
    dès qu'elle prenait sa marge gauche. Elle prend la largeur du panneau, comme les autres. */
 .quiz-tab { margin-inline: -14px; }
+
+/* --- improvisation (phase 7) ----------------------------------------------------------------------
+   Une grille d'accords qui s'allume sur la mesure en cours, et les notes jouées classées par rôle.
+   Les couleurs suivent celles de la tablature : un rôle, une couleur, et la couleur dit la même chose
+   partout dans l'app. ----------------------------------------------------------------------------- */
+.impro-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-tight); }
+.impro-chord {
+  display: grid;
+  gap: 2px;
+  padding: 8px 6px;
+  text-align: center;
+  background: var(--surface-hi);
+  border: 2px solid var(--line-soft);
+}
+.impro-chord.on { border-color: var(--magenta); background: var(--surface); }
+.impro-chord-name { font-family: var(--font-label); font-size: 13px; color: var(--text); }
+.impro-chord-roman { font-size: 11.5px; color: var(--dim); }
+.impro-chord.on .impro-chord-roman { color: var(--magenta); }
+
+.impro-tempo { font-variant-numeric: tabular-nums; min-width: 72px; text-align: center; }
+
+.impro-notes { display: flex; flex-wrap: wrap; gap: 6px; }
+.impro-note {
+  min-width: 34px;
+  padding: 4px 6px;
+  text-align: center;
+  font-size: 12.5px;
+  border: 2px solid var(--line-soft);
+  background: var(--surface-hi);
+  color: var(--text);
+}
+.impro-role-chord { border-color: var(--green); color: var(--green); }
+.impro-role-color { border-color: var(--cyan); color: var(--cyan); }
+.impro-role-passing { color: var(--muted); }
+.impro-role-avoid { border-color: var(--orange); color: var(--orange); }
+.impro-role-out { border-color: var(--magenta); color: var(--magenta); }
+
+.impro-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--muted); }
+.impro-stats strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.impro-summary { display: grid; gap: var(--gap-tight); padding-top: var(--gap-inside); border-top: 2px solid var(--line-soft); }
+.impro-summary .t-body { color: var(--text); }
+
+/* Bande « m'écouter » sous la tablature : même fond que les autres bandes, un seul réglage. */
+.listen-band {
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 2px solid var(--line-soft);
+}
+
+/* Réglage de tempo : deux boutons carrés et une valeur, sur une seule ligne. */
+.impro-tempo-row { display: flex; align-items: center; gap: 8px; }
+.impro-tempo-row .impro-step { flex: 0 0 44px; padding: 0; }
+/* Le nom d'accord se lit en clair : dans la police pixel, « Am » s'écrit « AM » et le mineur disparaît. */
+.impro-chord-name { font-family: var(--font-body); font-weight: 700; letter-spacing: 0; }
+
+/* Dans la bande « m'écouter », la précision est une phrase : elle a le droit d'aller à la ligne
+   (en `nowrap`, elle poussait la bande à 430 px sur un écran de 390). */
+.listen-band .switch.inline { grid-template-columns: 22px auto; }
+.listen-band .switch.inline .switch-hint { grid-column: 2; white-space: normal; }
+.listen-band .switch.inline .switch-hint::before { content: ''; }

@@ -535,6 +535,51 @@ Pour chaque note jouée (hauteur, temps, accord en cours, gamme/mode de contexte
 Nuance enseignée : un V7 qui résout vers un accord **mineur** appelle plutôt le mixolydien ♭9 ♭13 (5e mode de l'harmonique) ou l'altéré. La classification doit lire le **contexte** (accord suivant) et non seulement l'accord courant.
 Feedback explicatif : toujours une cause + une action (« Do tenu sur G7 frotte avec Si : résous sur Si »).
 
+### 8.1 Tel que construit (phase 7) — et où c'est plus simple que ci-dessus
+
+`core/impro/classify.ts` classe chaque note **à la volée** (une fonction pure, testée sur des tables) et
+rend un rôle parmi cinq : `chord`, `color`, `passing`, `avoid`, `out`. Trois différences assumées avec le
+paragraphe de principe :
+
+1. **La note à éviter est la quarte sur majeur et dominante** (5 demi-tons au-dessus de la fondamentale),
+   pas « tout demi-ton au-dessus d'une note d'accord ». La règle du demi-ton aurait marqué la ♭9 comme
+   « à éviter » alors que c'est une **tension** de dominante très utilisée ; la quarte, elle, frotte la
+   tierce majeure d'un demi-ton dans tous les cas et c'est le cas d'école.
+2. **Le temps ne change pas le rôle, il change le score.** Une note de passage reste un passage ; c'est
+   le score qui regarde si elle tombe sur un temps fort. Séparer les deux permet d'afficher un rôle
+   stable (la pastille ne clignote pas) et de pénaliser la **place**, pas la note.
+3. **La note blues (♭5) n'est pas encore neutralisée** : elle sort aujourd'hui en `out` sur une gamme
+   majeure ou mineure naturelle. Le contexte « blues » demanderait de savoir qu'on improvise sur un
+   blues — ce n'est pas implémenté, et c'est dit à l'écran (« hors gamme » veut dire hors de la gamme
+   choisie, pas « fausse »).
+
+**Les tensions consonantes par qualité** (ce que la table accepte comme `color`) :
+
+| Qualité | 9 | ♯11 | 13 | 11 (quarte) | autres |
+|---|---|---|---|---|---|
+| maj / maj7 | couleur | couleur | couleur | **à éviter** | — |
+| min / min7 | couleur | passage | couleur | couleur | ♭6 = passage |
+| dom7 | couleur | couleur | couleur | **à éviter** | — |
+| sus4 | couleur | passage | couleur | *note d'accord* | tierce majeure = couleur |
+
+**Le score** (0-100) : `45 %` de notes d'accord + `20 %` de notes dans la gamme + `35 %` de notes
+d'accord **sur les temps forts**. Les poids disent la pédagogie : jouer juste ne suffit pas, il faut
+**dire l'harmonie**, et c'est sur les temps forts que ça s'entend. Un solo qui ne visite que la gamme
+plafonne autour de 45 ; un solo qui dit l'accord sans jamais le placer au bon moment plafonne autour de
+65. Le score est affiché **avec ses trois taux**, et l'écran dit qu'il mesure la tenue de la grille, pas
+le goût de la phrase : une ligne lente et juste vaut mieux qu'une avalanche de notes, et l'app ne sait
+pas mesurer ça.
+
+**Le conseil** est **une** phrase, la plus utile : d'abord rester dans la gamme (`inScaleRate < 85 %`),
+ensuite visiter l'accord (`chordRate < 45 %`), ensuite le placer sur les temps forts
+(`strongChordRate < 50 %`), et seulement si tout cela tient, proposer une tension. Un écran qui liste
+cinq défauts à la fois n'en corrige aucun.
+
+**Ce que l'analyse ne fait pas** : ni phrase, ni rythme, ni dynamique, ni résolution des dissonances
+(une note à éviter qui **descend d'un demi-ton sur une note d'accord** est du meilleur jazz — l'app la
+compte comme à éviter). C'est la limite du classement note à note, et elle est écrite ici pour ne pas
+être découverte plus tard.
+
 ---
 
 ## 9. Idées en attente et références

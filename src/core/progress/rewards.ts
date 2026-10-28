@@ -17,6 +17,12 @@ export const XP_COLD = 15;
 export const XP_TRANSITION = 10;
 /** QCM (sans matériel) : de la connaissance, pas un geste — la moitié d'un exercice vérifié. */
 export const XP_QUIZ = 6;
+/**
+ * Improvisation : payer la **tenue de la grille** (part de notes d'accord), pas la virtuosité. Une prise
+ * bavarde et fausse ne doit pas rapporter plus qu'une prise courte et juste — d'où le barème bas et le
+ * plafond par le score.
+ */
+export const XP_IMPRO = 12;
 /** +5 seulement à ≥ 95 % de précision au premier essai. */
 export const XP_SPEED_BONUS = 5;
 export const DAILY_XP_CAP = 120;
@@ -29,6 +35,8 @@ export function xpForAttempt(a: Attempt): number {
   if (!isVerified(a) || score === null) return 0;
   const base = a.kind === 'qcm'
     ? XP_QUIZ
+    : a.kind === 'impro'
+      ? XP_IMPRO
     : a.kind === 'cold'
       ? XP_COLD
       : a.kind === 'transition'

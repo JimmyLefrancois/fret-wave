@@ -27,15 +27,22 @@ export const ATTEMPT_CAP = 2000;
  *
  * Phase 5 : `pluck` — un accord **plaqué écouté** (analyse polyphonique). C'est la première tentative du
  * module Accords qui porte un vrai verdict sur six cordes à la fois ; `strum` reste la déclaration.
+ *
+ * Phase 7 : `impro` — une **prise d'improvisation** sur un accompagnement. `correct`/`total` y valent
+ * les notes d'accord sur le total joué : c'est un taux, pas un exercice réussi ou raté, et il vit sur un
+ * nœud distinct (`gam:impro:…`) pour ne pas se mêler à la justesse d'une forme jouée note à note.
  */
-export type AttemptKind = 'listen' | 'holes' | 'recall' | 'arpeggio' | 'strum' | 'cold' | 'transition' | 'qcm' | 'pluck';
-export const ATTEMPT_KINDS: readonly AttemptKind[] = ['listen', 'holes', 'recall', 'arpeggio', 'strum', 'cold', 'transition', 'qcm', 'pluck'];
+export type AttemptKind = 'listen' | 'holes' | 'recall' | 'arpeggio' | 'strum' | 'cold' | 'transition' | 'qcm' | 'pluck' | 'impro';
+export const ATTEMPT_KINDS: readonly AttemptKind[] = ['listen', 'holes', 'recall', 'arpeggio', 'strum', 'cold', 'transition', 'qcm', 'pluck', 'impro'];
 
 /** Module d'appartenance d'une tentative. Absent = module Gammes (tentatives des phases 2-3). */
 export type AttemptModule = 'gammes' | 'accords';
 
-/** Niveaux du module Gammes (MUSIC_DESIGN §3.4) : 1 découverte, 2 mémorisation, 3 rappel. */
-export type AttemptLevel = 1 | 2 | 3;
+/**
+ * Niveaux du module Gammes (MUSIC_DESIGN §3.4) : 1 découverte, 2 mémorisation, 3 rappel, **4 improvisation**
+ * (phase 7 — une prise sur accompagnement, qui ne se mesure pas comme une forme jouée note à note).
+ */
+export type AttemptLevel = 1 | 2 | 3 | 4;
 
 export interface Attempt {
   /** Identifiant stable (sert à dédupliquer un import). */
@@ -101,6 +108,8 @@ export function nodeIdOf(
   a: Pick<Attempt, 'scaleId' | 'system' | 'formIndex'>
     & { chordId?: string; module?: AttemptModule; kind?: AttemptKind; chordIdB?: string; progressionId?: string },
 ): string {
+  // l'improvisation est une compétence à part : elle ne doit pas doper ni plomber la maîtrise d'une forme
+  if (a.kind === 'impro') return `gam:impro:${a.scaleId}:${a.system}:${a.formIndex}`;
   if (a.module === 'accords' || a.chordId || a.progressionId || a.chordIdB) {
     // une progression et une transition sont des compétences à part entière : elles ne se confondent
     // ni avec un accord seul ni entre elles (MUSIC_DESIGN §4.7, trois axes séparés)
@@ -205,7 +214,7 @@ export function normalizeAttempt(v: unknown): Attempt | null {
     system: a.system,
     positionId: typeof a.positionId === 'string' ? a.positionId : '',
     formIndex: Math.round(a.formIndex),
-    level: a.level === 2 || a.level === 3 ? a.level : 1,
+    level: a.level === 2 || a.level === 3 || a.level === 4 ? a.level : 1,
     strings: typeof a.strings === 'number' ? Math.max(1, Math.round(a.strings)) : 6,
     correct,
     total,

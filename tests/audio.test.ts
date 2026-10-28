@@ -55,7 +55,7 @@ describe('mixage : courbe des curseurs', () => {
 describe('réglages audio mémorisés', () => {
   it('aller-retour exact', () => {
     const store = new MemoryStore();
-    const s = { ...DEFAULT_SETTINGS, volumes: { master: 0.4, guitar: 0.7, drone: 0.2, metronome: 0.9 }, instrument: 'electric', strumSpreadMs: 20, humanize: 0.25, reverb: 0.8 };
+    const s = { ...DEFAULT_SETTINGS, volumes: { master: 0.4, guitar: 0.7, backing: 0.5, drone: 0.2, metronome: 0.9 }, instrument: 'electric', strumSpreadMs: 20, humanize: 0.25, reverb: 0.8 };
     saveSettings(store, s);
     expect(loadSettings(store)).toEqual(s);
   });

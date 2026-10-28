@@ -3,12 +3,13 @@
  * Pur (le stockage est injecté) : testé sans navigateur.
  */
 
-export const CHANNELS = ['master', 'guitar', 'drone', 'metronome'] as const;
+export const CHANNELS = ['master', 'guitar', 'backing', 'drone', 'metronome'] as const;
 export type Channel = (typeof CHANNELS)[number];
 
 export const CHANNEL_LABEL: Record<Channel, string> = {
   master: 'Général',
   guitar: 'Guitare',
+  backing: 'Accompagnement',
   drone: 'Drone',
   metronome: 'Métronome',
 };
@@ -19,7 +20,7 @@ export type Volumes = Record<Channel, number>;
  * Valeurs par défaut (curseurs 0-1). Équilibre choisi par calcul puis mesure (voir MUSIC_DESIGN.md §11.4) : le drone et
  * le métronome sont des soutiens, ils restent nettement sous la guitare.
  */
-export const DEFAULT_VOLUMES: Readonly<Volumes> = { master: 0.95, guitar: 0.9, drone: 0.8, metronome: 0.85 };
+export const DEFAULT_VOLUMES: Readonly<Volumes> = { master: 0.95, guitar: 0.9, backing: 0.82, drone: 0.8, metronome: 0.85 };
 
 /** Plage de la courbe : le curseur à 0 coupe, à 1 = 0 dB, entre les deux −DB_RANGE → 0 dB, linéaire en dB. */
 export const DB_RANGE = 50;

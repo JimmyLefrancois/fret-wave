@@ -40,6 +40,11 @@ export interface TabViewProps {
   activeHoleKey?: string;
   /** Toucher une pastille (exercice « montre-moi la ♭3 »). */
   onPick?: (pick: TabPick) => void;
+  /**
+   * Notes **jouées** à allumer (improvisation, phase 7) : emplacements corde/case déjà résolus dans la
+   * position affichée. La page les garde environ une seconde puis les retire.
+   */
+  flash?: readonly { string: number; fret: number }[];
 }
 
 export interface TabPick {
@@ -89,7 +94,7 @@ function describe(score: TabScore, notation: NoteNotation): string {
 
 export function TabView(props: TabViewProps) {
   const tabTheme = useThemeTokens().tab;
-  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, activeHoleKey, onPick } = props;
+  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, activeHoleKey, onPick, flash } = props;
   const playing = transport === 'playing';
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -199,13 +204,13 @@ export function TabView(props: TabViewProps) {
       const t0 = performance.now();
       const s = new CanvasSurface(ctx, layout.width, layout.height, k);
       s.begin();
-      drawOverlay(s, layout, tabTheme, { tick, frame, reduceMotion });
+      drawOverlay(s, layout, tabTheme, { tick, frame, reduceMotion, ...(flash ? { flash } : {}) });
       const dt = performance.now() - t0;
       const m = metrics.current;
       m.overlayMsAvg = m.frames === 0 ? dt : m.overlayMsAvg * 0.98 + dt * 0.02;
       m.overlayMsMax = Math.max(m.overlayMsMax, dt);
     },
-    [layout, k, reduceMotion],
+    [layout, k, reduceMotion, flash],
   );
 
   const lastSystem = useRef(-1);
@@ -272,7 +277,8 @@ export function TabView(props: TabViewProps) {
       };
       idle();
       // pulsation du glow à ≈ 5 Hz seulement si la partition a une note caractéristique et si le mouvement est permis
-      const hasGlow = layout.columns.some((c) => c.pills.some((p) => p.characteristic));
+      const hasGlow = layout.columns.some((c) => c.pills.some((p) => p.characteristic))
+        || (flash?.length ?? 0) > 0; // une note qui vient de s'allumer doit battre au moins le temps du flash
       if (hasGlow && !reduceMotion) timer = window.setInterval(idle, 200);
     }
     return () => {

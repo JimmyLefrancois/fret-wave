@@ -131,6 +131,12 @@ export interface OverlayState {
   frame: number;
   /** Pas d'animation : glow fixe. */
   reduceMotion?: boolean;
+  /**
+   * Notes **jouées** à allumer sur la portée (improvisation, phase 7) : l'emplacement corde/case vient de
+   * la page, qui a résolu la hauteur entendue dans la position affichée. C'est l'anneau du curseur, en
+   * plus vif : on voit sa note s'inscrire là où elle est écrite.
+   */
+  flash?: readonly { string: number; fret: number }[];
 }
 
 const PULSE = [0.85, 0.55, 0.3, 0.55] as const;
@@ -152,6 +158,11 @@ export function drawOverlay(s: Surface, layout: ScoreLayout, theme: TabTheme, st
         ring(s, p, 1, theme.cursorCore, 0.95);
         ring(s, p, 2, theme.cursor, 0.55);
         if (p.hidden) continue;
+      }
+      const flashed = state.flash?.some((f) => f.string === p.string && f.fret === p.fret);
+      if (flashed) {
+        ring(s, p, 1, theme.cursorCore, 1);
+        ring(s, p, 3, theme.cursor, 0.8);
       }
       if (p.hidden || p.muted) continue;
       if (p.highlight) {
