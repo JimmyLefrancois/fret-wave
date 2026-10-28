@@ -547,13 +547,16 @@ export function ChordLessonPage() {
           </button>
         ))}
       </nav>
-      <p className="t-small t-dim step-goal">
-        {LESSON_STEPS.find((s) => s.id === step)?.goal}
-        {'. '}
+      {/* Bande posée sur le décor : la phrase seule, écrite à même le fond, se perdait dans le ciel
+          étoilé (signalé sur toutes les étapes). L'objectif est un texte, la boîte d'accord un réglage :
+          ils ne s'écrivent plus dans la même phrase. */}
+      <div className="step-goal">
+        <p className="t-small step-goal-text">{LESSON_STEPS.find((s) => s.id === step)?.goal}</p>
         <label className="step-box-toggle">
-          <input type="checkbox" checked={showBox} onChange={(e) => setShowBox(e.target.checked)} /> boîte d’accord
+          <input type="checkbox" checked={showBox} onChange={(e) => setShowBox(e.target.checked)} />
+          boîte d’accord
         </label>
-      </p>
+      </div>
 
       {step === 'decouvrir' && (
         <>
@@ -679,7 +682,9 @@ export function ChordLessonPage() {
                       {c.fret === 0 ? ' à vide' : `, case ${c.fret}`}
                       <span className="t-small t-dim"> — {fmtNote(c.note, settings.noteNotation)} ({fmtDegree(c.fn)})</span>
                     </span>
-                    <span className={`tag ${done ? 'tag-on' : ''}`}>{done ? 'posé' : now ? 'à poser' : ''}</span>
+                    {(done || now) && (
+                      <span className={`tag ${done ? 'tag-on' : ''}`}>{done ? 'posé' : 'à poser'}</span>
+                    )}
                   </li>
                 );
               })}
@@ -724,9 +729,11 @@ export function ChordLessonPage() {
                       {check.cents[c.key] !== undefined && outcome ? <span className="t-small t-dim"> · {check.cents[c.key]! > 0 ? '+' : ''}{check.cents[c.key]!} ¢</span> : null}
                       {check.tries[c.key] && !outcome ? <span className="t-small t-dim"> · {MAX_TRIES - check.tries[c.key]!} essai(s)</span> : null}
                     </span>
-                    <span className={`tag ${outcome === 'ok' ? 'tag-on' : ''}`}>
-                      {outcome === 'ok' ? 'juste' : outcome === 'wrong' ? 'révélée' : outcome === 'tuning' ? 'désaccordée' : now ? 'à jouer' : ''}
-                    </span>
+                    {(outcome || now) && (
+                      <span className={`tag ${outcome === 'ok' ? 'tag-on' : ''}`}>
+                        {outcome === 'ok' ? 'juste' : outcome === 'wrong' ? 'révélée' : outcome === 'tuning' ? 'désaccordée' : 'à jouer'}
+                      </span>
+                    )}
                   </div>
                 );
               })}

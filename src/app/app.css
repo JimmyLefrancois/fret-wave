@@ -167,7 +167,7 @@ a { color: var(--cyan); }
   line-height: 1.6;
 }
 .t-body { font-size: 16.5px; line-height: 1.55; }
-.t-small { font-size: 14.5px; color: var(--muted); line-height: 1.45; }
+.t-small { font-size: 14.5px; color: var(--muted); line-height: 1.55; }
 .t-dim { color: var(--dim); }
 .t-small strong, .t-body strong { color: var(--text); }
 
@@ -176,7 +176,7 @@ a { color: var(--cyan); }
 .panel {
   position: relative;
   margin: 12px 0;
-  padding: 12px;
+  padding: 14px;
   background: var(--surface);
   border: var(--bw) solid var(--line);
   box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink);
@@ -1325,26 +1325,35 @@ table.kv td:first-child { color: var(--muted); }
 .chordbox canvas { display: block; image-rendering: pixelated; }
 .chord-box-wrap { display: grid; gap: 6px; justify-items: start; }
 
-.finger-steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.finger-steps { list-style: none; display: grid; gap: 8px; }
 .finger-step {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 11px;
+  gap: 12px;
+  padding: 11px 12px;
   background: var(--surface-hi);
   border: 2px solid var(--line-soft);
+}
+/* sur téléphone, l'étiquette d'état prenait la place du texte : le contenu passe au-dessus d'elle */
+@media (max-width: 520px) {
+  .finger-step { flex-wrap: wrap; row-gap: 6px; }
+  /* Le numéro ne part jamais seul sur sa ligne : c'est le texte qui décide du retour à la ligne.
+     Sélecteurs à deux classes, sinon `.finger-body { flex: 1 1 auto }` plus bas dans le fichier gagne. */
+  .finger-step .finger-num { flex: 0 0 auto; }
+  .finger-step .finger-body { flex: 1 1 180px; }
+  .finger-step .tag { margin-left: auto; }
 }
 .finger-step.now { border-color: var(--cyan); }
 .finger-step.done { border-color: var(--green); }
 .finger-num { font-family: var(--font-label); font-size: 16px; color: var(--cyan); min-width: 22px; }
 .finger-body { flex: 1 1 auto; min-width: 0; font-size: 13.5px; color: var(--muted); }
 
-.check-list { display: grid; gap: 6px; margin-top: 10px; }
+.check-list { display: grid; gap: 8px; }
 .check-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 11px;
+  gap: 12px;
+  padding: 11px 12px;
   background: var(--surface-hi);
   border: 2px solid var(--line-soft);
 }
@@ -1443,25 +1452,34 @@ table.kv td:first-child { color: var(--muted); }
 .step-btn.on .step-num { color: var(--cyan); }
 .step-btn.on .step-label { color: var(--text); }
 
+/* Objectif de l'étape : une bande pleine, pas du texte posé sur le ciel étoilé. Le réglage « boîte
+   d'accord » est un contrôle, il va à droite (et passe à la ligne sous 520 px). */
 .step-goal {
-  margin: 0 0 2px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 12px;
+  gap: 4px 14px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 2px solid var(--line-soft);
+}
+.step-goal-text { margin: 0; flex: 1 1 260px; min-width: 0; }
+@media (min-width: 520px) {
+  .step-box-toggle { margin-left: auto; }
 }
 .step-box-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-height: 28px;
+  font-size: 12.5px;
   color: var(--cyan);
   cursor: pointer;
 }
 .step-box-toggle input { width: 16px; height: 16px; accent-color: var(--cyan); }
 
 .chord-intro { display: grid; gap: 10px; margin-bottom: 8px; }
-.chord-facts { display: grid; gap: 4px; align-content: start; }
+.chord-facts { display: grid; gap: 8px; align-content: start; }
 @media (min-width: 720px) {
   .chord-intro { grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 16px; }
 }
@@ -1558,10 +1576,11 @@ table.kv td:first-child { color: var(--muted); }
 
 /* --- la tablature prend la largeur de son panneau, padding compris (téléphone) --------------------- */
 @media (max-width: 899px) {
-  /* à S = 2, une mesure de quatre accords demande 179 px logiques : avec les 12 px de padding du
-     panneau, le dessin dépassait de 24 px et la fin de mesure était coupée. La tablature s'aligne donc
-     sur le bord intérieur du panneau — la portée occupe le panneau, le texte garde sa marge. */
-  .panel > .tabview { margin-left: -12px; margin-right: -12px; }
+  /* À S = 2, une mesure de quatre accords demande 179 px logiques : débordante avec le rembourrage du
+     panneau, la fin de mesure était coupée. La tablature s'aligne donc sur le **bord intérieur** du
+     panneau — la portée occupe le panneau, le texte garde sa marge. Les 14 px sont le rembourrage de
+     `.panel` sur téléphone (16/18 au bureau, où cette règle ne s'applique pas). */
+  .panel > .tabview { margin-left: -14px; margin-right: -14px; }
 }
 
 /* réglages fins repliés (accordeur) : la page s'appelle « Accordeur », l'accordeur doit être en haut */
