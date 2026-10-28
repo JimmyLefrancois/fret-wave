@@ -1763,7 +1763,8 @@ table.kv td:first-child { color: var(--muted); }
 /* barre pixel : cadre au trait, remplissage en aplat vert, pas de coin arrondi */
 .path-bar { display: block; height: 12px; background: var(--bg); border: var(--bw) solid var(--line); }
 .path-fill { display: block; height: 100%; background: var(--green); }
-@media (max-width: 519px) {
+/* sous 900 px la colonne fait 560 px au plus : nom, texte et barre s'empilent */
+@media (max-width: 899px) {
   .path-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }
 
