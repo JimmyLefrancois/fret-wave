@@ -2241,10 +2241,11 @@ table.kv td:first-child { color: var(--muted); }
 }
 .linkish:hover { border-color: var(--cyan); color: var(--text); }
 
-/* l'en-tête devient une bande pleine : titre, sous-titre et étiquette ne reposent plus sur l'ombre */
+/* l'en-tête devient une bande pleine : titre, sous-titre et étiquette ne reposent plus sur l'ombre.
+   Pas de bordure : le cadre traçait un rectangle autour du titre, qui se lisait comme une boîte
+   posée sur le décor. La bande reste (fond de panneau) pour que le texte ne tombe jamais sur la scène. */
 .page-head {
   background: var(--surface);
-  border: 2px solid var(--line-soft);
   padding: 10px 12px;
   /* un peu d'air au-dessus de la bande : collée au bord haut, elle se lisait comme une barre système */
   margin-block-start: 8px;
