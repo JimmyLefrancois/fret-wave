@@ -1,5 +1,5 @@
 /**
- * Scène pixel art du thème (PROJECT.md §5, §4.9) : ciel bandé, étoiles, soleil rayé, montagnes en
+ * Scène pixel art du thème (docs/ARCHITECTURE.md §5, §4.9) : ciel bandé, étoiles, soleil rayé, montagnes en
  * silhouette, lignes de grille qui avancent vers le spectateur. Dessin PUR sur une `Surface`
  * (pixels logiques) : testable sans canvas, aucun flou, uniquement des rectangles entiers.
  *

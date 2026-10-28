@@ -1,5 +1,5 @@
 /**
- * Design tokens d'un thème (PROJECT.md §4.6, §5). Un thème = un fichier de config : palette, scène pixel,
+ * Design tokens d'un thème (docs/ARCHITECTURE.md §4.6, §5). Un thème = un fichier de config : palette, scène pixel,
  * police d'accent, ambiance. **Les couleurs d'intervalle ne sont PAS ici** : elles sont globales
  * (`core/tab/colors.ts`) pour que l'apprentissage visuel ne change jamais avec l'habillage.
  */

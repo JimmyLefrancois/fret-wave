@@ -1,5 +1,5 @@
 /**
- * Module Gammes — niveau 1 « Découverte » (BRIEF.md §2, PROJECT.md §6.3).
+ * Module Gammes — niveau 1 « Découverte » (BRIEF.md §2, docs/ARCHITECTURE.md §6.3).
  * La gamme est écrite en tablature (montée / descente / aller-retour) avec :
  *  - les couleurs de fonction d'intervalle et le glow des notes caractéristiques du mode ;
  *  - quatre annotations au choix (note, degré, intervalle, doigté) ;

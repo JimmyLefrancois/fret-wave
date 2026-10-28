@@ -1,5 +1,5 @@
 /**
- * Thème « Synthwave Neon » (thème par défaut, PROJECT.md §5.1).
+ * Thème « Synthwave Neon » (thème par défaut, docs/ARCHITECTURE.md §5.1).
  * Toutes les valeurs sont ici : ajouter un thème = ajouter un fichier comme celui-ci + l'enregistrer
  * dans `registry.ts`. Aucune logique ne dépend de ce fichier.
  */

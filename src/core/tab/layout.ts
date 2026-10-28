@@ -2,7 +2,7 @@
  * Layout PUR de la tablature : TabScore → coordonnées en pixels logiques (aucun accès au canvas).
  * Testable sans navigateur ; le rendu (render.ts) ne fait que dessiner ce que ce module décrit.
  *
- * Géométrie (pixels logiques, PROJECT.md §4.9) :
+ * Géométrie (pixels logiques, docs/ARCHITECTURE.md §4.9) :
  *  - pastille 11×13 (1 chiffre) ou 17×13 (2 chiffres) : contour 1 + remplissage 2 autour d'un glyphe 5×7 ;
  *  - pas de 14 px entre cordes → 1 px d'air entre deux pastilles voisines d'une pile d'accord ;
  *  - de haut en bas : en-tête (noms d'accords, chiffrage) · cordes · flèches de strum · rythme · annotation.

@@ -1,5 +1,5 @@
 /**
- * Décor pixel de l'app (PROJECT.md §4.9, §5) : deux canvas superposés en pixels logiques mis à l'échelle
+ * Décor pixel de l'app (docs/ARCHITECTURE.md §4.9, §5) : deux canvas superposés en pixels logiques mis à l'échelle
  * ENTIÈRE (k = S × dpr), comme la tablature — aucun flou.
  *  - `poster` (hub) : ciel, étoiles, soleil rayé, montagnes, grille en perspective qui défile ;
  *  - `calm` (écrans de travail) : ciel et étoiles seulement — le décor ne doit jamais concurrencer la tab.

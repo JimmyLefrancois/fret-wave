@@ -1,5 +1,5 @@
 /**
- * Couleurs : fonction d'intervalle → pastille (MUSIC_DESIGN.md §2, PROJECT.md §5.2).
+ * Couleurs : fonction d'intervalle → pastille (MUSIC_DESIGN.md §2, docs/ARCHITECTURE.md §5.2).
  * La TEINTE porte le degré (1…7), l'ALTÉRATION module la luminosité et ajoute une encoche.
  * Ces couleurs sont identiques dans tous les thèmes ; seul le panneau change (THEME_SYNTHWAVE).
  */

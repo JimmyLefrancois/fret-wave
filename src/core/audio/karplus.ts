@@ -1,6 +1,6 @@
 /**
  * Synthèse de corde pincée (Karplus-Strong) : REPLI pour les notes hors de la plage des échantillons
- * (PROJECT.md §3.5, D7), pour qu'une note du score ne soit jamais muette. Pure et déterministe (bruit initial
+ * (docs/ARCHITECTURE.md §3.5, D7), pour qu'une note du score ne soit jamais muette. Pure et déterministe (bruit initial
  * pseudo-aléatoire à graine fixe) : testée en mesurant la hauteur du signal produit.
  *
  * Boucle : y[n] = g · ½ (y[n−D] + y[n−D−1]) ; le filtre moyenneur retarde de ½ échantillon, un filtre passe-tout du

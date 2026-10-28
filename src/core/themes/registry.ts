@@ -1,5 +1,5 @@
 /**
- * Registre des thèmes + application à chaud (PROJECT.md §4.6, skill css-theme-systems).
+ * Registre des thèmes + application à chaud (docs/ARCHITECTURE.md §4.6, skill css-theme-systems).
  *  - une table, pas un `if` : ajouter un thème = une entrée ;
  *  - le thème par défaut reste sur `:root` sans attribut (premier rendu, valeur mémorisée inconnue) ;
  *  - les variables sont posées par `applyTheme` (source unique : `tokens.ts`), jamais recopiées en CSS.

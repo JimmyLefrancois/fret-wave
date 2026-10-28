@@ -1,6 +1,6 @@
 /**
  * Modèle `TabScore` : indépendant du rendu, consommé à l'identique par le layout/rendu et par la lecture
- * audio (MUSIC_DESIGN.md §2, PROJECT.md §4.4).
+ * audio (MUSIC_DESIGN.md §2, docs/ARCHITECTURE.md §4.4).
  *  - temps en ticks ENTIERS (PPQ 480) : aucune dérive de flottants ;
  *  - `startTick` d'un événement est RELATIF au début de sa mesure ;
  *  - corde 0 = corde grave (la tab affiche la corde aiguë en haut) ;

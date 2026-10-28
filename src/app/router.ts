@@ -1,5 +1,5 @@
 /**
- * Routeur minimal par hash (compatible PWA hors ligne, PROJECT.md §4.1).
+ * Routeur minimal par hash (compatible PWA hors ligne, docs/ARCHITECTURE.md §4.1).
  * Une route = un écran ; l'état fin (gamme choisie, position) vit dans les magasins, pas dans l'URL.
  */
 

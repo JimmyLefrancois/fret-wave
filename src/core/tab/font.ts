@@ -1,6 +1,6 @@
 /**
  * Police bitmap maison 5×7 (largeur variable) : aucune police pixel existante ne couvre ♯ ♭ 𝄪 𝄫 ø Δ ↓ ↑
- * dans un rendu net (PROJECT.md §5.3). Chaque glyphe : 7 rangées séparées par « / », « # » = pixel allumé.
+ * dans un rendu net (docs/ARCHITECTURE.md §5.3). Chaque glyphe : 7 rangées séparées par « / », « # » = pixel allumé.
  * Les glyphes sont dessinés avec le pixel logique unique de l'app : jamais de lissage.
  */
 import type { Surface } from './surface';

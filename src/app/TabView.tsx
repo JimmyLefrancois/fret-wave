@@ -22,7 +22,7 @@ export interface TabViewProps {
   chords: ChordNotation;
   annotation: AnnotationKind;
   mode: 'scroll' | 'wrap';
-  /** Pixels CSS par pixel logique, ou « auto » (formule de PROJECT.md §4.9). */
+  /** Pixels CSS par pixel logique, ou « auto » (formule de docs/ARCHITECTURE.md §4.9). */
   scale: number | 'auto';
   reduceMotion: boolean;
   player: TabPlayer | null;
