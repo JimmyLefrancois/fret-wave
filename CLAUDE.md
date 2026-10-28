@@ -34,12 +34,16 @@ Vite + TypeScript + React 19 · Canvas 2D (un seul « pixel logique », échelle
 - Ne change aucune règle musicale, barème d'XP ou seuil de maîtrise sans demande explicite.
 
 ## Économie de contexte (IMPORTANT)
-- NE LIS JAMAIS en entier `PROJECT.md` (228 ko), `MUSIC_DESIGN.md` ni `BRIEF.md`. Utilise `grep -n` pour trouver la section utile, puis lis seulement ces lignes.
+- NE LIS JAMAIS en entier `PROJECT.md`, `MUSIC_DESIGN.md` ni `BRIEF.md`. Utilise `grep -n` pour trouver la section utile, puis lis seulement ces lignes.
 - Ignore `package-lock.json`, `public/samples/`, `dist/`, `.shots/`.
 - Pour une tâche, ouvre d'abord le dossier concerné, pas tout le dépôt.
 - Réponses courtes : montre le diff ou le résumé, pas les fichiers entiers.
+- Les commentaires "docs/ARCHITECTURE.md §X.Y" renvoient à une section : fais grep -n "^### X.Y" docs/ARCHITECTURE.md et lis seulement cette section (pour §X seul : `grep -n "^## X\." docs/ARCHITECTURE.md`).
 
 ## Où est la doc
-- `PROJECT.md` : état du projet et prochaine étape (§12). Décisions D1-D70 en §10.
+- `PROJECT.md` : statut, état exact, §0, plan des phases (§9) et prochaine étape (§12).
+- `docs/ARCHITECTURE.md` : §1-7 (stack, architecture, direction artistique, maquettes, risques).
+- `docs/HYPOTHESES.md` : §8 et §8 bis.
+- `docs/DECISIONS.md` : §10, décisions D1-D77.
 - `MUSIC_DESIGN.md` : conventions musicales, curriculum, avis de prof.
-- `docs/archive/` : historique des phases passées (ne pas lire sauf demande).
+- `docs/archive/` : `PHASES.md` (états exacts 1c-4a, refonte d'interface), `JOURNAL.md` (§11) — ne pas lire sauf demande.
