@@ -396,7 +396,7 @@ Seuils configurables (N, jours, secondes). **[AVIS PROF]** : 3 arpèges propres 
 **Tel que construit depuis la 4b** — le paragraphe ci-dessus est tenu, à une nuance près :
 - **forme** : 3 vérifications propres (≥ 80 %) sur ≥ 2 jours différents, dans le même journal que les gammes (`acc:accord:{voicingId}`, `minSuccesses = 3`) ;
 - **rappel à froid** : **exigé** (étape Fixer). Une pose réussie **dans la limite** — 8 s aux paliers P1-P2, 5 s à P3-P4, 3 s ensuite, resserrée d'un cran par réussite réussie — et **propre** (≥ 80 % des cordes). Le chrono s'arrête à la **première corde juste** : c'est le moment où la main arrive, pas la durée du geste complet. Un rappel le **même jour** ne compte qu'à **≥ 10 minutes** de la première vérification (consolidation motrice) ;
-- **plaqué** : non requis, et toujours pas écouté (phase 5).
+- **plaqué** : **écouté depuis la phase 5** (`core/input/poly.ts`) et journalisé en `pluck` avec sa confiance ; il **compte comme une vérification** (c'est plus strict qu'un arpège : six cordes ensemble). Il **n'est pas exigé** pour « appris » — l'arpège reste la référence d'apprentissage, parce que c'est lui qui dit *quelle* corde manque.
 
 **Ce que le critère ne dit pas** (à dire à l'élève, et c'est dit à l'écran) : la pose à froid valide l'**arrivée** de la main sur une note attendue, pas la propreté des six cordes simultanées ; et le temps est arrondi **au supérieur** au journal, pour qu'une pose à 8,1 s ne passe jamais pour 8 s.
 
@@ -444,13 +444,43 @@ Derrière une interface `Scheduler` pour pouvoir passer à FSRS (MIT, `ts-fsrs`)
 | Mode | Fiabilité attendue | Usage |
 |---|---|---|
 | **Note isolée / arpège corde par corde** (mono, McLeod) | **Bonne** sur interface USB ; **moyenne** sur micro de téléphone pour les 2 cordes graves (peu d'énergie < 100 Hz → octave fausse possible) | référence pour **apprendre** et valider « appris » |
-| **Plaqué (strum)**, accord *attendu* | **Approximative** : bon pour « c'est plausible / manifestement faux » ; **mauvais** pour un verdict par corde | XP et confort, jamais de verrou |
+| **Plaqué (strum)**, accord *attendu* | **Mesurée en phase 5** (`poly.ts`, matrice de confusion publiée §6.1) : 91 % d'accords justes sur signaux de synthèse de 7 conditions, 100 % des cordes d'un accord juste entendues ; **une corde étouffée est vue** (confiance 0,00) ; l'inversion doublée (G/B) n'est pas distinguable | vérification du geste complet, avec confiance par corde ; **jamais** de « faux » sec |
 | Reconnaissance d'un accord *inconnu* | **Hors périmètre** | non promise |
+
+### 6.1 Ce que l'écoute polyphonique sait faire — mesuré, pas espéré
+
+**Comment ça marche** (détail dans `core/input/poly.ts`) : attaque par flux spectral, puis FFT 16 384 sur la fenêtre **après** l'attaque (2,9 Hz par bin), puis somme harmonique 1-6 par note attendue, **des graves vers les aiguës**, avec retrait de la part que chaque corde explique (et non du pic entier : la fondamentale du Si aigu d'un Em tombe exactement sur le 3ᵉ harmonique du Mi grave — retirer le pic effaçait la note cherchée). La confiance de chaque corde est une échelle logarithmique du rapport signal/plancher, le plancher étant **relatif** (0,4 % du pic le plus fort) pour que les fuites d'une corde grave ne passent pas pour une preuve.
+
+**Matrice de confusion** (`tests/poly-matrix.test.ts`, 11 accords × 7 conditions, publiée dans `.shots/poly/matrix.json`) :
+
+| Condition | Accords reconnus parmi 11 | Marge médiane sur le 2ᵉ |
+|---|---|---|
+| signal propre | **10/11 (91 %)** | +0,51 |
+| bruit 30 dB | 10/11 (91 %) | +0,51 |
+| bruit 20 dB | 10/11 (91 %) | +0,51 |
+| bruit 10 dB | 10/11 (91 %) | +0,48 |
+| 20 dB · guitare à +15 cents | 10/11 (91 %) | +0,47 |
+| 20 dB · guitare à +30 cents | 10/11 (91 %) | +0,49 |
+| 30 dB · guitare à +30 cents | 10/11 (91 %) | +0,49 |
+
+**Cordes entendues** sur les quatre conditions réalistes : **224/224 (100 %)**. Les paires documentées plus bas (Am/C, Em/E, D/Dsus2, D/Dsus4, C/Cmaj7, Am/Am7, G/G/B) sont **toutes** tranchées dans le bon sens, sauf une.
+
+**La seule confusion qui reste, dans toutes les conditions : G/B pris pour G.** Ce n'est pas un réglage à corriger, c'est une impossibilité : G/B **double la corde de Si**, et deux cordes à l'unisson produisent **un seul** pic dans le spectre. Aucun analyseur ne peut les séparer ; le test le fige pour que personne ne « répare » le score en cassant autre chose.
+
+**Sur les vrais échantillons de la banque** (pas des sinus : `tools/make-chord-fixtures.sh` superpose six cordes nylon avec 18 ms d'étalement, rejouées par un faux micro Chromium) :
+
+| Ce qui est joué | Ce que l'app dit |
+|---|---|
+| Em juste | « Entendu : 6 cordes sur 6, confiance 80 % » — cordes entre 73 et 100 % |
+| Mi **majeur** au lieu de Em | « Une corde manque : **Sol♯ à la place de Sol** (corde de Sol) », confiance 31 % |
+| Em, corde de mi aiguë étouffée | « la corde de mi n'a pas sonné. Vérifie qu'aucun doigt voisin ne l'étouffe » |
+
+**Ce que ça ne prouve pas** : une vraie guitare, un vrai micro, une vraie pièce, une vraie caisse de résonance. Les chiffres ci-dessus sont un **plafond optimiste** — la matrice est synthétique, et les fixtures sont des échantillons propres sans bruit de pièce. La validation sur instrument réel reste à faire, et c'est écrit dans `PROJECT.md` §12.
 
 Cas qui resteront **ambigus** (à documenter dans l'UI et ici) :
 - **Em vs E** : la 5e harmonique de la corde de Mi grave (82,41 × 5 = 412,0 Hz) tombe à **−14 cents du Sol♯4 (415,3 Hz)** et à +86 cents du Sol4 : un Mi grave bien joué « injecte » un faux Sol♯ ; il faut **soustraire les harmoniques de la basse** avant de juger la tierce.
 - **D / Dsus2 / Dsus4** : un seul fa♯/mi/sol sur la corde aiguë. La 3e harmonique d'un La grave résiduel (110 × 3 = 330 Hz ≈ Mi4 à +2 cents) fait apparaître un **faux Dsus2** si la corde de La vibre par sympathie.
-- **Am vs C**, **Em vs G**, accords ouverts qui laissent sonner des cordes à vide non voulues : on ne peut pas détecter « l'absence » d'une corde étouffée de façon fiable en strum.
+- **Am vs C**, **Em vs G**, accords ouverts qui laissent sonner des cordes à vide non voulues : mesurés, ces cas sont **tranchés** par la pénalité d'inexpliqué (§6.1) ; ce qui reste impossible, c'est une corde **doublée à l'unisson** (G/B contre G) et une corde étouffée **dans un accord très dense** (le seuil par corde est à 0,45 de confiance, et un accord à six cordes laisse peu d'énergie propre à chacune).
 - **Accordage** : une guitare à −20 cents fait passer des notes correctes pour fausses → **accordeur obligatoire avant tout exercice audio** (et lecture du La de référence dans les réglages).
 Principe d'interface : **niveau de confiance + 3 bandes (OK / probable / douteux) + message** ; **bouton de secours « je l'ai bien joué »** (statut « non vérifié », moins d'XP). Jamais « faux » sec sur un plaqué.
 
