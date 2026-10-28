@@ -1660,6 +1660,11 @@ table.kv td:first-child { color: var(--muted); }
 .home-title { overflow-wrap: anywhere; text-wrap: balance; margin: 2px 0 4px; font-family: var(--font-body); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
 .home-actions { margin: 12px 0 10px; }
 .home-actions .btn { flex: 1 1 150px; }
+/* une seule règle de placement, quel que soit l'état : le primaire ouvre la rangée à gauche, à largeur
+   fixe, le secondaire à sa droite. L'œil et la main le retrouvent au même endroit chaque jour. */
+@media (min-width: 900px) {
+  .row.home-actions > .btn { flex: 0 0 20rem; }
+}
 /* révision en héros : la reprise reste à portée, en ligne secondaire sous l'action principale */
 .home-resume { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
 /* premier lancement : deux étapes numérotées, une seule action primaire */
