@@ -68,7 +68,10 @@
   /* bouton du héros de l'accueil : la seule chose à lire depuis le tabouret, guitare en main */
   --hero-btn-size: 17px;
   --hero-btn-h: 56px;
+  /* titre de la tâche (gamme, accord) : le plus grand mot de l'accueil, lu à un mètre */
+  --hero-title: 30px;
 }
+@media (min-width: 900px) { :root { --hero-title: 36px; } }
 
 * { box-sizing: border-box; }
 
@@ -1635,7 +1638,8 @@ table.kv td:first-child { color: var(--muted); }
 .home-hero-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(26px, 9vw, 44px);
+  /* la marque cède le premier rang au titre de la tâche (--hero-title) : on lit ce qu'on joue, pas le logo */
+  font-size: clamp(22px, 7vw, 28px);
   line-height: 1.12;
   color: var(--text);
 }
@@ -1651,7 +1655,7 @@ table.kv td:first-child { color: var(--muted); }
 .day-cell.on { border-color: var(--green); background: var(--green); }
 @media (min-width: 900px) {
   .home-hero { min-height: 300px; }
-  .home-hero-title { font-size: 46px; }
+  .home-hero-title { font-size: 30px; }
 }
 /* grand écran : l'affiche cède de la hauteur pour que le héros entre sans défiler ; le soleil passe
    derrière le titre, comme prévu par l'affiche */
@@ -1662,7 +1666,7 @@ table.kv td:first-child { color: var(--muted); }
   /* téléphone : l'affiche se réduit à son contenu (titre, accroche, jauge) ; le héros monte d'autant */
   .home-hero { min-height: 150px; }
 }
-.home-title { overflow-wrap: anywhere; text-wrap: balance; margin: 2px 0 4px; font-family: var(--font-body); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.home-title { overflow-wrap: anywhere; text-wrap: balance; margin: 2px 0 4px; font-family: var(--font-body); font-size: var(--hero-title); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; }
 .home-actions { margin: 12px 0 10px; }
 .home-actions .btn { flex: 1 1 150px; }
 /* une seule règle de placement, quel que soit l'état : le primaire ouvre la rangée à gauche, à largeur
