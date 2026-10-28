@@ -98,3 +98,27 @@ export function isHeroShortcut(
   if (!target) return true;
   return !target.isContentEditable && !OWN_KEYS.has((target.tagName ?? '').toUpperCase());
 }
+
+/**
+ * Étape « Accorder » franchie ? Seulement sur un **fait observé** : le navigateur dit que le micro est
+ * autorisé, ou l'accordeur a enregistré un accordage complet. Jamais une case cochée par l'élève.
+ */
+export function tuneStepDone(micPermission: string | null, tuned: boolean): boolean {
+  return micPermission === 'granted' || tuned;
+}
+
+export type HeroStepId = 'tune' | 'listen' | 'play';
+
+/**
+ * Les deux étapes d'un premier pas (accorder, puis écouter ou jouer) et celle **en cours** : c'est elle
+ * que portent le bouton primaire et le raccourci, jamais une étape plus loin que la suivante à faire.
+ */
+export function heroSteps(
+  second: 'listen' | 'play',
+  tuneDone: boolean,
+): { steps: { id: HeroStepId; done: boolean }[]; current: HeroStepId } {
+  return {
+    steps: [{ id: 'tune', done: tuneDone }, { id: second, done: false }],
+    current: tuneDone ? second : 'tune',
+  };
+}

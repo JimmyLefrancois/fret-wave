@@ -3,7 +3,7 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { dailyActivity, hubPlan, isHeroShortcut, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
+import { dailyActivity, heroSteps, hubPlan, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
 import { summarizeDay, type Attempt, type Card } from '../src/core/progress';
 
@@ -148,5 +148,24 @@ describe('isHeroShortcut', () => {
     expect(isHeroShortcut({ key: ' ', repeat: true }, body)).toBe(false);
     expect(isHeroShortcut({ key: 'Enter', ctrlKey: true }, body)).toBe(false);
     expect(isHeroShortcut({ key: ' ', shiftKey: true }, body)).toBe(false);
+  });
+});
+
+describe('étapes du premier pas', () => {
+  it('« Accorder » n’est franchie que sur un fait observé', () => {
+    expect(tuneStepDone('granted', false)).toBe(true);
+    expect(tuneStepDone(null, true)).toBe(true);
+    expect(tuneStepDone('prompt', false)).toBe(false);
+    expect(tuneStepDone('denied', false)).toBe(false);
+    expect(tuneStepDone(null, false)).toBe(false);
+  });
+
+  it('le primaire porte l’étape en cours : accorder d’abord, puis la suivante', () => {
+    expect(heroSteps('listen', false).current).toBe('tune');
+    expect(heroSteps('listen', true).current).toBe('listen');
+    expect(heroSteps('play', true)).toEqual({
+      steps: [{ id: 'tune', done: true }, { id: 'play', done: false }],
+      current: 'play',
+    });
   });
 });

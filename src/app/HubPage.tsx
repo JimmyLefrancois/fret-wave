@@ -13,12 +13,13 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { dailyActivity, hubPlan, isHeroShortcut, micHeardBefore, reviewSummary, scaleStep } from '../app/hubPlan';
+import { dailyActivity, heroSteps, hubPlan, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
 import { Chip, Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, headline, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
 import { chordProgress, learnedChordIds, nextChord, palierOf } from '../modules/accords/recommend';
 import { VOICINGS } from '../data/voicings';
+import { readTuningRecord } from '../core/input/tuningGuide';
 import { fmtChord } from '../core/theory';
 import {
   dueNow, loadJournal, nodeIdOf, progressStore, streak, summarizeDay,
@@ -95,6 +96,23 @@ function AccRow({ f, now }: { f: Accomplishment; now: number }) {
   );
 }
 
+/**
+ * État de l'autorisation micro selon le navigateur (`null` si l'API ne répond pas) : un fait observé,
+ * mis à jour si l'élève l'accorde dans un autre onglet.
+ */
+function useMicPermission(): string | null {
+  const [state, setState] = useState<string | null>(null);
+  useEffect(() => {
+    let status: PermissionStatus | null = null;
+    const update = () => setState(status?.state ?? null);
+    navigator.permissions?.query({ name: 'microphone' as PermissionName })
+      .then((s) => { status = s; update(); s.addEventListener('change', update); })
+      .catch(() => setState(null));
+    return () => status?.removeEventListener('change', update);
+  }, []);
+  return state;
+}
+
 /** L'action du héros : le seul bouton primaire de la page, et le raccourci Espace/Entrée qui la lance. */
 function HeroGo({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
@@ -167,14 +185,31 @@ export function HubPage() {
 
   // gamme : écouter tant qu'elle ne l'a jamais été, puis la jouer au micro (réécouter passe en second)
   const step = scaleStep(journal, sel.scaleId, resolved.tonic);
+  // premier pas (journal vide, ou micro jamais entendu) : accorder d'abord, sur un fait observé
+  const micPermission = useMicPermission();
+  const tuneDone = tuneStepDone(micPermission, readTuningRecord(progressStore()) !== null);
+  const firstSteps = plan.review || resume.kind === 'chord'
+    ? null
+    : resume.kind === 'start'
+      ? heroSteps('listen', tuneDone)
+      : step === 'play' && !micHeard
+        ? heroSteps('play', tuneDone)
+        : null;
+  const STEP: Record<'tune' | 'listen' | 'play', { text: string; action: string; go: () => void }> = {
+    tune: { text: 'Accorder la guitare (et autoriser le micro)', action: '▶ Accordeur', go: () => navigate('tuner') },
+    listen: { text: 'Écouter la gamme', action: '▶ Écouter', go: () => navigate('scale') },
+    play: { text: 'Jouer la gamme au micro', action: '▶ Jouer au micro', go: () => navigate('training') },
+  };
   // ce que lance le raccourci : toujours le bouton primaire affiché
   const heroGo = plan.review
     ? review
     : resume.kind === 'chord'
       ? () => openChord(resume.voicingId)
-      : resume.kind === 'scale' && step === 'play'
-        ? () => navigate('training')
-        : () => navigate('scale');
+      : firstSteps
+        ? STEP[firstSteps.current].go
+        : step === 'play'
+          ? () => navigate('training')
+          : () => navigate('scale');
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!isHeroShortcut(e, e.target as HTMLElement | null)) return;
@@ -237,68 +272,54 @@ export function HubPage() {
         </Panel>
       );
     }
-    if (resume.kind === 'start') {
+    const stepsBlock = firstSteps && (() => {
+      const other = firstSteps.steps.find((x) => x.id !== firstSteps.current)!;
       return (
-        <Panel
-          className="span-12 home-go"
-          accent="magenta"
-          label="Commencer"
-          right={<Chip small onClick={() => navigate('gammes')}>Changer</Chip>}
-        >
-          <h3 className="home-title">{resolved.title}</h3>
-          <p className="t-small">{scaleLine}</p>
+        <>
           <ol className="home-steps">
-            <li>
-              <span className="home-step-n" aria-hidden="true">1</span>
-              <span className="home-step-text">Accorder la guitare</span>
-              <PixelButton onClick={() => navigate('tuner')}>Accordeur</PixelButton>
-            </li>
-            <li>
-              <span className="home-step-n" aria-hidden="true">2</span>
-              <span className="home-step-text">Écouter la gamme</span>
-              <HeroGo onClick={() => navigate('scale')}>▶ Écouter</HeroGo>
-            </li>
+            {firstSteps.steps.map((x, i) => (
+              <li key={x.id} className={x.done ? 'done' : x.id === firstSteps.current ? 'current' : ''}>
+                <span className="home-step-n" aria-hidden="true">{x.done ? '✓' : i + 1}</span>
+                <span className="home-step-text">
+                  {STEP[x.id].text}
+                  {x.done && <span className="sr-only"> (fait)</span>}
+                </span>
+              </li>
+            ))}
           </ol>
-        </Panel>
+          <div className="row home-actions">
+            <HeroGo onClick={STEP[firstSteps.current].go}>{STEP[firstSteps.current].action}</HeroGo>
+            {/* l'autre étape reste à portée : réaccorder, ou passer outre en connaissance de cause */}
+            {other.done && firstSteps.current === 'play'
+              ? <PixelButton onClick={() => navigate('scale')}>Réécouter</PixelButton>
+              : <PixelButton onClick={STEP[other.id].go}>{STEP[other.id].action.replace('▶ ', '')}</PixelButton>}
+          </div>
+        </>
       );
-    }
+    })();
     return (
       <Panel
         className="span-12 home-go"
         accent="magenta"
-        label="Continuer"
+        label={resume.kind === 'start' ? 'Commencer' : 'Continuer'}
         right={<Chip small onClick={() => navigate('gammes')}>Changer</Chip>}
       >
         <h3 className="home-title">{resolved.title}</h3>
         <p className="t-small">{scaleLine}</p>
-        {step === 'listen' ? (
+        {stepsBlock || (
           <div className="row home-actions">
-            <HeroGo onClick={() => navigate('scale')}>▶ Écouter</HeroGo>
-            <PixelButton onClick={() => navigate('training')}>Jouer au micro</PixelButton>
-          </div>
-        ) : micHeard ? (
-          <div className="row home-actions">
-            <HeroGo onClick={() => navigate('training')}>▶ Jouer au micro</HeroGo>
-            <PixelButton onClick={() => navigate('scale')}>Réécouter</PixelButton>
-          </div>
-        ) : (
-          <>
-            <ol className="home-steps">
-              <li>
-                <span className="home-step-n" aria-hidden="true">1</span>
-                <span className="home-step-text">Accorder la guitare (et autoriser le micro)</span>
-                <PixelButton onClick={() => navigate('tuner')}>Accordeur</PixelButton>
-              </li>
-              <li>
-                <span className="home-step-n" aria-hidden="true">2</span>
-                <span className="home-step-text">Jouer la gamme au micro</span>
+            {step === 'listen' ? (
+              <>
+                <HeroGo onClick={() => navigate('scale')}>▶ Écouter</HeroGo>
+                <PixelButton onClick={() => navigate('training')}>Jouer au micro</PixelButton>
+              </>
+            ) : (
+              <>
                 <HeroGo onClick={() => navigate('training')}>▶ Jouer au micro</HeroGo>
-              </li>
-            </ol>
-            <p className="t-small home-again">
-              <button type="button" onClick={() => navigate('scale')}>Réécouter la gamme</button>
-            </p>
-          </>
+                <PixelButton onClick={() => navigate('scale')}>Réécouter</PixelButton>
+              </>
+            )}
+          </div>
         )}
       </Panel>
     );
