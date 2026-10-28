@@ -66,6 +66,11 @@ typography:
     fontWeight: 700
     letterSpacing: "0.06em"
     lineHeight: 1.6
+  hero-title:
+    fontFamily: "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+    fontSize: "30px"
+    fontWeight: 700
+    lineHeight: 1.15
   label-lg:
     fontFamily: "'Silkscreen', 'Press Start 2P', monospace"
     fontSize: "13px"
@@ -176,6 +181,7 @@ Fondamentale jaune `#FFD23F`, 2 orange `#FF8A3D`, 3 magenta `#FF3CAC`, 4 vert `#
 - **Label** (Silkscreen, 700, 11 px, 0,06em, capitales) : `.t-label`, `.tag`, titres de carte de contrôle (12-13 px).
 - **Label large** (Silkscreen, 700, 13 px, token `--label-lg`) : étiquettes lues à un mètre, celles du héros de l'accueil et l'accroche de l'affiche.
 - **Action du héros** (système, 17 px, bouton de 56 px, tokens `--hero-btn-size` et `--hero-btn-h`) : le seul bouton primaire de l'accueil, la chose à lire depuis le tabouret, guitare en main.
+- **Titre de la tâche** (système, 700, 30 px, 36 px au bureau, token `--hero-title`) : la gamme ou l'accord du héros, **le plus grand mot de l'accueil** ; la marque de l'affiche descend à 22-30 px (D82).
 
 ### Named Rules
 **The Reading-Text Rule.** Tout texte que l'élève doit lire (navigation, consignes, valeurs) est en sans-serif. Silkscreen en capitales tronquait « ACCORDEUR » et perdait les accents : il reste réservé aux étiquettes.
@@ -219,6 +225,12 @@ Angles quasi vifs : un seul rayon, 2 px (`--corner`), qui lit comme un coin « p
 - **Panneau :** fond surface, bordure 2 px, ombre dure, équerres. **Panneau accentué :** bordure `--accent` et halo.
 - **Carte de contrôle :** fond surface, bordure 2 px, sans ombre ; titre en Silkscreen cyan ; état « ok » en bordure `--ok`.
 
+### Accueil (lanceur, D78-D82)
+- **Affiche :** marque, accroche, puis jauge du jour et série sur une **plaque opaque** (`--veil-rgb` plein, D75) ; la jauge dit « Objectif du jour atteint » à 3 exercices vérifiés.
+- **Héros :** panneau accentué magenta ; titre de la tâche, une ligne de contexte à 16 px, puis la rangée d'actions à **deux poids** : le primaire (56 px, 17 px, touche « Espace » au clavier seulement), l'autre étape en bouton ordinaire à sa taille (44 px), et « changer de gamme / d'accord » en **lien** souligné. Le primaire garde la même place dans tous les états : pleine largeur au téléphone, à gauche et au moins 20 rem au bureau.
+- **Étapes :** liste numérotée en pastilles pixel 28 px ; étape en cours en aplat magenta, étape franchie en ✓ vert estompée (franchie seulement sur un fait observé, D79).
+- **Parcours :** une ligne par module (nom en `--label-lg` cyan, sujet et compte, barre pixel 12 px au trait `--line` remplie de `--green`) ; trois colonnes au bureau, empilées sous 900 px.
+
 ### Navigation
 Barre du bas à quatre ou cinq destinations : icône pixel au-dessus d'un libellé sans-serif de 11,5 px, 52 px de haut. Actif : texte magenta et lueur sous l'icône. Libellé tronqué par ellipse, jamais à la ligne.
 
@@ -226,6 +238,7 @@ Barre du bas à quatre ou cinq destinations : icône pixel au-dessus d'un libell
 Panneau de tablature dessiné au canvas : cordes fines, barres de mesure, chiffres sur pastilles colorées par intervalle avec contour qui sépare du fond (sombre en nuit, papier en aube), curseur de lecture magenta à cœur clair. Sur aube, le panneau s'éclaircit (`#FFFBF5`, encre `#2B0B2E`) mais les aplats d'intervalle restent saturés. Le chiffre sur pastille a toujours un contour : jamais de scanlines dessus.
 
 ### Étiquettes
+`.home-key` (Silkscreen 11 px, bordure 1 px `currentColor`, dans le bouton primaire, masquée au tactile).
 `.badge` (Silkscreen 12 px, bordure 1 px) et `.tag` (11 px, capitales, discret). `.tag-on` : aplat vert.
 
 ## Do's and Don'ts

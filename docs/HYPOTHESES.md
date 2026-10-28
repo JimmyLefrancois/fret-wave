@@ -52,7 +52,7 @@
 41. **Statut des phases** : l'ancienne phase 1c du plan est découpée — **1c = moteur audio** (fait, commité), **1d = hub + thème + module Gammes N1** (proposé, D18).
 
 **Prises en phase 1d**
-42. **Objectif du jour = 3 écoutes**, non réglable avant la phase 2 (aucun écran de réglage de série/objectif).
+42. **Objectif du jour = 3 écoutes**, non réglable avant la phase 2 (aucun écran de réglage de série/objectif). → **remplacée par D81** : l'objectif compte 3 **exercices vérifiés**, une écoute n'y entre pas.
 43. Une **écoute** est journalisée si la lecture réelle dépasse **3 s** ; la durée est mesurée entre « lecture » et pause / stop / fin, jamais estimée.
 44. La sélection de gamme est **mémorisée et normalisée** : gamme inconnue, tonique mal orthographiée, système indisponible ou position hors plage retombent sur une valeur valide — l'écran ne jette jamais.
 45. **CAGED exposé en 1d** (ta demande vaut feu vert pour la condition D12) ; fenêtre = forme d'accord ± 1 case (Do/Sol : de 3 cases sous la fondamentale à 1 au-dessus) ; relu sur Do, Sol, La sans correction.
@@ -66,7 +66,7 @@
 51. **Un nœud = une forme × un mode, jamais une tonique** (D28) : la tonique est une preuve séparée (`tonics`, `zones`) qui sert à proposer la transposition, pas à multiplier les cartes.
 52. **Leitner 6 boîtes** avec gigue déterministe ±15 %, échec −2 boîtes, plafond **8 cartes dues** (D26) ; seuils **80 %** de réussite, **2 jours distincts** pour « apprise », boîte ≥ 5 pour « maîtrisée ».
 53. **XP** 10 × précision (trous) / 15 × précision (rappel), +5 à ≥ 95 %, **plafond 120/jour** ; **écoute = 0 XP** (D27).
-54. **Série** = jours consécutifs d'activité (écoute comprise), **vivante tant que la veille compte** : la série ne casse pas à minuit avant que l'utilisateur ait joué (D27).
+54. **Série** = jours consécutifs d'activité (écoute comprise), **vivante tant que la veille compte** : la série ne casse pas à minuit avant que l'utilisateur ait joué (D27). → **remplacée par D81** : seuls les jours avec un **exercice vérifié** comptent (ni écoute ni grattage déclaré).
 55. **Niveau 2 = ~35 % de trous, minimum 2, jamais toutes** ; niveau 3 = toutes les notes du segment (D29). Le découpage se fait par cordes, pas par mesures.
 56. **2ᵉ erreur sur un trou = case révélée**, comptée fausse ; la tentative est enregistrée quand même (D29).
 57. **Le pavé numérique reste collant sous 900 px** : sur téléphone, il faut voir la tablature **et** les touches sans faire défiler deux fois.
@@ -164,6 +164,9 @@
 | Accordage | accordeur (3) | **guidé corde par corde** + rappel 3 jours (D49) |
 | Curriculum | P0-P4 (17 accords) | **P0-P7 (35 accords)**, P8-P10 en phase 6 (D50) |
 | Feuille de route | « son final + hub + thème + module » en 1c | 1c = audio seul ; les écrans en 1d |
+| Accueil | hub de dix panneaux, puis deux portes (D65) | **lanceur à une action** tirée du journal, étapes franchies sur un fait observé, bande « Parcours » (D78-D80) |
+| Objectif du jour | 3 écoutes (hyp. 42) | **3 exercices vérifiés**, dit quand il est atteint (D81) |
+| Série | jours d'activité, écoute comprise (hyp. 54, D27) | **jours avec un exercice vérifié** (D81) |
 
 ---
 
