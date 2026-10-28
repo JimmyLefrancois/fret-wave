@@ -100,4 +100,10 @@ describe('accomplishments', () => {
     expect(events.length).toBeGreaterThan(0);
     expect(events[0]?.subject).toBe('Zz-999999');
   });
+
+  it('le sujet parle de « Position », jamais de « Box » (même vocabulaire que le héros de l’accueil)', () => {
+    const [a] = accomplishments([mk(T0, 3, 3)]);
+    expect(a?.subject).toMatch(/· Position \d+ · cases/);
+    expect(a?.subject).not.toMatch(/Box/);
+  });
 });

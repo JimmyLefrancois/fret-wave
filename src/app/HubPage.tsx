@@ -128,7 +128,7 @@ export function HubPage() {
   const reviewPos = reviewAttempt && reviewScale
     ? reviewScale.positions.find((p) => (p.formIndex ?? p.index) === reviewAttempt.formIndex) ?? null
     : null;
-  // « Ou reprendre » ne répète pas la carte due : même gamme, même tonique, même forme = même geste
+  // « Dernière activité » ne répète pas la carte due : même gamme, même tonique, même forme = même geste
   const sameAsReview = resume.kind === 'scale' && !!reviewAttempt
     && reviewAttempt.scaleId === sel.scaleId && reviewAttempt.tonic === resolved.tonic
     && reviewAttempt.formIndex === (resolved.position?.formIndex ?? resolved.position?.index);
@@ -154,7 +154,7 @@ export function HubPage() {
           </div>
           {resume.kind !== 'start' && !sameAsReview && (
             <div className="home-resume">
-              <span className="t-small">Ou reprendre <strong>{resumeTitle}</strong></span>
+              <span className="t-small">Dernière activité : <strong>{resumeTitle}</strong></span>
               <PixelButton onClick={resumeGo}>Reprendre</PixelButton>
             </div>
           )}
@@ -236,10 +236,8 @@ export function HubPage() {
                 <span key={i} className={`day-cell ${i < activity ? 'on' : ''}`} />
               ))}
             </span>
-            <span>
-              {Math.min(activity, DAILY_GOAL)} / {DAILY_GOAL} activités aujourd’hui
-              {st.days > 0 ? ` · ${st.days} j d’affilée` : ''}
-            </span>
+            <span className="day-text">{Math.min(activity, DAILY_GOAL)} / {DAILY_GOAL} écoutes ou exercices aujourd’hui</span>
+            {st.days > 0 && <span className="day-text day-streak">{st.days} j d’affilée</span>}
           </p>
         </div>
       </header>
@@ -293,7 +291,7 @@ export function HubPage() {
             Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : une série ne compte qu’au-dessus
             de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
           </p>
-          <p className="t-small t-dim">Plafond de 8 cartes par session : une absence ne crée pas de dette impossible.</p>
+          <p className="t-small t-dim">8 révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
         </details>
       </Panel>
 

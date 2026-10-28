@@ -41,7 +41,7 @@ const NAV: { route: RouteName; label: string; icon: IconName }[] = [
 
 const ACTIVE: Record<RouteName, RouteName> = {
   hub: 'hub', gammes: 'gammes', scale: 'gammes', training: 'gammes', review: 'gammes', impro: 'gammes',
-  // le module Accords s'ouvre depuis le hub : aucun onglet supplémentaire (5 libellés pixel ne tiennent pas sur 390 px)
+  // les écrans du module Accords allument l'onglet Accords
   accords: 'accords', chord: 'accords', chordquiz: 'accords',
   tuner: 'tuner', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
 };

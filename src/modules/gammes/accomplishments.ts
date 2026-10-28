@@ -20,7 +20,7 @@ import {
 } from '../../core/progress';
 import { fmtChord } from '../../core/theory';
 import type { NoteNotation } from '../../core/theory';
-import { positionLabel, resolveScale } from './resolve';
+import { positionLabelPlain, resolveScale } from './resolve';
 
 export type AccomplishmentKind = 'perfect' | 'pass' | 'learned' | 'mastered' | 'chord' | 'streak';
 
@@ -68,7 +68,8 @@ function levelLabel(a: Attempt): string {
 function scaleSubject(a: Attempt, notation: NoteNotation): string {
   const r = resolveScale({ scaleId: a.scaleId, tonic: a.tonic, tuningId: a.tuningId, system: a.system as never, positionIndex: 0 });
   const idx = r.positions.findIndex((p) => (p.formIndex ?? p.index) === a.formIndex);
-  return `${r.title} · ${positionLabel(idx >= 0 ? r.positions[idx]! : null, notation)}`;
+  // « Position N », comme sur le héros de l'accueil : un débutant ne cherche pas une « box »
+  return `${r.title} · ${positionLabelPlain(idx >= 0 ? r.positions[idx]! : null, notation)}`;
 }
 
 /** Nom d'accord affichable ; un identifiant illisible (vieux journal, import) s'affiche tel quel au lieu de tout faire tomber. */
@@ -154,7 +155,7 @@ function streakMilestones(attempts: readonly Attempt[]): Accomplishment[] {
       ts: last.ts,
       title: ACCOMPLISHMENT_LABEL.streak,
       subject: `${days} jours d’affilée`,
-      detail: `${days} jours de suite avec au moins un exercice vérifié`,
+      detail: 'au moins un exercice vérifié chaque jour',
       accent: 'cyan',
     });
   }
