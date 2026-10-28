@@ -1171,6 +1171,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       <p className="t-small t-dim foot-note">
         Niveau 1 (découverte, avec le son) : <button type="button" className="linkish" onClick={() => navigate('scale')}>écran d’écoute</button>.
         Niveau 4 (improvisation) : <button type="button" className="linkish" onClick={() => navigate('impro')}>improviser sur un accompagnement</button>.
+        Vitesse : <button type="button" className="linkish" onClick={() => navigate('sequences')}>séquences au métronome, palier automatique</button>.
         Une note masquée n’est jamais jouée par l’app avant d’être trouvée.
       </p>
       </>

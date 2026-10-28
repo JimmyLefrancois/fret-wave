@@ -23,6 +23,12 @@ export const XP_QUIZ = 6;
  * plafond par le score.
  */
 export const XP_IMPRO = 12;
+/**
+ * Séquences (lot « mémoire et vitesse », D84) : un geste mesuré au micro, payé comme une transition ou
+ * une série de trous (10 × précision, + bonus à ≥ 95 %) — la tablature est visible, ce n'est pas un rappel.
+ * Une session sans micro n'est pas vérifiée (`correct: null`) : 0 XP.
+ */
+export const XP_SEQUENCE = 10;
 /** +5 seulement à ≥ 95 % de précision au premier essai. */
 export const XP_SPEED_BONUS = 5;
 export const DAILY_XP_CAP = 120;
@@ -39,8 +45,8 @@ export function xpForAttempt(a: Attempt): number {
       ? XP_IMPRO
     : a.kind === 'cold'
       ? XP_COLD
-      : a.kind === 'transition'
-        ? XP_TRANSITION
+      : a.kind === 'transition' || a.kind === 'sequence'
+        ? (a.kind === 'sequence' ? XP_SEQUENCE : XP_TRANSITION)
         : a.level >= 3 ? XP_RECALL : XP_HOLES;
   // le bonus de vitesse ne paie que le geste : un QCM juste ne doit pas rapporter plus qu'une gamme jouée
   const bonus = a.kind !== 'qcm' && score >= SPEED_THRESHOLD ? XP_SPEED_BONUS : 0;

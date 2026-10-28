@@ -200,6 +200,16 @@ Le moteur expose `systemsFor(scale): PositionSystem[]` ; l'UI n'affiche que cett
 ### 3.5 Exercices de technique (tous en tab, générés par `TabScore`)
 Séquences (par 3, par 4, tierces, quartes), motifs, alternate picking, legato (h/p dans le modèle), « tempo ladder » : montée de 4-5 BPM quand précision ≥ 95 % sur 2 passes. Ces exercices sont des *générateurs* de TabScore, pas des écrans spécifiques.
 
+**Tel que construit (lot « mémoire et vitesse »)** (`core/tab/generators.ts` `sequenceToScore`, `modules/gammes/sequence.ts`, écran `#/gammes/sequences`) :
+- **Quatre motifs** sur la position choisie : **par 3** (1-2-3, 2-3-4…), **par 4**, **tierces** (1-3, 2-4…), **quartes** (1-4, 2-5…) — dans la gamme, notes triées par hauteur. Montée, puis descente en miroir **à partir de l'avant-dernière note** : pas de sommet répété au demi-tour (aucune note jouée deux fois de suite, vérifié par test sur les quatre motifs). Croches, doigtés de la position.
+- **Tablature visible** : c'est de la technique, pas du rappel. Au micro, chaque passe a **une mesure de décompte**, se joue sur le métronome en croches et se juge note à note (curseur sur la note attendue).
+- **Passe réussie** = ≥ 95 % de notes justes **et en place** : 90 % des notes justes à moins d'une demi-croche de leur temps, **après retrait de l'écart médian** (un retard constant est la latence de la chaîne, pas un défaut de tempo ; ce qui compte, c'est de ne pas traîner ni presser). Vérifié : une passe jouée à 72 sur une grille à 80 est juste mais « pas en place ».
+- **Palier** : départ au dernier tempo validé au micro pour cette forme et ce motif (sinon 60) ; **+4** après 2 passes réussies d'affilée (ce tempo devient « validé ») ; **−5** après 2 échecs, **jamais sous le départ** ; bornes 40-200. Rappel doux de pause après 10 min.
+- **Journal** : **une tentative par session** (`kind: 'sequence'`, `pattern`, `bpmStart`, `bpmBest`, `passes`, justes / total cumulés) — jamais une par passe (plafond de 2 000 entrées). Nœud `gam:sequence:*` : **ni carte de révision, ni état de forme** ; la séquence n'apporte que la **preuve de vitesse** de la forme (`bpmBest` ≥ tempo cible, au micro).
+- **Sans micro** : tempo manuel, « non vérifié », ni palier ni XP (`correct: null`, une activité).
+- **XP** : barème de la transition — 10 × précision, + 5 à ≥ 95 % (D84), sous le plafond journalier.
+- [AVIS PROF] les tierces et les quartes sont les plus utiles des quatre : elles cassent le « défilement » de la gamme et obligent à **savoir** où est la note suivante, pas seulement à suivre le doigt. Par 3 et par 4 travaillent surtout l'aller-retour du médiator.
+
 ### 3.6 Ear training (mini-jeux) — par ordre d'utilité/effort
 1. Majeur vs mineur (accord puis gamme) ; 2. quelle est la note caractéristique ? (dorien vs éolien, lydien vs ionien) ; 3. intervalles ascendants (2de→8ve) ; 4. mode sur drone ; 5. « joue la note que tu entends » (nécessite le micro). Les 1 et 2 sont à très haut impact pour un coût faible : audio seul.
 

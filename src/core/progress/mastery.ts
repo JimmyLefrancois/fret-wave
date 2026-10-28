@@ -194,9 +194,11 @@ export function isStrongSuccess(a: Attempt): boolean {
 
 /**
  * Preuve de vitesse : un rappel N3 **au micro**, position entière, propre (≥ 95 %), grille **tenue** à un
- * débit d'au moins le tempo cible en croches (`2 × cible` notes par minute).
+ * débit d'au moins le tempo cible en croches (`2 × cible` notes par minute) — ou une **séquence** au micro
+ * dont le meilleur tempo validé atteint la cible (les séquences sont en croches).
  */
 export function isSpeedProof(a: Attempt, targetBpm = SPEED_TARGET_BPM): boolean {
+  if (a.kind === 'sequence') return a.module !== 'accords' && a.mic === true && isProof(a) && (a.bpmBest ?? 0) >= targetBpm;
   if (!isFormSeries(a) || !isProof(a) || a.mic !== true || a.level < 3 || !isFullPosition(a)) return false;
   if ((scoreOf(a) ?? 0) < SPEED_CLEAN || !a.tempoOk) return false;
   return (a.gridNpm ?? 0) >= 2 * targetBpm;
@@ -249,6 +251,8 @@ export function summarizeNodes(attempts: readonly Attempt[], opts: SummaryOption
   const groups = new Map<string, Attempt[]>();
   for (const a of attempts) {
     if (!isProof(a)) continue;
+    // une séquence ne fait pas un état de forme : elle n'apporte que la preuve de vitesse (ci-dessus)
+    if (a.kind === 'sequence') continue;
     const id = nodeIdOf(a);
     const list = groups.get(id);
     if (list) list.push(a);

@@ -39,6 +39,8 @@ export interface BlindScore {
   missedStrings: number[];
   /** Instant (s) de la dernière attaque **retenue**, ou `null` si rien n'a été retenu. */
   lastAttack: number | null;
+  /** Instant (s) de l'attaque de chaque note juste (clé de trou) : sert à juger la mise en place. */
+  times: Record<string, number>;
 }
 
 export interface BlindOptions {
@@ -53,6 +55,7 @@ const accepted = (kind: string) => kind === 'fill' || kind === 'tuning' || kind 
 
 export function scoreBlind(targets: readonly Target[], heard: readonly HeardNote[], opts: BlindOptions): BlindScore {
   const marks: Record<string, BlindMark> = {};
+  const times: Record<string, number> = {};
   const dedupe = opts.dedupeSeconds ?? 0.4;
   let i = 0;
   let lastAttack: number | null = null;
@@ -65,6 +68,7 @@ export function scoreBlind(targets: readonly Target[], heard: readonly HeardNote
     const v = matchPitch(h.midi, [cur], { centsTolerance: opts.centsTolerance });
     if (accepted(v.kind)) {
       marks[cur.key] = 'right';
+      times[cur.key] = h.t;
       i += 1;
       lastAttack = h.t;
       prev = h;
@@ -75,6 +79,7 @@ export function scoreBlind(targets: readonly Target[], heard: readonly HeardNote
       // une note oubliée : la suivante est juste, l'attendue est manquée
       marks[cur.key] = 'missed';
       marks[next.key] = 'right';
+      times[next.key] = h.t;
       i += 2;
       lastAttack = h.t;
       prev = h;
@@ -98,6 +103,7 @@ export function scoreBlind(targets: readonly Target[], heard: readonly HeardNote
     consumed: targets.filter((t) => marks[t.key] !== undefined).length,
     missedStrings,
     lastAttack,
+    times,
   };
 }
 

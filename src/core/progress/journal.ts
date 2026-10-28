@@ -10,6 +10,7 @@
  */
 import { dayKey, readLog, type PracticeEntry } from './practiceLog';
 import type { KeyValueStore } from '../audio/mixer';
+import { SEQUENCE_PATTERNS, type SequencePattern } from '../tab/generators';
 
 export { dayKey } from './practiceLog';
 
@@ -31,9 +32,13 @@ export const ATTEMPT_CAP = 2000;
  * Phase 7 : `impro` — une **prise d'improvisation** sur un accompagnement. `correct`/`total` y valent
  * les notes d'accord sur le total joué : c'est un taux, pas un exercice réussi ou raté, et il vit sur un
  * nœud distinct (`gam:impro:…`) pour ne pas se mêler à la justesse d'une forme jouée note à note.
+ *
+ * Lot « mémoire et vitesse » : `sequence` — une **session de palier** de séquences (par 3, par 4, tierces,
+ * quartes) : une tentative par session, jamais une par passe. Nœud `gam:sequence:…` : la séquence nourrit
+ * la **vitesse** d'une forme, jamais « apprise » ni la révision espacée (la tablature y est visible).
  */
-export type AttemptKind = 'listen' | 'holes' | 'recall' | 'arpeggio' | 'strum' | 'cold' | 'transition' | 'qcm' | 'pluck' | 'impro';
-export const ATTEMPT_KINDS: readonly AttemptKind[] = ['listen', 'holes', 'recall', 'arpeggio', 'strum', 'cold', 'transition', 'qcm', 'pluck', 'impro'];
+export type AttemptKind = 'listen' | 'holes' | 'recall' | 'arpeggio' | 'strum' | 'cold' | 'transition' | 'qcm' | 'pluck' | 'impro' | 'sequence';
+export const ATTEMPT_KINDS: readonly AttemptKind[] = ['listen', 'holes', 'recall', 'arpeggio', 'strum', 'cold', 'transition', 'qcm', 'pluck', 'impro', 'sequence'];
 
 /** Module d'appartenance d'une tentative. Absent = module Gammes (tentatives des phases 2-3). */
 export type AttemptModule = 'gammes' | 'accords';
@@ -117,6 +122,14 @@ export interface Attempt {
   gridNpm?: number;
   /** Série jouée **à l'aveugle** : aucune tablature dessinée pendant le jeu, verdict à la fin seulement. */
   blind?: true;
+  /** Séquence : motif travaillé. */
+  pattern?: SequencePattern;
+  /** Séquence : tempo de départ de la session (BPM de croches). */
+  bpmStart?: number;
+  /** Séquence : meilleur tempo **validé** (deux passes propres et en place d'affilée), absent si aucun. */
+  bpmBest?: number;
+  /** Séquence : nombre de passes jouées dans la session. */
+  passes?: number;
 }
 
 export function zoneOf(fret: number): number {
@@ -130,6 +143,8 @@ export function nodeIdOf(
 ): string {
   // l'improvisation est une compétence à part : elle ne doit pas doper ni plomber la maîtrise d'une forme
   if (a.kind === 'impro') return `gam:impro:${a.scaleId}:${a.system}:${a.formIndex}`;
+  // une séquence se joue tablature visible : elle prouve la vitesse, pas la mémoire de la forme
+  if (a.kind === 'sequence') return `gam:sequence:${a.scaleId}:${a.system}:${a.formIndex}`;
   if (a.module === 'accords' || a.chordId || a.progressionId || a.chordIdB) {
     // une progression et une transition sont des compétences à part entière : elles ne se confondent
     // ni avec un accord seul ni entre elles (MUSIC_DESIGN §4.7, trois axes séparés)
@@ -272,6 +287,14 @@ export function normalizeAttempt(v: unknown): Attempt | null {
     // un débit hors de 20-400 notes/min n'est pas une grille de l'app : absent plutôt que faux
     ...(typeof a.gridNpm === 'number' && Number.isFinite(a.gridNpm) && a.gridNpm >= 20 && a.gridNpm <= 400
       ? { gridNpm: Math.round(a.gridNpm) } : {}),
+    ...(SEQUENCE_PATTERNS.includes(a.pattern as SequencePattern) ? { pattern: a.pattern } : {}),
+    // tempos de séquence hors des bornes du palier (40-200) : absents plutôt que faux
+    ...(typeof a.bpmStart === 'number' && Number.isFinite(a.bpmStart) && a.bpmStart >= 40 && a.bpmStart <= 200
+      ? { bpmStart: Math.round(a.bpmStart) } : {}),
+    ...(typeof a.bpmBest === 'number' && Number.isFinite(a.bpmBest) && a.bpmBest >= 40 && a.bpmBest <= 200
+      ? { bpmBest: Math.round(a.bpmBest) } : {}),
+    ...(typeof a.passes === 'number' && Number.isFinite(a.passes) && a.passes >= 0 && a.passes <= 10_000
+      ? { passes: Math.round(a.passes) } : {}),
   };
 }
 

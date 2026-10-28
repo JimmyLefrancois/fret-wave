@@ -175,6 +175,65 @@ export function positionToScore(pos: Position, tuning: Tuning, opts: PositionSco
   );
 }
 
+// ---------------------------------------------------------------------------
+// Séquences (exercices de technique, MUSIC_DESIGN §3.5)
+// ---------------------------------------------------------------------------
+
+/** Motifs de séquence : groupes de 3, groupes de 4, tierces, quartes (dans la gamme, pas chromatiques). */
+export type SequencePattern = 'g3' | 'g4' | 'thirds' | 'fourths';
+export const SEQUENCE_PATTERNS: readonly SequencePattern[] = ['g3', 'g4', 'thirds', 'fourths'];
+
+/** Nom d'élève d'un motif. */
+export const SEQUENCE_LABEL: Readonly<Record<SequencePattern, string>> = {
+  g3: 'par 3',
+  g4: 'par 4',
+  thirds: 'tierces',
+  fourths: 'quartes',
+};
+
+/** Rangs joués à partir du rang `i` : `g3` = i, i+1, i+2 ; `thirds` = i, i+2 ; `fourths` = i, i+3. */
+const PATTERN_STEPS: Readonly<Record<SequencePattern, readonly number[]>> = {
+  g3: [0, 1, 2],
+  g4: [0, 1, 2, 3],
+  thirds: [0, 2],
+  fourths: [0, 3],
+};
+
+/** Applique le motif sur une liste ordonnée, en partant du rang `from`. */
+function patternOver<T>(items: readonly T[], pattern: SequencePattern, from = 0): T[] {
+  const steps = PATTERN_STEPS[pattern];
+  const span = steps[steps.length - 1]!;
+  const out: T[] = [];
+  for (let i = from; i + span < items.length; i++) for (const s of steps) out.push(items[i + s]!);
+  return out;
+}
+
+/**
+ * Séquence sur une position : notes triées par hauteur, motif en montée, puis en descente sur la liste
+ * inversée **à partir du deuxième rang** — la descente repart de l'avant-dernière note au lieu de
+ * reprendre le sommet : pas de note répétée au demi-tour (`… 3 4 5 · 4 3 2 …`), comme on la travaille.
+ * Croches, doigtés de la position (`fingeringsForPosition`, MUSIC_DESIGN §3.8).
+ */
+export function sequenceToScore(pos: Position, tuning: Tuning, pattern: SequencePattern, opts: PositionScoreOptions = {}): TabScore {
+  const def = getScale(pos.scaleId);
+  const chars = new Set(def.characteristic ?? []);
+  const fingers = fingeringsForPosition(pos);
+  const sorted = [...pos.notes].sort((a, b) => a.midi - b.midi || a.string - b.string);
+  if (sorted.length < PATTERN_STEPS[pattern].length + 1) throw new Error(`position trop courte pour le motif ${pattern}`);
+  const order = [...patternOver(sorted, pattern), ...patternOver([...sorted].reverse(), pattern, 1)];
+  const dur = opts.noteTicks ?? EIGHTH;
+  const text = opts.labelText ?? `${SEQUENCE_LABEL[pattern]} · cases ${pos.fretMin}–${pos.fretMax}`;
+  return makeScore(
+    'exercise', tuning, opts,
+    order.map((n) => {
+      const finger = fingers.get(noteKey(n.string, n.fret));
+      return { durTick: dur, notes: [tabNoteFromPosition(n, chars, finger !== undefined ? { finger } : {})] };
+    }),
+    { scaleId: pos.scaleId, tonic: pos.tonic, positionId: pos.id, system: pos.system },
+    (i) => (i === 0 ? { ...(opts.chord ? { chord: opts.chord } : {}), text } : undefined),
+  );
+}
+
 export interface ScaleScoreOptions extends PositionScoreOptions {
   /** Système de positions ; défaut : celui que recommande `defaultSystem`. */
   system?: Position['system'];

@@ -71,6 +71,7 @@ function levelLabel(a: Attempt): string {
   if (a.kind === 'transition') return 'enchaînement';
   if (a.kind === 'qcm') return 'sans instrument';
   if (a.kind === 'impro') return 'impro';
+  if (a.kind === 'sequence') return 'séquence';
   if (a.kind === 'recall' || a.level === 3) return 'de mémoire';
   return 'exercice à trous';
 }

@@ -93,6 +93,8 @@ export function cardsFrom(attempts: readonly Attempt[], scheduler: Scheduler = l
   for (const a of [...attempts].sort((x, y) => x.ts - y.ts)) {
     const score = scoreOf(a);
     if (!isProof(a) || score === null) continue;
+    // une séquence (tablature visible) n'a rien à réviser de mémoire : pas de carte
+    if (a.kind === 'sequence') continue;
     const nodeId = nodeIdOf(a);
     const card = cards.get(nodeId) ?? null;
     cards.set(nodeId, scheduler.next(card, nodeId, outcomeFor(score), a.ts, a.level, score));

@@ -79,4 +79,11 @@ wav(join(OUT, 'blind-box-faux.wav'), sequence(['A2', 'C3', 'D3', 'F3', 'G3', 'A3
 // la même, trois fois trop lente : justes, mais hors grille
 wav(join(OUT, 'blind-box-lent.wav'), sequence(BOX_UP, { note: 1.6, gap: 0.65, tail: 10 }));
 
-export { BOX_UP, midiOf, sequence, wav };
+// Séquence en tierces sur la même box, en croches à 60 BPM (0,5 s par note) : une passe du palier.
+// Même ordre que `sequenceToScore` : montée 1-3, 2-4… puis descente depuis l'avant-dernière note.
+const thirds = (list) => list.flatMap((_, i) => (i + 2 < list.length ? [list[i], list[i + 2]] : []));
+const rev = [...BOX_UP].reverse();
+const THIRDS = [...thirds(BOX_UP), ...thirds(rev.slice(1))];
+wav(join(OUT, 'sequence-tierces-60.wav'), sequence(THIRDS, { lead: 7, note: 0.4, gap: 0.1, tail: 40 }));
+
+export { BOX_UP, THIRDS, midiOf, sequence, wav };

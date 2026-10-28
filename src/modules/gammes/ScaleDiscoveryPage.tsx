@@ -500,6 +500,9 @@ export function ScaleDiscoveryPage() {
         <PixelButton className="wide" onClick={() => navigate('impro')}>
           ▶ Improviser sur cette position, avec un accompagnement
         </PixelButton>
+        <PixelButton variant="quiet" className="wide" onClick={() => navigate('sequences')}>
+          Séquences au métronome : par 3, par 4, tierces, quartes
+        </PixelButton>
         <p className="t-small t-dim">
           Le micro valide chaque note : tu la joues, la case se remplit. Sans micro, le pavé numérique
           prend le relais.
