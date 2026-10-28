@@ -1404,9 +1404,9 @@ table.kv td:first-child { color: var(--muted); }
   padding: 0;
   min-height: 24px;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  /* fond opaque gardé (D75) : seul le libellé en minuscules le distingue des actions */
 }
+@media (min-width: 900px) { .row.home-actions > .btn.home-switch { min-inline-size: 0; } }
 .t-small.ok { color: var(--ok); }
 .t-small.ko { color: var(--orange); }
 
@@ -1666,7 +1666,7 @@ table.kv td:first-child { color: var(--muted); }
 /* une seule règle de placement, quel que soit l'état : le primaire ouvre la rangée à gauche, à largeur
    fixe, le secondaire à sa droite. L'œil et la main le retrouvent au même endroit chaque jour. */
 @media (min-width: 900px) {
-  .row.home-actions > .btn { flex: 0 0 20rem; }
+  .row.home-actions > .btn { flex: 0 0 auto; min-inline-size: 20rem; white-space: nowrap; }
   .row.home-actions > .btn:not(.btn-primary) { flex: 0 0 auto; padding-inline: 20px; }
 }
 /* révision en héros : la reprise reste à portée, en ligne secondaire sous l'action principale */
@@ -1697,6 +1697,19 @@ table.kv td:first-child { color: var(--muted); }
 .home-actions .btn { min-height: var(--hero-btn-h); }
 .home-actions .btn-primary { font-size: var(--hero-btn-size); }
 .home-go > .t-small { font-size: 16px; color: var(--muted); }
+/* changer de sujet : bouton discret (variante « quiet ») à la suite des actions, jamais étiré comme elles */
+.row.home-actions > .btn.home-switch {
+  flex: 0 1 auto;
+  min-height: 44px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 15px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* la barre fixe ne cache jamais l'élément qui a le focus (WCAG 2.4.11) : en bas au téléphone, en haut au bureau */
+@media (max-width: 899px) { html { scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); } }
+@media (min-width: 900px) { html { scroll-padding-top: 72px; } }
 /* invite micro (tant que le micro n'a jamais entendu l'élève) : sous les actions, en retrait, jamais primaire */
 .home-mic { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
 .home-mic p { flex: 1 1 32ch; text-wrap: pretty; }

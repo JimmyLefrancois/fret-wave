@@ -14,7 +14,7 @@ import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
 import { dailyActivity, heroSteps, hubPlan, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
-import { Chip, Panel, PixelButton } from '../app/ui';
+import { Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, headline, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
 import { chordProgress, learnedChordIds, nextChord, palierOf } from '../modules/accords/recommend';
@@ -96,6 +96,14 @@ function AccRow({ f, now, full = false }: { f: Accomplishment; now: number; full
       )}
     </li>
   );
+}
+
+/**
+ * Changer de sujet (une autre forme, une autre gamme) : discret, **après** l'action dans l'ordre de
+ * tabulation et à portée du pouce, au lieu d'un coin opposé du panneau.
+ */
+function Switch({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return <PixelButton variant="quiet" className="home-switch" onClick={onClick}>{children}</PixelButton>;
 }
 
 /**
@@ -229,9 +237,6 @@ export function HubPage() {
           className="span-12 home-go"
           accent="magenta"
           label="À réviser"
-          right={plan.review.count > 1 && (
-            <Chip small onClick={() => setReviewIdx((i) => i + 1)}>Une autre</Chip>
-          )}
         >
           <h3 className="home-title">{reviewScale ? reviewScale.title : 'Révision du jour'}</h3>
           {reviewPos && <p className="t-small">{positionLabelPlain(reviewPos, settings.noteNotation)}</p>}
@@ -246,6 +251,7 @@ export function HubPage() {
           </p>
           <div className="row home-actions">
             <HeroGo onClick={review}>▶ Réviser maintenant</HeroGo>
+            {plan.review.count > 1 && <Switch onClick={() => setReviewIdx((i) => i + 1)}>Une autre forme</Switch>}
           </div>
           {resume.kind !== 'start' && !sameAsReview && (
             <div className="home-resume">
@@ -263,7 +269,6 @@ export function HubPage() {
           className="span-12 home-go"
           accent="magenta"
           label="Continuer"
-          right={<Chip small onClick={() => navigate('accords')}>Changer</Chip>}
         >
           <h3 className="home-title">{chordName(resume.voicingId)}</h3>
           <p className="t-small">
@@ -271,11 +276,13 @@ export function HubPage() {
           </p>
           <div className="row home-actions">
             <HeroGo onClick={() => openChord(resume.voicingId)}>▶ Ouvrir la leçon</HeroGo>
+            <Switch onClick={() => navigate('accords')}>Changer d’accord</Switch>
           </div>
           {micHint}
         </Panel>
       );
     }
+    const changeScale = <Switch onClick={() => navigate('gammes')}>Changer de gamme</Switch>;
     const stepsBlock = firstSteps && (() => {
       const other = firstSteps.steps.find((x) => x.id !== firstSteps.current)!;
       return (
@@ -297,6 +304,7 @@ export function HubPage() {
             {other.done && firstSteps.current === 'play'
               ? <PixelButton onClick={() => navigate('scale')}>Réécouter</PixelButton>
               : <PixelButton onClick={STEP[other.id].go}>{STEP[other.id].action.replace('▶ ', '')}</PixelButton>}
+            {changeScale}
           </div>
         </>
       );
@@ -306,7 +314,6 @@ export function HubPage() {
         className="span-12 home-go"
         accent="magenta"
         label={resume.kind === 'start' ? 'Commencer' : 'Continuer'}
-        right={<Chip small onClick={() => navigate('gammes')}>Changer</Chip>}
       >
         <h3 className="home-title">{resolved.title}</h3>
         <p className="t-small">{scaleLine}</p>
@@ -323,6 +330,7 @@ export function HubPage() {
                 <PixelButton onClick={() => navigate('scale')}>Réécouter</PixelButton>
               </>
             )}
+            {changeScale}
           </div>
         )}
       </Panel>
