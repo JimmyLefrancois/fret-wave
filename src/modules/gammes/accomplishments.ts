@@ -61,11 +61,16 @@ export function nextStreakMilestone(days: number): number | null {
 }
 
 function levelLabel(a: Attempt): string {
-  // mots d'élève, pas codes de niveau : « N2 » ne dit rien à un débutant
+  // mots d'élève, pas codes de niveau : « N2 » ne dit rien à un débutant. Un exercice d'accord a son
+  // propre nom : il n'a pas de « trous ».
+  if (a.kind === 'pluck') return 'corde par corde';
+  if (a.kind === 'arpeggio') return 'arpège';
+  if (a.kind === 'strum') return 'grattage';
+  if (a.kind === 'cold') return 'pose à froid';
+  if (a.kind === 'transition') return 'enchaînement';
+  if (a.kind === 'qcm') return 'sans instrument';
+  if (a.kind === 'impro') return 'impro';
   if (a.kind === 'recall' || a.level === 3) return 'de mémoire';
-  if (a.kind === 'cold') return 'Pose à froid';
-  if (a.kind === 'transition') return 'Enchaînement';
-  if (a.kind === 'qcm') return 'Sans instrument';
   return 'exercice à trous';
 }
 

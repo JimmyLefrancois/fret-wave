@@ -151,4 +151,13 @@ describe('accomplishments', () => {
     const a = mk(T0, 3, 3, { module: 'accords', kind: 'arpeggio', chordId: 'Em-022000', scaleId: '', tonic: 'E' });
     expect(accomplishments([a], { notation: 'fr', chordNotation: 'en' })[0]?.subject).toBe('Em');
   });
+
+  it('un exercice d’accord ne se dit jamais « à trous »', () => {
+    const pluck = mk(T0, 5, 6, { module: 'accords', kind: 'pluck', chordId: 'Em-022000', scaleId: '', tonic: 'E' });
+    const arp = mk(T0 + 1, 3, 3, { module: 'accords', kind: 'arpeggio', chordId: 'Em-022000', scaleId: '', tonic: 'E' });
+    const details = accomplishments([pluck, arp]).map((e) => e.detail).join(' | ');
+    expect(details).toContain('corde par corde');
+    expect(details).toContain('arpège');
+    expect(details).not.toContain('trous');
+  });
 });

@@ -282,11 +282,12 @@ export function HubPage() {
         <Panel
           className="span-12 home-go"
           accent="magenta"
-          label="Continuer"
+          label="Reprendre l’accord"
         >
           <h3 className="home-title">{chordName(resume.voicingId)}</h3>
           <p className="t-small">
-            Accord{palier ? ` · étape ${palier.id} « ${palier.title} »` : ''}
+            {/* le code du palier (« P2 ») est interne : l'élève lit son titre */}
+            Accord{palier ? ` · ${palier.title}` : ''}
           </p>
           <div className="row home-actions">
             <HeroGo onClick={() => openChord(resume.voicingId)}>▶ Ouvrir la leçon</HeroGo>
@@ -334,7 +335,7 @@ export function HubPage() {
       <Panel
         className="span-12 home-go"
         accent="magenta"
-        label={resume.kind === 'start' ? 'Commencer' : 'Continuer'}
+        label={resume.kind === 'start' ? 'Commencer' : 'Continuer la gamme'}
       >
         <h3 className="home-title">{resolved.title}</h3>
         <p className="t-small">{scaleLine}</p>
@@ -374,12 +375,12 @@ export function HubPage() {
             </span>
             <span className={`day-text${goal.reached ? ' day-done' : ''}`}>{goal.text}</span>
           </p>
-          {/* série et prochain palier sur leur propre ligne, ensemble : un seul sujet, jamais une ligne orpheline */}
+          {/* série et prochain cap (« palier » est réservé au parcours d'accords) sur leur propre ligne, ensemble : un seul sujet, jamais une ligne orpheline */}
           {/* pas de série : rien à dire (un « 0 » de plus sur le premier écran n'aide personne) */}
           {st.days > 0 && (
             <p className="day-streak">
               {`Série : ${st.days} ${st.days > 1 ? 'jours' : 'jour'} d’affilée`}
-            {nextMilestone !== null && <span className="day-next"> · prochain palier à {nextMilestone}</span>}
+            {nextMilestone !== null && <span className="day-next"> · prochain cap : {nextMilestone} jours</span>}
             </p>
           )}
         </div>
@@ -439,7 +440,7 @@ export function HubPage() {
               Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : un passage n’est réussi qu’au-dessus
               de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
             </p>
-            <p className="t-small t-dim">8 révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
+            <p className="t-small t-dim">{DUE_CAP} révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
           </details>
         </Panel>
       )}
