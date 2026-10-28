@@ -312,6 +312,13 @@ export function HubPage() {
               </li>
             ))}
           </ol>
+          {/* refus déjà donné : le navigateur ne redemandera pas, il faut le dire et dire où le rétablir */}
+          {micPermission === 'denied' && (
+            <p className="t-small home-blocked" role="status">
+              Le micro est bloqué pour ce site. Touche le cadenas à gauche de l’adresse, autorise le micro, puis
+              recharge la page.
+            </p>
+          )}
           <div className="row home-actions">
             <HeroGo onClick={STEP[firstSteps.current].go}>{STEP[firstSteps.current].action}</HeroGo>
             {/* l'autre étape reste à portée : réaccorder, ou passer outre en connaissance de cause */}

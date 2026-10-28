@@ -963,7 +963,8 @@ table.kv td:first-child { color: var(--muted); }
     border-bottom: var(--bw) solid var(--line);
     border-left: 0;
     border-right: 0;
-    background: rgba(var(--veil-rgb), 0.92);
+    /* opaque (D75) : à 92 %, la page défilée transparaissait sous les onglets */
+    background: rgb(var(--veil-rgb));
   }
   .bottombar::before {
     content: 'FRETWAVE';
@@ -987,6 +988,8 @@ table.kv td:first-child { color: var(--muted); }
   }
   .navbtn:hover { border-color: var(--line); }
   .navbtn.on { border-color: var(--magenta); }
+  /* l'onglet touche le haut de l'écran : l'anneau de focus passe à l'intérieur pour rester entier */
+  .navbtn:focus-visible { outline-offset: -4px; }
   .app-content { padding-top: 58px; padding-bottom: 0; }
 }
 
@@ -1702,6 +1705,7 @@ table.kv td:first-child { color: var(--muted); }
 .home-actions .btn { min-height: var(--hero-btn-h); white-space: nowrap; }
 .home-actions .btn-primary { font-size: var(--hero-btn-size); }
 .home-go > .t-small { font-size: 16px; color: var(--muted); }
+.home-blocked { margin-block-start: var(--gap-inside); padding: 8px 10px; font-size: 15px; color: var(--text); background: var(--surface-hi); border-inline-start: 4px solid var(--orange); }
 /* changer de sujet : bouton discret (variante « quiet ») à la suite des actions, jamais étiré comme elles */
 .row.home-actions > .btn.home-switch {
   flex: 0 1 auto;
