@@ -131,4 +131,19 @@ describe('accomplishments', () => {
     expect(headline(streakOnly).latest?.id).toBe('s');
     expect(headline([])).toEqual({ latest: null, rest: [] });
   });
+
+  it('vocabulaire d’élève : « Passage réussi », pas de code de niveau, XP et grille en second', () => {
+    const pass = accomplishments([mk(T0, 4, 5, { tempoOk: true })]).find((e) => e.kind === 'pass');
+    expect(pass?.title).toBe('Passage réussi');
+    expect(pass?.detail).toBe('80\u00a0% au premier essai · exercice à trous');
+    expect(pass?.detail).not.toMatch(/N\d|XP|grille/);
+    expect(pass?.extra).toContain('grille tenue');
+    expect(pass?.extra).toMatch(/\+\d+ XP/);
+  });
+
+  it('un accord connu s’affiche par son nom, pas par l’identifiant de son doigté', () => {
+    const a = mk(T0, 3, 3, { module: 'accords', kind: 'arpeggio', chordId: 'Em-022000', scaleId: '', tonic: 'E' });
+    const [e] = accomplishments([a], { notation: 'en' });
+    expect(e?.subject).toBe('Em');
+  });
 });

@@ -21,6 +21,7 @@ import {
 import { fmtChord } from '../../core/theory';
 import type { NoteNotation } from '../../core/theory';
 import { positionLabelPlain, resolveScale } from './resolve';
+import { VOICINGS } from '../../data/voicings';
 
 export type AccomplishmentKind = 'perfect' | 'pass' | 'learned' | 'mastered' | 'chord' | 'streak';
 
@@ -33,8 +34,10 @@ export interface Accomplishment {
   title: string;
   /** Ce sur quoi ça porte : « La mineure pentatonique · Box 1 · cases 5–8 ». */
   subject: string;
-  /** La mesure : « 100 % au premier essai · Rappel · +20 XP ». */
+  /** La mesure : « 100 % au premier essai · de mémoire ». */
   detail: string;
+  /** Détail secondaire (grille tenue, XP), montré seulement dans la liste dépliée. */
+  extra?: string;
   accent: 'green' | 'yellow' | 'magenta' | 'cyan' | 'violet';
   /** Tentative d'origine (en mémoire seulement) : l'accueil peut rouvrir l'exercice. */
   attempt?: Attempt;
@@ -42,7 +45,8 @@ export interface Accomplishment {
 
 export const ACCOMPLISHMENT_LABEL: Readonly<Record<AccomplishmentKind, string>> = {
   perfect: 'Sans faute',
-  pass: 'Série réussie',
+  // « série » est réservé aux jours d'affilée : un exercice réussi est un « passage »
+  pass: 'Passage réussi',
   learned: 'Forme apprise',
   mastered: 'Forme maîtrisée',
   chord: 'Accord appris',
@@ -57,11 +61,12 @@ export function nextStreakMilestone(days: number): number | null {
 }
 
 function levelLabel(a: Attempt): string {
-  if (a.kind === 'recall' || a.level === 3) return 'Rappel (N3)';
+  // mots d'élève, pas codes de niveau : « N2 » ne dit rien à un débutant
+  if (a.kind === 'recall' || a.level === 3) return 'de mémoire';
   if (a.kind === 'cold') return 'Pose à froid';
   if (a.kind === 'transition') return 'Enchaînement';
   if (a.kind === 'qcm') return 'Sans instrument';
-  return 'Trous (N2)';
+  return 'exercice à trous';
 }
 
 /** Sujet lisible d'une tentative de gamme : titre + position (la même résolution que les écrans). */
@@ -72,10 +77,14 @@ function scaleSubject(a: Attempt, notation: NoteNotation): string {
   return `${r.title} · ${positionLabelPlain(idx >= 0 ? r.positions[idx]! : null, notation)}`;
 }
 
-/** Nom d'accord affichable ; un identifiant illisible (vieux journal, import) s'affiche tel quel au lieu de tout faire tomber. */
+/**
+ * Nom d'accord affichable depuis l'identifiant de doigté (« Am-x02210 » → « Am ») ; un identifiant
+ * illisible (vieux journal, import) s'affiche tel quel au lieu de tout faire tomber.
+ */
 function chordName(id: string, notation: NoteNotation): string {
+  const symbol = VOICINGS.find((v) => v.id === id)?.chord ?? id;
   try {
-    return fmtChord(id, notation);
+    return fmtChord(symbol, notation);
   } catch {
     return id;
   }
@@ -205,12 +214,12 @@ export function accomplishments(attempts: readonly Attempt[], opts: Accomplishme
       ts: a.ts,
       title: ACCOMPLISHMENT_LABEL[perfect ? 'perfect' : 'pass'],
       subject: chord ? chordSubject(a, notation) : scaleSubject(a, notation),
-      detail: [
-        `${Math.round(score * 100)} % au premier essai`,
-        levelLabel(a),
+      detail: `${Math.round(score * 100)}\u00a0% au premier essai · ${levelLabel(a)}`,
+      // le détail technique (grille, XP) vient en second : il ne fait pas la ligne principale
+      extra: [
         a.tempoOk && (a.kind === 'holes' || a.kind === 'recall') ? 'grille tenue' : null,
         xp > 0 ? `+${xp} XP` : null,
-      ].filter(Boolean).join(' · '),
+      ].filter(Boolean).join(' · ') || undefined,
       accent: perfect ? 'yellow' : 'magenta',
       attempt: a,
     });

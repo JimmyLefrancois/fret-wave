@@ -109,9 +109,9 @@ describe('scaleStep', () => {
 });
 
 describe('reviewSummary', () => {
-  it('dit le niveau et le score du dernier passage, rien de plus', () => {
-    expect(reviewSummary({ lastLevel: 2, lastScore: 0.85 })).toBe('Dernier passage : trous (N2) à 85\u00a0%');
-    expect(reviewSummary({ lastLevel: 3, lastScore: 1 })).toBe('Dernier passage : rappel (N3) à 100\u00a0%');
+  it('dit l’exercice (en mots d’élève, sans code N2) et le score du dernier passage', () => {
+    expect(reviewSummary({ lastLevel: 2, lastScore: 0.85 })).toBe('Dernier passage : exercice à trous, 85\u00a0%');
+    expect(reviewSummary({ lastLevel: 3, lastScore: 1 })).toBe('Dernier passage : de mémoire, 100\u00a0%');
   });
 });
 

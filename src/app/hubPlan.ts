@@ -51,15 +51,15 @@ export function dailyActivity(day: Pick<DaySummary, 'listens' | 'exercises'>): n
 }
 
 const LEVEL_NAME: Readonly<Record<AttemptLevel, string>> = {
-  1: 'écoute', 2: 'trous (N2)', 3: 'rappel (N3)', 4: 'impro (N4)',
+  1: 'écoute', 2: 'exercice à trous', 3: 'de mémoire', 4: 'impro',
 };
 
 /**
  * Pourquoi cette forme revient : son dernier passage réussi, tel que la carte l'a retenu
- * (« Dernier passage : trous (N2) à 85 % »). Aucune durée ni consigne inventée.
+ * (« Dernier passage : exercice à trous, 85 % »). Aucune durée ni consigne inventée.
  */
 export function reviewSummary(card: Pick<Card, 'lastLevel' | 'lastScore'>): string {
-  return `Dernier passage : ${LEVEL_NAME[card.lastLevel]} à ${Math.round(card.lastScore * 100)}\u00a0%`;
+  return `Dernier passage : ${LEVEL_NAME[card.lastLevel]}, ${Math.round(card.lastScore * 100)}\u00a0%`;
 }
 
 /**

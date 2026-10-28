@@ -22,7 +22,7 @@ import { VOICINGS } from '../data/voicings';
 import { readTuningRecord } from '../core/input/tuningGuide';
 import { fmtChord } from '../core/theory';
 import {
-  dueNow, loadJournal, nodeIdOf, progressStore, streak, summarizeDay,
+  DUE_CAP, dueNow, loadJournal, nodeIdOf, progressStore, streak, summarizeDay,
   type Attempt,
 } from '../core/progress';
 
@@ -67,7 +67,7 @@ function openChord(voicingId: string): void {
   navigate('chord');
 }
 
-function AccRow({ f, now }: { f: Accomplishment; now: number }) {
+function AccRow({ f, now, full = false }: { f: Accomplishment; now: number; full?: boolean }) {
   return (
     <li className={`acc-row acc-${f.accent}`}>
       <span className="acc-glyph" aria-hidden="true">{ACC_GLYPH[f.kind]}</span>
@@ -80,6 +80,8 @@ function AccRow({ f, now }: { f: Accomplishment; now: number }) {
           <span className="acc-subject">{f.subject}</span>
           <span className="acc-detail"> · {f.detail}</span>
         </span>
+        {/* grille tenue, XP : seulement dans la liste dépliée, la ligne de tête reste lisible */}
+        {full && f.extra && <span className="acc-extra">{f.extra}</span>}
       </span>
       {f.attempt && f.kind !== 'streak' && (
         <button
@@ -239,6 +241,8 @@ export function HubPage() {
             {plan.review.count > 1
               ? `Forme ${(reviewIdx % plan.review.count) + 1} sur ${plan.review.count} à revoir aujourd’hui`
               : 'La seule forme à revoir aujourd’hui'}
+            {/* la file est plafonnée : on le dit là où le compte s'affiche, pas dans un repli */}
+            {plan.review.count >= DUE_CAP && ` (${DUE_CAP} au plus par séance)`}
           </p>
           <div className="row home-actions">
             <HeroGo onClick={review}>▶ Réviser maintenant</HeroGo>
@@ -387,14 +391,14 @@ export function HubPage() {
           <details className="more-opts">
             <summary>{older.length} de plus</summary>
             <ul className="acc-list">
-              {older.map((f) => <AccRow key={f.id} f={f} now={now.getTime()} />)}
+              {older.map((f) => <AccRow key={f.id} f={f} now={now.getTime()} full />)}
             </ul>
           </details>
         )}
         <details className="more-opts">
           <summary>Comment ça compte ?</summary>
           <p className="t-small t-dim">
-            Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : une série ne compte qu’au-dessus
+            Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : un passage n’est réussi qu’au-dessus
             de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours.
           </p>
           <p className="t-small t-dim">8 révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
