@@ -373,7 +373,7 @@ export function TunerPage() {
         </p>
         <p className="t-small t-dim">La valeur est mémorisée par source. Non mesurée, elle vaut 0 : rien n’est retranché.</p>
 
-        <h3 className="t-label" style={{ marginTop: 14 }}>Ordre des gestes</h3>
+        <h3 className="t-label">Ordre des gestes</h3>
         <ol className="calib-steps">
           <li>Accorde-toi (l’accordeur ci-contre) : une guitare à −20 cents fait échouer des notes justes.</li>
           <li>Mesure le silence deux secondes, applique le seuil suggéré.</li>

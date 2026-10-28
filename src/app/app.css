@@ -57,6 +57,12 @@
   --bw: 2px;
   --shadow: 4px;
   --corner: 2px;
+  /* Rythme vertical. Trois valeurs, pas dix-neuf : 12 px entre deux blocs de page sur téléphone,
+     8 px entre deux sous-blocs d'un panneau, 4 px pour un libellé collé à sa valeur. Au bureau, la
+     grille de page prend le relais avec `gap: 20px`. */
+  --gap-block: 12px;
+  --gap-inside: 8px;
+  --gap-tight: 4px;
 }
 
 * { box-sizing: border-box; }
@@ -1704,9 +1710,17 @@ table.kv td:first-child { color: var(--muted); }
 .page-head::before {
   content: '';
   position: absolute;
-  inset: -18px -14px -6px -14px;
+  inset: -20px -14px -14px -14px;
   z-index: -1;
-  background: linear-gradient(180deg, rgba(var(--veil-rgb), 0.92) 0%, rgba(var(--veil-rgb), 0.72) 55%, rgba(var(--veil-rgb), 0) 100%);
+  /* presque opaque sous le texte : le soleil de l'affiche passe derrière les en-têtes, et une lueur
+     jaune sous un sous-titre blanc le rend illisible (mesuré sur la page Gammes, thème sombre) */
+  background: linear-gradient(
+    180deg,
+    rgba(var(--veil-rgb), 0.97) 0%,
+    rgba(var(--veil-rgb), 0.9) 55%,
+    rgba(var(--veil-rgb), 0.45) 80%,
+    rgba(var(--veil-rgb), 0) 100%
+  );
   pointer-events: none;
 }
 
@@ -1934,3 +1948,89 @@ table.kv td:first-child { color: var(--muted); }
   .acc-glyph { width: 20px; height: 20px; font-size: 11px; }
   .acc-when { font-size: 11px; }
 }
+
+/* --- rythme vertical (dernier bloc du fichier : il tranche sur les marges locales) -----------------
+   Trois valeurs seulement — `--gap-block` entre deux blocs, `--gap-inside` entre deux sous-blocs d'un
+   panneau, `--gap-tight` pour un libellé collé à sa valeur. Sur téléphone la page est une colonne à
+   écart constant (`gap`), donc les blocs ne portent plus de marge verticale : c'est la seule façon
+   d'éviter les marges qui s'additionnent ou se contractent selon le contexte. ---------------------- */
+.shell > * { margin-block: 0; }
+@media (max-width: 899px) {
+  .shell { display: flex; flex-direction: column; gap: var(--gap-block); }
+}
+.panel,
+.home-door,
+.home-hero,
+.home-foot,
+.tabview,
+.tab-legend,
+.next-step,
+.pos-nav,
+.adv-settings,
+.chosen-line,
+.tonics-label,
+.acc-list,
+.panel-foot,
+.row,
+.toggle-grid,
+.status,
+.positions,
+.cta-block,
+.step-nav,
+.hero,
+.quiz-strip { margin-block: 0; }
+
+/* à l'intérieur d'un panneau : un écart constant entre deux sous-blocs… */
+.panel > * + * { margin-block-start: var(--gap-inside); }
+/* …sauf les paires qui vont ensemble : une étiquette et ce qu'elle annonce restent collées */
+.panel > .t-label + * { margin-block-start: var(--gap-tight); }
+
+/* dernière ligne d'une page : un peu d'air avant la barre, jamais collée */
+.home-foot { margin-block-start: var(--gap-block); }
+
+/* marges héritées de composants, ramenées à l'échelle (elles passaient au-dessus du rythme) */
+.foot-note { margin-block: var(--gap-inside) 0; }
+.group-note { margin-block: var(--gap-tight) 0; }
+.field { margin-block: 0; }
+.field + .field { margin-block-start: var(--gap-inside); }
+.more-opts { margin-block-start: var(--gap-inside); }
+.position-note { margin-block-start: var(--gap-inside); }
+.exercise-start { margin-block: var(--gap-inside) 0; }
+.mic-line { margin-block: 0 var(--gap-inside); }
+.panel-head { margin-block: 0 0; }
+.hero-kicker { margin-block: 0 var(--gap-inside); }
+.home-foot { margin-block-start: 0; }
+.t-label { margin-block: 0; }
+.panel > .t-label + .field,
+.panel > .t-label + .segmented,
+.panel > .t-label + .tonics { margin-block-start: var(--gap-tight); }
+
+/* composants qui portaient encore leur propre marge : ils suivent le rythme, ils ne le décident pas */
+.mic-strip,
+.t-small,
+.t-body,
+.t-label,
+.bar,
+.segmented,
+.status,
+.more-opts,
+.field,
+.panel-head,
+.foot-note,
+.group-note,
+.card-title,
+.stat-line,
+.review-list,
+.acc-list,
+.positions,
+.scale-list { margin-block: 0; }
+.panel > * + .t-label { margin-block-start: var(--gap-inside); }
+.home-foot { margin-block-start: var(--gap-block); }
+
+/* derniers porteurs de marge : le commutateur, l'aiguille de l'accordeur, et les textes déjà dans un panneau */
+.switch,
+.tuner-needle,
+.panel .t-small,
+.panel .t-body,
+.panel .t-label { margin-block: 0; }
+.home-foot { margin-block-start: 0; }
