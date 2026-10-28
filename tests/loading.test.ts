@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BufferSurface, glyph, hasGlyph, textWidth, type Surface } from '../src/core/tab';
 import {
   BAR_BLOCKS, BAR_H, BAR_W, BAR_X, BAR_Y, LOADING_H, LOADING_PALETTE, LOADING_W, drawLoadingScreen, fitText, type LoadingState,
-} from '../src/app/loadingScreen';
+} from '../src/app/loadingDraw';
 import { writePng } from './helpers/png';
 
 const P = LOADING_PALETTE;
