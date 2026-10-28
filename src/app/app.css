@@ -1645,6 +1645,13 @@ table.kv td:first-child { color: var(--muted); }
 @media (min-width: 900px) {
   .home-hero { min-height: 300px; }
   .home-hero-title { font-size: 46px; }
+  /* étapes : le bouton reste à portée de son texte, pas rejeté au bord d'un panneau de 1 100 px */
+  .home-steps { max-inline-size: 60ch; }
+}
+/* grand écran : l'affiche cède de la hauteur pour que le héros entre sans défiler ; le soleil passe
+   derrière le titre, comme prévu par l'affiche */
+@media (min-width: 1024px) {
+  .home-hero { min-height: 220px; }
 }
 @media (max-width: 899px) {
   /* téléphone : l'affiche cède de la hauteur au héros, qui doit tenir sans défiler */
