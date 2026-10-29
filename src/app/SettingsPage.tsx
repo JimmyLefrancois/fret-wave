@@ -19,6 +19,7 @@ import {
 } from '../core/progress';
 import { THEME_LIST } from '../core/themes';
 import type { ChordNotation, NoteNotation } from '../core/theory';
+import * as clock from '../core/clock';
 
 export function SettingsPage() {
   const settings = useSettings();
@@ -45,7 +46,7 @@ export function SettingsPage() {
   };
 
   const doExport = () => {
-    const now = new Date();
+    const now = clock.nowDate();
     const text = exportText(loadJournal(progressStore()), now);
     try {
       const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));

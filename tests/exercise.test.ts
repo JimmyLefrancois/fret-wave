@@ -3,9 +3,9 @@ import { TUNINGS, generatePositions, getScale, pitchClassOf, tonicSpellings } fr
 import { layoutScore, positionToScore, validateScore } from '../src/core/tab';
 import {
   HOLES_RATIO, SEGMENTS, buildExercise, checkAnswer, holeKey, insideGrid, mulberry32, segmentPlan, starsFor,
-  tempoGrid, withRevealed, clickMasked, isClickPitch, missedSummary, stepOpen, endScreenFor, nextStepFor,
+  tempoGrid, withRevealed, clickMasked, isClickPitch, missedSummary, stepOpen, endScreenFor, nextStepFor, scrollToKeepVisible,
 } from '../src/modules/gammes/exercise';
-import { unseenTonic } from '../src/modules/gammes/transpose';
+import { unseenTonic, unseenZoneTonic } from '../src/modules/gammes/transpose';
 
 const std = TUNINGS.standard!;
 const box1 = generatePositions('pentatonic-minor', 'A', std, 'boxes')[0]!;
@@ -314,5 +314,58 @@ describe('suite proposée après une série', () => {
     expect(nextStepFor(3, 2, true)).toEqual({ primary: 'replay', secondary: 'downgrade' });
     expect(nextStepFor(2, 3, false).primary).toBe('replay');
     expect(nextStepFor(3, 3, false).primary).toBe('replay');
+  });
+});
+
+describe('transposition en révision : une tonique dont la forme tombe dans une zone non vue', () => {
+  const zoneOfForm = (tonic: string, formIndex = 0) => {
+    const pos = generatePositions('pentatonic-minor', tonic as never, std, 'boxes').find((p) => (p.formIndex ?? p.index) === formIndex)!;
+    return Math.max(0, Math.min(4, Math.floor(Math.max(0, pos.fretMin) / 5)));
+  };
+
+  it('La m position 1 (zone 1) : la tonique proposée place la position ailleurs', () => {
+    expect(zoneOfForm('A')).toBe(1);
+    const t = unseenZoneTonic('pentatonic-minor', 'boxes', 0, 'standard', [1], ['A']);
+    expect(t).not.toBeNull();
+    expect(t).not.toBe('A');
+    expect([0, 2, 3, 4]).toContain(zoneOfForm(t!));
+  });
+
+  it('toutes les zones déjà vues : rien à proposer', () => {
+    expect(unseenZoneTonic('pentatonic-minor', 'boxes', 0, 'standard', [0, 1, 2, 3, 4], ['A'])).toBeNull();
+  });
+
+  it('orthographe admise par le moteur, jamais une tonique déjà vue', () => {
+    const seen = ['A', 'D'];
+    const t = unseenZoneTonic('dorian', '3nps', 0, 'standard', [1], seen);
+    expect(t).not.toBeNull();
+    expect(seen).not.toContain(t);
+    expect(tonicSpellings(getScale('dorian'), pitchClassOf(t!))).toContain(t);
+  });
+
+  it('gamme inconnue : null, pas d’exception', () => {
+    expect(unseenZoneTonic('nope', 'boxes', 0, 'standard', [], [])).toBeNull();
+  });
+});
+
+describe('scrollToKeepVisible (constat 19 : la case active au-dessus de la barre de réponse)', () => {
+  it('case visible : aucun défilement', () => {
+    expect(scrollToKeepVisible(300, 330, 844, 640)).toBe(0);
+  });
+
+  it('case sous la barre : on descend juste assez (marge de 16 px)', () => {
+    expect(scrollToKeepVisible(760, 790, 844, 640)).toBe(790 + 16 - 640);
+  });
+
+  it('sans barre, le bas de l’écran fait office de limite', () => {
+    expect(scrollToKeepVisible(820, 850, 844, 844)).toBe(850 + 16 - 844);
+  });
+
+  it('case au-dessus de l’écran : on remonte', () => {
+    expect(scrollToKeepVisible(-40, -10, 844, 640)).toBe(-40 - 16);
+  });
+
+  it('place trop courte : le haut de la case reste visible', () => {
+    expect(scrollToKeepVisible(100, 400, 844, 200)).toBe(100 - 16);
   });
 });

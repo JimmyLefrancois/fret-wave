@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ATTEMPTS_KEY, ATTEMPT_CAP, appendAttempt, loadJournal, newAttemptId, nodeIdOf, normalizeAttempt, readAttempts,
+  ATTEMPTS_KEY, ATTEMPT_CAP, appendAttempt, isFullPosition, loadJournal, newAttemptId, nodeIdOf, normalizeAttempt, readAttempts,
   scoreOf, summarizeDay, writeAttempts, zoneOf, type Attempt,
 } from '../src/core/progress/journal';
 import { PRACTICE_KEY, logPractice } from '../src/core/progress/practiceLog';
 import { BOX_INTERVALS_MS, cardsFrom, dueNow, leitner, outcomeFor } from '../src/core/progress/scheduler';
 import {
-  isFullPosition, isSpeedProof, isStrongSuccess, learnedGaps, masteryOf, regressedForms, stateLabel, stateOf, stringWeakness,
+  isSpeedProof, isStrongSuccess, learnedGaps, masteryOf, regressedForms, stateLabel, stateOf, stringWeakness,
   summarizeNodes, weakTonics,
 } from '../src/core/progress/mastery';
-import { DAILY_XP_CAP, badgeStatus, streak, xpForAttempt, xpSummary } from '../src/core/progress/rewards';
+import { DAILY_XP_CAP, badgeStatus, streak, weekStreak, xpForAttempt, xpSummary } from '../src/core/progress/rewards';
+import { FIXED_END, getPersona, simulate } from '../src/dev/simulate';
 import { exportFilename, exportText, mergeAttempts, parseImport } from '../src/core/progress/exportData';
 
 function fakeStore(initial: Record<string, string> = {}) {
@@ -38,7 +39,8 @@ function attempt(patch: Partial<Attempt> = {}): Attempt {
     positionId: 'boxes:0',
     formIndex: 0,
     level: 2,
-    strings: 2,
+    // position entière : un échauffement sur 1-3 cordes ne touche pas la carte (D97)
+    strings: 6,
     correct: 4,
     total: 5,
     seconds: 42,
@@ -149,9 +151,26 @@ describe('journal de tentatives', () => {
       attempt({ kind: 'listen', correct: null, total: null, missedStrings: [0] }),
     ];
     expect(stringWeakness(list)).toEqual([
-      { string: 1, attempts: 2, misses: 3 },
-      { string: 4, attempts: 1, misses: 1 },
+      { string: 1, attempts: 2, misses: 3, exposure: 2 },
+      { string: 4, attempts: 1, misses: 1, exposure: 2 },
     ]);
+  });
+
+  it('corde la plus ratée : rapportée aux séries où elle était jouée (exposition)', () => {
+    // trois échauffements sur les 3 cordes graves (ratés sur la corde 0), une position entière ratée sur la corde 4
+    const list = [
+      attempt({ strings: 3, missedStrings: [0] }),
+      attempt({ strings: 3, missedStrings: [0] }),
+      attempt({ strings: 3, missedStrings: [0, 2] }),
+      attempt({ strings: 6, fullPosition: true, missedStrings: [4] }),
+    ];
+    const w = stringWeakness(list);
+    // les cordes aiguës ne sont exposées que par la position entière
+    expect(w.find((x) => x.string === 4)).toEqual({ string: 4, attempts: 1, misses: 1, exposure: 1 });
+    expect(w.find((x) => x.string === 0)).toEqual({ string: 0, attempts: 3, misses: 3, exposure: 4 });
+    // 1 sur 1 pour la corde 4, 3 sur 4 pour la corde 0 : la plus ratée est la 4
+    expect(w[0]!.string).toBe(4);
+    expect(w.every((x) => x.exposure >= x.attempts)).toBe(true);
   });
 
   it('zone du manche : 5 cases par zone, bornée à la 5e', () => {
@@ -200,6 +219,17 @@ describe('répétition espacée (Leitner)', () => {
     expect(a.length).toBe(1);
     expect(a[0]!.reps).toBe(3);
     expect(a[0]!.box).toBeGreaterThan(2);
+  });
+
+  it('un échauffement sur 3 cordes ne crée ni ne déplace de carte', () => {
+    // Q2 (D97) : seules les séries sur la position entière (ou de mémoire) touchent la carte
+    const warm = (ts: number, correct = 5) => attempt({ ts, kind: 'holes', level: 2, strings: 3, correct, total: 5 });
+    expect(cardsFrom([warm(at(3))])).toEqual([]);
+    const full = attempt({ ts: at(4), kind: 'holes', level: 2, strings: 6, fullPosition: true, correct: 5, total: 5 });
+    expect(cardsFrom([full, warm(at(3), 1), warm(at(2), 5)])).toEqual(cardsFrom([full]));
+    // un rappel de mémoire sur un segment touche toujours la carte
+    const recall = attempt({ ts: at(3), kind: 'recall', level: 3, strings: 3, correct: 5, total: 5 });
+    expect(cardsFrom([full, recall])[0]!.reps).toBe(2);
   });
 
   it('les écoutes ne créent pas de carte', () => {
@@ -482,5 +512,46 @@ describe('« apprise » et « maîtrisée » plus exigeantes (lot mémoire et vi
     const nodes = summarizeNodes([n2(1), n2(0)]);
     expect(regressedForms(nodes).map((n) => n.nodeId)).toEqual(['gam:lecture:pentatonic-minor:boxes:0']);
     expect(regressedForms(summarizeNodes([n2(1), n3(0)]))).toEqual([]);
+  });
+});
+
+describe('série de semaines (D99)', () => {
+  // octobre 2026 : lundis 5, 12, 19 et 26 ; le 25 (dimanche) est le passage à l'heure d'hiver
+  const on = (day: number, hour = 18) => attempt({ ts: new Date(2026, 9, day, hour, 0).getTime() });
+
+  it('journal vide : 0', () => {
+    expect(weekStreak([], new Date(2026, 9, 28))).toEqual({ weeks: 0, thisWeek: 0 });
+  });
+
+  it('une semaine à un seul jour casse la série', () => {
+    const j = [on(10), on(11), on(17), on(24), on(25)];
+    // semaine du 19 : 2 jours ; semaine du 12 : 1 seul jour, cassée ; semaine en cours vide
+    expect(weekStreak(j, new Date(2026, 9, 28, 12))).toEqual({ weeks: 1, thisWeek: 0 });
+  });
+
+  it('la semaine en cours ne casse rien avant d’être finie, et compte dès qu’elle a ses 2 jours', () => {
+    const j = [on(10), on(11), on(17), on(18), on(24), on(25)];
+    expect(weekStreak([...j, on(26)], new Date(2026, 9, 26, 20))).toEqual({ weeks: 3, thisWeek: 1 });
+    expect(weekStreak([...j, on(26), on(28)], new Date(2026, 9, 28, 20))).toEqual({ weeks: 4, thisWeek: 2 });
+  });
+
+  it('passage à l’heure d’hiver : le dimanche 25 octobre reste dans sa semaine', () => {
+    const j = [on(19), on(24, 23), on(25, 23)];
+    expect(weekStreak(j, new Date(2026, 9, 25, 23, 59))).toEqual({ weeks: 1, thisWeek: 3 });
+    expect(weekStreak(j, new Date(2026, 9, 26, 0, 30))).toEqual({ weeks: 1, thisWeek: 0 });
+  });
+
+  it('une écoute seule ne compte pas (même filtre que la série de jours)', () => {
+    const j = [on(24), attempt({ ts: new Date(2026, 9, 25, 18).getTime(), kind: 'listen', correct: null, total: null })];
+    expect(weekStreak(j, new Date(2026, 9, 25, 20))).toEqual({ weeks: 0, thisWeek: 1 });
+  });
+
+  it('joueur du week-end simulé (42 j) : aucune semaine cassée', () => {
+    const weeks: number[] = [];
+    simulate(getPersona('week-end')!, { end: FIXED_END, onDay: (_d, dayEnd, j) => { weeks.push(weekStreak(j, new Date(dayEnd)).weeks); } });
+    const first = weeks.findIndex((w) => w > 0);
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(weeks.slice(first).every((w) => w > 0)).toBe(true);
+    expect(weeks[weeks.length - 1]).toBeGreaterThanOrEqual(5);
   });
 });

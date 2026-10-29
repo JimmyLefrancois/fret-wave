@@ -1139,6 +1139,18 @@ table.kv td:first-child { color: var(--muted); }
 /* pavé de secours replié quand le micro écoute */
 .pad-fold > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: 14.5px; font-weight: 600; color: var(--cyan); }
 .pad-fold[open] > summary { margin-bottom: var(--gap-inside); }
+/* panneau « Exercice » en séance : séance, consigne, état — une définition par ligne (constat 14) */
+.ex-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px var(--gap-inside); margin: 0 0 var(--gap-inside); }
+.ex-facts dt { font-family: var(--font-label); font-weight: 700; font-size: 11px; color: var(--muted); padding-top: 3px; }
+.ex-facts dd { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--text); text-wrap: pretty; }
+@media (max-width: 480px) { .ex-facts { grid-template-columns: minmax(0, 1fr); gap: 2px; } .ex-facts dd { margin-bottom: 6px; } }
+/* repli discret (les formes de la séance, l'aide du clavier) */
+.ex-more > summary { cursor: pointer; color: var(--cyan); font-size: 14.5px; list-style: none; }
+.ex-more > summary::-webkit-details-marker { display: none; }
+.ex-more > summary::before { content: '▸ '; color: var(--magenta); }
+.ex-more[open] > summary::before { content: '▾ '; }
+.ex-more ol { margin: 4px 0 0; padding-left: 20px; display: grid; gap: 2px; font-size: 14.5px; color: var(--muted); }
+.ex-more li.current { color: var(--text); font-weight: 600; }
 @media (max-width: 899px) { .pad-fold { display: none; } }
 .verdict.info { font-size: 17px; font-weight: 500; color: var(--muted); }
 .verdict-mark { font-size: 22px; flex: none; }
@@ -1729,6 +1741,18 @@ table.kv td:first-child { color: var(--muted); }
 .home-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: var(--gap-inside); }
 .home-step-n { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-family: var(--font-label); font-weight: 700; color: var(--magenta); border: var(--bw) solid var(--magenta); }
 .home-step-text { font-size: 16px; font-weight: 600; color: var(--text); }
+/* pourquoi cette étape (séance du jour) : sous le titre de l'étape, plus discret que lui */
+.home-step-why { display: block; font-size: 14.5px; font-weight: 400; line-height: 1.45; color: var(--muted); text-wrap: pretty; }
+/* les autres formes dues, repliées sous la première (carte de révision, lot 3) */
+.home-step-more { margin-top: 4px; }
+.home-step-more > summary { cursor: pointer; color: var(--cyan); list-style: none; }
+.home-step-more > summary::-webkit-details-marker { display: none; }
+.home-step-more > summary::before { content: '▸ '; color: var(--magenta); }
+.home-step-more[open] > summary::before { content: '▾ '; }
+.home-step-more ul { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 6px; }
+/* retour après une absence : la première chose que lit l'élève, sans alerte ni reproche */
+.home-welcome { display: grid; gap: 2px; margin-bottom: var(--gap-inside); }
+.home-welcome .t-body { color: var(--text); font-weight: 600; }
 /* étape franchie : cochée et estompée ; étape en cours : son numéro s'allume, c'est elle que porte le primaire */
 .home-steps li.done .home-step-n { color: var(--green); border-color: var(--green); }
 .home-steps li.done .home-step-text { color: var(--muted); font-weight: 400; }

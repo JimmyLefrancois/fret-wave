@@ -13,7 +13,13 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { dailyActivity, dayGoalText, heroSteps, hubPlan, learnedScaleForms, regressedScaleForms, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
+import { openStep } from '../app/openStep';
+import { dueToday } from '../modules/gammes/review';
+import {
+  dailyActivity, dailySession, dayGoalText, durationText, heroAction, heroSteps, hubPlan, learnedScaleForms, pathCountText, pathCounts,
+  regressedScaleForms, isHeroShortcut, micHeardBefore, streakText, tuneStepDone, scaleStep,
+  absenceDays, returnLines, reviewLine, whenLabel,
+} from '../app/hubPlan';
 import { Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, headline, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
@@ -22,28 +28,18 @@ import { VOICINGS } from '../data/voicings';
 import { readTuningRecord } from '../core/input/tuningGuide';
 import { fmtChord } from '../core/theory';
 import {
-  DUE_CAP, dueNow, loadJournal, nodeIdOf, progressStore, streak, summarizeDay,
+  DUE_CAP, loadJournal, progressStore, streak, summarizeDay, weekStreak,
   type Attempt,
 } from '../core/progress';
+import * as clock from '../core/clock';
 
 /** Objectif proposé : 3 exercices vérifiés par jour (une écoute ne compte pas), pas 3 « clics ». */
 export const DAILY_GOAL = 3;
 
-/** Date relative courte : « il y a 12 min », « hier », « 3 j », puis la date. */
-export function whenLabel(ts: number, now: number): string {
-  const d = now - ts;
-  if (d < 60_000) return 'à l’instant';
-  if (d < 3_600_000) return `il y a ${Math.round(d / 60_000)} min`;
-  if (d < 86_400_000) return `il y a ${Math.round(d / 3_600_000)} h`;
-  const days = Math.round(d / 86_400_000);
-  if (days === 1) return 'hier';
-  if (days < 7) return `il y a ${days} j`;
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(new Date(ts));
-}
 
 /** Glyphe du genre d'accomplissement (lisible, pas décoratif). */
 const ACC_GLYPH: Record<Accomplishment['kind'], string> = {
-  perfect: '★', pass: '✓', learned: '◆', mastered: '✦', chord: '♪', streak: '≡',
+  perfect: '★', pass: '✓', learned: '◆', mastered: '✦', chord: '♪', streak: '≡', weeks: '≡',
 };
 
 /** Rouvre une tentative (nœud) sur l'écran d'entraînement, à la bonne position. */
@@ -83,7 +79,7 @@ function AccRow({ f, now, full = false }: { f: Accomplishment; now: number; full
         {/* grille tenue, XP : seulement dans la liste dépliée, la ligne de tête reste lisible */}
         {full && f.extra && <span className="acc-extra">{f.extra}</span>}
       </span>
-      {f.attempt && f.kind !== 'streak' && (
+      {f.attempt && f.kind !== 'streak' && f.kind !== 'weeks' && (
         <button
           type="button"
           className="acc-open"
@@ -149,11 +145,21 @@ export function HubPage() {
   const sel = useScaleSelection();
   const resolved = useMemo(() => resolveScale(sel, settings.noteNotation), [sel, settings.noteNotation]);
   const [journal] = useState<Attempt[]>(() => loadJournal(progressStore()));
-  const now = useMemo(() => new Date(), []);
+  const now = useMemo(() => clock.nowDate(), []);
   const day = useMemo(() => summarizeDay(journal, now), [journal, now]);
   const st = useMemo(() => streak(journal, now), [journal, now]);
-  // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran
-  const due = useMemo(() => dueNow(journal, now.getTime()).filter((c) => !c.nodeId.startsWith('acc:')), [journal, now]);
+  const wk = useMemo(() => weekStreak(journal, now), [journal, now]);
+  const seriesLine = streakText(st.days, wk.weeks);
+  // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran. Le compte est `reviewCount`
+  // (DUE_CAP au plus aujourd'hui, une forme déjà rappelée à froid attend demain) ; la séance en fait 5 (D97)
+  const dueList = useMemo(() => dueToday(journal, now.getTime()), [journal, now]);
+  const dueAll = dueList.length;
+  const due = useMemo(() => dueList.slice(0, DUE_CAP), [dueList]);
+  // la séance du jour sur la gamme choisie : révisions, puis « Avancer » ou « Nouveau défi » (D98)
+  const session = useMemo(
+    () => dailySession(journal, now.getTime(), { ...resolved.selection, tonic: resolved.tonic }, { cold: settings.coldReview, lookSeconds: settings.lookSeconds }),
+    [journal, now, resolved, settings.coldReview, settings.lookSeconds],
+  );
   const activity = dailyActivity(day);
   const goal = dayGoalText(activity, DAILY_GOAL);
   const feats = useMemo(() => accomplishments(journal, { limit: 10, notation: settings.noteNotation, chordNotation: settings.chordNotation }), [journal, settings.noteNotation, settings.chordNotation]);
@@ -168,7 +174,7 @@ export function HubPage() {
   const nextMilestone = nextStreakMilestone(st.days);
   const scaleForms = useMemo(() => learnedScaleForms(journal), [journal]);
   const regressed = useMemo(() => regressedScaleForms(journal), [journal]);
-  const scaleFormsHere = useMemo(() => learnedScaleForms(journal, sel.scaleId, resolved.selection.system), [journal, sel.scaleId, resolved.selection.system]);
+  const counts = useMemo(() => pathCounts(journal, now.getTime(), sel.scaleId, resolved.selection.system), [journal, now, sel.scaleId, resolved.selection.system]);
   const formTotal = resolved.positions.length;
   const micHeard = micHeardBefore(journal);
   const micHint = !micHeard && (
@@ -181,24 +187,6 @@ export function HubPage() {
   );
 
   const resume = plan.resume;
-  // « Une autre » fait tourner les cartes dues, dans l'ordre de la file (la plus en retard d'abord)
-  const [reviewIdx, setReviewIdx] = useState(0);
-  const reviewCard = plan.review ? due[reviewIdx % due.length] ?? plan.review.first : null;
-  // la dernière tentative du nœud dû : elle rouvre la bonne gamme à la bonne position
-  const reviewAttempt = reviewCard
-    ? [...journal].reverse().find((x) => nodeIdOf(x) === reviewCard.nodeId && x.correct !== null) ?? null
-    : null;
-  const reviewScale = reviewAttempt
-    ? resolveScale({ scaleId: reviewAttempt.scaleId, tonic: reviewAttempt.tonic, tuningId: reviewAttempt.tuningId, system: reviewAttempt.system as never, positionIndex: 0 }, settings.noteNotation)
-    : null;
-  const reviewPos = reviewAttempt && reviewScale
-    ? reviewScale.positions.find((p) => (p.formIndex ?? p.index) === reviewAttempt.formIndex) ?? null
-    : null;
-  // « Dernière activité » ne répète pas la carte due : même gamme, même tonique, même forme = même geste
-  const sameAsReview = resume.kind === 'scale' && !!reviewAttempt
-    && reviewAttempt.scaleId === sel.scaleId && reviewAttempt.tonic === resolved.tonic
-    && reviewAttempt.formIndex === (resolved.position?.formIndex ?? resolved.position?.index);
-  const review = () => (reviewAttempt ? openAttempt(reviewAttempt) : navigate('training'));
 
   // un voicing retiré des données (vieux journal) ne doit pas faire tomber l'accueil : on montre l'id tel quel
   const chordName = (id: string) => {
@@ -227,18 +215,13 @@ export function HubPage() {
     play: { text: 'Jouer la gamme au micro', action: '▶ Jouer au micro', go: () => navigate('training') },
   };
   // ce que lance le raccourci : toujours le bouton primaire affiché
-  const heroGo = plan.review
-    ? review
-    : resume.kind === 'chord'
-      ? () => openChord(resume.voicingId)
-      : firstSteps
-        ? STEP[firstSteps.current].go
-        : step === 'play'
-          ? () => navigate('training')
-          : () => navigate('scale');
+  // porte unique (D97) : une révision due ouvre la séance, à froid ; sinon l'étape de la séance du jour (D98)
+  const action = heroAction(plan, session, firstSteps?.current ?? null);
+  const heroGo = () => (action.route === 'chord' ? openChord(action.voicingId!) : openStep({ ...action, route: action.route }));
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!isHeroShortcut(e, e.target as HTMLElement | null)) return;
+      // « Séance faite » : rien de principal à lancer d'un geste
+      if (action.quiet || !isHeroShortcut(e, e.target as HTMLElement | null)) return;
       e.preventDefault();
       heroGo();
     };
@@ -247,29 +230,87 @@ export function HubPage() {
   }, [heroGo]);
 
   const hero = (() => {
-    if (plan.review) {
+    // séance du jour (D98) : révisions dues, puis « Avancer » ou « Nouveau défi » ; une seule action principale
+    const n = session.review.length;
+    const rdone = session.reviewedToday;
+    const pl = (k: number) => (k > 1 ? 's' : '');
+    // carte de révision (lot 3) : pourquoi la forme revient et sa tendance ; la première en clair, les autres repliées
+    const cardOf = new Map(due.map((c) => [c.nodeId, c] as const));
+    const formLine = (t: (typeof session.review)[number]) => {
+      const card = cardOf.get(t.nodeId);
+      const line = card ? reviewLine(card, journal, now.getTime()) : null;
       return (
-        <Panel
-          className="span-12 home-go"
-          accent="magenta"
-          label="À réviser"
-        >
-          <h3 className="home-title">{reviewScale ? reviewScale.title : 'Révision du jour'}</h3>
-          {reviewPos && <p className="t-small">{positionLabelPlain(reviewPos, settings.noteNotation)}</p>}
-          <p className="t-small home-why">
-            {reviewSummary(reviewCard!)} · {whenLabel(reviewCard!.lastTs, now.getTime())}
-            <br />
-            {plan.review.count > 1
-              ? `Forme ${(reviewIdx % plan.review.count) + 1} sur ${plan.review.count} à revoir aujourd’hui`
-              : 'La seule forme à revoir aujourd’hui'}
-            {/* la file est plafonnée : on le dit là où le compte s'affiche, pas dans un repli */}
-            {plan.review.count >= DUE_CAP && ` (${DUE_CAP} au plus par séance)`}
-          </p>
+        <>
+          {t.title} · {t.positionLabel}{line && <> — {line.reason}</>}
+          {line?.trend && <><br /><span className="t-dim">{line.trend}</span></>}
+        </>
+      );
+    };
+    const reviewDetail = n > 0 && (
+      <span className="home-step-why">
+        {formLine(session.review[0]!)}
+        {n > 1 && (
+          <details className="home-step-more">
+            <summary>et {n - 1} autre{pl(n - 1)}</summary>
+            <ul>{session.review.slice(1).map((t) => <li key={t.nodeId}>{formLine(t)}</li>)}</ul>
+          </details>
+        )}
+      </span>
+    );
+    const reviewStep = n > 0
+      ? { text: `Rafraîchir ${n} forme${pl(n)}, de mémoire`, why: '', done: false, current: true, detail: reviewDetail }
+      : rdone > 0 ? { text: `${rdone} forme${pl(rdone)} rafraîchie${pl(rdone)}`, why: '', done: true, current: false, detail: null } : null;
+    const second = session.next
+      ? {
+        text: session.next.again
+          ? `Revoir la forme : ${session.next.label.split(' · ')[0]}`
+          : `Avancer : ${session.next.label.replace(' · ', ', ')}`,
+        why: session.next.why, done: false, current: n === 0, detail: null,
+      }
+      : session.cap ? { text: `Nouveau défi : ${session.cap.title}`, why: session.cap.why, done: false, current: n === 0, detail: null } : null;
+    // retour après au moins 3 jours d'absence : la première ligne du héros, jamais un reproche (lot 3)
+    const welcome = returnLines(absenceDays(journal, now), dueAll, session.minutes, st.days, wk.weeks);
+    const sessionSteps = [reviewStep, second].filter((x) => x !== null);
+    if (plan.review || (resume.kind !== 'chord' && !firstSteps)) {
+      return (
+        <Panel className="span-12 home-go" accent="magenta" label="Séance du jour">
+          {welcome.length > 0 && (
+            <div className="home-welcome" role="status">
+              {welcome.map((l, i) => <p key={l} className={i === 0 ? 't-body' : 't-small'}>{l}</p>)}
+            </div>
+          )}
+          <h3 className="home-title">{resolved.title}</h3>
+          {/* le message de retour dit déjà la durée */}
+          {session.minutes > 0 && welcome.length === 0 && <p className="t-small">{durationText(session.minutes)}</p>}
+          {sessionSteps.length > 0 && (
+            <ol className="home-steps">
+              {sessionSteps.map((x, i) => (
+                <li key={x.text} className={x.done ? 'done' : x.current ? 'current' : ''}>
+                  <span className="home-step-n" aria-hidden="true">{x.done ? '✓' : i + 1}</span>
+                  <span className="home-step-text">
+                    {x.text}
+                    {x.done && <span className="sr-only"> (fait)</span>}
+                    {x.why && <span className="home-step-why">{x.why}</span>}
+                    {x.detail}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+          {/* la file est plafonnée : on le dit là où le compte s'affiche, pas dans un repli */}
+          {n >= DUE_CAP && welcome.length === 0 && <p className="t-small t-dim">{DUE_CAP} au plus aujourd’hui.</p>}
+          {action.quiet && (
+            <p className="t-small home-why">Séance faite. La suite demain : un second jour compte pour « apprise ».</p>
+          )}
           <div className="row home-actions">
-            <HeroGo onClick={review}>▶ Réviser maintenant</HeroGo>
-            {plan.review.count > 1 && <Switch onClick={() => setReviewIdx((i) => i + 1)}>Une autre forme</Switch>}
+            {action.quiet
+              ? <PixelButton onClick={heroGo}>{action.label}</PixelButton>
+              : <HeroGo onClick={heroGo}>{action.label}</HeroGo>}
+            {/* G8 : l'impro n'est jamais le défi du jour, elle reste à portée dès 3 formes apprises */}
+            {scaleForms >= 3 && <PixelButton onClick={() => navigate('impro')}>Improviser sur ce que tu sais</PixelButton>}
+            <Switch onClick={() => navigate('gammes')}>Changer de gamme</Switch>
           </div>
-          {resume.kind !== 'start' && !sameAsReview && (
+          {resume.kind === 'chord' && (
             <div className="home-resume">
               <span className="t-small">Dernière activité : <strong>{resumeTitle}</strong></span>
               <PixelButton onClick={resumeGo}>Reprendre</PixelButton>
@@ -341,22 +382,8 @@ export function HubPage() {
       >
         <h3 className="home-title">{resolved.title}</h3>
         <p className="t-small">{scaleLine}</p>
-        {stepsBlock || (
-          <div className="row home-actions">
-            {step === 'listen' ? (
-              <>
-                <HeroGo onClick={() => navigate('scale')}>▶ Écouter</HeroGo>
-                <PixelButton onClick={() => navigate('training')}>Jouer au micro</PixelButton>
-              </>
-            ) : (
-              <>
-                <HeroGo onClick={() => navigate('training')}>▶ Jouer au micro</HeroGo>
-                <PixelButton onClick={() => navigate('scale')}>Réécouter</PixelButton>
-              </>
-            )}
-            {changeScale}
-          </div>
-        )}
+        {/* premier pas seulement : ensuite, la séance du jour (ci-dessus) mène la gamme */}
+        {stepsBlock}
       </Panel>
     );
   })();
@@ -381,10 +408,11 @@ export function HubPage() {
             </p>
             {/* série et prochain cap (« palier » est réservé au parcours d'accords) sur leur propre ligne, ensemble : un seul sujet, jamais une ligne orpheline */}
             {/* la série commence à deux jours (MUSIC_DESIGN §17.3) : ni « 0 » ni « 1 jour d'affilée » */}
-            {st.days > 1 && (
+            {/* série de semaines (D99) : le joueur du week-end garde une série qui tient */}
+            {seriesLine && (
               <p className="day-streak">
-                {`Série : ${st.days} jours d’affilée`}
-              {nextMilestone !== null && <span className="day-next"> · prochain cap : {nextMilestone} jours</span>}
+                {seriesLine}
+              {st.days > 1 && nextMilestone !== null && <span className="day-next"> · prochain cap : {nextMilestone} jours</span>}
               </p>
             )}
           </div>
@@ -402,11 +430,12 @@ export function HubPage() {
               <span className="path-what">
                 {resolved.title}
                 <span className="path-count">
-                  {scaleFormsHere} forme{scaleFormsHere > 1 ? 's' : ''} apprise{scaleFormsHere > 1 ? 's' : ''} sur {formTotal}
-                  {scaleForms > scaleFormsHere ? ` · ${scaleForms} en tout` : ''}
+                  {/* « apprise » n'est pas « fini » : on dit aussi ce qui est à rafraîchir (D98) */}
+                  {pathCountText(counts.learned, counts.mastered, counts.due, formTotal)}
+                  {scaleForms > counts.learned ? ` · ${scaleForms} en tout` : ''}
                 </span>
               </span>
-              <PathBar done={scaleFormsHere} total={formTotal} />
+              <PathBar done={counts.learned} total={formTotal} />
             </button>
           </li>
           <li>
@@ -457,7 +486,10 @@ export function HubPage() {
             <p className="t-small t-dim">
             L’objectif du jour et la série comptent les exercices vérifiés : une écoute n’y entre pas, un grattage déclaré non plus.
           </p>
-          <p className="t-small t-dim">{DUE_CAP} révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
+          <p className="t-small t-dim">
+            {'Une semaine compte quand tu joues au moins 2 jours entre lundi et dimanche ; la semaine en cours ne casse rien avant dimanche soir.'}
+          </p>
+          <p className="t-small t-dim">{DUE_CAP} révisions au plus aujourd’hui : après quelques jours d’absence, le retard ne s’accumule pas.</p>
           </details>
         </Panel>
       )}

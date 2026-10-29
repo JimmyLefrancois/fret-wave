@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coldNext, countsAsProof, lookRemaining, LOOK_SECONDS, DEFAULT_LOOK_SECONDS } from '../src/modules/gammes/coldReview';
+import { coldNext, countsAsProof, lookRemaining, retryLine, LOOK_SECONDS, DEFAULT_LOOK_SECONDS } from '../src/modules/gammes/coldReview';
 
 describe('rappel à froid : enchaînement des écrans', () => {
   it('réussi à froid (≥ 80 %) : forme suivante, sans observation', () => {
@@ -39,5 +39,13 @@ describe('rappel à froid : enchaînement des écrans', () => {
     expect(lookRemaining(0, 100, 20)).toBe(20);
     expect(lookRemaining(0, 19_500, 20)).toBe(1);
     expect(lookRemaining(0, 25_000, 20)).toBe(0);
+  });
+});
+
+describe('bilan de séance : les rattrapages (constat 5)', () => {
+  it('dit ce qu’ils comptent, et rien sans rattrapage', () => {
+    expect(retryLine(0)).toBeNull();
+    expect(retryLine(1)).toBe('1 rattrapage après « Regarde la forme »\u00a0: compté pour la journée, pas pour la mémoire.');
+    expect(retryLine(2)).toBe('2 rattrapages après « Regarde la forme »\u00a0: comptés pour la journée, pas pour la mémoire.');
   });
 });

@@ -17,6 +17,7 @@ import { loadJournal, progressStore, summarizeNodes } from '../../core/progress'
 import { CURRICULUM, whySentence } from './curriculum';
 import { chordCards, chordProgress, learnedChordIds, startedChordIds, palierStates, nextChord } from './recommend';
 import { CYCLE_LIMITS } from './lesson';
+import * as clock from '../../core/clock';
 
 const STATUS_LABEL: Record<string, string> = {
   learned: 'appris',
@@ -192,7 +193,7 @@ export function ChordsPage() {
                   <p className="t-small t-dim">
                     {n.attempts} vérification{n.attempts > 1 ? 's' : ''} · {n.successes} propre{n.successes > 1 ? 's' : ''} ·
                     {' '}{n.successDays} jour{n.successDays > 1 ? 's' : ''} · maîtrise {Math.round(n.mastery * 100)} %
-                    {n.due !== null ? ` · révision dans ${Math.max(1, Math.round((n.due - Date.now()) / 60_000))} min` : ''}
+                    {n.due !== null ? ` · révision dans ${Math.max(1, Math.round((n.due - clock.now()) / 60_000))} min` : ''}
                   </p>
                 </div>
                 <div className="chord-side"><span className="tag">{n.state === 'learned' ? 'appris' : n.state === 'mastered' ? 'maîtrisé' : 'en apprentissage'}</span></div>

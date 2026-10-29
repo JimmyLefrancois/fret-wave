@@ -19,7 +19,9 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
-import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
+import { clearTrainingStart, peekTrainingStart, setScaleSelection, useScaleSelection } from '../../app/scaleSession';
+import { openStep } from '../../app/openStep';
+import { dailySession } from '../../app/hubPlan';
 import { MAX_TEMPO, MIN_TEMPO, setSettings, useSettings } from '../../app/settings';
 import { TabView, type TabPick } from '../../app/TabView';
 import { Panel, PixelButton, Segmented, Switch } from '../../app/ui';
@@ -29,14 +31,15 @@ import { AudioEngine } from '../../core/audio/engine';
 import { describeInputError, type InputEngine, type InputFrame } from '../../core/input/engine';
 import { matchPitch, noteNameOf, targetsFor, type MatchVerdict } from '../../core/input/match';
 import { useInputSettings } from '../../core/input/settings';
-import { fmtNote } from '../../core/theory';
+import { fmtNote, type NoteName } from '../../core/theory';
 import { positionToScore } from '../../core/tab';
 import { TabPlayer } from '../../core/audio/tabPlayer';
 import {
-  appendAttempt, learnedGaps, newAttemptId, nodeIdOf, progressStore, readAttempts, stateLabel, streak, summarizeDay,
+  appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, stateLabel, streak, summarizeDay,
   summarizeNodes, xpForAttempt, xpSummary,
-  type Attempt, type AttemptLevel, type LearnedGap, type NodeStats,
+  type Attempt, type AttemptLevel, type NodeStats,
 } from '../../core/progress';
+import { capStep, missingText, type FormStep } from './curriculum';
 import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
 import { LevelsNav } from './LevelsNav';
@@ -45,9 +48,10 @@ import {
   SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, endScreenFor, nextStepFor, STEP_LABEL, type StepKind, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
   type GridOutcome, type GridSubdivision, type Segment,
 } from './exercise';
-import { REVIEW_MAX, buildReviewQueue, type ReviewTarget } from './review';
-import { coldNext, countsAsProof, lookRemaining, type ColdStep } from './coldReview';
+import { REVIEW_MAX, buildReviewQueue, moreDue, sessionFact, type ReviewTarget } from './review';
+import { coldNext, countsAsProof, lookRemaining, retryLine, type ColdStep } from './coldReview';
 import { blindGrid, countInBeat, scoreBlind, type BlindGrid, type HeardNote } from './blind';
+import * as clock from '../../core/clock';
 
 type HoleMark = 'right' | 'revealed';
 
@@ -63,18 +67,17 @@ interface Result {
   proof: boolean;
 }
 
+/** Haut de la barre de réponse fixe (téléphone), si elle est affichée : la case active reste au-dessus (constat 19). */
+function answerBarTop(): number | null {
+  const bar = document.querySelector('.answer-bar');
+  return bar && getComputedStyle(bar).display !== 'none' ? bar.getBoundingClientRect().top : null;
+}
+
 function mmss(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${String(s).padStart(2, '0')}`;
 }
-
-/** Ce qui manque pour « apprise », en mots d'élève (une phrase, pas une liste de codes). */
-const GAP_TEXT: Readonly<Record<LearnedGap, string>> = {
-  successes: 'encore une réussite (≥ 80 %)',
-  days: 'une réussite un autre jour',
-  strong: 'une réussite sur la position entière, de mémoire (N3) ou au micro',
-};
 
 /**
  * État de la forme en une phrase, là où l'élève le lit : ce qui manque pour « apprise », ou pour la vitesse.
@@ -83,8 +86,7 @@ const GAP_TEXT: Readonly<Record<LearnedGap, string>> = {
 function formStateLine(n: NodeStats | null, speedTarget: number): string {
   if (!n) return 'Cette forme : jamais vérifiée. « Apprise » = 2 réussites sur 2 jours, dont une sur la position entière, de mémoire (N3) ou au micro.';
   if (n.state === 'learning' || n.state === 'available') {
-    const gaps = learnedGaps(n);
-    return `Cette forme : en apprentissage. Pour « apprise », il manque ${gaps.map((g) => GAP_TEXT[g]).join(' et ')}.`;
+    return `Cette forme : en apprentissage. Pour « apprise », il manque ${missingText(n)}.`;
   }
   if (n.state === 'learned') return 'Cette forme : apprise. « Maîtrisée » viendra avec la révision tenue à 16 jours.';
   return `Cette forme : ${stateLabel(n)}.`
@@ -99,10 +101,15 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const settings = useSettings();
   const selection = useScaleSelection();
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
+  // départ demandé par la séance du jour (« Avancer : Position 3, de mémoire ») ; sinon N2
+  const [start] = useState(peekTrainingStart);
+  useEffect(() => clearTrainingStart(), []);
+  // la gamme de l'élève avant la séance de révision (qui change de forme, voire de tonique) : on y revient à la fin
+  const homeSelection = useRef(selection);
 
-  const [level, setLevel] = useState<AttemptLevel>(2);
+  const [level, setLevel] = useState<AttemptLevel>(start?.level ?? 2);
   // par défaut, la position entière en aller-retour : c'est la gamme qu'on joue, pas un fragment
-  const [segment, setSegment] = useState<Segment>('updown');
+  const [segment, setSegment] = useState<Segment>(start?.segment ?? 'updown');
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
   const [marks, setMarks] = useState<Record<string, HoleMark>>({});
   const [errors, setErrors] = useState<Record<string, number>>({});
@@ -112,7 +119,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   // erreur d'ouverture du micro : affichée à côté du bouton qui l'a provoquée, pas dans le verdict
   const [micError, setMicError] = useState<string | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => clock.now());
   const [result, setResult] = useState<Result | null>(null);
   const [journal, setJournal] = useState<Attempt[]>(() => readAttempts(progressStore()));
   /** Panneau de réussite : ouvert à la fin d'une série, refermé par « Continuer » ou Échap. */
@@ -141,9 +148,22 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const [mixed, setMixed] = useState(initialMixed);
   const [queue, setQueue] = useState<ReviewTarget[]>([]);
   const [qIndex, setQIndex] = useState(0);
-  const [sessionDone, setSessionDone] = useState<{ forms: number; accuracy: number; xp: number } | null>(null);
+  const [sessionDone, setSessionDone] = useState<{ forms: number; accuracy: number; xp: number; retries: number } | null>(null);
+  // la page Révision a trouvé une file vide : état vide explicite (pas d'exercice sur la forme courante)
+  const [emptyReview, setEmptyReview] = useState(false);
+  // dues restantes à la fin d'une séance (« Encore 3 formes dues »)
+  const moreDueNow = sessionDone ? moreDue(journal, clock.now()) : 0;
+  // et après les révisions : l'étape suivante de la séance du jour, sur la gamme de l'élève (D98)
+  const afterStep = useMemo(() => {
+    if (!sessionDone) return null;
+    const home = resolveScale(homeSelection.current).selection;
+    const s = dailySession(journal, clock.now(), { ...home, tonic: home.tonic as NoteName });
+    if (s.next) return { step: s.next, text: `Ensuite : ${s.next.label.replace(' · ', ', ')}`, action: s.next.again ? '▶ Revoir la forme' : s.next.level === 1 ? '▶ Écouter' : '▶ Avancer' };
+    if (s.cap) return { step: capStep(s.cap), text: `Nouveau défi : ${s.cap.title}`, action: `▶ Découvrir ${s.cap.name}` };
+    return null;
+  }, [sessionDone, journal]);
   // accumulateur de session : une ref, pour que le bilan soit juste dès le dernier clic (pas un rendu plus tard)
-  const sessionAcc = useRef({ forms: 0, accuracy: 0, xp: 0 });
+  const sessionAcc = useRef({ forms: 0, accuracy: 0, xp: 0, retries: 0 });
   /**
    * Rappel à froid (carte due) : `cold` = essai qui compte ; `look` = « Regarde la forme » ; `retry` =
    * rattrapage écrit `afterReveal` ; `next` = fini pour cette forme. `null` hors rappel à froid.
@@ -259,7 +279,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
   useEffect(() => {
     if (startedAt === null || result) return;
-    const t = window.setInterval(() => setNow(Date.now()), 250);
+    const t = window.setInterval(() => setNow(clock.now()), 250);
     return () => window.clearInterval(t);
   }, [startedAt, result]);
 
@@ -271,7 +291,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const touch = () => {
     if (startedAt !== null) return;
     // `now` n'avance qu'au tick de 250 ms : sans ce rafraîchissement, le chrono affiche « -1:-2 » au premier appui
-    const t = Date.now();
+    const t = clock.now();
     setStartedAt(t);
     setNow(t);
   };
@@ -293,7 +313,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       gridStartPerf.current = performance.now();
       lastNotePerf.current = null;
       // le chrono repart de la grille : sinon une grille lancée puis abandonnée compte dans la tentative
-      setStartedAt(Date.now());
+      setStartedAt(clock.now());
       setGrid('running');
       setFeedback({ ok: true, info: true, text: `grille : ${g.beats} temps à ${g.score.tempo} BPM (${g.seconds.toFixed(1)} s)` });
     } catch (e) {
@@ -323,8 +343,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       setMarks({});
       setErrors({});
       setFeedback(null);
-      setStartedAt(Date.now());
-      setNow(Date.now());
+      setStartedAt(clock.now());
+      setNow(clock.now());
       setBlindPhase('countin');
     } catch (e) {
       setFeedback({ ok: false, text: `métronome indisponible : ${(e as Error).message}` });
@@ -335,7 +355,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   useEffect(() => {
     if (!blindLive) return;
     const t = window.setInterval(() => {
-      setNow(Date.now());
+      setNow(clock.now());
       if (performance.now() >= blindStartPerf.current) setBlindPhase('running');
     }, 100);
     return () => window.clearInterval(t);
@@ -394,7 +414,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     const accuracy = totalHoles > 0 ? right / totalHoles : 0;
     const revealedCount = Object.values(finalMarks).filter((m) => m === 'revealed').length;
     const errorTotal = Object.values(errorCount).reduce((s, v) => s + v, 0);
-    const seconds = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0;
+    const seconds = startedAt ? Math.round((clock.now() - startedAt) / 1000) : 0;
     // grille tenue ? (finie avant la fin du métronome, tolérance d'un dixième de temps)
     // au micro, le temps de jeu est celui de l'attaque de la dernière note, latence mesurée retranchée ;
     // au pavé, c'est le temps de saisie (inchangé depuis la phase 2).
@@ -404,8 +424,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     const gridOutcome: GridOutcome = blindResult ? blindResult.grid : grid === 'off' ? 'off' : grid === 'running' && insideGrid(playedSeconds, tempoGrid(totalHoles, settings.trainingTempo, settings.gridSubdivision)) ? 'kept' : 'missed';
     if (grid !== 'off') stopGrid();
     const attempt: Attempt = {
-      id: newAttemptId(Date.now(), nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index }), readAttempts(progressStore()).length),
-      ts: Date.now(),
+      id: newAttemptId(clock.now(), nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index }), readAttempts(progressStore()).length),
+      ts: clock.now(),
       kind: level >= 3 ? 'recall' : 'holes',
       scaleId: r.def.id,
       tonic: r.tonic,
@@ -446,7 +466,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     if (mixed && res.proof) {
       const acc = sessionAcc.current;
       const forms = acc.forms + 1;
-      sessionAcc.current = { forms, accuracy: (acc.accuracy * acc.forms + res.accuracy) / forms, xp: acc.xp + res.xp };
+      sessionAcc.current = { ...acc, forms, accuracy: (acc.accuracy * acc.forms + res.accuracy) / forms, xp: acc.xp + res.xp };
+    } else if (mixed && coldStep === 'retry') {
+      // le bilan dit combien de rattrapages ont suivi « Regarde la forme » (constat 5)
+      sessionAcc.current = { ...sessionAcc.current, retries: sessionAcc.current.retries + 1 };
     }
     if (coldStep === 'cold' || coldStep === 'retry') setColdStep(coldNext(coldStep, { type: 'finished', accuracy }));
     // réussite = la fête ; échec = un écran calme (la série a une fin visible) ; rattrapage = rien
@@ -746,16 +769,19 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   useEffect(() => {
     if (coldStep !== 'look' || lookStart === null) return;
     const t = window.setInterval(() => {
-      setNow(Date.now());
-      if (lookRemaining(lookStart, Date.now(), settings.lookSeconds) === 0) beginRetry();
+      setNow(clock.now());
+      if (lookRemaining(lookStart, clock.now(), settings.lookSeconds) === 0) beginRetry();
     }, 250);
     return () => window.clearInterval(t);
   }, [coldStep, lookStart, settings.lookSeconds, beginRetry]);
 
   const startMixed = () => {
-    const q = buildReviewQueue(readAttempts(progressStore()), Date.now(), REVIEW_MAX, { cold: settings.coldReview });
+    const q = buildReviewQueue(readAttempts(progressStore()), clock.now(), REVIEW_MAX, { cold: settings.coldReview });
     setJournal(readAttempts(progressStore()));
+    setEmptyReview(q.length === 0);
     if (q.length === 0) {
+      setSessionDone(null);
+      setResult(null);
       setFeedback({ ok: false, text: 'aucune forme à réviser : commence par une écoute ou une série de trous' });
       return;
     }
@@ -764,7 +790,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     setQIndex(0);
     setSessionDone(null);
     setResult(null);
-    sessionAcc.current = { forms: 0, accuracy: 0, xp: 0 };
+    sessionAcc.current = { forms: 0, accuracy: 0, xp: 0, retries: 0 };
     applyTarget(q[0]!);
   };
 
@@ -772,9 +798,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const nextInQueue = () => {
     const next = qIndex + 1;
     if (next >= queue.length) {
-      // dernière forme : on affiche le bilan, avec la dernière série déjà comptée
+      // dernière forme : on affiche le bilan, avec la dernière série déjà comptée, et l'élève retrouve sa gamme
       setSessionDone({ ...sessionAcc.current });
       setResult(null);
+      setScaleSelection(homeSelection.current);
       return;
     }
     setQIndex(next);
@@ -782,10 +809,21 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     applyTarget(queue[next]!);
   };
 
+  /** Bilan → étape suivante : la page Révision ouvre l'écran d'entraînement ; ici même, on quitte la session. */
+  const goAfter = (step: FormStep) => {
+    if (initialMixed || step.level === 1) {
+      openStep({ route: step.level === 1 ? 'scale' : 'training', selection: step.selection, level: step.level, segment: step.segment });
+      return;
+    }
+    setScaleSelection(step.selection);
+    toggleMixed(false);
+    restart(step.level, step.segment);
+  };
+
   const toggleMixed = (on: boolean) => {
     setMixed(on);
     setSessionDone(null);
-    sessionAcc.current = { forms: 0, accuracy: 0, xp: 0 };
+    sessionAcc.current = { forms: 0, accuracy: 0, xp: 0, retries: 0 };
     if (!on) {
       setQueue([]);
       setQIndex(0);
@@ -810,7 +848,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       startMixed: () => startMixed(),
       nextInQueue: () => nextInQueue(),
       // rappel à froid : étape courante et raccourcis de l'écran « Regarde la forme »
-      cold: { step: coldStep, lookStart, startLook: () => setLookStart(Date.now()), endLook: () => beginRetry() },
+      cold: { step: coldStep, lookStart, startLook: () => setLookStart(clock.now()), endLook: () => beginRetry() },
       // série à l'aveugle : phase, notes entendues (le verdict reste caché à l'écran)
       blind: {
         on: blindOn, phase: blindPhase, set: (v: boolean) => setBlindOn(v), start: () => void startBlind(),
@@ -831,9 +869,36 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   }, [exercise, plan, marks, errors, activeKey, result, level, segment, total, done, grid, mixed, queue, qIndex, press, validate, journal.length, micOn, engine, coldStep, lookStart, beginRetry, blindOn, blindPhase]);
 
   // XP total (hooks : avant tout return anticipé) et XP du jour : recalculés depuis le journal, comme partout ailleurs
-  const totals = useMemo(() => xpSummary(journal, new Date()), [journal]);
-  const streakDays = useMemo(() => streak(journal, new Date()).days, [journal]);
-  const sessionsToday = useMemo(() => summarizeDay(journal, new Date()).exercises, [journal]);
+  const totals = useMemo(() => xpSummary(journal, clock.nowDate()), [journal]);
+  const streakDays = useMemo(() => streak(journal, clock.nowDate()).days, [journal]);
+  const sessionsToday = useMemo(() => summarizeDay(journal, clock.nowDate()).exercises, [journal]);
+
+  // page Révision sans rien à réviser : on le dit, au lieu d'ouvrir un exercice sur la forme courante (D97)
+  if (initialMixed && emptyReview) {
+    const started = journal.some((a) => a.module !== 'accords' && (a.kind === 'holes' || a.kind === 'recall'));
+    return (
+      <main className="shell">
+        <header className="page-head">
+          <button type="button" className="back" onClick={() => navigate('hub')} aria-label="Retour à l’accueil">‹</button>
+          <div>
+            <h1 className="page-title">Révision</h1>
+          </div>
+        </header>
+        <Panel accent="green" label="Révision">
+          <p className="t-body">Aucune forme à réviser pour l’instant.</p>
+          <p className="t-small">
+            {started
+              ? 'Rien n’est dû, et aucune forme en apprentissage n’attend aujourd’hui. L’accueil te dira quand une forme revient.'
+              : 'Commence par une écoute ou une série de trous : une forme travaillée revient ici à son heure.'}
+          </p>
+          <div className="row">
+            <PixelButton variant="primary" onClick={() => navigate('hub')}>Accueil</PixelButton>
+            <PixelButton onClick={() => navigate('gammes')}>Gammes</PixelButton>
+          </div>
+        </Panel>
+      </main>
+    );
+  }
 
   if (!r.position || !exercise || !display || !plan) {
     return (
@@ -875,9 +940,13 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             <button type="button" className="key" onClick={() => press('0')} disabled={!activeHole || !!result}>0</button>
             <button type="button" className="key key-ok" onClick={validate} disabled={!activeHole || entry === '' || !!result}>✓</button>
           </div>
-          <p className="t-small t-dim numpad-hint">
-            Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
-          </p>
+          {/* aide du pavé, repliée : elle ne sert qu'une fois (constat 14) */}
+          <details className="ex-more numpad-hint">
+            <summary>Clavier</summary>
+            <p className="t-small t-dim">
+              Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
+            </p>
+          </details>
     </>
   );
   const runStep = (k: StepKind) => {
@@ -948,6 +1017,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         hideRhythm
         onPick={onPick}
         {...(activeKey ? { activeHoleKey: activeKey } : {})}
+        coverTop={answerBarTop}
       />
 
       {!(coldActive && !result) && <TabLegend def={r.def} readonly={settings.reduceMotion} />}
@@ -970,9 +1040,18 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             Enchaîner des formes différentes coûte plus cher sur le moment et retient mieux que répéter la même :
             c’est fait exprès. Les échéances sont recalculées, le hub les affiche.
           </p>
+          {retryLine(sessionDone.retries) && <p className="t-small">{retryLine(sessionDone.retries)}</p>}
+          {afterStep && <p className="t-small">{afterStep.text}</p>}
           <div className="row">
-            <PixelButton variant="primary" onClick={startMixed}>Nouvelle session</PixelButton>
-            <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
+            {/* la séance s'arrête à 5 ; s'il reste des dues (8 au plus aujourd'hui), on propose la suite (D97),
+                puis l'étape suivante de la séance du jour (D98) */}
+            {moreDueNow > 0 && (
+              <PixelButton variant="primary" onClick={startMixed}>Encore {moreDueNow} forme{moreDueNow > 1 ? 's' : ''} due{moreDueNow > 1 ? 's' : ''}</PixelButton>
+            )}
+            {afterStep && (
+              <PixelButton variant={moreDueNow > 0 ? 'ghost' : 'primary'} onClick={() => goAfter(afterStep.step)}>{afterStep.action}</PixelButton>
+            )}
+            <PixelButton variant={moreDueNow > 0 || afterStep ? 'quiet' : 'primary'} onClick={() => navigate('hub')}>Accueil</PixelButton>
           </div>
         </Panel>
       ) : result ? (
@@ -1010,7 +1089,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               </p>
               <div className="row">
                 {lookStart === null ? (
-                  <PixelButton variant="primary" onClick={() => { setLookStart(Date.now()); setNow(Date.now()); }}>
+                  <PixelButton variant="primary" onClick={() => { setLookStart(clock.now()); setNow(clock.now()); }}>
                     ▶ Regarde la forme ({settings.lookSeconds} s)
                   </PixelButton>
                 ) : (
@@ -1134,19 +1213,44 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       )}
 
       <Panel className="span-7" label="Exercice">
-        {mixed && queue.length > 0 && (
-          <p className="t-small">
-            Formes : {queue.map((t) => `${t.title} (${t.positionLabel})`).join(' → ')}.
-            {queue[qIndex] ? ` Celle-ci : ${queue[qIndex]!.reason}.` : ''}
-          </p>
+        {/* en séance : une liste de définitions plutôt qu'un long paragraphe (constat 14) */}
+        {mixed && queue.length > 0 && queue[qIndex] && (
+          <dl className="ex-facts">
+            <dt>Séance</dt>
+            <dd>
+              {sessionFact(qIndex, queue.length, queue[qIndex]!)}
+              <details className="ex-more">
+                <summary>Les {queue.length} formes</summary>
+                <ol>
+                  {queue.map((t, i) => (
+                    <li key={`${t.nodeId}-${i}`} className={i === qIndex ? 'current' : ''}>{t.title} ({t.positionLabel}) : {t.reason}</li>
+                  ))}
+                </ol>
+              </details>
+            </dd>
+            <dt>Consigne</dt>
+            <dd>
+              {coldStep === 'cold'
+                ? 'De mémoire, sans revoir la forme. Seul ce premier essai compte.'
+                : coldStep === 'retry'
+                  ? 'Rattrapage : tu viens de voir la forme, il ne compte pas.'
+                  : `${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes} notes, la position entière.`}
+            </dd>
+            {!result && (
+              <>
+                <dt>État</dt>
+                <dd>{formStateLine(formNode, settings.speedTargetBpm)}</dd>
+              </>
+            )}
+          </dl>
         )}
-        {coldStep === 'cold' && (
+        {!mixed && coldStep === 'cold' && (
           <p className="t-small">
             <strong>Rappel à froid</strong> : la position entière, de mémoire, sans la revoir avant. Seul ce premier
             essai compte pour la révision, la maîtrise et l’XP.
           </p>
         )}
-        {coldStep === 'retry' && (
+        {!mixed && coldStep === 'retry' && (
           <p className="t-small">
             <strong>Essai de rattrapage</strong> : enregistré comme pratique, sans effet sur la révision, la maîtrise
             ni l’XP — tu viens de voir la forme.
@@ -1178,6 +1282,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               : 'ouvre le micro : à l’aveugle, seul le son est jugé'}
           />
         )}
+        {!mixed && (
+        <>
         <p className="t-small">
           {level === 2
             ? `${Math.round(settings.holeRate * 100)} % des notes masquées (au moins 2, jamais toutes) : ici ${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes}. `
@@ -1188,6 +1294,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               + (micOn ? ' Joue-les dans l’ordre que tu veux.' : '')}
         </p>
         {!result && <p className="t-small">{formStateLine(formNode, settings.speedTargetBpm)}</p>}
+        </>
+        )}
         <div className="row exercise-start">
           {coldActive ? (
             // à froid, pas de nouvelle série (elle effacerait les cases déjà révélées) ni d'écoute : « Passer » suffit
@@ -1328,11 +1436,15 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         />
       )}
 
-      <div className="pos-nav">
-        <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0 || mixed}>‹ Position</PixelButton>
-        <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
-        <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1 || mixed}>Position ›</PixelButton>
-      </div>
+      {/* en séance, la file mène : changer de position en sortirait, et un second « 1 / 5 » brouillerait
+          « Séance 1 sur 5 » (constat 23) */}
+      {!mixed && (
+        <div className="pos-nav">
+          <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0}>‹ Position</PixelButton>
+          <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
+          <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1}>Position ›</PixelButton>
+        </div>
+      )}
 
       </>
       )}

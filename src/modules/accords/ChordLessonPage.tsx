@@ -63,6 +63,7 @@ import {
 } from './transitions';
 import { PROGRESSIONS, progressionById, progressionCandidates, progressionScore } from './progressions';
 import { learnedChordIds, nextChord, startedChordIds } from './recommend';
+import * as clock from '../../core/clock';
 
 function ordinal(i: number): string {
   return ['①', '②', '③', '④', '⑤', '⑥'][i] ?? String(i + 1);
@@ -152,7 +153,7 @@ export function ChordLessonPage() {
   const prog = useMemo(() => progressionById(progId) ?? PROGRESSIONS[0]!, [progId]);
 
   // --- accordage : un rappel, pas une leçon (l'accordeur guidé vit dans #/accordeur)
-  const tuningFresh = useMemo(() => tuningFreshness(readTuningRecord(progressStore()), new Date()), []);
+  const tuningFresh = useMemo(() => tuningFreshness(readTuningRecord(progressStore()), clock.nowDate()), []);
 
   // --- lecture audio (une seule instance, comme les autres écrans)
   const player = useRef<TabPlayer | null>(null);
@@ -506,8 +507,8 @@ export function ChordLessonPage() {
       chordId: v.id,
     };
     const attempt: Attempt = {
-      id: newAttemptId(Date.now(), patch.chordId ?? patch.progressionId ?? v.id, readAttempts(progressStore()).length),
-      ts: Date.now(),
+      id: newAttemptId(clock.now(), patch.chordId ?? patch.progressionId ?? v.id, readAttempts(progressStore()).length),
+      ts: clock.now(),
       ...base,
       ...patch,
     };

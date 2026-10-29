@@ -24,6 +24,7 @@ import {
 import { KIND_LABEL, QUIZ_KINDS, quizRound, type QuizKind, type QuizOption } from './quiz';
 import { mainlineChordIds } from './curriculum';
 import { learnedChordIds, startedChordIds } from './recommend';
+import * as clock from '../../core/clock';
 
 /**
  * Les accords sur lesquels on interroge : ceux que l'élève a **déjà rencontrés** (appris ou commencés).
@@ -75,8 +76,8 @@ export function ChordQuizPage() {
     // une réponse au QCM est vérifiée (l'app connaît la bonne réponse) mais c'est du **savoir** : elle
     // n'entre jamais dans le nœud de la forme, qui exige un geste
     const attempt: Attempt = {
-      id: newAttemptId(Date.now(), `acc:savoir:${q.voicingId}`, readAttempts(progressStore()).length),
-      ts: Date.now(),
+      id: newAttemptId(clock.now(), `acc:savoir:${q.voicingId}`, readAttempts(progressStore()).length),
+      ts: clock.now(),
       kind: 'qcm',
       scaleId: '',
       tonic: '',

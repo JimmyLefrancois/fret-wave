@@ -4,7 +4,7 @@
  * « apprise » après une seule séance, et la liste ne dépasse jamais la limite demandée.
  */
 import { describe, expect, it } from 'vitest';
-import { accomplishments, headline, STREAK_MILESTONES } from '../src/modules/gammes/accomplishments';
+import { accomplishments, headline, STREAK_MILESTONES, WEEK_MILESTONES } from '../src/modules/gammes/accomplishments';
 import type { Attempt } from '../src/core/progress';
 
 const DAY = 86_400_000;
@@ -77,6 +77,18 @@ describe('accomplishments', () => {
     expect(milestone).toHaveLength(1);
     expect(milestone[0]?.subject).toBe(`${first} jours d’affilée`);
     expect(milestone[0]?.ts).toBe(T0 + (first - 1) * DAY);
+  });
+
+  it('palier de semaines : « 4 semaines d’affilée », daté au jour qui complète la 4ᵉ semaine', () => {
+    // samedis et dimanches à partir du samedi 3 oct. 2026
+    const days = [3, 4, 10, 11, 17, 18, 24, 25].map((d, i) => mk(new Date(2026, 9, d, 18).getTime(), 3, 3, { formIndex: i % 5, id: `w${d}` }));
+    const weeks = accomplishments(days, { limit: 50 }).filter((e) => e.kind === 'weeks');
+    expect(WEEK_MILESTONES).toEqual([4, 8, 12]);
+    expect(weeks).toHaveLength(1);
+    expect(weeks[0]).toMatchObject({ title: 'Série de semaines', subject: '4 semaines d’affilée', detail: 'au moins 2 jours de pratique chaque semaine' });
+    expect(weeks[0]!.ts).toBe(new Date(2026, 9, 25, 18).getTime());
+    // un palier de semaines ne passe pas en tête de l'accueil : il ne dit rien de ce qu'on a joué
+    expect(headline(accomplishments(days, { limit: 50 })).latest?.kind).not.toBe('weeks');
   });
 
   it('une journée d’écoute seule ne fait pas durer la série', () => {

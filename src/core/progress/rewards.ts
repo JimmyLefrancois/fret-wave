@@ -6,6 +6,7 @@
  *  - le bonus de vitesse n'existe qu'à ≥ 95 % de précision ;
  *  - un badge dit ce qu'il récompense et ne décorera jamais un chiffre faux.
  */
+import * as clock from '../clock';
 import { dayKey, isProof, isVerified, nodeIdOf, scoreOf, type Attempt } from './journal';
 import { PASS, summarizeNodes } from './mastery';
 
@@ -108,6 +109,34 @@ export function streak(attempts: readonly Attempt[], now: Date): StreakSummary {
   return { days: n, today: todayActive };
 }
 
+/** Jours de pratique qu'il faut dans une semaine pour qu'elle compte (D99). */
+export const WEEK_MIN_DAYS = 2;
+
+/**
+ * Série de **semaines** actives (D99), pour l'élève qui ne joue pas tous les jours : semaines
+ * consécutives (lundi-dimanche, calendrier local) ayant au moins `minDays` jours avec un exercice vérifié
+ * (même filtre que `streak`). La semaine en cours ne casse rien avant d'être finie ; elle compte dès
+ * qu'elle a ses jours. `thisWeek` : jours de pratique de la semaine en cours.
+ */
+export function weekStreak(attempts: readonly Attempt[], now: Date, minDays = WEEK_MIN_DAYS): { weeks: number; thisWeek: number } {
+  const days = new Set(attempts.filter(isVerified).map((a) => dayKey(a.ts)));
+  if (!days.size) return { weeks: 0, thisWeek: 0 };
+  // lundi de la semaine en cours, en calendrier : un changement d'heure ne décale aucun jour
+  const back = (now.getDay() + 6) % 7;
+  const monday = (k: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() - back - 7 * k);
+  const count = (k: number) => {
+    const m = monday(k);
+    let n = 0;
+    for (let i = 0; i < 7; i++) if (days.has(dayKey(new Date(m.getFullYear(), m.getMonth(), m.getDate() + i).getTime()))) n++;
+    return n;
+  };
+  const thisWeek = count(0);
+  let weeks = 0;
+  // une semaine sans ses jours arrête le compte (avant la première pratique, toutes sont vides)
+  for (let k = thisWeek >= minDays ? 0 : 1; count(k) >= minDays; k++) weeks++;
+  return { weeks, thisWeek };
+}
+
 // ---------------------------------------------------------------------------
 // Badges
 // ---------------------------------------------------------------------------
@@ -192,5 +221,5 @@ export function badgeStatus(attempts: readonly Attempt[], now: Date): BadgeStatu
 
 /** Nœuds distincts travaillés (utile au hub : « 3 formes »). */
 export function distinctNodes(attempts: readonly Attempt[]): number {
-  return new Set(verifiedOf({ attempts, now: new Date() }).map(nodeIdOf)).size;
+  return new Set(verifiedOf({ attempts, now: clock.nowDate() }).map(nodeIdOf)).size;
 }

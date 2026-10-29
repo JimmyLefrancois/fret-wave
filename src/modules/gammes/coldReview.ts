@@ -50,3 +50,13 @@ export function countsAsProof(step: ColdStep): boolean {
 export function lookRemaining(startedAt: number, now: number, seconds: LookSeconds): number {
   return Math.max(0, Math.ceil(seconds - (now - startedAt) / 1000));
 }
+
+/**
+ * Ligne du bilan de séance sur les rattrapages (constat 5) : ils comptent pour la journée (série, objectif)
+ * mais pas pour la mémoire (Leitner, maîtrise, XP) ; rien à dire sans rattrapage.
+ */
+export function retryLine(n: number): string | null {
+  if (n <= 0) return null;
+  const s = n > 1 ? 's' : '';
+  return `${n} rattrapage${s} après « Regarde la forme » : compté${s} pour la journée, pas pour la mémoire.`;
+}
