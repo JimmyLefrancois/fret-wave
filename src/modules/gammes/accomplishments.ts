@@ -16,7 +16,7 @@
  * avant/après chaque tentative, avec les mêmes fonctions que le hub (`summarizeNodes`, `stateOf`).
  */
 import {
-  PASS, isProof, isVerified, nodeIdOf, scoreOf, streak, summarizeNodes, xpForAttempt,
+  PASS, isProof, isVerified, nodeIdOf, scoreOf, streak, summarizeNodes, weekStreak, xpForAttempt,
   type Attempt, type NodeState,
 } from '../../core/progress';
 import { fmtChord } from '../../core/theory';
@@ -24,7 +24,7 @@ import type { ChordNotation, NoteNotation } from '../../core/theory';
 import { positionLabelPlain, resolveScale } from './resolve';
 import { VOICINGS } from '../../data/voicings';
 
-export type AccomplishmentKind = 'perfect' | 'pass' | 'learned' | 'mastered' | 'chord' | 'streak';
+export type AccomplishmentKind = 'perfect' | 'pass' | 'learned' | 'mastered' | 'chord' | 'streak' | 'weeks';
 
 export interface Accomplishment {
   /** Clé stable : même entrée d'un rendu à l'autre. */
@@ -52,9 +52,12 @@ export const ACCOMPLISHMENT_LABEL: Readonly<Record<AccomplishmentKind, string>> 
   mastered: 'Forme maîtrisée',
   chord: 'Accord appris',
   streak: 'Série de jours',
+  weeks: 'Série de semaines',
 };
 
 export const STREAK_MILESTONES = [3, 7, 14, 30] as const;
+/** Paliers de la série de semaines (D99) : même mécanisme que ceux de la série de jours. */
+export const WEEK_MILESTONES = [4, 8, 12] as const;
 
 /** Prochain palier de série au-dessus de `days`, ou `null` quand le dernier est franchi. */
 export function nextStreakMilestone(days: number): number | null {
@@ -151,8 +154,33 @@ function masteryTransitions(attempts: readonly Attempt[], notation: NoteNotation
   return out;
 }
 
-/** Paliers de série (3 / 7 / 14 / 30 jours), datés au dernier exercice du jour concerné. */
-function streakMilestones(attempts: readonly Attempt[]): Accomplishment[] {
+/**
+ * Paliers de la série de semaines (4 / 8 / 12), datés au dernier exercice du jour qui complète la semaine :
+ * le palier est franchi quand le compte passe à sa valeur, pas chaque jour où il la garde.
+ */
+function weekMilestones(attempts: readonly Attempt[]): Accomplishment[] {
+  const out: Accomplishment[] = [];
+  let prev = 0;
+  for (const last of [...lastByDayOf(attempts).values()].sort((x, y) => x.ts - y.ts)) {
+    const weeks = weekStreak(attempts.filter((a) => a.ts <= last.ts), new Date(last.ts)).weeks;
+    if (weeks > prev && (WEEK_MILESTONES as readonly number[]).includes(weeks)) {
+      out.push({
+        id: `weeks:${weeks}:${last.ts}`,
+        kind: 'weeks',
+        ts: last.ts,
+        title: ACCOMPLISHMENT_LABEL.weeks,
+        subject: `${weeks} semaines d’affilée`,
+        detail: 'au moins 2 jours de pratique chaque semaine',
+        accent: 'cyan',
+      });
+    }
+    prev = weeks;
+  }
+  return out;
+}
+
+/** Dernier exercice vérifié de chaque jour. */
+function lastByDayOf(attempts: readonly Attempt[]): Map<string, Attempt> {
   const lastByDay = new Map<string, Attempt>();
   for (const a of attempts) {
     if (!isVerified(a)) continue;
@@ -161,8 +189,13 @@ function streakMilestones(attempts: readonly Attempt[]): Accomplishment[] {
     const prev = lastByDay.get(key);
     if (!prev || a.ts > prev.ts) lastByDay.set(key, a);
   }
+  return lastByDay;
+}
+
+/** Paliers de série (3 / 7 / 14 / 30 jours), datés au dernier exercice du jour concerné. */
+function streakMilestones(attempts: readonly Attempt[]): Accomplishment[] {
   const out: Accomplishment[] = [];
-  for (const last of lastByDay.values()) {
+  for (const last of lastByDayOf(attempts).values()) {
     const days = streak(attempts, new Date(last.ts)).days;
     if (!(STREAK_MILESTONES as readonly number[]).includes(days)) continue;
     out.push({
@@ -185,7 +218,7 @@ function streakMilestones(attempts: readonly Attempt[]): Accomplishment[] {
  * `rest` garde les autres dans l'ordre, sans doublon.
  */
 export function headline(list: readonly Accomplishment[]): { latest: Accomplishment | null; rest: Accomplishment[] } {
-  const latest = list.find((e) => e.kind !== 'streak') ?? list[0] ?? null;
+  const latest = list.find((e) => e.kind !== 'streak' && e.kind !== 'weeks') ?? list[0] ?? null;
   return { latest, rest: list.filter((e) => e !== latest) };
 }
 
@@ -204,7 +237,7 @@ export interface AccomplishmentOptions {
 export function accomplishments(attempts: readonly Attempt[], opts: AccomplishmentOptions = {}): Accomplishment[] {
   const { limit = 10, notation = 'fr', chordNotation = notation } = opts;
   const transitions = masteryTransitions(attempts, notation, chordNotation);
-  const out: Accomplishment[] = [...transitions, ...streakMilestones(attempts)];
+  const out: Accomplishment[] = [...transitions, ...streakMilestones(attempts), ...weekMilestones(attempts)];
   // la tentative qui a fait franchir un palier de maîtrise ne compte qu'une fois : c'est le palier
   // qui est la nouvelle, pas la série qui l'a provoqué
   const causedTransition = new Set(transitions.map((t) => t.attempt?.id).filter(Boolean));

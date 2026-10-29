@@ -9,7 +9,8 @@ import {
   isSpeedProof, isStrongSuccess, learnedGaps, masteryOf, regressedForms, stateLabel, stateOf, stringWeakness,
   summarizeNodes, weakTonics,
 } from '../src/core/progress/mastery';
-import { DAILY_XP_CAP, badgeStatus, streak, xpForAttempt, xpSummary } from '../src/core/progress/rewards';
+import { DAILY_XP_CAP, badgeStatus, streak, weekStreak, xpForAttempt, xpSummary } from '../src/core/progress/rewards';
+import { FIXED_END, getPersona, simulate } from '../src/dev/simulate';
 import { exportFilename, exportText, mergeAttempts, parseImport } from '../src/core/progress/exportData';
 
 function fakeStore(initial: Record<string, string> = {}) {
@@ -494,5 +495,46 @@ describe('« apprise » et « maîtrisée » plus exigeantes (lot mémoire et vi
     const nodes = summarizeNodes([n2(1), n2(0)]);
     expect(regressedForms(nodes).map((n) => n.nodeId)).toEqual(['gam:lecture:pentatonic-minor:boxes:0']);
     expect(regressedForms(summarizeNodes([n2(1), n3(0)]))).toEqual([]);
+  });
+});
+
+describe('série de semaines (D99)', () => {
+  // octobre 2026 : lundis 5, 12, 19 et 26 ; le 25 (dimanche) est le passage à l'heure d'hiver
+  const on = (day: number, hour = 18) => attempt({ ts: new Date(2026, 9, day, hour, 0).getTime() });
+
+  it('journal vide : 0', () => {
+    expect(weekStreak([], new Date(2026, 9, 28))).toEqual({ weeks: 0, thisWeek: 0 });
+  });
+
+  it('une semaine à un seul jour casse la série', () => {
+    const j = [on(10), on(11), on(17), on(24), on(25)];
+    // semaine du 19 : 2 jours ; semaine du 12 : 1 seul jour, cassée ; semaine en cours vide
+    expect(weekStreak(j, new Date(2026, 9, 28, 12))).toEqual({ weeks: 1, thisWeek: 0 });
+  });
+
+  it('la semaine en cours ne casse rien avant d’être finie, et compte dès qu’elle a ses 2 jours', () => {
+    const j = [on(10), on(11), on(17), on(18), on(24), on(25)];
+    expect(weekStreak([...j, on(26)], new Date(2026, 9, 26, 20))).toEqual({ weeks: 3, thisWeek: 1 });
+    expect(weekStreak([...j, on(26), on(28)], new Date(2026, 9, 28, 20))).toEqual({ weeks: 4, thisWeek: 2 });
+  });
+
+  it('passage à l’heure d’hiver : le dimanche 25 octobre reste dans sa semaine', () => {
+    const j = [on(19), on(24, 23), on(25, 23)];
+    expect(weekStreak(j, new Date(2026, 9, 25, 23, 59))).toEqual({ weeks: 1, thisWeek: 3 });
+    expect(weekStreak(j, new Date(2026, 9, 26, 0, 30))).toEqual({ weeks: 1, thisWeek: 0 });
+  });
+
+  it('une écoute seule ne compte pas (même filtre que la série de jours)', () => {
+    const j = [on(24), attempt({ ts: new Date(2026, 9, 25, 18).getTime(), kind: 'listen', correct: null, total: null })];
+    expect(weekStreak(j, new Date(2026, 9, 25, 20))).toEqual({ weeks: 0, thisWeek: 1 });
+  });
+
+  it('joueur du week-end simulé (42 j) : aucune semaine cassée', () => {
+    const weeks: number[] = [];
+    simulate(getPersona('week-end')!, { end: FIXED_END, onDay: (_d, dayEnd, j) => { weeks.push(weekStreak(j, new Date(dayEnd)).weeks); } });
+    const first = weeks.findIndex((w) => w > 0);
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(weeks.slice(first).every((w) => w > 0)).toBe(true);
+    expect(weeks[weeks.length - 1]).toBeGreaterThanOrEqual(5);
   });
 });

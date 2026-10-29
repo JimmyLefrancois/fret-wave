@@ -5,8 +5,8 @@
  * Mesure à **17 h le lendemain** (l'heure où la persona revient) ; I4 se mesure à 23 h le jour même ; I2 à
  * 17 h les jours de pratique, avant la première série.
  */
-import { describe, expect, it } from 'vitest';
-import { DUE_CAP, dayKey, summarizeNodes, zoneOf, type Attempt } from '../src/core/progress';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { DUE_CAP, dayKey, streak, summarizeNodes, weekStreak, zoneOf, type Attempt } from '../src/core/progress';
 import { buildReviewQueue, dueToday, reviewCount, triedColdToday, type ReviewTarget } from '../src/modules/gammes/review';
 import { resolveScale } from '../src/modules/gammes/resolve';
 import { dailySession, pathCounts, pathCountText, type DailySession } from '../src/app/hubPlan';
@@ -66,6 +66,9 @@ function zoneOfTarget(t: ReviewTarget): number | null {
 const OTHER_ZONE = /^(vue dans une seule zone|même dessin, autre case)/;
 
 describe('invariants du simulateur', () => {
+  // les 6 simulations, une fois pour tous les invariants (plusieurs secondes quand toute la suite tourne)
+  beforeAll(() => { for (const p of PERSONAS) snapshots(p); }, 60_000);
+
   it('I1 la séance ne propose jamais une forme apprise non due', () => {
     const faults: string[] = [];
     for (const p of PERSONAS) {
@@ -172,6 +175,18 @@ describe('invariants du simulateur', () => {
       for (const d of arrivals(p)) if (!d.session.next && !d.session.cap) faults.push(`${p.id} J${d.day + 1}`);
     }
     expect(faults).toEqual([]);
+  });
+
+  it('I6 week-end : la série de semaines ne casse jamais ; la série de jours, inchangée, casse toujours', () => {
+    const snaps = snapshots(PERSONAS.find((p) => p.id === 'week-end')!);
+    const weeks = snaps.map((s) => weekStreak(s.journal, new Date(s.dayEnd)).weeks);
+    const first = weeks.findIndex((w) => w > 0);
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(weeks.slice(first).filter((w) => w === 0)).toEqual([]);
+    const days = snaps.map((s) => streak(s.journal, new Date(s.dayEnd)).days);
+    let breaks = 0;
+    for (let i = 1; i < days.length; i++) if (days[i - 1]! > 1 && days[i] === 0) breaks++;
+    expect(breaks).toBeGreaterThan(0);
   });
 
   it('I3 une forme apprise due se dit « à rafraîchir » dans le Parcours', () => {

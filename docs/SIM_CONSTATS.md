@@ -16,7 +16,7 @@ les ordres de grandeur comptent, pas les valeurs exactes. Rapport complet : `npm
    « Reprendre la gamme » 28 jours de suite : aucune suggestion d'autre gamme, tonique ou système.
 3. **La carte de révision peut décourager.** Dès J1 : « Dernier passage : exercice à trous, 50 % ».
    Joueur du week-end : « 88 % » affiché trois semaines d'affilée, comme si rien ne bougeait.
-4. **Joueur du week-end** : série cassée 5 fois, révisions bloquées à 5 dues (il ne les fait pas),
+4. ✅ **Traité (D99, lot 4)** — **Joueur du week-end** : série cassée 5 fois, révisions bloquées à 5 dues (il ne les fait pas),
    alors qu'il atteint l'objectif du jour chaque samedi.
 5. **Rattrapages nombreux** (30 à 50 pour les profils réguliers) : ni XP ni preuve. L'élève comprend-il
    pourquoi ces séries ne comptent pas ?
@@ -143,3 +143,22 @@ aucune, Si fragile 21 → **8** (voir 30). L'avancé atteint le blues mineur à 
   déclenchent aussi « revoir ».
 - **33** : « critère complet ». Mi m puis Ré m prennent chacun deux jours à l'avancé (J13-J14, J15-J16) ; il
   passe à la pentatonique majeure à J16 (J14 avant).
+
+## Lot 4 — série de semaines (`ux/constats-sim`, 2026-10-29)
+
+Traité (D99) : 4. Invariant I6 vert. Mesures (fin fixe 29 oct.) :
+
+| persona | série de jours cassée | série de semaines cassée | fin |
+| --- | --- | --- | --- |
+| régulier | 0 | 0 | 19 j · 5 sem. |
+| décrocheur | 1 | 1 (sa pause de 12 jours) | 8 j · 2 sem. |
+| Si fragile | 0 | 0 | 2 j · 5 sem. |
+| sans micro | 0 | 0 | 15 j · 5 sem. |
+| week-end | **6** (inchangé) | **0** | 0 j · 6 sem. |
+| avancé | 0 | 0 | 45 j · 7 sem. |
+
+L'accueil du joueur du week-end affiche « Série : 4 semaines » (J30) au lieu de rien.
+
+35. Outillage : la tournée charge le journal d'une persona sans sa gamme en cours ; l'accueil montre donc la
+    séance de La m pentatonique même quand la persona travaille le blues (régulier J30 : « Nouveau défi : Mi m »
+    alors qu'il en est au blues, position 3). À régler dans `tools/sim-tour.mjs` / `devStore` (lot 6).

@@ -3,7 +3,7 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { dailyActivity, dailySession, dayGoalText, heroAction, heroSteps, hubPlan, pathCounts, pathCountText, sessionMinutes, type DailySession, learnedScaleForms, regressedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
+import { dailyActivity, dailySession, dayGoalText, heroAction, heroSteps, hubPlan, pathCounts, pathCountText, sessionMinutes, streakText, type DailySession, learnedScaleForms, regressedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
 import { dueReviewCards, dueToday } from '../src/modules/gammes/review';
 import { dueNow, summarizeDay, type Attempt, type Card } from '../src/core/progress';
@@ -338,5 +338,17 @@ describe('pathCountText (Parcours)', () => {
   it('pathCounts : une forme apprise due compte « à rafraîchir »', () => {
     const j = [recall(T0 - 6 * D), recall(T0 - 4 * D)];
     expect(pathCounts(j, T0, 'pentatonic-minor', 'boxes')).toEqual({ learned: 1, mastered: 0, due: 1 });
+  });
+});
+
+describe('streakText (série de jours et de semaines, D99)', () => {
+  it('jours et semaines, ou l’un des deux, jamais « 0 » ni « 1 jour »', () => {
+    expect(streakText(5, 3)).toBe('Série : 5 jours · 3 semaines');
+    expect(streakText(3, 1)).toBe('Série : 3 jours · 1 semaine');
+    expect(streakText(5, 0)).toBe('Série : 5 jours d’affilée');
+    expect(streakText(0, 5)).toBe('Série : 5 semaines');
+    expect(streakText(1, 2)).toBe('Série : 2 semaines');
+    expect(streakText(1, 0)).toBeNull();
+    expect(streakText(0, 0)).toBeNull();
   });
 });

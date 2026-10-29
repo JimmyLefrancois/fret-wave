@@ -17,7 +17,7 @@ import { openStep } from '../app/openStep';
 import { dueToday } from '../modules/gammes/review';
 import {
   dailyActivity, dailySession, dayGoalText, durationText, heroAction, heroSteps, hubPlan, learnedScaleForms, pathCountText, pathCounts,
-  regressedScaleForms, isHeroShortcut, micHeardBefore, tuneStepDone, scaleStep,
+  regressedScaleForms, isHeroShortcut, micHeardBefore, streakText, tuneStepDone, scaleStep,
 } from '../app/hubPlan';
 import { Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
@@ -27,7 +27,7 @@ import { VOICINGS } from '../data/voicings';
 import { readTuningRecord } from '../core/input/tuningGuide';
 import { fmtChord } from '../core/theory';
 import {
-  DUE_CAP, loadJournal, progressStore, streak, summarizeDay,
+  DUE_CAP, loadJournal, progressStore, streak, summarizeDay, weekStreak,
   type Attempt,
 } from '../core/progress';
 import * as clock from '../core/clock';
@@ -49,7 +49,7 @@ export function whenLabel(ts: number, now: number): string {
 
 /** Glyphe du genre d'accomplissement (lisible, pas décoratif). */
 const ACC_GLYPH: Record<Accomplishment['kind'], string> = {
-  perfect: '★', pass: '✓', learned: '◆', mastered: '✦', chord: '♪', streak: '≡',
+  perfect: '★', pass: '✓', learned: '◆', mastered: '✦', chord: '♪', streak: '≡', weeks: '≡',
 };
 
 /** Rouvre une tentative (nœud) sur l'écran d'entraînement, à la bonne position. */
@@ -89,7 +89,7 @@ function AccRow({ f, now, full = false }: { f: Accomplishment; now: number; full
         {/* grille tenue, XP : seulement dans la liste dépliée, la ligne de tête reste lisible */}
         {full && f.extra && <span className="acc-extra">{f.extra}</span>}
       </span>
-      {f.attempt && f.kind !== 'streak' && (
+      {f.attempt && f.kind !== 'streak' && f.kind !== 'weeks' && (
         <button
           type="button"
           className="acc-open"
@@ -158,6 +158,8 @@ export function HubPage() {
   const now = useMemo(() => clock.nowDate(), []);
   const day = useMemo(() => summarizeDay(journal, now), [journal, now]);
   const st = useMemo(() => streak(journal, now), [journal, now]);
+  const wk = useMemo(() => weekStreak(journal, now), [journal, now]);
+  const seriesLine = streakText(st.days, wk.weeks);
   // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran. Le compte est `reviewCount`
   // (DUE_CAP au plus aujourd'hui, une forme déjà rappelée à froid attend demain) ; la séance en fait 5 (D97)
   const due = useMemo(() => dueToday(journal, now.getTime()).slice(0, DUE_CAP), [journal, now]);
@@ -382,10 +384,11 @@ export function HubPage() {
             </p>
             {/* série et prochain cap (« palier » est réservé au parcours d'accords) sur leur propre ligne, ensemble : un seul sujet, jamais une ligne orpheline */}
             {/* la série commence à deux jours (MUSIC_DESIGN §17.3) : ni « 0 » ni « 1 jour d'affilée » */}
-            {st.days > 1 && (
+            {/* série de semaines (D99) : le joueur du week-end garde une série qui tient */}
+            {seriesLine && (
               <p className="day-streak">
-                {`Série : ${st.days} jours d’affilée`}
-              {nextMilestone !== null && <span className="day-next"> · prochain cap : {nextMilestone} jours</span>}
+                {seriesLine}
+              {st.days > 1 && nextMilestone !== null && <span className="day-next"> · prochain cap : {nextMilestone} jours</span>}
               </p>
             )}
           </div>
@@ -458,6 +461,9 @@ export function HubPage() {
             </p>
             <p className="t-small t-dim">
             L’objectif du jour et la série comptent les exercices vérifiés : une écoute n’y entre pas, un grattage déclaré non plus.
+          </p>
+          <p className="t-small t-dim">
+            {'Une semaine compte quand tu joues au moins 2 jours entre lundi et dimanche ; la semaine en cours ne casse rien avant dimanche soir.'}
           </p>
           <p className="t-small t-dim">{DUE_CAP} révisions au plus aujourd’hui : après quelques jours d’absence, le retard ne s’accumule pas.</p>
           </details>

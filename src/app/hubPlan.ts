@@ -177,6 +177,17 @@ export function pathCounts(
   };
 }
 
+/**
+ * Ligne de série de l'accueil (D99) : « Série : 3 jours · 5 semaines ». La série de jours commence à deux
+ * (MUSIC_DESIGN §17.3) ; sans elle, la série de semaines tient seule (« Série : 5 semaines ») : le joueur
+ * du week-end voit ce qui dure. `null` : rien à dire.
+ */
+export function streakText(days: number, weeks: number): string | null {
+  const w = `${weeks} semaine${weeks > 1 ? 's' : ''}`;
+  if (days > 1) return weeks > 0 ? `Série : ${days} jours · ${w}` : `Série : ${days} jours d’affilée`;
+  return weeks > 0 ? `Série : ${w}` : null;
+}
+
 /** « 5 formes apprises sur 5, dont 2 maîtrisées · 3 à rafraîchir » : apprise ne veut pas dire « fini ». */
 export function pathCountText(learned: number, mastered: number, due: number, total: number): string {
   const s = (k: number) => (k > 1 ? 's' : '');
