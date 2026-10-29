@@ -78,7 +78,7 @@ await page.waitForFunction(() => window.__training?.mic?.state?.() === 'listenin
 const state = await page.evaluate(() => window.__training.mic.state());
 console.log('état du micro :', state);
 if (state !== 'listening') {
-  const msg = await page.locator('.numpad-feedback').textContent().catch(() => null);
+  const msg = await page.locator('.verdict').textContent().catch(() => null);
   console.log('message :', msg);
   await page.screenshot({ path: `${OUT}/mic-echec-${WIDTH}x${HEIGHT}.png`, fullPage: true });
   await browser.close();
@@ -102,7 +102,7 @@ for (let s = 0; s < SECONDS; s++) {
       const f = window.__training.mic.last();
       return f ? { hz: Math.round(f.hz * 10) / 10, midi: f.midi, cents: Math.round(f.cents), stable: f.stable?.midi ?? null } : null;
     })(),
-    feedback: document.querySelector('.numpad-feedback')?.textContent ?? null,
+    feedback: document.querySelector('.verdict')?.textContent ?? null,
   }));
   seen.push(snap);
   console.log(`t+${s + 1}s`, JSON.stringify(snap));

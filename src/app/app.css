@@ -886,6 +886,8 @@ table.kv td:first-child { color: var(--muted); }
   .shell > .next-step,
   .shell > .tab-legend,
   .shell > .tabview,
+  .shell > .verdict,
+  .shell > .seq-stage,
   .shell > .quiz-strip,
   .shell > .pos-nav,
   .shell > .cta-block,
@@ -901,6 +903,8 @@ table.kv td:first-child { color: var(--muted); }
   .span-8 { grid-column: span 8; }
   /* pleine largeur : une section seule sur sa rangée (module Accords, leçon d'accord) */
   .span-12 { grid-column: 1 / -1; }
+  /* verdict vide : pas de rangée fantôme (l'écart de grille est de 20 px) */
+  .shell > .verdict:empty { margin-top: -20px; }
 
   .panel { padding: 16px 18px; }
   .panel-head { margin-bottom: 10px; }
@@ -1097,9 +1101,32 @@ table.kv td:first-child { color: var(--muted); }
 .key:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .key-ok { border-color: var(--green); color: var(--green); }
 .key-alt { border-color: var(--line-soft); color: var(--muted); }
-.numpad-feedback { margin-top: 8px; }
-.numpad-feedback.ok { color: var(--ok); }
-.numpad-feedback.no { color: var(--danger); }
+/* verdict de l'exercice : juste sous la tablature, lisible à 1-2 m (texte courant, pas de police pixel).
+   Vide, il ne prend aucune place mais reste une région annoncée au lecteur d'écran. */
+.verdict {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--text);
+  background: var(--surface);
+  border: var(--bw) solid var(--line);
+  text-wrap: pretty;
+}
+.verdict:empty { padding: 0; border: 0; }
+.verdict.ok { border-color: var(--ok); }
+.verdict.no { border-color: var(--danger); }
+.verdict.info { font-size: 17px; font-weight: 500; color: var(--muted); }
+.verdict-mark { font-size: 22px; flex: none; }
+.verdict.ok .verdict-mark { color: var(--ok); }
+.verdict.no .verdict-mark { color: var(--danger); }
+@media (max-width: 899px) {
+  /* téléphone : l'écart de bloc ne s'applique pas à une région vide */
+  .shell > .verdict:empty { margin-block: calc(-1 * var(--gap-block)) 0; }
+}
 
 /* --- résultat d'une série --- */
 .result-stars {
@@ -1813,6 +1840,36 @@ table.kv td:first-child { color: var(--muted); }
 .mic-line.on { border-color: var(--green); background: rgba(124, 255, 107, 0.08); }
 .mic-line-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
 .mic-line-title { font-size: 14px; font-weight: 600; }
+.mic-line-error { color: var(--danger); }
+/* dans la colonne étroite du panneau Réponse : le texte au-dessus, le bouton sur toute la largeur */
+.numpad-panel .mic-line .btn { flex: 1 1 100%; }
+/* aide « clavier physique » : sans objet sur un écran tactile */
+@media (hover: none) and (pointer: coarse) { .numpad-hint { display: none; } }
+
+/* Séquences : la « scène » au-dessus de la tablature — tempo, décompte, verdict de passe, bouton.
+   Le seul bloc en accent de l'écran : c'est lui qu'on lit de loin pendant qu'on joue. */
+.seq-stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 14px;
+  background: var(--surface);
+  border: var(--bw) solid var(--magenta);
+  box-shadow: 0 0 16px -6px var(--magenta), var(--shadow) var(--shadow) 0 var(--shadow-ink);
+}
+.seq-tempo { display: flex; align-items: baseline; gap: 12px; flex: none; }
+.seq-bpm { font-family: var(--font-display); font-size: 28px; line-height: 1.2; color: var(--text); }
+.seq-shift { font-size: 20px; font-weight: 700; }
+.seq-shift.up { color: var(--ok); }
+.seq-shift.down { color: var(--orange); }
+.seq-now { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.seq-line { display: flex; align-items: baseline; gap: 8px; font-size: 20px; font-weight: 650; line-height: 1.35; text-wrap: pretty; }
+.seq-line.ok .verdict-mark { color: var(--ok); }
+.seq-line.no .verdict-mark { color: var(--danger); }
+.seq-idle { font-size: 17px; font-weight: 500; color: var(--muted); }
+.seq-count { font-family: var(--font-display); font-size: 48px; line-height: 1.1; color: var(--cyan); }
+@media (max-width: 519px) { .seq-stage .btn { flex: 1 1 100%; } }
 .exercise-start { margin: 12px 0 8px; }
 .exercise-start .btn { flex: 1 1 140px; }
 @media (max-width: 519px) { .exercise-start .btn { flex: 1 1 100%; } }
@@ -2264,10 +2321,16 @@ table.kv td:first-child { color: var(--muted); }
    fond et sa bordure (sinon on voit une boîte dans une boîte), sa case passe à 26 px et son libellé à
    15 px : c'était un petit contrôle de formulaire, illisible au milieu de l'écran. */
 .listen-band {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
   padding: 12px 14px;
   background: var(--surface);
   border: 2px solid var(--line-soft);
 }
+/* deux façons de jouer avec la tablature, côte à côte ; l'aide du quiz prend toute la largeur */
+.listen-band .switch { flex: 1 1 260px; }
+.listen-band > p { flex: 1 1 100%; margin: 0; }
 /* au bureau, la page est une grille de 12 colonnes : sans cette ligne la bande tombait dans UNE
    colonne (90 px), et la phrase se repliait sur 158 px de haut (mesuré) */
 @media (min-width: 900px) {

@@ -379,7 +379,7 @@ export function ScaleDiscoveryPage() {
         </div>
       </Panel>
 
-      <Panel className="span-5 panel-fill" accent="violet" label="Lecture">
+      <Panel className="span-5 panel-fill" label="Lecture">
         {/* Une phrase sur la gamme elle-même (« mêmes notes que Do majeur ») : elle ouvre le panneau,
             au lieu de traîner en bas après les options, où elle n'avait ni sujet ni étiquette. */}
         {r.parent && <p className="t-small t-dim">{r.parent}</p>}
@@ -479,6 +479,19 @@ export function ScaleDiscoveryPage() {
             hint="la note que tu joues s’allume sur la position"
             inline
           />
+          {/* sans instrument : l'interrupteur vit à côté de la tablature qu'il interroge, pas 600 px plus bas */}
+          <Switch
+            checked={quiz}
+            onChange={toggleQuiz}
+            label="Montre-moi la note"
+            hint="l’app demande une fonction, tu touches la pastille"
+            inline
+          />
+          {quiz && (
+            <p className="t-small t-dim">
+              Les fonctions demandées sont celles qui sont affichées : « Fondamentales », dans « Plus d’options », réduit la difficulté.
+            </p>
+          )}
         </div>
       )}
 
@@ -505,37 +518,13 @@ export function ScaleDiscoveryPage() {
         </PixelButton>
         <p className="t-small t-dim">
           Le micro valide chaque note : tu la joues, la case se remplit. Sans micro, le pavé numérique
-          prend le relais.
+          prend le relais. Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature : seule une
+          tentative de l’exercice sert à la révision, une écoute ici ne prouve rien.
         </p>
       </div>
 
-      <Panel
-        className="span-12"
-        accent="green"
-        label="Sans instrument"
-        right={quiz ? <span className="tag">{score.right}/{score.right + score.wrong}</span> : undefined}
-      >
-        <Switch
-          checked={quiz}
-          onChange={toggleQuiz}
-          label="Montre-moi la note"
-          hint="l’app demande une fonction, tu touches la pastille"
-        />
-        <p className="t-small t-dim">
-          Tu lis la tablature, tu touches la note demandée. Les fonctions proposées sont celles qui sont affichées :
-          active « Fondamentales » dans « Plus d’options » pour réduire la difficulté.
-        </p>
-        <div className="row">
-          <PixelButton variant="primary" onClick={() => navigate('training')}>S’exercer · trous</PixelButton>
-        </div>
-        <p className="t-small t-dim">
-          Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature. Une tentative enregistrée dans l’exercice
-          sert à la révision ; une écoute ici ne prouve rien.
-        </p>
-      </Panel>
-
       {neighbourId && neighbour && (
-        <Panel className="span-12" accent="cyan" label={`Comparer à ${neighbour.nameFr.toLowerCase()}`}>
+        <Panel className="span-12" label={`Comparer à ${neighbour.nameFr.toLowerCase()}`}>
           <Switch
             checked={compare}
             onChange={setCompare}
@@ -588,7 +577,7 @@ export function ScaleDiscoveryPage() {
         </Panel>
       )}
 
-      <Panel className="span-12" accent="violet" label="Couleurs = fonctions">
+      <Panel className="span-12" label="Couleurs = fonctions">
         <div className="legend">
           {legend.map((it) => (
             <div key={it.fn} className="legend-item">
@@ -605,7 +594,7 @@ export function ScaleDiscoveryPage() {
       </Panel>
 
       {r.hint && (
-        <Panel className="span-12" accent="yellow" label="Ce que tu écoutes">
+        <Panel className="span-12" label="Ce que tu écoutes">
           <p className="t-body">{r.hint}</p>
         </Panel>
       )}

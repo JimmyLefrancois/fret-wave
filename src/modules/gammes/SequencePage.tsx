@@ -62,6 +62,8 @@ export function SequencePage() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [ladder, setLadder] = useState<LadderState | null>(null);
   const [lastPass, setLastPass] = useState<PassResult | null>(null);
+  // dernier changement de palier (+4, −5, 0) : affiché en grand, c'est le moment qui motive
+  const [shift, setShift] = useState(0);
   const [manualBpm, setManualBpm] = useState(60);
   const [now, setNow] = useState(() => Date.now());
   const [saved, setSaved] = useState<{ xp: number; verified: boolean } | null>(null);
@@ -149,7 +151,9 @@ export function SequencePage() {
     s.verified = true;
     for (const st of res.missedStrings) s.missed.add(st);
     setLastPass(res);
-    setLadder(ladderStep(lad, res.ok));
+    const next = ladderStep(lad, res.ok);
+    setShift(next.bpm - lad.bpm);
+    setLadder(next);
     setPhase('between');
   };
 
@@ -182,6 +186,7 @@ export function SequencePage() {
     session.current = { startedAt: Date.now(), correct: 0, total: 0, missed: new Set(), verified: false };
     setSaved(null);
     setLastPass(null);
+    setShift(0);
     const lad = ladderStart(start);
     // sans micro, le « palier » ne bouge jamais : il ne sert qu'à porter le tempo manuel
     setLadder(lad);
@@ -363,6 +368,39 @@ export function SequencePage() {
         <span className="tag tag-on">{ladder ? `♪ ${bpm}` : 'Séquences'}</span>
       </header>
 
+      {/* scène : tempo, décompte, verdict de passe et bouton principal, au-dessus de la tablature —
+          c'est ce qu'on regarde de loin, les mains sur le manche */}
+      <section className="seq-stage" aria-label="Passe en cours">
+        <div className="seq-tempo">
+          <span className="seq-bpm">♪ {bpm}</span>
+          {shift !== 0 && (
+            <span className={`seq-shift ${shift > 0 ? 'up' : 'down'}`} role="status">
+              {shift > 0 ? `↑ +${shift}` : `↓ ${shift}`} BPM
+            </span>
+          )}
+        </div>
+        <div className="seq-now">
+          {countLeft !== null ? (
+            <p className="seq-count" aria-live="assertive">{countLeft}</p>
+          ) : phase === 'pass' ? (
+            <p className="seq-line" aria-live="polite">Joue la séquence sur le métronome.</p>
+          ) : lastPass ? (
+            <p className={`seq-line ${lastPass.ok ? 'ok' : 'no'}`} role="status">
+              <span className="verdict-mark" aria-hidden="true">{lastPass.ok ? '✓' : '✕'}</span>
+              {Math.round(lastPass.accuracy * 100)} % · {lastPass.inTime ? 'en place' : 'pas en place'} — {lastPass.ok ? 'réussie' : 'à reprendre'}
+            </p>
+          ) : (
+            <p className="seq-line seq-idle">{listening ? 'Micro ouvert : chaque passe est jugée.' : 'Sans micro : tempo manuel, rien n’est vérifié.'}</p>
+          )}
+          {ladder?.best ? <p className="t-small t-dim">validé : {ladder.best} BPM</p> : null}
+        </div>
+        {ladder ? (
+          <PixelButton variant="primary" onClick={stopSession}>Terminer la session</PixelButton>
+        ) : (
+          <PixelButton variant="primary" onClick={begin}>▶ Commencer {listening ? `(${startTempo(readAttempts(progressStore()), form, pattern)} BPM)` : `à ${manualBpm} BPM`}</PixelButton>
+        )}
+      </section>
+
       <TabView
         score={score}
         notes={settings.noteNotation}
@@ -377,7 +415,7 @@ export function SequencePage() {
         {...(cursor ? { activeHoleKey: cursor } : {})}
       />
 
-      <Panel className="span-7" accent="magenta" label="Séquence" right={<span className="badge">{phase === 'pass' && listening ? `${consumed} / ${targets.length}` : `${targets.length} notes`}</span>}>
+      <Panel className="span-7" label="Séquence" right={<span className="badge">{phase === 'pass' && listening ? `${consumed} / ${targets.length}` : `${targets.length} notes`}</span>}>
         <div className="field">
           <span className="t-label">Motif</span>
           <Segmented<SequencePattern>
@@ -411,25 +449,10 @@ export function SequencePage() {
             <span className="t-small t-dim">BPM en croches</span>
           </div>
         )}
-        {countLeft !== null && <p className="blind-count" aria-live="assertive">{countLeft}</p>}
-        {phase === 'pass' && <p className="t-body" aria-live="polite">Joue la séquence sur le métronome.</p>}
-        {lastPass && (
-          <p className={`t-small ${lastPass.ok ? '' : 't-dim'}`} role="status">
-            Dernière passe : {Math.round(lastPass.accuracy * 100)} % justes · {lastPass.inTime ? 'en place' : 'pas en place'} —{' '}
-            {lastPass.ok ? 'réussie' : 'à reprendre'}
-            {ladder ? ` · prochaine à ${ladder.bpm} BPM` : ''}
-            {ladder?.best ? ` · validé : ${ladder.best} BPM` : ''}
-          </p>
-        )}
         {ladder && pauseDue(sessionMs) && (
           <p className="t-small" role="status">Dix minutes de séquences : une pause de deux minutes, main relâchée, et la précision revient.</p>
         )}
         <div className="row exercise-start">
-          {ladder ? (
-            <PixelButton variant="primary" onClick={stopSession}>Terminer la session</PixelButton>
-          ) : (
-            <PixelButton variant="primary" onClick={begin}>▶ Commencer {listening ? `(${startTempo(readAttempts(progressStore()), form, pattern)} BPM)` : `à ${manualBpm} BPM`}</PixelButton>
-          )}
           <PixelButton variant="quiet" onClick={() => navigate('training')} disabled={!!ladder}>Exercice de mémoire</PixelButton>
         </div>
         {saved && (
@@ -442,7 +465,7 @@ export function SequencePage() {
         {status && <p className="t-small numpad-feedback no" role="status">{status}</p>}
       </Panel>
 
-      <Panel className="span-5" accent="cyan" label="Ce que ça mesure">
+      <Panel className="span-5" label="Ce que ça mesure">
         {listening && (
           <MicStrip
             engine={engine}

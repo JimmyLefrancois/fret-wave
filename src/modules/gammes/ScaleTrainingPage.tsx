@@ -107,7 +107,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const [errors, setErrors] = useState<Record<string, number>>({});
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [entry, setEntry] = useState('');
-  const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ ok: boolean; text: string; info?: true } | null>(null);
+  // erreur d'ouverture du micro : affichée à côté du bouton qui l'a provoquée, pas dans le verdict
+  const [micError, setMicError] = useState<string | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [result, setResult] = useState<Result | null>(null);
@@ -211,15 +213,6 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     setGrid('off');
   }, []);
 
-  // une session mélangée demandée par l'URL démarre tout de suite (une seule fois)
-  const autoStarted = useRef(false);
-  useEffect(() => {
-    if (!initialMixed || autoStarted.current) return;
-    autoStarted.current = true;
-    startMixed();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialMixed]);
-
   // --- remise à zéro quand la cible change (gamme, position, niveau, segment, trous)
   useEffect(() => {
     setMarks({});
@@ -239,6 +232,16 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     setGrid('off');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selection.scaleId, selection.tonic, selection.tuningId, selection.system, selection.positionIndex, level, segment, seed]);
+
+  // une session mélangée demandée par l'URL démarre tout de suite (une seule fois) —
+  // déclarée après la remise à zéro, qui sinon effaçait « aucune forme à réviser » au montage
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!initialMixed || autoStarted.current) return;
+    autoStarted.current = true;
+    startMixed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMixed]);
 
   useEffect(() => {
     if (startedAt === null || result) return;
@@ -278,7 +281,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       // le chrono repart de la grille : sinon une grille lancée puis abandonnée compte dans la tentative
       setStartedAt(Date.now());
       setGrid('running');
-      setFeedback({ ok: true, text: `grille : ${g.beats} temps à ${g.score.tempo} BPM (${g.seconds.toFixed(1)} s)` });
+      setFeedback({ ok: true, info: true, text: `grille : ${g.beats} temps à ${g.score.tempo} BPM (${g.seconds.toFixed(1)} s)` });
     } catch (e) {
       setFeedback({ ok: false, text: `métronome indisponible : ${(e as Error).message}` });
       setGrid('off');
@@ -560,7 +563,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       .flatMap((m) => m.events.flatMap((e) => e.notes))
       .find((n) => !n.muted && !n.hidden && n.midi === note.midi);
     if (written) {
-      setFeedback({ ok: true, text: `${fmtNote(noteNameOf(note.midi), settings.noteNotation)} est déjà écrite dans ce segment — vise un emplacement vide.` });
+      setFeedback({ ok: true, info: true, text: `${fmtNote(noteNameOf(note.midi), settings.noteNotation)} est déjà écrite dans ce segment — vise un emplacement vide.` });
       return;
     }
     applyVerdict(verdict, note.midi);
@@ -573,7 +576,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
   const onPick = (pick: TabPick) => {
     if (!pick.hidden) {
-      setFeedback({ ok: true, text: 'cette case est déjà écrite : touche un emplacement vide' });
+      setFeedback({ ok: true, info: true, text: 'cette case est déjà écrite : touche un emplacement vide' });
       return;
     }
     setActiveKey(holeKey(pick.columnIndex, pick.string));
@@ -618,6 +621,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     }
     let cancelled = false;
     setMicBusy(true);
+    setMicError(null);
     void (async () => {
       try {
         await AudioEngine.get().unlock(); // dans le geste qui a basculé l'interrupteur
@@ -632,12 +636,12 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         setMicState(e.state);
         if (e.state !== 'listening') {
           const info = describeInputError(e.state, e.error);
-          setFeedback({ ok: false, text: `${info.message} — ${info.hint}` });
+          setMicError(`${info.message} — ${info.hint}`);
           setMicOn(false);
         }
       } catch (err) {
         if (!cancelled) {
-          setFeedback({ ok: false, text: `micro indisponible : ${(err as Error).message}` });
+          setMicError(`le micro n’a pas pu s’ouvrir — réessaie ; le pavé reste un secours complet. (navigateur : ${(err as Error).message})`);
           setMicOn(false);
         }
       } finally {
@@ -889,12 +893,26 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       {!(coldActive && !result) && <TabLegend def={r.def} readonly={settings.reduceMotion} />}
 
 
-      <Panel className="span-7" accent="magenta" label="Exercice" right={<span className="badge">{done} / {total}</span>}>
+      {/* verdict : sous la tablature, là où sont les yeux — pas au bas du pavé */}
+      <p className={`verdict ${feedback ? (feedback.info ? 'info' : feedback.ok ? 'ok' : 'no') : ''}`} role="status">
+        {feedback && !feedback.info && <span className="verdict-mark" aria-hidden="true">{feedback.ok ? '✓' : '✕'}</span>}
+        {feedback?.text}
+      </p>
+
+      <Panel
+        className="span-5 numpad-panel"
+        {...(result ? {} : { accent: 'cyan' as const })}
+        label="Réponse"
+        right={activeStringLabel ? <span className="tag">corde de {activeStringLabel}</span> : <span className="tag">aucun trou</span>}
+      >
         <div className={`mic-line ${micState === 'listening' ? 'on' : ''}`}>
           <div className="mic-line-body">
             <span className="mic-line-title">
               {micState === 'listening' ? 'Micro ouvert : joue la note, elle se remplit' : 'Valide au micro (tu joues) ou au pavé (tu tapes)'}
             </span>
+            {micError ? (
+              <span className="t-small mic-line-error" role="alert">{micError}</span>
+            ) : (
             <span className="t-small t-dim">
               {micBusy
                 ? 'ouverture du périphérique…'
@@ -902,6 +920,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
                   ? 'le pavé numérique reste disponible à tout moment'
                   : 'le micro ou l’interface USB doit être branché avant d’ouvrir'}
             </span>
+            )}
           </div>
           {micState === 'listening' ? (
             <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer</PixelButton>
@@ -911,6 +930,37 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             </PixelButton>
           )}
         </div>
+        {micOn && (
+          <MicStrip
+            engine={engine}
+            notation={settings.noteNotation}
+            thresholdDb={input.thresholds[input.source]}
+            tolerance={input.centsTolerance}
+            tuning={r.tuning}
+            a4={input.a4}
+          />
+        )}
+        <p className="sr-only" aria-live="polite">
+          {activeIndex > 0 && activeStringLabel ? `Emplacement ${activeIndex} sur ${total}, corde de ${activeStringLabel}. Flèches gauche et droite pour changer.` : ''}
+        </p>
+        <div className="numpad-entry" aria-live="polite">
+          <span className="numpad-label">{activeStringLabel ? 'Case ?' : 'touche un emplacement vide'}</span>
+          <span className="numpad-digits">{entry || '—'}</span>
+        </div>
+        <div className="numpad">
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+            <button key={d} type="button" className="key" onClick={() => press(d)} disabled={!activeHole || !!result}>{d}</button>
+          ))}
+          <button type="button" className="key key-alt" onClick={() => setEntry('')} disabled={!entry}>C</button>
+          <button type="button" className="key" onClick={() => press('0')} disabled={!activeHole || !!result}>0</button>
+          <button type="button" className="key key-ok" onClick={validate} disabled={!activeHole || entry === '' || !!result}>✓</button>
+        </div>
+        <p className="t-small t-dim numpad-hint">
+          Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
+        </p>
+      </Panel>
+
+      <Panel className="span-7" label="Exercice" right={<span className="badge">{done} / {total}</span>}>
         {mixed && queue.length > 0 && (
           <p className="t-small">
             Formes : {queue.map((t) => `${t.title} (${t.positionLabel})`).join(' → ')}.
@@ -1033,39 +1083,6 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         </details>
       </Panel>
 
-      <Panel className="span-5 numpad-panel" accent="cyan" label={micOn ? 'Micro · pavé en secours' : 'Pavé numérique'} right={activeStringLabel ? <span className="tag">corde de {activeStringLabel}</span> : <span className="tag">aucun trou</span>}>
-        {micOn && (
-          <MicStrip
-            engine={engine}
-            notation={settings.noteNotation}
-            thresholdDb={input.thresholds[input.source]}
-            tolerance={input.centsTolerance}
-            tuning={r.tuning}
-            a4={input.a4}
-          />
-        )}
-        <p className="sr-only" aria-live="polite">
-          {activeIndex > 0 && activeStringLabel ? `Emplacement ${activeIndex} sur ${total}, corde de ${activeStringLabel}. Flèches gauche et droite pour changer.` : ''}
-        </p>
-        <div className="numpad-entry" aria-live="polite">
-          <span className="numpad-label">{activeStringLabel ? 'Case ?' : 'touche un emplacement vide'}</span>
-          <span className="numpad-digits">{entry || '—'}</span>
-        </div>
-        <div className="numpad">
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-            <button key={d} type="button" className="key" onClick={() => press(d)} disabled={!activeHole || !!result}>{d}</button>
-          ))}
-          <button type="button" className="key key-alt" onClick={() => setEntry('')} disabled={!entry}>C</button>
-          <button type="button" className="key" onClick={() => press('0')} disabled={!activeHole || !!result}>0</button>
-          <button type="button" className="key key-ok" onClick={validate} disabled={!activeHole || entry === '' || !!result}>✓</button>
-        </div>
-        <p className="t-small t-dim">
-          Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
-        </p>
-        {feedback && (
-          <p className={`t-small numpad-feedback ${feedback.ok ? 'ok' : 'no'}`} role="status">{feedback.text}</p>
-        )}
-      </Panel>
 
 
       {sessionDone && mixed ? (

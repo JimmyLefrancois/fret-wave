@@ -277,10 +277,10 @@ export function ImproPage() {
       <header className="page-head">
         <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour">‹</button>
         <div>
-          <h1>Improviser</h1>
-          <p>{lane} · {tempo} BPM</p>
+          <h1 className="page-title">Improviser</h1>
+          <p className="t-small t-dim">{lane} · {tempo} BPM</p>
         </div>
-        <span className="tag">N4</span>
+        <span className="tag tag-on">N4</span>
       </header>
 
       <Panel className="span-5" accent="magenta" label="Accompagnement">
@@ -297,6 +297,7 @@ export function ImproPage() {
           <span className="t-body impro-tempo">{tempo} BPM</span>
           <PixelButton variant="quiet" className="impro-step" onClick={() => setTempo((t) => Math.min(140, t + 4))} aria-label="Plus vite">+</PixelButton>
         </div>
+        <Switch checked={micOn} onChange={setMicOn} label={micBusy ? 'Micro…' : 'Micro'} hint="tes notes s’inscrivent sur la tablature" />
         <div className="row">
           {transport === 'stopped' ? (
             <PixelButton variant="primary" onClick={() => void start()} disabled={!score}>▶ Démarrer</PixelButton>
@@ -304,11 +305,10 @@ export function ImproPage() {
             <PixelButton variant="primary" onClick={stop}>■ Arrêter</PixelButton>
           )}
         </div>
-        <Switch checked={micOn} onChange={setMicOn} label={micBusy ? 'Micro…' : 'Micro'} hint="tes notes s’inscrivent sur la tablature" />
         {status && <p className="t-small ko">{status}</p>}
       </Panel>
 
-      <Panel className="span-7" accent="cyan" label="La grille">
+      <Panel className="span-7" label="La grille">
         <div className="impro-grid">
           {backing.chords.map((c, i) => {
             const name = chordName(((tonicPc + c.offset) % 12 + 12) % 12, c.quality);
@@ -328,7 +328,7 @@ export function ImproPage() {
       </Panel>
 
       {score && (
-        <Panel className="span-12" accent="magenta" label="Ta position">
+        <Panel className="span-12" label="Ta position">
           <TabView
             score={score}
             notes={settings.noteNotation}
@@ -345,7 +345,7 @@ export function ImproPage() {
         </Panel>
       )}
 
-      <Panel className="span-12" accent="green" label="Ta prise" right={live ? <span className="badge">{live.notes} notes</span> : undefined}>
+      <Panel className="span-12" label="Ta prise" right={live ? <span className="badge">{live.notes} notes</span> : undefined}>
         {recent.length === 0 ? (
           <p className="t-small t-dim">Aucune note encore. Ouvre le micro, démarre l’accompagnement, et joue ce que tu entends.</p>
         ) : (
