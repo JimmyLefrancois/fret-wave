@@ -680,7 +680,7 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 }
 .pos-count { color: var(--dim); }
 
-.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-block-end: var(--gap-inside); }
 .legend-item { display: flex; align-items: center; gap: 8px; }
 .legend-pill {
   flex: none;
