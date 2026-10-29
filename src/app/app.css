@@ -1914,8 +1914,8 @@ table.kv td:first-child { color: var(--muted); }
   .numpad-panel .numpad-hint { display: none; }
   /* la page laisse la place de la barre au-dessus de la navigation */
   .app-content:has(.answer-bar) { padding-bottom: calc(57px + 150px + env(safe-area-inset-bottom, 0px)); }
-  /* le panneau ne colle plus en haut : la barre fait déjà ce travail */
-  .numpad-panel { position: static; box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
+  /* le panneau ne colle plus en haut (la barre fait ce travail) ; « relative », pas « static » : ses coins décoratifs (::before/::after) s'ancrent sur lui, sinon ils dépassent la page de 2 px */
+  .numpad-panel { position: relative; box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
 }
 
 /* « Comment c'est noté ? » : tout le barème d'un écran, replié en un seul endroit */
