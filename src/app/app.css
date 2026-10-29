@@ -174,8 +174,8 @@ a { color: var(--cyan); }
   color: var(--muted);
   line-height: 1.6;
 }
-.t-body { font-size: 16.5px; line-height: 1.55; }
-.t-small { font-size: 14.5px; color: var(--muted); line-height: 1.55; }
+.t-body { font-size: 16.5px; line-height: 1.55; text-wrap: pretty; }
+.t-small { font-size: 14.5px; color: var(--muted); line-height: 1.55; text-wrap: pretty; }
 .t-dim { color: var(--dim); }
 /* lu par les lecteurs d'écran, invisible à l'œil */
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -547,7 +547,7 @@ a { color: var(--cyan); }
 .module-facts { list-style: none; padding: 0; display: grid; gap: 1px; }
 .module-facts li::before { content: '· '; color: var(--accent); }
 .module .btn { margin-top: 6px; }
-.foot-note { margin: 18px 0 6px; }
+.foot-note { margin: 18px 0 6px; max-width: 75ch; }
 
 /* --- sélection de gamme ----------------------------------------------------- */
 
@@ -567,7 +567,8 @@ a { color: var(--cyan); }
 .scale-row:hover { border-color: var(--cyan); }
 .scale-row.on { border-color: var(--magenta); background: rgba(255, 42, 109, 0.1); }
 .scale-name { grid-area: name; font-size: 15.5px; font-weight: 500; color: var(--text); }
-.scale-deg { grid-area: deg; font-family: var(--font-label); font-weight: 400; font-size: 11px; color: var(--dim); letter-spacing: 0.05em; }
+/* formule de la gamme : texte lu (♭ et ♯ compris), pas une étiquette — sans-serif, chiffres tabulaires */
+.scale-deg { grid-area: deg; font-size: 13.5px; font-weight: 500; color: var(--dim); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
 .scale-n { grid-area: n; font-family: var(--font-label); font-weight: 400; font-size: 11px; color: var(--dim); }
 .scale-row.on .scale-n { color: var(--magenta); }
 
@@ -1003,10 +1004,11 @@ table.kv td:first-child { color: var(--muted); }
 }
 .quiz-strip.ok { background: rgba(124, 255, 107, 0.2); }
 .quiz-strip.no { border-color: var(--danger); background: rgba(255, 92, 122, 0.14); }
-.quiz-q { font-family: var(--font-label); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+/* la question du quiz est tout l'exercice : lisible de loin, en texte courant */
+.quiz-q { font-size: 20px; font-weight: 650; line-height: 1.3; }
 .quiz-q strong { color: var(--green); }
 .quiz-strip.no .quiz-q strong { color: var(--danger); }
-.quiz-q em { font-style: normal; font-family: var(--font-body); font-size: 14px; text-transform: none; color: var(--muted); letter-spacing: 0; }
+.quiz-q em { font-style: normal; font-size: 16px; font-weight: 500; color: var(--muted); }
 .quiz-score { font-family: var(--font-body); font-size: 14.5px; color: var(--text); margin-left: auto; }
 .comp-label { margin: 10px 0 2px; color: var(--cyan); }
 
@@ -1066,12 +1068,11 @@ table.kv td:first-child { color: var(--muted); }
   border: var(--bw) solid var(--line);
   background: var(--bg);
 }
+/* consigne du pavé (« touche un emplacement vide », « Case ? ») : une phrase à lire, donc en texte courant */
 .numpad-label {
-  font-family: var(--font-label);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--muted);
-  text-transform: uppercase;
   line-height: 1.4;
 }
 .numpad-digits {
@@ -1620,6 +1621,15 @@ table.kv td:first-child { color: var(--muted); }
 .adv-settings > summary::before { content: '▸ '; }
 .adv-settings[open] > summary::before { content: '▾ '; }
 .adv-settings[open] > summary { margin-bottom: 8px; }
+/* un sommaire de dépliant est une commande à lire : texte courant, même avec la classe d'étiquette */
+.adv-settings > summary.t-label,
+.more-opts > summary.t-label {
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
 
 /* ---- accueil simplifié et liste des positions (branche ui/simplification) ------------------------- */
 /* affiche d'accueil : le soleil du décor passe DERRIÈRE le titre, comme dans la 1re version */
