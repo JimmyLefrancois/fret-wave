@@ -552,7 +552,8 @@ a { color: var(--cyan); }
 .module-body { display: grid; gap: 4px; min-width: 0; }
 .module-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .module h3 { font-family: var(--font-body); font-weight: 650; font-size: 15.5px; color: var(--text); }
-.module-facts { list-style: none; padding: 0; display: grid; gap: 1px; }
+/* un élément sur deux lignes se lisait comme la suite du précédent à 1 px : l'écart serré les sépare */
+.module-facts { list-style: none; padding: 0; display: grid; gap: var(--gap-tight); }
 .module-facts li::before { content: '· '; color: var(--accent); }
 .module .btn { margin-top: 6px; }
 .foot-note { margin: 18px 0 6px; max-width: 75ch; }
@@ -668,7 +669,7 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 }
 /* valeur de tempo : un nombre qu'on lit en jouant — texte courant, chiffres tabulaires */
 .tempo-val { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; padding: 0 4px; min-width: 64px; text-align: center; }
-.toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; margin-top: 8px; }
+.toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-inside); margin-top: 8px; }
 .status { margin-top: 6px; }
 
 .pos-nav {
@@ -1344,6 +1345,8 @@ table.kv td:first-child { color: var(--muted); }
 .chord-row.learned { border-color: var(--green); }
 .chord-row.locked { opacity: 0.82; }
 .chord-main { min-width: 0; flex: 1 1 220px; display: grid; gap: 1px; }
+/* le nom et ses notes vont ensemble ; la phrase de prof qui suit est un autre bloc */
+.chord-main > p + p { margin-block-start: var(--gap-tight); }
 .chord-name {
   display: flex;
   align-items: baseline;
@@ -1739,6 +1742,8 @@ table.kv td:first-child { color: var(--muted); }
 /* premier lancement : deux étapes numérotées, une seule action primaire */
 .home-steps { list-style: none; display: grid; gap: var(--gap-inside); padding: 0; margin-block: var(--gap-inside) 0; }
 .home-steps > li { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: var(--gap-inside); }
+/* une étape dépliée (« et 3 autres ») : la pastille reste en face de sa première ligne, pas au milieu de la liste */
+.home-steps > li:has(details[open]) { align-items: start; }
 .home-step-n { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-family: var(--font-label); font-weight: 700; color: var(--magenta); border: var(--bw) solid var(--magenta); }
 .home-step-text { font-size: 16px; font-weight: 600; color: var(--text); }
 /* pourquoi cette étape (séance du jour) : sous le titre de l'étape, plus discret que lui */
@@ -1887,6 +1892,7 @@ table.kv td:first-child { color: var(--muted); }
 .next-step-row .btn { width: 100%; min-width: 0; padding-inline: 6px; line-height: 1.25; white-space: normal; }
 @media (max-width: 379px) { .next-step-row .btn { font-size: 11.5px; letter-spacing: 0; padding-inline: 3px; } }
 .next-step > p { max-width: 75ch; }
+.next-step-row + p { margin-block-start: var(--gap-inside); }
 .mic-line {
   display: flex;
   flex-wrap: wrap;
@@ -2286,32 +2292,7 @@ table.kv td:first-child { color: var(--muted); }
 .hero,
 .quiz-strip { margin-block: 0; }
 
-/* à l'intérieur d'un panneau : un écart constant entre deux sous-blocs… */
-.panel > * + * { margin-block-start: var(--gap-inside); }
-/* …sauf les paires qui vont ensemble : une étiquette et ce qu'elle annonce restent collées */
-.panel > .t-label + * { margin-block-start: var(--gap-tight); }
-
-/* dernière ligne d'une page : un peu d'air avant la barre, jamais collée */
-.home-foot { margin-block-start: var(--gap-block); }
-
-/* marges héritées de composants, ramenées à l'échelle (elles passaient au-dessus du rythme) */
-.foot-note { margin-block: var(--gap-inside) 0; }
-.group-note { margin-block: var(--gap-tight) 0; }
-.field { margin-block: 0; }
-.field + .field { margin-block-start: var(--gap-inside); }
-.more-opts { margin-block-start: var(--gap-inside); }
-.position-note { margin-block-start: var(--gap-inside); }
-.exercise-start { margin-block: var(--gap-inside) 0; }
-.mic-line { margin-block: 0 var(--gap-inside); }
-.panel-head { margin-block: 0 0; }
-.hero-kicker { margin-block: 0 var(--gap-inside); }
-.home-foot { margin-block-start: 0; }
-.t-label { margin-block: 0; }
-.panel > .t-label + .field,
-.panel > .t-label + .segmented,
-.panel > .t-label + .tonics { margin-block-start: var(--gap-tight); }
-
-/* composants qui portaient encore leur propre marge : ils suivent le rythme, ils ne le décident pas */
+/* 1. remises à zéro : les composants qui portaient leur propre marge suivent le rythme, ils ne le décident pas */
 .mic-strip,
 .t-small,
 .t-body,
@@ -2328,17 +2309,27 @@ table.kv td:first-child { color: var(--muted); }
 .stat-line,
 .acc-list,
 .positions,
-.scale-list { margin-block: 0; }
-.panel > * + .t-label { margin-block-start: var(--gap-inside); }
-.home-foot { margin-block-start: var(--gap-block); }
-
-/* derniers porteurs de marge : le commutateur, l'aiguille de l'accordeur, et les textes déjà dans un panneau */
+.scale-list,
 .switch,
-.tuner-needle,
-.panel .t-small,
-.panel .t-body,
-.panel .t-label { margin-block: 0; }
+.tuner-needle { margin-block: 0; }
 .home-foot { margin-block-start: 0; }
+.position-note { margin-block-start: var(--gap-inside); }
+.exercise-start { margin-block: var(--gap-inside) 0; }
+.hero-kicker { margin-block: 0 var(--gap-inside); }
+.mic-line { margin-block: 0 var(--gap-inside); }
+.field + .field { margin-block-start: var(--gap-inside); }
+
+/* 2. puis le rythme, **après** les remises à zéro : à spécificité égale, la dernière règle gagne. Quand il
+   venait avant elles, tout paragraphe, rangée de boutons ou interrupteur posé dans un panneau collait au
+   bloc d'au-dessus (« le texte touche les boutons »). `tools/tight-check.mjs` le mesure. */
+.panel > * + * { margin-block-start: var(--gap-inside); }
+/* les paires qui vont ensemble restent serrées : une étiquette et ce qu'elle annonce, un titre et sa ligne */
+.panel > .t-label + *,
+.panel > .card-title + * { margin-block-start: var(--gap-tight); }
+/* un intertitre au milieu d'un panneau : plus d'air au-dessus qu'en dessous */
+.panel > * + .t-label { margin-block-start: var(--gap-block); }
+/* un repli ouvert (« Plus d'options », « Avis de prof », « Comment c'est noté ? ») suit le même rythme */
+details[open] > * + * { margin-block-start: var(--gap-inside); }
 
 /* --- écoute d'un accord plaqué (phase 5) ----------------------------------------------------------
    Une ligne par corde : nom, barre de confiance, pourcentage. Une corde non entendue passe à l'orange
