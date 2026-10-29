@@ -47,12 +47,14 @@ Observés en chargeant « Décrocheur » puis en avançant l'horloge de 7 jours 
 
 `node tools/sim-tour.mjs` : 6 personas × jours clés, 4 écrans, planche `.shots/sim-tour/index.html`.
 
-12. **Les prises d'impro deviennent des révisions dues que rien ne peut vider** (le plus grave relevé).
+12. ✅ **Corrigé (D96)** — **Les prises d'impro deviennent des révisions dues que rien ne peut vider** (le plus grave relevé).
     `cardsFrom` crée une carte Leitner pour `gam:impro:…` ; un taux de notes d'accord de 40-80 % y vaut
     un « échec », la carte reste en boîte 1. L'accueil (filtre `!acc:`) la compte : avancé à J45,
     « À réviser (5) — Dernier passage : impro, 72 % · 12 oct. », 44 jours de pratique d'affilée en
     « À réviser ». Or la file de révision (`buildReviewQueue`) n'ouvre que les séries de lecture : la
     carte ne sera jamais revue. Le rapport (étape D) le masquait, il filtre maintenant comme l'accueil.
+    *Correction* : `cardsFrom` ne crée plus de carte pour une prise d'impro. Simulation refaite :
+    l'avancé repasse en « Reprendre la gamme » (constat 2 de nouveau visible, il est réel).
 13. **La révision ouverte n'est pas celle annoncée.** L'accueil annonce « Forme 1 sur 5 à revoir »
     (les cartes d'impro) ; la page Révision lance « Session 1/5 » sur d'autres formes, choisies comme
     « fragiles » : pour un élève qui a tout maîtrisé, un exercice à trous N2, tablature visible, motif

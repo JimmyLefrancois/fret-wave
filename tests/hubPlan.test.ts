@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { dailyActivity, dayGoalText, heroSteps, hubPlan, learnedScaleForms, regressedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
-import { summarizeDay, type Attempt, type Card } from '../src/core/progress';
+import { dueNow, summarizeDay, type Attempt, type Card } from '../src/core/progress';
 
 const T0 = new Date(2026, 9, 20, 19, 0, 0).getTime();
 
@@ -212,5 +212,20 @@ describe('dayGoalText', () => {
   it('le dit quand il est atteint, et garde le vrai compte au-delà', () => {
     expect(dayGoalText(3, 3)).toEqual({ text: 'Objectif du jour atteint (3)', reached: true });
     expect(dayGoalText(5, 3).text).toBe('Objectif du jour atteint (5)');
+  });
+});
+
+describe('révisions dues et impro (D96)', () => {
+  it('une prise d’impro ne crée jamais de révision due, même ratée il y a des semaines', () => {
+    // un taux de notes d'accord à 40 % : en carte Leitner, un « échec » en boîte 1, dû à jamais
+    const impro = mk(T0 - 30 * 86_400_000, { kind: 'impro', level: 4, correct: 12, total: 30, id: 'i' });
+    expect(dueNow([impro], T0)).toEqual([]);
+    expect(hubPlan([impro], dueNow([impro], T0), new Set(), null).review).toBeNull();
+  });
+
+  it('la forme jouée note à note garde sa révision', () => {
+    const holes = mk(T0 - 30 * 86_400_000, { correct: 2, total: 3 });
+    const impro = mk(T0 - 29 * 86_400_000, { kind: 'impro', level: 4, correct: 12, total: 30, id: 'i' });
+    expect(dueNow([holes, impro], T0).map((c) => c.nodeId)).toEqual(['gam:lecture:pentatonic-minor:boxes:0']);
   });
 });

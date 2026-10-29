@@ -93,8 +93,10 @@ export function cardsFrom(attempts: readonly Attempt[], scheduler: Scheduler = l
   for (const a of [...attempts].sort((x, y) => x.ts - y.ts)) {
     const score = scoreOf(a);
     if (!isProof(a) || score === null) continue;
-    // une séquence (tablature visible) n'a rien à réviser de mémoire : pas de carte
-    if (a.kind === 'sequence') continue;
+    // une séquence (tablature visible) n'a rien à réviser de mémoire : pas de carte.
+    // Une prise d'impro non plus : son score est un taux de notes d'accord, pas un exercice réussi ou
+    // raté (D74) ; en carte, il la laissait due à jamais, alors que la révision n'ouvre pas d'impro (D96)
+    if (a.kind === 'sequence' || a.kind === 'impro') continue;
     const nodeId = nodeIdOf(a);
     const card = cards.get(nodeId) ?? null;
     cards.set(nodeId, scheduler.next(card, nodeId, outcomeFor(score), a.ts, a.level, score));
