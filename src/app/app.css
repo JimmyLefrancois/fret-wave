@@ -511,6 +511,8 @@ a { color: var(--cyan); }
 .stat-line strong { font-family: var(--font-body); font-weight: 700; font-size: 19px; color: var(--cyan); }
 /* un score raté n'emprunte pas la couleur du succès */
 .stat-line.miss strong { color: var(--orange); }
+/* le score reçoit le focus par programme (annonce du résultat) : ce n'est pas un contrôle, pas d'anneau */
+.stat-line[tabindex='-1']:focus { outline: none; }
 
 .entries { display: grid; gap: 8px; }
 .entry {
@@ -2467,13 +2469,15 @@ table.kv td:first-child { color: var(--muted); }
 .btn-quiet:hover { color: var(--text); border-color: var(--cyan); }
 
 /* un lien d'action au fil d'une phrase prend un fond de pastille */
+/* lien dans une phrase : un lien, pas une puce encadrée (le mélange lien + bouton brouillait le rôle) */
 .linkish {
-  background: var(--surface-hi);
-  border: 2px solid var(--line-soft);
-  padding: 2px 9px;
+  padding: 2px 0;
   color: var(--cyan);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
 }
-.linkish:hover { border-color: var(--cyan); color: var(--text); }
+.linkish:hover { color: var(--text); }
+.linkish:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
 /* l'en-tête est une carte comme les autres : même fond, même filet (`--bw solid --line`) que `.panel`,
    pour que titre, sous-titre et étiquette ne reposent jamais sur la scène */
