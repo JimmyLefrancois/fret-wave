@@ -415,6 +415,30 @@ export function ScaleDiscoveryPage() {
 
       <TabLegend def={r.def} readonly={settings.reduceMotion} />
 
+      {/* le chemin d'une forme en quatre niveaux : on est au 1, les trois suivants sont à un toucher */}
+      <nav className="levels" aria-label="Niveaux de travail">
+        <div className="level here" aria-current="step">
+          <span className="level-n">N1</span>
+          <span className="level-t">Découvrir</span>
+          <span className="level-s">avec le son · tu es ici</span>
+        </div>
+        <button type="button" className="level" onClick={() => navigate('training')}>
+          <span className="level-n">N2</span>
+          <span className="level-t">Trous</span>
+          <span className="level-s">compléter les notes masquées</span>
+        </button>
+        <button type="button" className="level" onClick={() => navigate('training')}>
+          <span className="level-n">N3</span>
+          <span className="level-t">Rappel</span>
+          <span className="level-s">tout de mémoire, tablature cachée</span>
+        </button>
+        <button type="button" className="level" onClick={() => navigate('impro')}>
+          <span className="level-n">N4</span>
+          <span className="level-t">Improviser</span>
+          <span className="level-s">sur un accompagnement</span>
+        </button>
+      </nav>
+
       <div className="pos-nav">
         <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>‹ Position</PixelButton>
         <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
@@ -501,30 +525,6 @@ export function ScaleDiscoveryPage() {
         </details>
         {status && <p className="t-small t-dim status">{status}</p>}
       </Panel>
-
-      {/* le chemin d'une forme en quatre niveaux : on est au 1, les trois suivants sont à un toucher */}
-      <nav className="levels" aria-label="Niveaux de travail">
-        <div className="level here" aria-current="step">
-          <span className="level-n">N1</span>
-          <span className="level-t">Découvrir</span>
-          <span className="level-s">avec le son · tu es ici</span>
-        </div>
-        <button type="button" className="level" onClick={() => navigate('training')}>
-          <span className="level-n">N2</span>
-          <span className="level-t">Trous</span>
-          <span className="level-s">compléter les notes masquées</span>
-        </button>
-        <button type="button" className="level" onClick={() => navigate('training')}>
-          <span className="level-n">N3</span>
-          <span className="level-t">Rappel</span>
-          <span className="level-s">tout de mémoire, tablature cachée</span>
-        </button>
-        <button type="button" className="level" onClick={() => navigate('impro')}>
-          <span className="level-n">N4</span>
-          <span className="level-t">Improviser</span>
-          <span className="level-s">sur un accompagnement</span>
-        </button>
-      </nav>
 
       {/* Le geste suivant, écrit noir sur blanc : on a vu la position, on la joue. Deux suites, et pas
           une seule : répéter la position (justesse) ou improviser dessus (musique) — c'est la même
