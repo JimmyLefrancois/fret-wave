@@ -322,6 +322,8 @@ describe('heroAction (porte unique D97, séance D98)', () => {
     expect(heroAction(scale, session({ next }))).toMatchObject({ route: 'training', label: '▶ Avancer', level: 2, segment: 'updown' });
     const listen = dailySession([], T0, SEL).next!;
     expect(heroAction(scale, session({ next: listen }))).toMatchObject({ route: 'scale', label: '▶ Écouter la position 1' });
+    // après 3 échecs d'affilée : revoir la forme
+    expect(heroAction(scale, session({ next: { ...listen, again: true } }))).toMatchObject({ route: 'scale', label: '▶ Revoir la position 1' });
   });
 });
 

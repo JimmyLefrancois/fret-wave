@@ -244,7 +244,12 @@ export function HubPage() {
       ? { text: `Rafraîchir ${n} forme${pl(n)}, de mémoire`, why: '', done: false, current: true }
       : rdone > 0 ? { text: `${rdone} forme${pl(rdone)} rafraîchie${pl(rdone)}`, why: '', done: true, current: false } : null;
     const second = session.next
-      ? { text: `Avancer : ${session.next.label.replace(' · ', ', ')}`, why: session.next.why, done: false, current: n === 0 }
+      ? {
+        text: session.next.again
+          ? `Revoir la forme : ${session.next.label.split(' · ')[0]}`
+          : `Avancer : ${session.next.label.replace(' · ', ', ')}`,
+        why: session.next.why, done: false, current: n === 0,
+      }
       : session.cap ? { text: `Nouveau défi : ${session.cap.title}`, why: session.cap.why, done: false, current: n === 0 } : null;
     const sessionSteps = [reviewStep, second].filter((x) => x !== null);
     if (plan.review || (resume.kind !== 'chord' && !firstSteps)) {

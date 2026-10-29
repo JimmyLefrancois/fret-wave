@@ -119,7 +119,7 @@ aucune, Si fragile 21 → **8** (voir 30). L'avancé atteint le blues mineur à 
 21. ✅ **Corrigé (D98)** — Une forme revue aujourd'hui revenait le soir même.
 27. ✅ **Résolu par le lot 2c** — Le régulier apprend de nouveau sa première forme à J3 : la séance passe
     au rappel de mémoire (N3) après deux réussites, sans attendre qu'une carte soit due.
-30. **Si fragile : 8 jours de pratique sur « Position 1, trous »**, puis 13 jours sur « Position 2, trous ».
+30. ✅ **Traité (D98, règle à l'essai)** — **Si fragile : 8 jours de pratique sur « Position 1, trous »**, puis 13 jours sur « Position 2, trous ».
     La position entière ratée en boucle (corde de Si) n'a aucun repli : la séance ne propose jamais
     l'échauffement sur 1-3 cordes ni « Revoir la forme (N1) ». Règle pédagogique à décider (question à l'auteur).
 31. **Avancé : la charge de révision grimpe avec chaque gamme** (18 formes dues à J43 sur 5 gammes ; 8 par
@@ -127,8 +127,19 @@ aucune, Si fragile 21 → **8** (voir 30). L'avancé atteint le blues mineur à 
     le plafond gêne l'élève qui suit tout le parcours. Aucune règle d'XP changée.
 32. **Avancé : plus aucune forme « vitesse vérifiée »** (5 avant le lot). Artefact du simulateur : ses séries
     de vitesse ne portent que sur la gamme en cours, qui change à chaque défi. À revoir au lot 6.
-33. **Défis « même dessin » validés en un essai** : Mi m et la transposition se valident par une réussite
+33. ✅ **Traité (D98)** — **Défis « même dessin » validés en un essai** : Mi m et la transposition se valident par une réussite
     forte (N3 ou N2 au micro) sur la position 1 ; l'avancé les passe le soir même où il finit le blues.
     Suffisant pour G1.1 / G1.4 ? (question à l'auteur).
 34. La tournée tourne à 23 h 30 : l'accueil montre l'état du soir (« 4 formes rafraîchies », « Avancer »).
     Option `--theme dawn` ajoutée à `tools/sim-tour.mjs` pour les captures en Aube.
+
+### Réponses de l'auteur aux constats 30 et 33 (2026-10-29)
+
+- **30** : « revoir la forme après 3 échecs, pour tester ». Mesure : Si fragile apprend sa première forme à
+  J9 (J14 avant) et finit à 3 formes apprises (2 avant) ; la plus longue série identique devient « Position 1,
+  revoir » 6 jours (8 avant). Le simulateur ne fait rien gagner à une écoute (sa précision ne monte qu'avec les
+  séries jouées) : il mesure le rythme du parcours, pas l'effet pédagogique de « revoir ». À juger sur un vrai
+  élève. Effet de bord : le régulier apprend sa première forme à J6 (J3 avant), ses échecs du début
+  déclenchent aussi « revoir ».
+- **33** : « critère complet ». Mi m puis Ré m prennent chacun deux jours à l'avancé (J13-J14, J15-J16) ; il
+  passe à la pentatonique majeure à J16 (J14 avant).

@@ -75,6 +75,20 @@ describe('nextFormStep', () => {
     expect(s.label).toBe('Position 2 · écouter');
   });
 
+  it('3 échecs d’affilée depuis la dernière écoute : revoir la forme (N1)', () => {
+    const listen = a({ ts: at(5), kind: 'listen', level: 1, correct: null, total: null });
+    const fails = [a({ ts: at(4), correct: 5 }), a({ ts: at(3), correct: 6 }), a({ ts: at(2), correct: 7 })];
+    const s = nextFormStep([listen, ...fails], 'pentatonic-minor', 'A', 'boxes', 'standard', NOW)!;
+    expect(s).toMatchObject({ level: 1, again: true, label: 'Position 1 · revoir la forme' });
+    expect(s.why).toBe('3 essais sous 80 % d’affilée : regarde-la et écoute-la avant de rejouer');
+    // deux échecs seulement, ou une réussite au milieu : on continue l'exercice
+    expect(nextFormStep([listen, ...fails.slice(1)], 'pentatonic-minor', 'A', 'boxes', 'standard', NOW)!.level).toBe(2);
+    expect(nextFormStep([listen, fails[0]!, a({ ts: at(3) - 1 }), ...fails.slice(1)], 'pentatonic-minor', 'A', 'boxes', 'standard', NOW)!.level).toBe(2);
+    // revue (nouvelle écoute) : le compte repart, retour à l'exercice
+    const relisten = a({ ts: at(1), kind: 'listen', level: 1, correct: null, total: null });
+    expect(nextFormStep([listen, ...fails, relisten], 'pentatonic-minor', 'A', 'boxes', 'standard', NOW)!.level).toBe(2);
+  });
+
   it('5 formes apprises : plus d’étape, la gamme est apprise', () => {
     expect(nextFormStep(allFive(), 'pentatonic-minor', 'A', 'boxes', 'standard', NOW)).toBeNull();
     expect(scaleLearned(allFive(), 'pentatonic-minor', 'A', 'boxes', 'standard')).toBe(true);
@@ -93,6 +107,19 @@ describe('nextCap (arbre MUSIC_DESIGN §3.2)', () => {
     const c = nextCap(j, FROM)!;
     expect(c).toMatchObject({ scaleId: 'pentatonic-minor', tonic: 'E', kind: 'tonic', title: 'Mi m, position 1' });
     expect(c.why).toBe('Même dessin, presque à vide : Mi mineur.');
+  });
+
+  it('Mi m validé seulement sur le critère complet d’« apprise », dans cette tonique', () => {
+    const base = [...allFive(), ...learned({ scaleId: 'blues-minor' })];
+    // une réussite forte en Mi : pas encore apprise (2 réussites sur 2 jours)
+    const once = [...base, a({ ts: at(2), kind: 'recall', level: 3, tonic: 'E' })];
+    expect(nextCap(once, FROM)).toMatchObject({ tonic: 'E', kind: 'tonic' });
+  });
+
+  it('transposition : la même tonique visée tant qu’elle n’est pas apprise', () => {
+    const base = [...allFive(), ...learned({ scaleId: 'blues-minor' }), ...learned({ tonic: 'E' })];
+    const once = [...base, a({ ts: at(2), kind: 'recall', level: 3, tonic: 'D' })];
+    expect(nextCap(once, FROM)).toMatchObject({ tonic: 'D', kind: 'transpose' });
   });
 
   it('Mi m appris : transposition dans une zone non couverte', () => {

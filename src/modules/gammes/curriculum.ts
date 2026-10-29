@@ -4,7 +4,7 @@
  * d'entraînement, la file de révision et le simulateur lisent les mêmes phrases.
  */
 import {
-  PASS, dayKey, isProof, isStrongSuccess, learnedGaps, nodeIdOf, scoreOf, summarizeNodes,
+  PASS, dayKey, isProof, learnedGaps, nodeIdOf, scoreOf, summarizeNodes, zoneOf,
   type Attempt, type LearnedGap, type NodeStats,
 } from '../../core/progress';
 import {
@@ -38,7 +38,12 @@ export interface FormStep {
   label: string;
   /** « il manque une réussite sur la position entière, de mémoire (N3) ou au micro » */
   why: string;
+  /** N1 après des échecs répétés : on **revoit** la forme (et non une première écoute). */
+  again?: true;
 }
+
+/** Échecs d'affilée (séries qui prouvent, sous 80 %) après lesquels on revoit la forme (D98, règle à l'essai). */
+export const FAILS_BEFORE_REVIEW = 3;
 
 const formOf = (p: Position) => p.formIndex ?? p.index;
 const isLearned = (n: NodeStats | undefined) => n?.state === 'learned' || n?.state === 'mastered';
@@ -85,6 +90,20 @@ export function nextFormStep(
   const node = nodes.get(nodeIdOf({ scaleId, system, formIndex }));
   if (!mine.some((a) => a.kind === 'listen') && !node) {
     return { selection, level: 1, segment: 'updown', label: `${name} · écouter`, why: 'tu ne l’as jamais écoutée' };
+  }
+  // trois séries ratées d'affilée depuis la dernière écoute : on revoit la forme avant de rejouer
+  let fails = 0;
+  for (const a of [...mine].sort((x, y) => y.ts - x.ts)) {
+    if (a.kind === 'listen') break;
+    if ((a.kind !== 'holes' && a.kind !== 'recall') || !isProof(a)) continue;
+    if ((scoreOf(a) ?? 0) >= PASS) break;
+    fails++;
+  }
+  if (fails >= FAILS_BEFORE_REVIEW) {
+    return {
+      selection, level: 1, segment: 'updown', label: `${name} · revoir la forme`, again: true,
+      why: `${fails} essais sous 80 % d’affilée : regarde-la et écoute-la avant de rejouer`,
+    };
   }
   const gaps = learnedGaps(node ?? NO_NODE);
   const why = `il manque ${missingText(node ?? NO_NODE)}`;
@@ -186,19 +205,26 @@ export function nextCap(
   const first = positionsOf(pent, base, pentSystem, TUNING_ID)[0];
   const firstForm = first ? formOf(first) : 0;
   const second: NoteName = base === 'E' ? 'A' : 'E';
-  const playedIn = (tonic: NoteName) => journal.some((a) => a.scaleId === pent && a.system === pentSystem
-    && a.formIndex === firstForm && a.tonic === tonic && isStrongSuccess(a));
-  if (!playedIn(second)) {
+  // « apprise » dans une tonique : le critère complet (2 réussites sur 2 jours, dont une forte), sur les
+  // seules séries de la position 1 jouées dans cette tonique
+  const mine = journal.filter((a) => a.scaleId === pent && a.system === pentSystem && a.formIndex === firstForm);
+  const learnedIn = (tonic: string) => isLearned(summarizeNodes(mine.filter((a) => a.tonic === tonic))[0]);
+  if (!learnedIn(second)) {
     return {
       scaleId: pent, tonic: second, system: pentSystem, kind: 'tonic', title: `${minorKey(second)}, position 1`,
       name: minorKey(second),
       why: second === 'E' ? 'Même dessin, presque à vide : Mi mineur.' : `Même dessin, autre case : ${minorKey(second)}.`,
     };
   }
-  // G1.4 transposition : même dessin, dans une zone du manche que la forme n'a jamais vue
-  const node = nodes.get(nodeIdOf({ scaleId: pent, system: pentSystem, formIndex: firstForm }));
-  if (node && node.zones.length < 3) {
-    const tonic = unseenZoneTonic(pent, pentSystem, firstForm, TUNING_ID, node.zones, node.tonics);
+  // G1.4 transposition : même dessin, dans une zone du manche où la forme n'est pas encore apprise ; la même
+  // tonique reste visée jusqu'à ce qu'elle le soit
+  const tonics = [...new Set(mine.map((a) => a.tonic))].filter(learnedIn);
+  const zones = [...new Set(tonics.map((t) => {
+    const p = positionsOf(pent, t as NoteName, pentSystem, TUNING_ID).find((x) => formOf(x) === firstForm);
+    return p ? zoneOf(p.fretMin) : -1;
+  }))].filter((z) => z >= 0);
+  if (zones.length < 3) {
+    const tonic = unseenZoneTonic(pent, pentSystem, firstForm, TUNING_ID, zones, tonics);
     const pos = tonic ? positionsOf(pent, tonic, pentSystem, TUNING_ID).find((p) => formOf(p) === firstForm) : null;
     if (tonic && pos) {
       return {

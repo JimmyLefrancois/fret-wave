@@ -157,7 +157,8 @@ export function heroAction(plan: HubPlan, session: DailySession, firstStep: Hero
   const target = { selection: step.selection, level: step.level, segment: step.segment };
   if (step.level === 1) {
     const what = session.next ? `la ${step.label.split(' · ')[0]!.toLowerCase()}` : session.cap!.name;
-    return { route: 'scale', label: session.next ? `▶ Écouter ${what}` : `▶ Découvrir ${what}`, ...target };
+    const verb = !session.next ? 'Découvrir' : step.again ? 'Revoir' : 'Écouter';
+    return { route: 'scale', label: `▶ ${verb} ${what}`, ...target };
   }
   return { route: 'training', label: session.next ? '▶ Avancer' : `▶ Découvrir ${session.cap!.name}`, ...target };
 }

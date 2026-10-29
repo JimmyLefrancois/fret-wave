@@ -55,7 +55,7 @@ const STATE_MARK: Readonly<Record<NodeState, string>> = { available: '·', learn
 
 const SHORT_STEP: readonly [RegExp, string][] = [
   [/ · exercice à trous, au micro$/, ', trous au micro'], [/ · exercice à trous$/, ', trous'],
-  [/ · de mémoire$/, ', mémoire'], [/ · écouter$/, ', écoute'],
+  [/ · de mémoire$/, ', mémoire'], [/ · écouter$/, ', écoute'], [/ · revoir la forme$/, ', revoir'],
 ];
 
 /** La séance du jour en quelques mots (colonne « séance » du rapport). */

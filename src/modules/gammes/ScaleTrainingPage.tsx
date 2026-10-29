@@ -152,7 +152,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     if (!sessionDone) return null;
     const home = resolveScale(homeSelection.current).selection;
     const s = dailySession(journal, clock.now(), { ...home, tonic: home.tonic as NoteName });
-    if (s.next) return { step: s.next, text: `Ensuite : ${s.next.label.replace(' · ', ', ')}`, action: s.next.level === 1 ? '▶ Écouter' : '▶ Avancer' };
+    if (s.next) return { step: s.next, text: `Ensuite : ${s.next.label.replace(' · ', ', ')}`, action: s.next.again ? '▶ Revoir la forme' : s.next.level === 1 ? '▶ Écouter' : '▶ Avancer' };
     if (s.cap) return { step: capStep(s.cap), text: `Nouveau défi : ${s.cap.title}`, action: `▶ Découvrir ${s.cap.name}` };
     return null;
   }, [sessionDone, journal]);
