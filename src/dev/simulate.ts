@@ -24,8 +24,8 @@ export interface Persona {
   summary: string;
   /** Durée simulée par défaut (jours). */
   days: number;
-  /** L'élève pratique-t-il ce jour-là ? (`day` part de 0) */
-  practices(day: number, rng: () => number): boolean;
+  /** L'élève pratique-t-il ce jour-là ? (`day` part de 0, `date` est son minuit local) */
+  practices(day: number, date: Date, rng: () => number): boolean;
   /** Séries de travail par jour de pratique, révisions dues non comprises. */
   sessions: number;
   /** Joue au micro (sinon au pavé : vérifié, mais jamais une réussite forte au niveau 2). */
@@ -49,7 +49,7 @@ export interface Persona {
   system: PositionSystem;
 }
 
-const weekdays = (_day: number, rng: () => number) => rng() < 6 / 7;
+const weekdays = (_day: number, _date: Date, rng: () => number) => rng() < 6 / 7;
 
 export const PERSONAS: readonly Persona[] = [
   {
@@ -61,7 +61,7 @@ export const PERSONAS: readonly Persona[] = [
   {
     id: 'decrocheur', label: 'Décrocheur',
     summary: 'Dix jours réguliers, douze jours de pause, puis reprise : régression et cartes en retard.',
-    days: 30, practices: (d, rng) => (d < 10 || d >= 22) && rng() < 0.9, sessions: 3, mic: true,
+    days: 30, practices: (d, _date, rng) => (d < 10 || d >= 22) && rng() < 0.9, sessions: 3, mic: true,
     skill: 0.55, learnRate: 0.08, forgetPerDay: 0.025, reviews: true,
     scaleId: 'pentatonic-minor', tonic: 'A', system: 'boxes',
   },
@@ -80,7 +80,7 @@ export const PERSONAS: readonly Persona[] = [
   {
     id: 'week-end', label: 'Joueur du week-end',
     summary: 'Samedi et dimanche seulement, sans révisions : série, objectif du jour et cartes en retard.',
-    days: 42, practices: (d) => d % 7 >= 5, sessions: 5, mic: true, skill: 0.55, learnRate: 0.08,
+    days: 42, practices: (_d, date) => date.getDay() === 0 || date.getDay() === 6, sessions: 5, mic: true, skill: 0.55, learnRate: 0.08,
     forgetPerDay: 0.015, reviews: false, scaleId: 'pentatonic-minor', tonic: 'A', system: 'boxes',
   },
   {
@@ -155,8 +155,8 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
   const days = opts.days ?? persona.days;
   const end = opts.end ?? Date.now();
   const endDay = new Date(end);
-  endDay.setHours(0, 0, 0, 0);
-  const start = endDay.getTime() - (days - 1) * DAY;
+  // minuit local de chaque jour, en calendrier : un jour de changement d'heure ne dure pas 24 h
+  const midnight = (day: number) => new Date(endDay.getFullYear(), endDay.getMonth(), endDay.getDate() - (days - 1) + day).getTime();
   const rng = mulberry32((opts.seed ?? 1) ^ hash32(persona.id));
   const forms = formsOf(persona);
   const journal: Attempt[] = [];
@@ -257,8 +257,8 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
   };
 
   for (let day = 0; day < days; day++) {
-    const dayStart = start + day * DAY;
-    if (persona.practices(day, rng)) {
+    const dayStart = midnight(day);
+    if (persona.practices(day, new Date(dayStart), rng)) {
       let t = dayStart + (17 + Math.floor(rng() * 4)) * HOUR + Math.floor(rng() * 60) * 60_000;
       const gap = () => { t += (1 + Math.floor(rng() * 3)) * 60_000; };
 
@@ -293,7 +293,7 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
         if (step === 'listen') { t += play(nextStep(persona, form, journal, null, rng), form, t) * 1000; gap(); }
       }
     }
-    opts.onDay?.(day, dayStart + DAY - 1, journal);
+    opts.onDay?.(day, midnight(day + 1) - 1, journal);
   }
   return journal;
 }

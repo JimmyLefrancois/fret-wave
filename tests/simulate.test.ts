@@ -42,6 +42,10 @@ describe('simulate', () => {
     expect(simulate(getPersona('sans-micro')!, { end: END }).some((a) => a.mic)).toBe(false);
   });
 
+  it('le joueur du week-end ne joue que le samedi et le dimanche', () => {
+    for (const a of simulate(getPersona('week-end')!, { end: END })) expect([0, 6]).toContain(new Date(a.ts).getDay());
+  });
+
   it('onDay est appelé une fois par jour simulé', () => {
     const p = getPersona('week-end')!;
     let n = 0;

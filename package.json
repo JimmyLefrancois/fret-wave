@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "shots": "node tools/screenshot.mjs"
+    "shots": "node tools/screenshot.mjs",
+    "sim:report": "SIM_REPORT=1 vitest run tests/simReport.test.ts"
   },
   "dependencies": {
     "pitchy": "^4.1.0",
