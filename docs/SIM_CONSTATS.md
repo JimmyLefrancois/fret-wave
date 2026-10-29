@@ -65,3 +65,18 @@ Observés en chargeant « Décrocheur » puis en avançant l'horloge de 7 jours 
     avec un journal vide : cohérent, mais rappel que le premier écran dépend du jour de lancement.
 16. Outillage : dans Playwright, un `goto` qui ne change que le hash ne recharge pas la page (les modules,
     donc le décalage d'horloge, restent en mémoire) ; la tournée recharge explicitement.
+
+## Relance après D96 (2026-10-29)
+
+Rapport et tournée complète refaits (bureau 1440 et téléphone 390). Chiffres inchangés sauf l'avancé :
+plus de cartes d'impro, l'accueil passe en « Reprendre la gamme » dès J30 (constat 2 de nouveau visible).
+
+17. **Le constat 13 ne venait pas seulement de l'impro.** Avancé à J30, rien n'est dû, mais
+    `#/gammes/revision` lance quand même « Session 1/5 » sur des formes maîtrisées, en N2 à trous,
+    motif « vue dans une seule zone du manche », tonique inchangée. Le lot 1 du plan reste nécessaire.
+18. **« Prochain cap » est déjà pris** : l'affiche de l'accueil dit « Série : 13 jours d'affilée ·
+    prochain cap : 14 jours » (palier de série). Le lot 2 du plan doit nommer autrement l'étape suivante
+    du parcours (« Prochaine étape », « Nouveau défi »…), sinon deux sens pour un même mot.
+19. **Téléphone, page Révision** : la barre de réponse fixe (« Corde de Mi (grave) · case ? » + pavé)
+    recouvre la seconde ligne de tablature. Possible artefact de la capture pleine page (éléments fixes) :
+    à vérifier sur un vrai téléphone avant d'en faire un lot.

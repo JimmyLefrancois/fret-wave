@@ -9,7 +9,7 @@
  * Contexte de navigateur neuf : ton vrai journal (celui de ton navigateur) n'est jamais touché.
  * Le « jour N » est la simulation des N premiers jours de la persona, arrêtée ce soir à 23 h 30 : le
  * simulateur est séquentiel, les N premiers jours sont les mêmes quelle que soit la durée totale.
- * Sortie : .shots/sim-tour/ (index.html + PNG).
+ * Sortie : .shots/sim-tour/ (index-<largeur>.html + PNG : une planche par largeur).
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
@@ -119,5 +119,5 @@ XP ${r.x.xp.total} · ${r.x.attempts} tentatives<br>Formes : ${esc(forms(r.x)) |
 <div class="row">${r.shots.map((s) => `<figure><a href="${s.file}"><img src="${s.file}" alt="${esc(s.page.label)}" loading="lazy"></a><figcaption>${esc(s.page.label)}</figcaption></figure>`).join('')}</div>`).join('\n')}
 </body></html>
 `;
-writeFileSync(`${OUT}/index.html`, html);
-console.log(`planche : ${OUT}/index.html (${rows.length} états, ${errors.length} erreur(s) console)`);
+writeFileSync(`${OUT}/index-${WIDTH}.html`, html);
+console.log(`planche : ${OUT}/index-${WIDTH}.html (${rows.length} états, ${errors.length} erreur(s) console)`);

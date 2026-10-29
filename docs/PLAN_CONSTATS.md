@@ -170,3 +170,6 @@ révision, tonique de zone), D98 (séance du jour, ordre des caps) et D99 (séri
   Je propose oui, dans la ligne de raison.
 - Lot 2 : ordre retenu par défaut blues mineur puis transposition (lecture de §3.2) ; à confirmer.
 - Lot 4 : paliers d'accomplissement en semaines (oui / non) et seuil de 2 jours.
+- Lot 2 : nom de l'étape suivante — « prochain cap » est déjà employé pour les paliers de série
+  (constat 18) ; proposer « Prochaine étape » ou « Nouveau défi ».
+- Constat 17 : confirme le lot 1 indépendamment de D96. Constat 19 : à vérifier sur appareil.
