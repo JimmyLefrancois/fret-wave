@@ -605,15 +605,37 @@ export function ScaleDiscoveryPage() {
         <InstrumentPicker />
       </Panel>
 
-      <div className="row span-7">
+      {/* le chemin d'une forme en quatre niveaux : on est au 1, les trois suivants sont à un toucher */}
+      <nav className="levels" aria-label="Niveaux de travail">
+        <div className="level here" aria-current="step">
+          <span className="level-n">N1</span>
+          <span className="level-t">Découvrir</span>
+          <span className="level-s">avec le son · tu es ici</span>
+        </div>
+        <button type="button" className="level" onClick={() => navigate('training')}>
+          <span className="level-n">N2</span>
+          <span className="level-t">Trous</span>
+          <span className="level-s">compléter les notes masquées</span>
+        </button>
+        <button type="button" className="level" onClick={() => navigate('training')}>
+          <span className="level-n">N3</span>
+          <span className="level-t">Rappel</span>
+          <span className="level-s">tout de mémoire, tablature cachée</span>
+        </button>
+        <button type="button" className="level" onClick={() => navigate('impro')}>
+          <span className="level-n">N4</span>
+          <span className="level-t">Improviser</span>
+          <span className="level-s">sur un accompagnement</span>
+        </button>
+      </nav>
+
+      <div className="row span-7 page-exit">
         <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
         <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
       </div>
       <p className="t-small t-dim foot-note">
-        Niveaux 2 (trous) et 3 (rappel) ; le niveau 4 s’improvise :{' '}
-        <button type="button" className="linkish" onClick={() => navigate('impro')}>accompagnement et analyse des notes</button>.
-        Cordes {tuningLabel} · notation {noteSummary(settings.noteNotation)}.
-        Son : {AudioEngine.get().settings.instrument === 'nylon' ? 'nylon' : 'électrique'} (CC0, crédits dans la page Audio).
+        Cordes {tuningLabel} · notation {noteSummary(settings.noteNotation)} · son{' '}
+        {AudioEngine.get().settings.instrument === 'nylon' ? 'nylon' : 'électrique'} (CC0, crédits dans la page Audio).
       </p>
     </main>
   );

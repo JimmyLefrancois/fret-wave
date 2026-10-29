@@ -903,6 +903,7 @@ table.kv td:first-child { color: var(--muted); }
   .shell > .pos-nav,
   .shell > .cta-block,
   .shell > .foot-note,
+  .shell > .levels,
   .shell > .step-nav,
   .shell > .step-goal { grid-column: 1 / -1; }
 
@@ -2540,6 +2541,37 @@ table.kv td:first-child { color: var(--muted); }
 }
 
 .home-hero-title { text-shadow: 2px 2px 0 var(--shadow-ink); }
+
+/* Chemin en quatre niveaux (page Jouer) : quatre étapes de même gabarit, la courante cerclée de cyan.
+   Chaque étape est une tuile entière à toucher ; 4 sur une ligne au bureau, 2 × 2 sur téléphone. */
+.row.page-exit { justify-content: flex-start; }
+.levels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (min-width: 720px) { .levels { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.level {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px 12px;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface-hi);
+  border: var(--bw) solid var(--line);
+  box-shadow: 3px 3px 0 var(--shadow-ink);
+  font: inherit;
+}
+button.level { cursor: pointer; }
+button.level:hover { border-color: var(--cyan); }
+button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.level.here { border-color: var(--cyan); background: var(--surface); }
+.level-n { font-family: var(--font-label); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--muted); }
+.level.here .level-n { color: var(--cyan); }
+.level-t { font-size: 17px; font-weight: 700; line-height: 1.25; }
+.level-s { font-size: 13.5px; line-height: 1.4; color: var(--muted); }
 
 /* pied d'accueil et pieds de page : une bande, et des boutons qui se voient */
 .home-foot,
