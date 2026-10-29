@@ -10,7 +10,6 @@ téléchargé le 2026-10-27 depuis `fonts.gstatic.com` via l'API `fonts.googleap
 | `press-start-2p-400.woff2` | Press Start 2P | 400 | `ofl/pressstart2p` | OFL 1.1 (`OFL-pressstart2p.txt`) | 12,5 ko |
 | `silkscreen-400.woff2` | Silkscreen | 400 | `ofl/silkscreen` | OFL 1.1 (`OFL-silkscreen.txt`) | 8,4 ko |
 | `silkscreen-700.woff2` | Silkscreen | 700 | `ofl/silkscreen` | OFL 1.1 (`OFL-silkscreen.txt`) | 7,5 ko |
-| `vt323-400.woff2` | VT323 | 400 | `ofl/vt323` | OFL 1.1 (`OFL-vt323.txt`) | 17,9 ko |
 
 Usage (revu en 1d, seconde passe typographique) :
 - **Press Start 2P** : uniquement le mot-symbole (FRETWAVE) et les très rares libellés de marque. En dessous
@@ -23,8 +22,8 @@ Usage (revu en 1d, seconde passe typographique) :
   pleines pour Silkscreen) ne tiennent la lecture de paragraphes sur téléphone. La leçon retenue : **le pixel
   reste dans le chrome, le texte passe en sans**. L'identité tient par le décor, la tablature bitmap, les
   bordures, les néons et les étiquettes.
-- **VT323** reste embarquée comme secours de la tablature (aucune utilisation DOM aujourd'hui) ; à retirer
-  si elle reste inutilisée après la phase 2.
+- **VT323**, embarquée en 1d comme secours de la tablature, a été retirée le 2026-10-30 : jamais utilisée
+  depuis (ni DOM, ni canvas).
 
 Rappel : la **tablature** n'utilise aucune de ces polices — elle est dessinée avec la police bitmap
 maison 5×7 (`src/core/tab/font.ts`), seule à couvrir ♯ ♭ 𝄪 𝄫 ø Δ ° ↓ ↑.

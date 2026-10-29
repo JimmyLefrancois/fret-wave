@@ -24,12 +24,6 @@
   font-weight: 700;
   font-display: swap;
 }
-@font-face {
-  font-family: 'VT323';
-  src: url('/fonts/vt323-400.woff2') format('woff2');
-  font-weight: 400;
-  font-display: swap;
-}
 
 /* --- palette de secours (identique au thème Synthwave, avant le premier script) --- */
 :root {
