@@ -1854,6 +1854,42 @@ table.kv td:first-child { color: var(--muted); }
 .mic-line-title { font-size: 14px; font-weight: 600; }
 .mic-line-error { color: var(--danger); }
 
+/* barre de réponse du téléphone : au bureau, le pavé est déjà à côté de la tablature */
+.answer-bar { display: none; }
+@media (max-width: 899px) {
+  .answer-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(57px + env(safe-area-inset-bottom, 0px));
+    z-index: 4;
+    display: grid;
+    gap: 6px;
+    padding: 8px 10px;
+    background: var(--bg-deep);
+    border-top: var(--bw) solid var(--cyan);
+  }
+  .answer-bar.ok { border-top-color: var(--ok); }
+  .answer-bar.no { border-top-color: var(--danger); }
+  .answer-bar-line { display: flex; align-items: baseline; gap: 10px; margin: 0; }
+  .answer-bar-target { flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 650; color: var(--text); }
+  .answer-bar-digits { font-size: 20px; font-weight: 700; color: var(--cyan); font-variant-numeric: tabular-nums; }
+  .answer-bar-count { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .answer-bar-mark { font-size: 20px; font-weight: 700; }
+  .answer-bar.ok .answer-bar-mark { color: var(--ok); }
+  .answer-bar.no .answer-bar-mark { color: var(--danger); }
+  .answer-bar-keys { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+  .answer-bar-keys .key { min-height: 44px; }
+  /* le pavé du panneau fait doublon avec la barre : on garde le micro, on masque les touches */
+  .numpad-panel .numpad,
+  .numpad-panel .numpad-entry,
+  .numpad-panel .numpad-hint { display: none; }
+  /* la page laisse la place de la barre au-dessus de la navigation */
+  .app-content:has(.answer-bar) { padding-bottom: calc(57px + 150px + env(safe-area-inset-bottom, 0px)); }
+  /* le panneau ne colle plus en haut : la barre fait déjà ce travail */
+  .numpad-panel { position: static; box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
+}
+
 /* « Comment c'est noté ? » : tout le barème d'un écran, replié en un seul endroit */
 .how-scored {
   padding: 0 14px;

@@ -1064,6 +1064,35 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         </Panel>
       )}
 
+      {/* téléphone : barre de réponse fixe au-dessus de la navigation — la tablature et la réponse
+          restent à l'écran ensemble (le pavé du panneau, 1 000 px plus bas, y est masqué) */}
+      {!result && !blindLive && !(coldStep === 'look') && (
+        <div className={`answer-bar ${feedback && !feedback.info ? (feedback.ok ? 'ok' : 'no') : ''}`} role="group" aria-label="Réponse">
+          <p className="answer-bar-line">
+            <span className="answer-bar-target">{activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide'}</span>
+            {feedback && !feedback.info && !entry && (
+              <span className="answer-bar-mark" aria-hidden="true">{feedback.ok ? '✓' : '✕'}</span>
+            )}
+            <span className="answer-bar-digits">{entry || '—'}</span>
+            <span className="answer-bar-count">{done}/{total}</span>
+          </p>
+          <div className="answer-bar-keys">
+            {['1', '2', '3', '4', '5', 'C', '6', '7', '8', '9', '0', '✓'].map((k) => (
+              <button
+                key={k}
+                type="button"
+                className={`key ${k === '✓' ? 'key-ok' : k === 'C' ? 'key-alt' : ''}`}
+                onClick={() => (k === 'C' ? setEntry('') : k === '✓' ? validate() : press(k))}
+                disabled={k === 'C' ? !entry : k === '✓' ? !activeHole || entry === '' : !activeHole}
+                aria-label={k === 'C' ? 'Effacer' : k === '✓' ? 'Valider' : undefined}
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <Panel className="span-7" label="Exercice" right={<span className="badge">{done} / {total}</span>}>
         {mixed && queue.length > 0 && (
           <p className="t-small">
