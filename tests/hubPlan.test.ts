@@ -113,29 +113,36 @@ describe('reviewLine (carte de révision, lot 3)', () => {
   const NB = '\u00a0';
   const card = (j: Attempt[]) => cardsFrom(j).find((c) => c.nodeId === 'gam:lecture:pentatonic-minor:boxes:0')!;
 
-  it('une seule preuve : la raison (âge, palier) et « premier passage »', () => {
+  it('une seule preuve : l’âge, l’état de la boîte avec le seuil, et « premier essai »', () => {
     const j = [recall(T0 - 3 * D, { correct: 10, total: 12 })];
     expect(reviewLine(card(j), j, T0)).toEqual({
-      reason: 'À rafraîchir · vue il y a 3 j · palier 1 sur 6',
-      trend: `premier passage : 83${NB}%`,
+      reason: `vue il y a 3 j · encore fragile : à 80${NB}% elle s’espace`,
+      trend: `premier essai : 83${NB}%`,
     });
+  });
+
+  it('la boîte se lit en mots, jamais en numéro', () => {
+    const j = [recall(T0 - 3 * D, { correct: 10, total: 12 })];
+    const c = card(j);
+    expect(reviewLine({ ...c, box: 3 }, j, T0).reason).toBe('vue il y a 3 j · elle s’installe');
+    expect(reviewLine({ ...c, box: 6 }, j, T0).reason).toBe('vue il y a 3 j · presque acquise, elle revient rarement');
   });
 
   it('deux, puis trois preuves et plus : la tendance des trois dernières', () => {
     const two = [recall(T0 - 4 * D, { correct: 5 }), recall(T0 - 3 * D, { correct: 15, total: 20 })];
-    expect(reviewLine(card(two), two, T0).trend).toBe(`50${NB}% → 75${NB}%`);
+    expect(reviewLine(card(two), two, T0).trend).toBe(`tes 2 derniers essais : 50${NB}% → 75${NB}%`);
     const four = [recall(T0 - 9 * D, { correct: 1 }), ...two, recall(T0 - 2 * D, { correct: 10, total: 12 })];
-    expect(reviewLine(card(four), four, T0).trend).toBe(`50${NB}% → 75${NB}% → 83${NB}%`);
+    expect(reviewLine(card(four), four, T0).trend).toBe(`tes 3 derniers essais : 50${NB}% → 75${NB}% → 83${NB}%`);
   });
 
   it('série de moins de 5 trous : le compte, pas un pourcentage', () => {
     const j = [mk(T0 - 2 * D, { correct: 1, total: 2 })];
-    expect(reviewLine(card(j), j, T0).trend).toBe('premier passage : 1 trou juste sur 2');
+    expect(reviewLine(card(j), j, T0).trend).toBe('premier essai : 1 trou juste sur 2');
   });
 
   it('au-delà de 14 jours : « il y a 5 sem. », pas une date', () => {
     const j = [recall(T0 - 35 * D)];
-    expect(reviewLine(card(j), j, T0).reason).toBe('À rafraîchir · vue il y a 5 sem. · palier 2 sur 6');
+    expect(reviewLine(card(j), j, T0).reason).toBe(`vue il y a 5 sem. · encore fragile : à 80${NB}% elle s’espace`);
     expect(whenLabel(T0 - 10 * D, T0)).toBe('il y a 10 j');
     expect(whenLabel(T0 - D, T0)).toBe('hier');
   });

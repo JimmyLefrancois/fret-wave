@@ -226,10 +226,11 @@ function scoreText(a: Attempt, long: boolean): string {
 }
 
 /**
- * Carte de révision en deux lignes (lot 3) : **pourquoi** elle revient (« À rafraîchir · vue il y a 3 j ·
- * palier 2 sur 6 ») et la **tendance** de ses trois dernières preuves (« 50 % → 75 % → 83 % ») ; une seule
- * preuve : « premier passage : 83 % ». Les preuves sont celles que la carte retient (position entière ou
- * de mémoire, D97).
+ * Carte de révision en deux lignes (lot 3) : **quand** elle a été vue et **où elle en est** (« vue il y a 3 j ·
+ * encore fragile : à 80 % elle s'espace »), puis la **tendance** de ses trois dernières preuves (« tes 3 derniers
+ * essais : 50 % → 75 % → 83 % ») ; une seule preuve : « premier essai : 83 % ». La boîte de Leitner reste interne :
+ * l'élève lit ce qu'elle veut dire, et le seuil qui la fait avancer. Les preuves sont celles que la carte retient
+ * (position entière ou de mémoire, D97).
  */
 export function reviewLine(card: Card, attempts: readonly Attempt[], now: number): { reason: string; trend: string } {
   const proofs = attempts
@@ -237,9 +238,16 @@ export function reviewLine(card: Card, attempts: readonly Attempt[], now: number
       && `gam:lecture:${a.scaleId}:${a.system}:${a.formIndex}` === card.nodeId)
     .sort((x, y) => x.ts - y.ts)
     .slice(-3);
-  const reason = `À rafraîchir · vue ${whenLabel(card.lastTs, now)} · palier ${card.box} sur 6`;
-  if (proofs.length <= 1) return { reason, trend: proofs[0] ? `premier passage : ${scoreText(proofs[0], true)}` : '' };
-  return { reason, trend: proofs.map((a) => scoreText(a, false)).join(' → ') };
+  const reason = `vue ${whenLabel(card.lastTs, now)} · ${boxText(card.box)}`;
+  if (proofs.length <= 1) return { reason, trend: proofs[0] ? `premier essai : ${scoreText(proofs[0], true)}` : '' };
+  return { reason, trend: `tes ${proofs.length} derniers essais : ${proofs.map((a) => scoreText(a, false)).join(' → ')}` };
+}
+
+/** Ce que dit la boîte (1-2 / 3-4 / 5-6), avec le seuil qui espace la forme tant qu'elle est fragile. */
+function boxText(box: number): string {
+  if (box <= 2) return `encore fragile : à ${Math.round(PASS * 100)}\u00a0% elle s’espace`;
+  if (box <= 4) return 'elle s’installe';
+  return 'presque acquise, elle revient rarement';
 }
 
 /** Jours calendaires depuis le dernier exercice vérifié (une écoute ne compte pas) ; 0 sans journal. */
