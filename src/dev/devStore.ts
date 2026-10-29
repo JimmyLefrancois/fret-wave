@@ -11,7 +11,7 @@ import {
 import { accomplishments } from '../modules/gammes/accomplishments';
 import type { KeyValueStore } from '../core/audio/mixer';
 import { generatePositions, TUNINGS, type NoteName, type PositionSystem } from '../core/theory';
-import { dailyActivity, hubPlan, reviewSummary } from '../app/hubPlan';
+import { dailyActivity, hubPlan, reviewLine } from '../app/hubPlan';
 import { simulate, type Persona } from './simulate';
 
 /** Copie du vrai journal, prise avant la première simulation ; vide = aucune sauvegarde en cours. */
@@ -160,7 +160,10 @@ export function xray(journal: readonly Attempt[], now: Date): Xray {
     xp: { total: xp.total, today: xp.today, cap: xp.cap },
     streak: streak(journal, now).days,
     hero: plan.review ? `À réviser (${plan.review.count})` : plan.resume.kind === 'start' ? 'Commencer' : plan.resume.kind === 'chord' ? 'Reprendre l’accord' : 'Reprendre la gamme',
-    due: due.map((c) => ({ nodeId: c.nodeId, box: c.box, due: c.due, summary: reviewSummary(c) })),
+    due: due.map((c) => {
+      const line = reviewLine(c, journal, t);
+      return { nodeId: c.nodeId, box: c.box, due: c.due, summary: `${line.reason} · ${line.trend}` };
+    }),
     nodes: summarizeNodes(journal).filter((n) => n.nodeId.startsWith('gam:')).map((n) => ({
       nodeId: n.nodeId, state: n.state, speed: n.speedVerified, box: n.box, successes: n.successes,
       successDays: n.successDays, strong: n.strongSuccesses, mastery: n.mastery, last: n.last,

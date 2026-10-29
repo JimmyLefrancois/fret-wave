@@ -9,7 +9,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { DUE_CAP, dayKey, streak, summarizeNodes, weekStreak, zoneOf, type Attempt } from '../src/core/progress';
 import { buildReviewQueue, dueToday, reviewCount, triedColdToday, type ReviewTarget } from '../src/modules/gammes/review';
 import { resolveScale } from '../src/modules/gammes/resolve';
-import { dailySession, pathCounts, pathCountText, type DailySession } from '../src/app/hubPlan';
+import { absenceDays, dailySession, pathCounts, pathCountText, returnLines, type DailySession } from '../src/app/hubPlan';
 import { FIXED_END, PERSONAS, simulate, type Persona, type SimSelection } from '../src/dev/simulate';
 
 const HOUR = 3_600_000;
@@ -175,6 +175,25 @@ describe('invariants du simulateur', () => {
       for (const d of arrivals(p)) if (!d.session.next && !d.session.cap) faults.push(`${p.id} J${d.day + 1}`);
     }
     expect(faults).toEqual([]);
+  });
+
+  it('I5 retour après ≥ 3 jours d’absence : le message en tête ; jamais sinon', () => {
+    const welcome = (p: Persona) => {
+      const snaps = snapshots(p);
+      return snaps.filter((s) => s.practiced).map((s) => {
+        const prev = snaps[s.day - 1];
+        const d = new Date(s.dayEnd);
+        const t = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 17);
+        const j = prev?.journal ?? [];
+        const absence = absenceDays(j, t);
+        return { day: s.day, absence, lines: returnLines(absence, dueToday(j, t.getTime()).length, 0, streak(j, t).days, weekStreak(j, t).weeks) };
+      });
+    };
+    const back = welcome(PERSONAS.find((p) => p.id === 'decrocheur')!).find((d) => d.day >= 22)!;
+    expect(back.day).toBe(22);
+    expect(back.lines[0]).toMatch(/^Content de te revoir/);
+    expect(welcome(PERSONAS.find((p) => p.id === 'regulier')!).filter((d) => d.lines.length > 0)).toEqual([]);
+    for (const p of PERSONAS) for (const d of welcome(p)) expect(d.lines.length > 0, `${p.id} J${d.day + 1}`).toBe(d.absence >= 3);
   });
 
   it('I6 week-end : la série de semaines ne casse jamais ; la série de jours, inchangée, casse toujours', () => {

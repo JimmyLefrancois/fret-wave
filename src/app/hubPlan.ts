@@ -5,8 +5,8 @@
  * reprend le dernier module touché (gamme ou accord), et un journal vide donne « Commencer ».
  */
 import {
-  DUE_CAP, PASS, isFullPosition, isVerified, medianOf, regressedForms, scoreOf, summarizeNodes,
-  type Attempt, type AttemptLevel, type Card, type DaySummary,
+  DUE_CAP, PASS, isFullPosition, isProof, isVerified, medianOf, regressedForms, scoreOf, summarizeNodes,
+  type Attempt, type Card, type DaySummary,
 } from '../core/progress';
 import type { NoteName, PositionSystem } from '../core/theory';
 import type { ScaleSelection } from './scaleSession';
@@ -205,17 +205,74 @@ export function dailyActivity(day: Pick<DaySummary, 'exercises'>): number {
   return day.exercises;
 }
 
-const LEVEL_NAME: Readonly<Record<AttemptLevel, string>> = {
-  1: 'écoute', 2: 'exercice à trous', 3: 'de mémoire', 4: 'impro',
-};
+/** Date relative courte : « il y a 12 min », « hier », « il y a 3 j », puis « il y a 5 sem. » au-delà de 14 jours. */
+export function whenLabel(ts: number, now: number): string {
+  const d = now - ts;
+  if (d < 60_000) return 'à l’instant';
+  if (d < 3_600_000) return `il y a ${Math.round(d / 60_000)} min`;
+  if (d < 86_400_000) return `il y a ${Math.round(d / 3_600_000)} h`;
+  const days = Math.round(d / 86_400_000);
+  if (days === 1) return 'hier';
+  if (days <= 14) return `il y a ${days} j`;
+  return `il y a ${Math.round(days / 7)} sem.`;
+}
+
+/** « 83 % », ou le compte quand la série a moins de 5 trous (« 1 sur 2 ») : 50 % de 2 trous ne dit rien. */
+function scoreText(a: Attempt, long: boolean): string {
+  const total = a.total ?? 0;
+  const correct = a.correct ?? 0;
+  if (total >= 5) return `${Math.round((correct / total) * 100)} %`;
+  return long ? `${correct} trou${correct > 1 ? 's' : ''} juste${correct > 1 ? 's' : ''} sur ${total}` : `${correct} sur ${total}`;
+}
 
 /**
- * Pourquoi cette forme revient : sa dernière tentative **qui prouve** (ratée comprise), telle que la carte
- * l'a retenue (« Dernier passage : exercice à trous, 85 % »). Aucune durée ni consigne inventée.
+ * Carte de révision en deux lignes (lot 3) : **pourquoi** elle revient (« À rafraîchir · vue il y a 3 j ·
+ * palier 2 sur 6 ») et la **tendance** de ses trois dernières preuves (« 50 % → 75 % → 83 % ») ; une seule
+ * preuve : « premier passage : 83 % ». Les preuves sont celles que la carte retient (position entière ou
+ * de mémoire, D97).
  */
-export function reviewSummary(card: Pick<Card, 'lastLevel' | 'lastScore'>): string {
-  return `Dernier passage : ${LEVEL_NAME[card.lastLevel]}, ${Math.round(card.lastScore * 100)}\u00a0%`;
+export function reviewLine(card: Card, attempts: readonly Attempt[], now: number): { reason: string; trend: string } {
+  const proofs = attempts
+    .filter((a) => isProof(a) && a.module !== 'accords' && (a.kind === 'recall' || (a.kind === 'holes' && isFullPosition(a)))
+      && `gam:lecture:${a.scaleId}:${a.system}:${a.formIndex}` === card.nodeId)
+    .sort((x, y) => x.ts - y.ts)
+    .slice(-3);
+  const reason = `À rafraîchir · vue ${whenLabel(card.lastTs, now)} · palier ${card.box} sur 6`;
+  if (proofs.length <= 1) return { reason, trend: proofs[0] ? `premier passage : ${scoreText(proofs[0], true)}` : '' };
+  return { reason, trend: proofs.map((a) => scoreText(a, false)).join(' → ') };
 }
+
+/** Jours calendaires depuis le dernier exercice vérifié (une écoute ne compte pas) ; 0 sans journal. */
+export function absenceDays(attempts: readonly Attempt[], now: Date): number {
+  let last = -Infinity;
+  for (const a of attempts) if (isVerified(a) && a.ts > last && a.ts <= now.getTime()) last = a.ts;
+  if (last === -Infinity) return 0;
+  const l = new Date(last);
+  const from = new Date(l.getFullYear(), l.getMonth(), l.getDate());
+  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((to.getTime() - from.getTime()) / 86_400_000);
+}
+
+/** À partir de 3 jours d'absence, le héros accueille l'élève (lot 3). */
+export const ABSENCE_DAYS = 3;
+
+/**
+ * Lignes de retour après une absence, en tête du héros : un accueil, ce qui attend et sa durée, puis ce qui
+ * tient de la série (jamais de reproche). Vide sous `ABSENCE_DAYS`.
+ */
+export function returnLines(absence: number, due: number, minutes: number, days: number, weeks: number): string[] {
+  if (absence < ABSENCE_DAYS) return [];
+  const n = Math.min(due, DUE_CAP);
+  const out = [n > 0
+    ? `Content de te revoir. ${n} forme${n > 1 ? 's' : ''} à rafraîchir, environ ${minutes} min : on reprend doucement.`
+    : 'Content de te revoir : on reprend doucement.'];
+  if (days <= 1) {
+    out.push(weeks > 0 ? `Ta série de semaines tient : ${weeks} semaine${weeks > 1 ? 's' : ''}.` : 'Une nouvelle série commence aujourd’hui.');
+  }
+  if (due > DUE_CAP) out.push(`${DUE_CAP} aujourd’hui, les autres reviendront.`);
+  return out;
+}
+
 
 /**
  * Étape suivante sur une gamme : tant qu'elle n'a été ni écoutée ni jouée, on la fait **écouter** ;

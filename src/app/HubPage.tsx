@@ -18,6 +18,7 @@ import { dueToday } from '../modules/gammes/review';
 import {
   dailyActivity, dailySession, dayGoalText, durationText, heroAction, heroSteps, hubPlan, learnedScaleForms, pathCountText, pathCounts,
   regressedScaleForms, isHeroShortcut, micHeardBefore, streakText, tuneStepDone, scaleStep,
+  absenceDays, returnLines, reviewLine, whenLabel,
 } from '../app/hubPlan';
 import { Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
@@ -35,17 +36,6 @@ import * as clock from '../core/clock';
 /** Objectif proposé : 3 exercices vérifiés par jour (une écoute ne compte pas), pas 3 « clics ». */
 export const DAILY_GOAL = 3;
 
-/** Date relative courte : « il y a 12 min », « hier », « 3 j », puis la date. */
-export function whenLabel(ts: number, now: number): string {
-  const d = now - ts;
-  if (d < 60_000) return 'à l’instant';
-  if (d < 3_600_000) return `il y a ${Math.round(d / 60_000)} min`;
-  if (d < 86_400_000) return `il y a ${Math.round(d / 3_600_000)} h`;
-  const days = Math.round(d / 86_400_000);
-  if (days === 1) return 'hier';
-  if (days < 7) return `il y a ${days} j`;
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(new Date(ts));
-}
 
 /** Glyphe du genre d'accomplissement (lisible, pas décoratif). */
 const ACC_GLYPH: Record<Accomplishment['kind'], string> = {
@@ -162,7 +152,9 @@ export function HubPage() {
   const seriesLine = streakText(st.days, wk.weeks);
   // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran. Le compte est `reviewCount`
   // (DUE_CAP au plus aujourd'hui, une forme déjà rappelée à froid attend demain) ; la séance en fait 5 (D97)
-  const due = useMemo(() => dueToday(journal, now.getTime()).slice(0, DUE_CAP), [journal, now]);
+  const dueList = useMemo(() => dueToday(journal, now.getTime()), [journal, now]);
+  const dueAll = dueList.length;
+  const due = useMemo(() => dueList.slice(0, DUE_CAP), [dueList]);
   // la séance du jour sur la gamme choisie : révisions, puis « Avancer » ou « Nouveau défi » (D98)
   const session = useMemo(
     () => dailySession(journal, now.getTime(), { ...resolved.selection, tonic: resolved.tonic }, { cold: settings.coldReview, lookSeconds: settings.lookSeconds }),
@@ -242,23 +234,54 @@ export function HubPage() {
     const n = session.review.length;
     const rdone = session.reviewedToday;
     const pl = (k: number) => (k > 1 ? 's' : '');
+    // carte de révision (lot 3) : pourquoi la forme revient et sa tendance ; la première en clair, les autres repliées
+    const cardOf = new Map(due.map((c) => [c.nodeId, c] as const));
+    const formLine = (t: (typeof session.review)[number]) => {
+      const card = cardOf.get(t.nodeId);
+      const line = card ? reviewLine(card, journal, now.getTime()) : null;
+      return (
+        <>
+          {t.title} · {t.positionLabel}{line && <> — {line.reason}</>}
+          {line?.trend && <><br /><span className="t-dim">{line.trend}</span></>}
+        </>
+      );
+    };
+    const reviewDetail = n > 0 && (
+      <span className="home-step-why">
+        {formLine(session.review[0]!)}
+        {n > 1 && (
+          <details className="home-step-more">
+            <summary>et {n - 1} autre{pl(n - 1)}</summary>
+            <ul>{session.review.slice(1).map((t) => <li key={t.nodeId}>{formLine(t)}</li>)}</ul>
+          </details>
+        )}
+      </span>
+    );
     const reviewStep = n > 0
-      ? { text: `Rafraîchir ${n} forme${pl(n)}, de mémoire`, why: '', done: false, current: true }
-      : rdone > 0 ? { text: `${rdone} forme${pl(rdone)} rafraîchie${pl(rdone)}`, why: '', done: true, current: false } : null;
+      ? { text: `Rafraîchir ${n} forme${pl(n)}, de mémoire`, why: '', done: false, current: true, detail: reviewDetail }
+      : rdone > 0 ? { text: `${rdone} forme${pl(rdone)} rafraîchie${pl(rdone)}`, why: '', done: true, current: false, detail: null } : null;
     const second = session.next
       ? {
         text: session.next.again
           ? `Revoir la forme : ${session.next.label.split(' · ')[0]}`
           : `Avancer : ${session.next.label.replace(' · ', ', ')}`,
-        why: session.next.why, done: false, current: n === 0,
+        why: session.next.why, done: false, current: n === 0, detail: null,
       }
-      : session.cap ? { text: `Nouveau défi : ${session.cap.title}`, why: session.cap.why, done: false, current: n === 0 } : null;
+      : session.cap ? { text: `Nouveau défi : ${session.cap.title}`, why: session.cap.why, done: false, current: n === 0, detail: null } : null;
+    // retour après au moins 3 jours d'absence : la première ligne du héros, jamais un reproche (lot 3)
+    const welcome = returnLines(absenceDays(journal, now), dueAll, session.minutes, st.days, wk.weeks);
     const sessionSteps = [reviewStep, second].filter((x) => x !== null);
     if (plan.review || (resume.kind !== 'chord' && !firstSteps)) {
       return (
         <Panel className="span-12 home-go" accent="magenta" label="Séance du jour">
+          {welcome.length > 0 && (
+            <div className="home-welcome" role="status">
+              {welcome.map((l, i) => <p key={l} className={i === 0 ? 't-body' : 't-small'}>{l}</p>)}
+            </div>
+          )}
           <h3 className="home-title">{resolved.title}</h3>
-          {session.minutes > 0 && <p className="t-small">{durationText(session.minutes)}</p>}
+          {/* le message de retour dit déjà la durée */}
+          {session.minutes > 0 && welcome.length === 0 && <p className="t-small">{durationText(session.minutes)}</p>}
           {sessionSteps.length > 0 && (
             <ol className="home-steps">
               {sessionSteps.map((x, i) => (
@@ -268,13 +291,14 @@ export function HubPage() {
                     {x.text}
                     {x.done && <span className="sr-only"> (fait)</span>}
                     {x.why && <span className="home-step-why">{x.why}</span>}
+                    {x.detail}
                   </span>
                 </li>
               ))}
             </ol>
           )}
           {/* la file est plafonnée : on le dit là où le compte s'affiche, pas dans un repli */}
-          {n >= DUE_CAP && <p className="t-small t-dim">{DUE_CAP} au plus aujourd’hui.</p>}
+          {n >= DUE_CAP && welcome.length === 0 && <p className="t-small t-dim">{DUE_CAP} au plus aujourd’hui.</p>}
           {action.quiet && (
             <p className="t-small home-why">Séance faite. La suite demain : un second jour compte pour « apprise ».</p>
           )}

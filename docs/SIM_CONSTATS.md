@@ -14,7 +14,7 @@ les ordres de grandeur comptent, pas les valeurs exactes. Rapport complet : `npm
    mise en avant. Sent-il qu'il avance ?
 2. ✅ **Corrigé (D98, lot 2)** — **L'élève avancé n'a plus de cap.** 5 formes maîtrisées avec vitesse vérifiée dès J26, puis
    « Reprendre la gamme » 28 jours de suite : aucune suggestion d'autre gamme, tonique ou système.
-3. **La carte de révision peut décourager.** Dès J1 : « Dernier passage : exercice à trous, 50 % ».
+3. ✅ **Traité (D100, lot 3)** — **La carte de révision peut décourager.** Dès J1 : « Dernier passage : exercice à trous, 50 % ».
    Joueur du week-end : « 88 % » affiché trois semaines d'affilée, comme si rien ne bougeait.
 4. ✅ **Traité (D99, lot 4)** — **Joueur du week-end** : série cassée 5 fois, révisions bloquées à 5 dues (il ne les fait pas),
    alors qu'il atteint l'objectif du jour chaque samedi.
@@ -30,7 +30,7 @@ effet du simulateur (les segments de 3 cordes graves concentrent les ratés sur 
 
 Observés en chargeant « Décrocheur » puis en avançant l'horloge de 7 jours (`__sim.shift(7)`).
 
-8. **Retour après une absence : rien ne le dit.** Une semaine sans jouer, l'accueil affiche « Dernier
+8. ✅ **Traité (D100, lot 3)** — **Retour après une absence : rien ne le dit.** Une semaine sans jouer, l'accueil affiche « Dernier
    passage : de mémoire, 87 % · 28 oct. » comme si de rien n'était ; la série retombe à 0 sans un mot,
    la jauge dit « 0 / 3 exercices aujourd'hui ». Pas d'accueil du type « content de te revoir, on
    reprend doucement ».
@@ -162,3 +162,17 @@ L'accueil du joueur du week-end affiche « Série : 4 semaines » (J30) au lieu 
 35. Outillage : la tournée charge le journal d'une persona sans sa gamme en cours ; l'accueil montre donc la
     séance de La m pentatonique même quand la persona travaille le blues (régulier J30 : « Nouveau défi : Mi m »
     alors qu'il en est au blues, position 3). À régler dans `tools/sim-tour.mjs` / `devStore` (lot 6).
+
+## Lot 3 — carte de révision et retour après absence (`ux/constats-sim`, 2026-10-29)
+
+Traités (D100) : 3, 8. Invariant I5 vert : le décrocheur est accueilli à son retour (J23, 12 jours
+d'absence : « Content de te revoir. 3 formes à rafraîchir, environ 8 min : on reprend doucement. » puis
+« Une nouvelle série commence aujourd'hui. ») ; le régulier, jamais ; et pour toutes les personas, le
+message paraît exactement quand l'absence atteint 3 jours.
+La carte de révision dit « À rafraîchir · vue il y a 12 j · palier 1 sur 6 » et la tendance
+« 74 % → 83 % → 78 % » au lieu de « Dernier passage : … 88 % · 4 oct. ».
+
+36. **Le joueur du week-end est accueilli tous les samedis** (5 jours sans jouer) : « Content de te revoir…
+    Ta série de semaines tient : 3 semaines. » Conforme à la règle (≥ 3 jours), mais répété chaque semaine,
+    le message peut perdre son sens. Seuil à revoir pour un joueur dont la série de semaines tient ?
+    (question à l'auteur)

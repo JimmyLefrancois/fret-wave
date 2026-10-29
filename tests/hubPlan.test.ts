@@ -3,10 +3,10 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { dailyActivity, dailySession, dayGoalText, heroAction, heroSteps, hubPlan, pathCounts, pathCountText, sessionMinutes, streakText, type DailySession, learnedScaleForms, regressedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
+import { dailyActivity, dailySession, dayGoalText, heroAction, heroSteps, hubPlan, pathCounts, pathCountText, sessionMinutes, streakText, type DailySession, learnedScaleForms, regressedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, scaleStep, reviewLine, whenLabel, absenceDays, returnLines } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
 import { dueReviewCards, dueToday } from '../src/modules/gammes/review';
-import { dueNow, summarizeDay, type Attempt, type Card } from '../src/core/progress';
+import { cardsFrom, dueNow, summarizeDay, type Attempt, type Card } from '../src/core/progress';
 
 const T0 = new Date(2026, 9, 20, 19, 0, 0).getTime();
 
@@ -109,10 +109,66 @@ describe('scaleStep', () => {
   });
 });
 
-describe('reviewSummary', () => {
-  it('dit l’exercice (en mots d’élève, sans code N2) et le score du dernier passage', () => {
-    expect(reviewSummary({ lastLevel: 2, lastScore: 0.85 })).toBe('Dernier passage : exercice à trous, 85\u00a0%');
-    expect(reviewSummary({ lastLevel: 3, lastScore: 1 })).toBe('Dernier passage : de mémoire, 100\u00a0%');
+describe('reviewLine (carte de révision, lot 3)', () => {
+  const NB = '\u00a0';
+  const card = (j: Attempt[]) => cardsFrom(j).find((c) => c.nodeId === 'gam:lecture:pentatonic-minor:boxes:0')!;
+
+  it('une seule preuve : la raison (âge, palier) et « premier passage »', () => {
+    const j = [recall(T0 - 3 * D, { correct: 10, total: 12 })];
+    expect(reviewLine(card(j), j, T0)).toEqual({
+      reason: 'À rafraîchir · vue il y a 3 j · palier 1 sur 6',
+      trend: `premier passage : 83${NB}%`,
+    });
+  });
+
+  it('deux, puis trois preuves et plus : la tendance des trois dernières', () => {
+    const two = [recall(T0 - 4 * D, { correct: 5 }), recall(T0 - 3 * D, { correct: 15, total: 20 })];
+    expect(reviewLine(card(two), two, T0).trend).toBe(`50${NB}% → 75${NB}%`);
+    const four = [recall(T0 - 9 * D, { correct: 1 }), ...two, recall(T0 - 2 * D, { correct: 10, total: 12 })];
+    expect(reviewLine(card(four), four, T0).trend).toBe(`50${NB}% → 75${NB}% → 83${NB}%`);
+  });
+
+  it('série de moins de 5 trous : le compte, pas un pourcentage', () => {
+    const j = [mk(T0 - 2 * D, { correct: 1, total: 2 })];
+    expect(reviewLine(card(j), j, T0).trend).toBe('premier passage : 1 trou juste sur 2');
+  });
+
+  it('au-delà de 14 jours : « il y a 5 sem. », pas une date', () => {
+    const j = [recall(T0 - 35 * D)];
+    expect(reviewLine(card(j), j, T0).reason).toBe('À rafraîchir · vue il y a 5 sem. · palier 2 sur 6');
+    expect(whenLabel(T0 - 10 * D, T0)).toBe('il y a 10 j');
+    expect(whenLabel(T0 - D, T0)).toBe('hier');
+  });
+});
+
+describe('retour après une absence (lot 3)', () => {
+  const NB = ' ';
+  it('absenceDays : jours calendaires depuis le dernier exercice vérifié, écoute ignorée', () => {
+    const now = new Date(T0);
+    expect(absenceDays([], now)).toBe(0);
+    expect(absenceDays([mk(T0 - 3_600_000)], now)).toBe(0);
+    expect(absenceDays([mk(T0 - 2 * D)], now)).toBe(2);
+    expect(absenceDays([mk(T0 - 3 * D)], now)).toBe(3);
+    expect(absenceDays([mk(T0 - 12 * D)], now)).toBe(12);
+    expect(absenceDays([mk(T0 - 5 * D), mk(T0 - D, { kind: 'listen', correct: null, total: null })], now)).toBe(5);
+  });
+
+  it('jamais avant 3 jours ; la série de semaines qui tient, ou une nouvelle série ; jamais de reproche', () => {
+    expect(returnLines(2, 4, 6, 0, 5)).toEqual([]);
+    expect(returnLines(4, 4, 6, 0, 5)).toEqual([
+      `Content de te revoir. 4 formes à rafraîchir, environ 6 min${NB}: on reprend doucement.`,
+      `Ta série de semaines tient${NB}: 5 semaines.`,
+    ]);
+    expect(returnLines(12, 1, 2, 0, 0)).toEqual([
+      `Content de te revoir. 1 forme à rafraîchir, environ 2 min${NB}: on reprend doucement.`,
+      'Une nouvelle série commence aujourd’hui.',
+    ]);
+    expect(returnLines(12, 13, 14, 0, 0)).toEqual([
+      `Content de te revoir. 8 formes à rafraîchir, environ 14 min${NB}: on reprend doucement.`,
+      'Une nouvelle série commence aujourd’hui.',
+      '8 aujourd’hui, les autres reviendront.',
+    ]);
+    expect(returnLines(5, 0, 0, 0, 0)[0]).toBe(`Content de te revoir${NB}: on reprend doucement.`);
   });
 });
 
