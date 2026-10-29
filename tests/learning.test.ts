@@ -110,6 +110,8 @@ describe('légende des couleurs', () => {
     const dorian = legendFor(getScale('dorian'));
     expect(dorian.map((d) => d.fn)).toEqual(['1', '2', '♭3', '4', '5', '6', '♭7']);
     expect(dorian.find((d) => d.fn === '♭3')!.name).toBe('tierce mineure');
+    expect(dorian.find((d) => d.fn === '1')!.name).toBe('fondamentale');
+    expect(dorian.find((d) => d.fn === '5')!.name).toBe('quinte juste');
     expect(dorian.filter((d) => d.characteristic).map((d) => d.fn)).toEqual(['6']);
     const pent = legendFor(getScale('pentatonic-minor'));
     expect(pent.filter((d) => d.characteristic).length).toBe(0);

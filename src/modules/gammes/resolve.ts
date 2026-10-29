@@ -29,6 +29,8 @@ export function degreeName(fn: string): string {
   const p = parseFn(toAsciiDegree(fn) as DegreeLabel);
   if (!p) return fn;
   const base = NUMBER_NAME[p.family - 1] ?? fn;
+  // la tonique se dit « fondamentale » partout dans l'app (MUSIC_DESIGN), jamais « unisson juste »
+  if (p.family === 1 && p.alt === 0) return 'fondamentale';
   const perfect = p.family === 1 || p.family === 4 || p.family === 5;
   if (p.alt === 0) return `${base} ${perfect ? 'juste' : 'majeure'}`;
   const quality = perfect

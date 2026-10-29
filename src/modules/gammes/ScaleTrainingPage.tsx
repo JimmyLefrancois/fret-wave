@@ -348,7 +348,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     setErrors(errorCount);
     setFeedback({
       ok: sc.correct === sc.total,
-      text: `à l’aveugle : ${sc.correct} / ${sc.total} justes · ${kept ? 'grille tenue' : 'hors grille'}`,
+      text: `à l’aveugle : ${sc.correct} justes sur ${sc.total} · tempo : ${kept ? 'grille tenue' : 'hors grille'}`,
     });
     finish(finalMarks, errorCount, { grid: kept ? 'kept' : 'missed', npm: bg.grid.npm });
   }
@@ -1102,9 +1102,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           {missedLine && <p className="t-small">{missedLine} — contour pointillé sur la tablature.</p>}
           <p className="t-small">
             {result.grid === 'kept'
-              ? `grille tenue en ${mmss(result.seconds)} · `
+              ? `tempo : grille tenue en ${mmss(result.seconds)} · `
               : result.grid === 'missed'
-                ? `hors grille (${mmss(result.seconds)} pour ${gridSpec.seconds.toFixed(1)} s) · `
+                ? `tempo : hors grille (${mmss(result.seconds)} pour ${gridSpec.seconds.toFixed(1)} s) · `
                 : ''}
             {!result.proof
               ? 'Essai de rattrapage : enregistré, sans effet sur la révision, la maîtrise ni l’XP.'
@@ -1112,7 +1112,12 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
                 ? `+${result.xp} XP. Tentative enregistrée : elle entre dans la répétition espacée.`
                 : '0 XP. La tentative est enregistrée quand même : elle dit où tu en es, et rien n’est bloqué.'}
           </p>
-          <p className="t-small">{formStateLine(formNode, settings.speedTargetBpm)}</p>
+          <p className="t-small">
+            {formStateLine(formNode, settings.speedTargetBpm)}
+            {result.proof && result.accuracy < 0.8 && formNode?.state === 'learned'
+              ? ' Un essai raté ne retire pas « apprise » : elle se compte en réussites.'
+              : ''}
+          </p>
           {coldStep === 'look' && (
             <>
               <p className="t-small">
