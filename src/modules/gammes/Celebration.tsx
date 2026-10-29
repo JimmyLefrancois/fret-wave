@@ -41,6 +41,8 @@ export interface CelebrationProps {
    * fin visible, et la suite utile est proposée (revoir la forme d'abord, rejouer ensuite).
    */
   calm?: boolean;
+  /** La grille (métronome) a été lancée et tenue : seul cas où l'on dit « Série tenue ». */
+  gridKept?: boolean;
   /** Ligne de détail sous le titre (« 3 cases manquées : Sol ×2, Si ×1 »). */
   detail?: string | null;
   /** Actions à la place de « Continuer » ; la première est l'action principale. */
@@ -77,7 +79,7 @@ function useCountUp(value: number, readonly: boolean, ms = 700): number {
 export function Celebration(props: CelebrationProps) {
   const {
     title, position, stars, accuracy, seconds, revealed, errors, earned, totalXp, todayXp, cap,
-    streakDays, sessionsToday, onClose, readonly = false, calm = false, detail = null, actions,
+    streakDays, sessionsToday, onClose, readonly = false, calm = false, detail = null, actions, gridKept = false,
   } = props;
   const still = readonly || calm;
   const shownXp = useCountUp(earned, still);
@@ -126,7 +128,7 @@ export function Celebration(props: CelebrationProps) {
       </div>
 
       <div className="celebrate-card" ref={cardRef}>
-        <p className="celebrate-kicker">{stars >= 2 ? 'Série tenue' : 'Série terminée'}</p>
+        <p className="celebrate-kicker">{gridKept && stars >= 2 ? 'Série tenue' : 'Série terminée'}</p>
         <h2 className="celebrate-title">{perfect ? 'Sans faute' : stars > 0 ? 'Réussi' : 'À revoir'}</h2>
         <p className="celebrate-sub">{title} · {position}</p>
         {detail && <p className="celebrate-detail">{detail}</p>}

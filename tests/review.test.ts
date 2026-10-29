@@ -57,7 +57,7 @@ describe('session de révision mélangée', () => {
     expect(q.length).toBe(3);
     // les cartes dues ouvrent la file, dans l'ordre du planificateur
     due.forEach((c, i) => expect(q[i]!.nodeId).toBe(c.nodeId));
-    expect(q[0]!.reason).toContain('due');
+    expect(q[0]!.reason).toContain('à revoir');
     expect(q.every((t) => t.mode === 'practice' && t.segment === 'updown')).toBe(true);
     // une carte à boîte ≥ 3 se révise de mémoire (N3), une boîte 1 avec les notes visibles (N2)
     const pent = q.find((t) => t.nodeId === 'gam:lecture:pentatonic-minor:boxes:0')!;

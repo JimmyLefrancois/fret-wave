@@ -119,8 +119,8 @@ export function buildReviewQueue(
     if (!node || !last) continue;
     // la forme a déjà été travaillée (sinon pas de carte) : à froid, de mémoire, sur toute la position
     const t = cold
-      ? target(node, last, 3, `due · boîte ${card.box} sur 6 · rappel à froid`, 'cold', 'updown')
-      : target(node, last, levelFor(card.box), `due · boîte ${card.box} sur 6`);
+      ? target(node, last, 3, `à revoir · palier ${card.box} sur 6 · rappel à froid`, 'cold', 'updown')
+      : target(node, last, levelFor(card.box), `à revoir · palier ${card.box} sur 6`);
     if (!t) continue;
     seen.add(card.nodeId);
     picked.push(t);

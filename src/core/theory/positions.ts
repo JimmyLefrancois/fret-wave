@@ -337,7 +337,8 @@ export function fmtPositionLabel(p: Position, notation: NoteNotation = 'fr'): st
   const num = (p.startDegree ?? p.index) + 1;
   switch (p.system) {
     case '3nps': return `Position ${num} · ${cases}`;
-    case 'boxes': return `Box ${num} · ${cases}`;
+    // « Position », comme en 3 notes par corde : « Box 2 » côtoyait « boîte 1 sur 6 » en révision
+    case 'boxes': return `Position ${num} · ${cases}`;
     case 'caged': return `Forme de ${fmtNote(p.shape!, notation)} · CAGED · ${cases}`;
     case 'symmetric': return `Motif ${p.index + 1} · ${cases}`;
     case 'passing-note': return `Position ${num} + note de passage · ${cases}`;

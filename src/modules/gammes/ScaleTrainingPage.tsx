@@ -1261,6 +1261,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           sessionsToday={sessionsToday}
           readonly={settings.reduceMotion}
           onClose={() => setCelebrate(false)}
+          gridKept={result.grid === 'kept'}
           {...(endScreenFor(result.stars, result.proof, mixed) === 'calm'
             ? {
                 calm: true,

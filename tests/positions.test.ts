@@ -141,7 +141,7 @@ describe('boxes pentatoniques', () => {
     expect(ranges).toContainEqual([17, 20]); // box 1 une octave plus haut
     expect(ranges).toContainEqual([12, 15]); // box 4 : l'instance « 12-15 » du curriculum
     expect(hi.every((p) => p.fretMax <= 24)).toBe(true); // la box 3 (21-25) dépasse la case 24 : omise, pas tronquée
-    expect(fmtPositionLabel(hi.find((p) => p.fretMin === 12)!)).toBe('Box 4 · cases 12–15');
+    expect(fmtPositionLabel(hi.find((p) => p.fretMin === 12)!)).toBe('Position 4 · cases 12–15');
     // box 1 = la forme classique
     const b1 = [0, 1, 2, 3, 4, 5].map((s) => ps[0]!.notes.filter((n) => n.string === s).map((n) => n.fret));
     expect(b1).toEqual([[5, 8], [5, 7], [5, 7], [5, 7], [5, 8], [5, 8]]);
@@ -346,7 +346,7 @@ describe('table de compatibilité ↔ générateur', () => {
 
   it('étiquettes', () => {
     const p = generatePositions('pentatonic-minor', 'A', std, 'boxes')[1]!;
-    expect(fmtPositionLabel(p)).toBe('Box 2 · cases 7–10');
+    expect(fmtPositionLabel(p)).toBe('Position 2 · cases 7–10');
     const t = generatePositions('ionian', 'C', std, '3nps')[2]!;
     expect(fmtPositionLabel(t)).toBe('Position 3 · cases 0–5');
     const c = generatePositions('ionian', 'C', std, 'caged')[0]!;
