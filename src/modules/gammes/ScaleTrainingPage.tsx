@@ -41,7 +41,7 @@ import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resol
 import { TabLegend } from './TabLegend';
 import { Celebration } from './Celebration';
 import {
-  SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, mulberry32, segmentPlan, starsFor, tempoGrid, withRevealed,
+  SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
   type GridOutcome, type GridSubdivision, type Segment,
 } from './exercise';
 import { REVIEW_MAX, buildReviewQueue, type ReviewTarget } from './review';
@@ -194,7 +194,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   }, [baseScore, level, seed, settings.holeRate]);
 
   const revealed = useMemo(() => new Set(Object.keys(marks)), [marks]);
-  const display = useMemo(() => (exercise ? withRevealed(exercise.score, revealed) : null), [exercise, revealed]);
+  // révélées sans avoir été trouvées : contour pointillé, pour revoir où l'on a raté
+  const missed = useMemo(() => new Set(Object.keys(marks).filter((k) => marks[k] === 'revealed')), [marks]);
+  const display = useMemo(() => (exercise ? withRevealed(exercise.score, revealed, missed) : null), [exercise, revealed, missed]);
   const formNode = useMemo(() => {
     if (!r.position) return null;
     const id = nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index });
@@ -250,7 +252,11 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   }, []);
 
   const touch = () => {
-    if (startedAt === null) setStartedAt(Date.now());
+    if (startedAt !== null) return;
+    // `now` n'avance qu'au tick de 250 ms : sans ce rafraîchissement, le chrono affiche « -1:-2 » au premier appui
+    const t = Date.now();
+    setStartedAt(t);
+    setNow(t);
   };
 
   const startGrid = async () => {
@@ -344,16 +350,17 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     finish(finalMarks, errorCount, { grid: kept ? 'kept' : 'missed', npm: bg.grid.npm });
   }
 
-  const nextOpen = useCallback((after: string | null): string | null => {
+  const nextOpen = useCallback((after: string | null, dir: 1 | -1 = 1): string | null => {
     if (!exercise) return null;
-    const order = exercise.holes.map((h) => h.key);
-    const from = after ? order.indexOf(after) : -1;
-    for (let i = 1; i <= order.length; i++) {
-      const k = order[(from + i + order.length) % order.length]!;
-      if (!marks[k]) return k;
-    }
-    return null;
+    return stepOpen(exercise.holes.map((h) => h.key), (k) => !marks[k], after, dir);
   }, [exercise, marks]);
+
+  // un trou est toujours désigné : sans lui, les chiffres tapés au clavier ne vont nulle part
+  useEffect(() => {
+    if (!exercise || result || blindLive || activeKey !== null) return;
+    const first = nextOpen(null);
+    if (first) setActiveKey(first);
+  }, [exercise, result, blindLive, activeKey, nextOpen]);
 
   const finish = useCallback((
     finalMarks: Record<string, HoleMark>, errorCount: Record<string, number>,
@@ -583,6 +590,12 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       if (/^[0-9]$/.test(e.key)) {
         e.preventDefault();
         press(e.key);
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        // flèches : trou ouvert suivant / précédent (le canvas ne prend pas le focus)
+        if (t && t.closest('input, select, textarea, [role="slider"]')) return;
+        e.preventDefault();
+        setActiveKey((k) => nextOpen(k, e.key === 'ArrowRight' ? 1 : -1) ?? k);
+        setEntry('');
       } else if (e.key === 'Backspace') {
         e.preventDefault();
         setEntry((v) => v.slice(0, -1));
@@ -593,7 +606,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [press, validate, result]);
+  }, [press, validate, result, nextOpen]);
 
   // --- micro : ouverture à la demande, fermeture en quittant l'écran
   useEffect(() => {
@@ -781,6 +794,11 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     };
   }, [exercise, plan, marks, errors, activeKey, result, level, segment, total, done, grid, mixed, queue, qIndex, press, validate, journal.length, micOn, engine, coldStep, lookStart, beginRetry, blindOn, blindPhase]);
 
+  // XP total (hooks : avant tout return anticipé) et XP du jour : recalculés depuis le journal, comme partout ailleurs
+  const totals = useMemo(() => xpSummary(journal, new Date()), [journal]);
+  const streakDays = useMemo(() => streak(journal, new Date()).days, [journal]);
+  const sessionsToday = useMemo(() => summarizeDay(journal, new Date()).exercises, [journal]);
+
   if (!r.position || !exercise || !display || !plan) {
     return (
       <main className="shell">
@@ -798,15 +816,15 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     );
   }
 
-  const elapsed = startedAt === null ? 0 : Math.round(((result ? result.seconds * 1000 : now - startedAt)) / 1000);
+  const elapsed = startedAt === null ? 0 : Math.max(0, Math.round(((result ? result.seconds * 1000 : now - startedAt)) / 1000));
   const activeStringLabel = activeHole
     ? `${fmtNote(r.tuning.strings[activeHole.string]!.replace(/-?\d+$/, ''), settings.noteNotation)} ${activeHole.string === 0 ? '(grave)' : activeHole.string === r.tuning.strings.length - 1 ? '(aiguë)' : ''}`.trim()
     : null;
   const gridSpec = tempoGrid(total, settings.trainingTempo, settings.gridSubdivision);
-  // XP total et XP du jour : recalculés depuis le journal, comme partout ailleurs
-  const totals = useMemo(() => xpSummary(journal, new Date()), [journal]);
-  const streakDays = useMemo(() => streak(journal, new Date()).days, [journal]);
-  const sessionsToday = useMemo(() => summarizeDay(journal, new Date()).exercises, [journal]);
+  const stringNames = r.tuning.strings.map((pitch, i, all) =>
+    `${fmtNote(pitch.replace(/-?\d+$/, ''), settings.noteNotation)}${i === 0 ? ' grave' : i === all.length - 1 ? ' aigu' : ''}`);
+  const missedLine = result ? missedSummary(exercise.holes, missed, stringNames) : null;
+  const activeIndex = activeKey ? exercise.holes.findIndex((h) => h.key === activeKey) + 1 : 0;
 
   return (
     <main className="shell">
@@ -1026,6 +1044,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             a4={input.a4}
           />
         )}
+        <p className="sr-only" aria-live="polite">
+          {activeIndex > 0 && activeStringLabel ? `Emplacement ${activeIndex} sur ${total}, corde de ${activeStringLabel}. Flèches gauche et droite pour changer.` : ''}
+        </p>
         <div className="numpad-entry" aria-live="polite">
           <span className="numpad-label">{activeStringLabel ? 'Case ?' : 'touche un emplacement vide'}</span>
           <span className="numpad-digits">{entry || '—'}</span>
@@ -1039,7 +1060,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           <button type="button" className="key key-ok" onClick={validate} disabled={!activeHole || entry === '' || !!result}>✓</button>
         </div>
         <p className="t-small t-dim">
-          Clavier physique : chiffres, retour arrière, entrée. Une case à deux chiffres (10 à 24) se tape d’affilée.
+          Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
         </p>
         {feedback && (
           <p className={`t-small numpad-feedback ${feedback.ok ? 'ok' : 'no'}`} role="status">{feedback.text}</p>
@@ -1069,6 +1090,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           <p className="stat-line">
             <strong>{Math.round(result.accuracy * 100)} %</strong> de trous justes au premier essai · {result.revealed} révélé{result.revealed > 1 ? 's' : ''} · {result.errors} erreur{result.errors > 1 ? 's' : ''}
           </p>
+          {missedLine && <p className="t-small">{missedLine} — contour pointillé sur la tablature.</p>}
           <p className="t-small">
             {result.grid === 'kept'
               ? `grille tenue en ${mmss(result.seconds)} · `
@@ -1114,7 +1136,12 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             ) : (
               <>
                 <PixelButton variant="primary" onClick={() => restart()}>Rejouer</PixelButton>
-                <PixelButton onClick={() => restart(level === 2 ? 3 : 2, segment)}>{level === 2 ? 'Passer au rappel (N3)' : 'Revenir aux trous (N2)'}</PixelButton>
+                {level === 2 && result.accuracy < 0.8 ? (
+                  // sous ★ (80 %), monter au rappel n'a pas de sens : la suite utile est de revoir la forme
+                  <PixelButton onClick={() => navigate('scale')}>Revoir la forme (N1)</PixelButton>
+                ) : (
+                  <PixelButton onClick={() => restart(level === 2 ? 3 : 2, segment)}>{level === 2 ? 'Passer au rappel (N3)' : 'Revenir aux trous (N2)'}</PixelButton>
+                )}
                 <PixelButton variant="quiet" onClick={() => navigate('gammes')}>Changer de gamme</PixelButton>
                 <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
               </>

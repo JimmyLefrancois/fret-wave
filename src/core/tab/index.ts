@@ -7,3 +7,4 @@ export * from './layout';
 export * from './render';
 export * from './chordBox';
 export * from './playback';
+export * from './describe';

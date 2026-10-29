@@ -100,6 +100,8 @@ export interface PillLayout {
   highlight?: boolean;
   /** Trou désigné par l'utilisateur dans l'exercice de mémorisation (anneau du curseur). */
   active?: boolean;
+  /** Trou révélé sans avoir été trouvé : contour pointillé, pour revoir où l'on a raté. */
+  missed?: boolean;
 }
 
 export type RhythmItem =
@@ -511,6 +513,7 @@ function buildColumn(
         ...(o.emphasizeChordTones && n.chordTone === false ? { dim: true } : {}),
         ...(o.highlightFn && n.fn === o.highlightFn ? { highlight: true } : {}),
         ...(o.activeHoleKey && `${index}:${n.string}` === o.activeHoleKey ? { active: true } : {}),
+        ...(n.missed ? { missed: true } : {}),
       });
       if (c.ev.notes.length >= 2 && o.annotation !== 'none') {
         const text = annotationText(n, o.annotation, o.notes);

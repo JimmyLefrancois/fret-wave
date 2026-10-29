@@ -53,6 +53,18 @@ export function drawPill(s: Surface, theme: TabTheme, p: PillLayout): void {
     s.fillRect(right, top, 2, 2, theme.outline);
     if (st.alt >= 2) s.fillRect(left, top, 2, 2, theme.outline);
   }
+  if (p.missed) {
+    // case révélée sans être trouvée : le contour garde les pointillés du trou, en couleur « danger ».
+    // C'est la forme (pointillé contre trait plein) qui porte l'information, pas la seule couleur.
+    for (let i = c + 1; i < p.w - c - 1; i += 2) {
+      s.fillRect(p.x + i, p.y, 1, 1, theme.unplayed);
+      s.fillRect(p.x + i, p.y + p.h - 1, 1, 1, theme.unplayed);
+    }
+    for (let j = c + 1; j < p.h - c - 1; j += 2) {
+      s.fillRect(p.x, p.y + j, 1, 1, theme.unplayed);
+      s.fillRect(p.x + p.w - 1, p.y + j, 1, 1, theme.unplayed);
+    }
+  }
 }
 
 /** Corde non jouée / note étouffée : X sur un fond du panneau qui coupe la ligne de corde. */

@@ -68,6 +68,19 @@ describe('pastille pixel par pixel', () => {
     expect(s.pixel(p.x + 2, p.y + 1)).toBe(up(intervalStyle('1').fill));
   });
 
+  it('case manquée : contour pointillé en couleur « danger », remplissage et chiffre inchangés', () => {
+    const { surface: s, layout } = renderToBuffer(single(5, '3', 1, { missed: true }), base);
+    const p = layout.columns[0]!.pills[0]!;
+    expect(p.missed).toBe(true);
+    expect(s.pixel(p.x + 2, p.y)).toBe(up(T.unplayed)); // pointillé haut
+    expect(s.pixel(p.x + 3, p.y)).toBe(up(T.outline)); // un pixel sur deux garde le contour
+    expect(s.pixel(p.x, p.y + 2)).toBe(up(T.unplayed)); // pointillé gauche
+    expect(s.pixel(p.x + 1, p.y + 1)).toBe(up(intervalStyle('3').fill));
+    const plain = renderToBuffer(single(5, '3'), base);
+    const q = plain.layout.columns[0]!.pills[0]!;
+    expect(plain.surface.pixel(q.x + 2, q.y)).toBe(up(T.outline));
+  });
+
   it('bémol : encoche 2×2 en bas à droite ; dièse : en haut à droite ; naturel : aucune', () => {
     const notch = (fn: string, where: 'top' | 'bottom') => {
       const { surface: s, layout } = renderToBuffer(single(5, fn), base);

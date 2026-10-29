@@ -38,6 +38,8 @@ export interface TabNote {
   finger?: FingerMark;
   /** Niveau 2 « mémorisation » : emplacement vide à compléter. */
   hidden?: boolean;
+  /** Trou révélé sans avoir été trouvé (deux erreurs, ou faux à l'aveugle) : contour pointillé « danger ». */
+  missed?: boolean;
   /** Note caractéristique du mode (glow / pulsation). */
   characteristic?: boolean;
   /** Note ajoutée (blue note, passage chromatique). */

@@ -3,7 +3,7 @@ import { TUNINGS, generatePositions, getScale, pitchClassOf, tonicSpellings } fr
 import { layoutScore, positionToScore, validateScore } from '../src/core/tab';
 import {
   HOLES_RATIO, SEGMENTS, buildExercise, checkAnswer, holeKey, insideGrid, mulberry32, segmentPlan, starsFor,
-  tempoGrid, withRevealed, clickMasked, isClickPitch,
+  tempoGrid, withRevealed, clickMasked, isClickPitch, missedSummary, stepOpen,
 } from '../src/modules/gammes/exercise';
 import { unseenTonic } from '../src/modules/gammes/transpose';
 
@@ -252,5 +252,44 @@ describe('grille rythmique (métronome sans notes)', () => {
     // sans grille : comportement inchangé
     expect(starsFor(1, 0, 0)).toBe(3);
     expect(starsFor(0.95, 0, 0)).toBe(2);
+  });
+});
+
+describe('fin de série : où l’on a raté', () => {
+  const std = TUNINGS.standard!;
+  const [pos] = generatePositions('pentatonic-minor', 'A', std, 'boxes', {});
+  const score = positionToScore(pos!, std);
+  const opts = { mode: 'wrap' as const, maxWidth: 400, notes: 'fr' as const, chords: 'en' as const, annotation: 'none' as const, stacks: 'change' as const };
+
+  it('une case révélée sans être trouvée porte la marque « missed », une case trouvée non', () => {
+    const ex = buildExercise(score, 3);
+    const [a, b] = ex.holes;
+    const shown = withRevealed(ex.score, new Set([a!.key, b!.key]), new Set([b!.key]));
+    const pills = layoutScore(shown, opts).columns.flatMap((c) => c.pills.map((p) => ({ key: `${c.index}:${p.string}`, p })));
+    expect(pills.find((x) => x.key === a!.key)!.p.missed).toBeUndefined();
+    expect(pills.find((x) => x.key === b!.key)!.p.missed).toBe(true);
+    expect(pills.find((x) => x.key === b!.key)!.p.hidden).toBe(false);
+  });
+
+  it('résumé par corde, la plus ratée d’abord ; rien de raté → null', () => {
+    const holes = [
+      { key: 'h1', string: 3 }, { key: 'h2', string: 3 }, { key: 'h3', string: 4 }, { key: 'h4', string: 0 },
+    ] as unknown as Parameters<typeof missedSummary>[0];
+    const names = ['Mi grave', 'La', 'Ré', 'Sol', 'Si', 'Mi aigu'];
+    expect(missedSummary(holes, new Set(['h1', 'h2', 'h3']), names)).toBe('3 cases manquées : Sol ×2, Si ×1');
+    expect(missedSummary(holes, new Set(['h4']), names)).toBe('1 case manquée : Mi grave ×1');
+    expect(missedSummary(holes, new Set(), names)).toBeNull();
+  });
+
+  it('flèches : trou ouvert suivant / précédent, en bouclant et en sautant les cases faites', () => {
+    const order = ['a', 'b', 'c', 'd'];
+    const open = (k: string) => k !== 'b';
+    expect(stepOpen(order, open, null, 1)).toBe('a');
+    expect(stepOpen(order, open, 'a', 1)).toBe('c');
+    expect(stepOpen(order, open, 'd', 1)).toBe('a');
+    expect(stepOpen(order, open, 'c', -1)).toBe('a');
+    expect(stepOpen(order, open, 'a', -1)).toBe('d');
+    expect(stepOpen(order, open, null, -1)).toBe('d');
+    expect(stepOpen(order, () => false, 'a', 1)).toBeNull();
   });
 });

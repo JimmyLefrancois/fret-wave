@@ -57,7 +57,8 @@ export function legendFor(def: ScaleDef): LegendItem[] {
   const chars = new Set((def.characteristic ?? []).map(fmtDegree));
   return degreesOf(def).map((raw) => {
     const fn = fmtDegree(raw);
-    const st = intervalStyle(fn);
+    // la couleur se calcule sur le degré ASCII du modèle, comme dans la tablature : « ♭3 » n'est pas parsable
+    const st = intervalStyle(raw);
     return { fn, name: degreeName(fn), fill: st.fill, digit: st.digit, root: st.root, characteristic: chars.has(fn) };
   });
 }

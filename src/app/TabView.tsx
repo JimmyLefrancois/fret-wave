@@ -8,9 +8,8 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChordNotation, NoteNotation } from '../core/theory';
-import { fmtNote } from '../core/theory';
 import {
-  CanvasSurface, cursorAt, drawOverlay, drawScore, drawText, layoutScore,
+  CanvasSurface, cursorAt, describeScore, drawOverlay, drawScore, drawText, layoutScore,
   type AnnotationKind, type ScoreLayout, type TabScore,
 } from '../core/tab';
 import type { TabPlayer } from '../core/audio/tabPlayer';
@@ -81,15 +80,6 @@ const MAX_CANVAS = 16000;
 
 function autoScale(viewWidth: number, viewHeight: number): number {
   return Math.max(2, Math.min(4, Math.floor(Math.min(viewWidth / 190, (viewHeight * 0.38) / 144))));
-}
-
-function describe(score: TabScore, notation: NoteNotation): string {
-  const names = score.measures
-    .flatMap((m) => m.events.flatMap((e) => e.notes.map((n) => fmtNote(n.note, notation))))
-    .slice(0, 24)
-    .join(' ');
-  const chords = [...new Set(score.measures.map((m) => m.label?.chord).filter(Boolean))].join(', ');
-  return `Tablature ${score.stringCount} cordes, ${score.measures.length} mesures${chords ? `, accords ${chords}` : ''}. Notes : ${names}`;
 }
 
 export function TabView(props: TabViewProps) {
@@ -347,7 +337,7 @@ export function TabView(props: TabViewProps) {
       ref={wrapRef}
       className={`tabview ${mode} ${onPick ? 'pickable' : ''}`}
       role={onPick ? 'group' : 'img'}
-      aria-label={describe(score, notes)}
+      aria-label={describeScore(score, notes)}
       style={narrowScroll ? { height: cssH, width: cssW, marginLeft: 'auto', marginRight: 'auto' } : { height: cssH }}
       onClick={onPointer}
     >

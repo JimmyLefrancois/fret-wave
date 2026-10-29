@@ -61,6 +61,14 @@ export interface InputErrorText {
   hint: string;
 }
 
+/** Nom d'erreur de `getUserMedia` → état affichable. « NotSupportedError » = pas d'entrée exploitable. */
+export function stateFromMediaError(name: string): InputState {
+  if (name === 'NotAllowedError' || name === 'SecurityError') return 'denied';
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError' || name === 'NotSupportedError') return 'unavailable';
+  if (name === 'NotReadableError' || name === 'AbortError') return 'busy';
+  return 'failed';
+}
+
 /** Traduit un état d'erreur en message utile (jamais « une erreur est survenue »). */
 export function describeInputError(state: InputState, detail: string | null): InputErrorText {
   switch (state) {
@@ -89,7 +97,12 @@ export function describeInputError(state: InputState, detail: string | null): In
         hint: 'une autre application utilise le micro (visioconférence, messagerie). Ferme-la, puis réessaie.',
       };
     case 'failed':
-      return { state, message: `entrée audio indisponible${detail ? ` : ${detail}` : ''}`, hint: 'réessaie ; le pavé numérique reste un secours complet.' };
+      // le détail vient du navigateur, souvent en anglais (« Not supported ») : en indice, jamais en titre
+      return {
+        state,
+        message: 'le micro n’a pas pu s’ouvrir',
+        hint: `vérifie qu’un micro ou une interface est branché, puis réessaie ; le pavé numérique reste un secours complet.${detail ? ` (navigateur : ${detail})` : ''}`,
+      };
     default:
       return { state, message: 'micro arrêté', hint: 'active l’écoute pour jouer sur la vraie guitare.' };
   }
@@ -219,11 +232,7 @@ export class InputEngine {
       stream = await navigator.mediaDevices.getUserMedia({ audio: inputConstraints(settings), video: false });
     } catch (e) {
       const name = (e as DOMException).name;
-      this.state =
-        name === 'NotAllowedError' || name === 'SecurityError' ? 'denied'
-          : name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError' ? 'unavailable'
-            : name === 'NotReadableError' || name === 'AbortError' ? 'busy'
-              : 'failed';
+      this.state = stateFromMediaError(name);
       this.error = name === 'OverconstrainedError' ? 'périphérique mémorisé absent' : (e as Error).message;
       this.emit();
       return;

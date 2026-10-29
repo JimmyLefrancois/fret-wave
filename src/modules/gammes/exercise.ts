@@ -139,19 +139,56 @@ export function buildExercise(
 /**
  * Affiche les trous déjà trouvés (ou révélés après deux erreurs) : la pastille reprend sa couleur de
  * fonction. C'est la récompense visuelle, et elle enseigne la fonction de la note au passage.
+ * Les clés de `missed` (révélées sans avoir été trouvées) gardent un contour pointillé : en fin de
+ * série, l'élève voit où il a raté, pas une forme uniformément « juste ».
  */
-export function withRevealed(score: TabScore, keys: ReadonlySet<string>): TabScore {
+export function withRevealed(score: TabScore, keys: ReadonlySet<string>, missed: ReadonlySet<string> = new Set()): TabScore {
   if (keys.size === 0) return score;
   let col = 0;
   const measures = score.measures.map((m) => ({
     ...m,
     events: m.events.map((ev) => {
-      const notes = ev.notes.map((n) => (keys.has(`${col}:${n.string}`) ? { ...n, hidden: false } : n));
+      const notes = ev.notes.map((n) => {
+        const k = `${col}:${n.string}`;
+        if (!keys.has(k)) return n;
+        return missed.has(k) ? { ...n, hidden: false, missed: true } : { ...n, hidden: false };
+      });
       col++;
       return { ...ev, notes };
     }),
   }));
   return { ...score, measures };
+}
+
+/**
+ * Résumé des cases manquées, par corde : « 3 cases manquées : Sol ×2, Si ×1 ».
+ * `stringNames[i]` est le nom affiché de la corde i (0 = la plus grave). Rien à dire → null.
+ */
+export function missedSummary(holes: readonly Hole[], missed: ReadonlySet<string>, stringNames: readonly string[]): string | null {
+  const byString = new Map<number, number>();
+  for (const h of holes) if (missed.has(h.key)) byString.set(h.string, (byString.get(h.string) ?? 0) + 1);
+  const total = [...byString.values()].reduce((a, b) => a + b, 0);
+  if (total === 0) return null;
+  const parts = [...byString.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+    .map(([str, n]) => `${stringNames[str] ?? `corde ${str + 1}`} ×${n}`);
+  return `${total} case${total > 1 ? 's' : ''} manquée${total > 1 ? 's' : ''} : ${parts.join(', ')}`;
+}
+
+/**
+ * Trou ouvert suivant (`dir` = 1) ou précédent (-1) dans l'ordre de la série, en bouclant ;
+ * `from` null = depuis le début. Sert au clic d'après une réponse et aux flèches du clavier.
+ */
+export function stepOpen(order: readonly string[], isOpen: (key: string) => boolean, from: string | null, dir: 1 | -1 = 1): string | null {
+  const n = order.length;
+  if (n === 0) return null;
+  const at = from ? order.indexOf(from) : -1;
+  const start = at === -1 ? (dir === 1 ? -1 : 0) : at;
+  for (let i = 1; i <= n; i++) {
+    const k = order[(((start + dir * i) % n) + n) % n]!;
+    if (isOpen(k)) return k;
+  }
+  return null;
 }
 
 /** Pastille désignée par un toucher (`columnIndex:string`). */

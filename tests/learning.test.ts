@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   TUNINGS, filterPosition, generatePositions, getScale, type Position,
 } from '../src/core/theory';
-import { layoutScore, positionToScore } from '../src/core/tab';
+import { intervalStyle, layoutScore, positionToScore } from '../src/core/tab';
 import { counterpartPosition, differingDegrees, markDegrees, neighbourMode } from '../src/modules/gammes/compare';
 import { legendFor } from '../src/modules/gammes/resolve';
 
@@ -113,5 +113,16 @@ describe('légende des couleurs', () => {
     expect(dorian.filter((d) => d.characteristic).map((d) => d.fn)).toEqual(['6']);
     const pent = legendFor(getScale('pentatonic-minor'));
     expect(pent.filter((d) => d.characteristic).length).toBe(0);
+  });
+
+  it('les degrés altérés ont la même couleur que dans la tablature (pas le gris de secours)', () => {
+    const pent = legendFor(getScale('pentatonic-minor'));
+    for (const [shown, ascii] of [['♭3', 'b3'], ['♭7', 'b7']] as const) {
+      const item = pent.find((d) => d.fn === shown)!;
+      expect(item.fill).toBe(intervalStyle(ascii).fill);
+      expect(item.fill).not.toBe(intervalStyle('?').fill);
+    }
+    const lydian = legendFor(getScale('lydian'));
+    expect(lydian.find((d) => d.fn === '♯4')!.fill).toBe(intervalStyle('#4').fill);
   });
 });
