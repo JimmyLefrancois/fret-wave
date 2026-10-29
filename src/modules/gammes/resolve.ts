@@ -13,7 +13,7 @@ import {
 import { defaultChordForScale, intervalStyle, fnToInterval, parseFn } from '../../core/tab';
 import type { ScaleSelection } from '../../app/scaleSession';
 import { DEFAULT_SELECTION } from '../../app/scaleSession';
-import { SCALE_HINTS } from './content';
+import { SCALE_GROUPS, SCALE_HINTS, type ScaleGroup } from './content';
 
 /** Degrés en glyphes réels : « b3 » → « ♭3 », « #4 » → « ♯4 », « bb7 » → « 𝄫7 ». */
 // le formatage des degrés vit dans le cœur (`core/theory/notation`) : une seule fonction pour toute l'app
@@ -80,6 +80,16 @@ export interface ResolvedScale {
   parent: string | null;
   hint: string;
   transpositions: number;
+}
+
+/**
+ * Famille affichée pour une gamme : celle que l'élève a choisie si elle contient la gamme, sinon la
+ * première qui la contient (une gamme ouverte depuis l'accueil peut venir d'une autre famille).
+ */
+export function scaleGroupOf(scaleId: string, preferredId?: string): ScaleGroup {
+  const preferred = SCALE_GROUPS.find((g) => g.id === preferredId);
+  if (preferred?.scaleIds.includes(scaleId)) return preferred;
+  return SCALE_GROUPS.find((g) => g.scaleIds.includes(scaleId)) ?? SCALE_GROUPS[0]!;
 }
 
 /** Titre à l'écran. Le genre suit le nom de la gamme (« Ré dorien », « La mineure pentatonique »). */

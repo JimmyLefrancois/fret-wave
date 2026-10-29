@@ -19,7 +19,7 @@ import {
   TUNINGS, degreeLabels, fmtNote, getScale, tonicSpellings, type PositionSystem,
 } from '../../core/theory';
 import { SCALE_GROUPS } from './content';
-import { fmtDegree, positionLabelPlain, resolveScale, scaleTitle } from './resolve';
+import { fmtDegree, positionLabelPlain, resolveScale, scaleGroupOf, scaleTitle } from './resolve';
 
 
 const SYSTEM_LABEL: Record<PositionSystem, string> = {
@@ -34,7 +34,7 @@ export function ScaleSelectPage() {
   const settings = useSettings();
   const selection = useScaleSelection();
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
-  const group = SCALE_GROUPS.find((g) => g.scaleIds.includes(selection.scaleId)) ?? SCALE_GROUPS[0]!;
+  const group = scaleGroupOf(selection.scaleId, selection.groupId);
 
   const set = (patch: Parameters<typeof setScaleSelection>[0]) => setScaleSelection(patch);
   const resetPosition = { positionIndex: 0 };
@@ -61,7 +61,7 @@ export function ScaleSelectPage() {
           value={group.id}
           onChange={(id) => {
             const g = SCALE_GROUPS.find((x) => x.id === id)!;
-            set({ scaleId: g.scaleIds[0]!, ...resetPosition });
+            set({ groupId: g.id, scaleId: g.scaleIds[0]!, ...resetPosition });
           }}
           options={SCALE_GROUPS.map((g) => ({ value: g.id, label: g.short, note: g.title }))}
         />
@@ -115,7 +115,6 @@ export function ScaleSelectPage() {
           <p className="t-small t-dim">Aucune position pour cet accordage : choisis un autre système dans les réglages ci-dessous.</p>
         ) : (
           <>
-            <p className="t-small t-dim">La même forme, déplacée sur le manche : les cases changent, le doigté non.</p>
             <ul className="pos-list">
               {r.positions.map((p, i) => (
                 <li key={p.id} className={`pos-item ${i === r.selection.positionIndex ? 'on' : ''}`}>

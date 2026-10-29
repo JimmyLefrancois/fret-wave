@@ -241,7 +241,7 @@ export function HubPage() {
       const line = card ? reviewLine(card, journal, now.getTime()) : null;
       return (
         <>
-          {t.title} · {t.positionLabel}{line && <> — {line.reason}</>}
+          <strong>{t.title} · {t.positionLabel}</strong>{line && <> — {line.reason}</>}
           {line?.trend && <><br /><span className="t-dim">{line.trend}</span></>}
         </>
       );

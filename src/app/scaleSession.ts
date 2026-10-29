@@ -18,6 +18,12 @@ export interface ScaleSelection {
   system: PositionSystem;
   /** Rang de la position dans `generatePositions` (0 = la plus basse du manche). */
   positionIndex: number;
+  /**
+   * Famille affichée dans le choix des gammes (`SCALE_GROUPS`). Une gamme vit dans plusieurs familles
+   * (la pentatonique mineure : « Pentatoniques » et « Mineures ») : sans elle, choisir une gamme
+   * ramenait à la première famille qui la contient.
+   */
+  groupId?: string;
 }
 
 /** Le point d'entrée pédagogique du module : La mineur pentatonique, box 1 (MUSIC_DESIGN §3.2). */
@@ -43,6 +49,7 @@ export function loadScaleSelection(store: KeyValueStore | null): ScaleSelection 
       tuningId: typeof o.tuningId === 'string' ? o.tuningId : DEFAULT_SELECTION.tuningId,
       system: SYSTEMS.includes(o.system as PositionSystem) ? (o.system as PositionSystem) : DEFAULT_SELECTION.system,
       positionIndex: typeof o.positionIndex === 'number' && Number.isFinite(o.positionIndex) ? Math.max(0, Math.round(o.positionIndex)) : 0,
+      ...(typeof o.groupId === 'string' ? { groupId: o.groupId } : {}),
     };
   } catch {
     return { ...DEFAULT_SELECTION };
