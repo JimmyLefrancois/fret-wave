@@ -14,6 +14,7 @@ import {
 } from '../core/tab';
 import type { TabPlayer } from '../core/audio/tabPlayer';
 import { useThemeTokens } from './settings';
+import { scrollToKeepVisible } from '../modules/gammes/exercise';
 
 export interface TabViewProps {
   score: TabScore;
@@ -37,6 +38,8 @@ export interface TabViewProps {
   highlightFn?: string;
   /** Trou désigné dans un exercice de mémorisation (`${columnIndex}:${string}`). */
   activeHoleKey?: string;
+  /** Haut (repère de la fenêtre) d'une barre fixe qui couvre le bas de l'écran, ou `null` : le trou désigné reste au-dessus. */
+  coverTop?: () => number | null;
   /** Échelle minimale en mode auto, appliquée seulement sur un grand écran (≥ 880 × 1 100 px) : tablature de jeu, lue à 1-2 m. Plus bas, une tablature à l'échelle 3 repousse la consigne et la réponse sous la ligne de flottaison. */
   minScale?: number;
   /** Toucher une pastille (exercice « montre-moi la ♭3 »). */
@@ -86,7 +89,7 @@ function autoScale(viewWidth: number, viewHeight: number): number {
 
 export function TabView(props: TabViewProps) {
   const tabTheme = useThemeTokens().tab;
-  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, activeHoleKey, minScale, onPick, flash } = props;
+  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, activeHoleKey, coverTop, minScale, onPick, flash } = props;
   const playing = transport === 'playing';
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -303,11 +306,11 @@ export function TabView(props: TabViewProps) {
     const r = stage.getBoundingClientRect();
     const top = r.top + pill.y * cssPerLogical;
     const bottom = r.top + (pill.y + pill.h) * cssPerLogical;
-    if (top >= 0 && bottom <= window.innerHeight) return;
-    // défilement minimal (la pastille arrive juste au bord) : le pavé, sous la tablature, reste le plus visible possible
-    const delta = top < 0 ? top - 24 : bottom - window.innerHeight + 24;
-    window.scrollTo({ top: window.scrollY + delta, behavior: reduceMotion ? 'auto' : 'smooth' });
-  }, [activeHoleKey, layout, cssPerLogical, reduceMotion]);
+    // défilement minimal (la pastille arrive juste au-dessus de ce qui la couvre : la barre de réponse fixe
+    // au téléphone, sinon le bas de l'écran) : le pavé, sous la tablature, reste le plus visible possible
+    const delta = scrollToKeepVisible(top, bottom, window.innerHeight, coverTop?.() ?? window.innerHeight);
+    if (delta !== 0) window.scrollTo({ top: window.scrollY + delta, behavior: reduceMotion ? 'auto' : 'smooth' });
+  }, [activeHoleKey, layout, cssPerLogical, reduceMotion, coverTop]);
 
   // crochet du mode exercice : la seule tablature qui contient des trous et accepte le toucher
   useEffect(() => {

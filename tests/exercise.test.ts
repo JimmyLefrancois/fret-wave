@@ -3,7 +3,7 @@ import { TUNINGS, generatePositions, getScale, pitchClassOf, tonicSpellings } fr
 import { layoutScore, positionToScore, validateScore } from '../src/core/tab';
 import {
   HOLES_RATIO, SEGMENTS, buildExercise, checkAnswer, holeKey, insideGrid, mulberry32, segmentPlan, starsFor,
-  tempoGrid, withRevealed, clickMasked, isClickPitch, missedSummary, stepOpen, endScreenFor, nextStepFor,
+  tempoGrid, withRevealed, clickMasked, isClickPitch, missedSummary, stepOpen, endScreenFor, nextStepFor, scrollToKeepVisible,
 } from '../src/modules/gammes/exercise';
 import { unseenTonic, unseenZoneTonic } from '../src/modules/gammes/transpose';
 
@@ -345,5 +345,27 @@ describe('transposition en révision : une tonique dont la forme tombe dans une 
 
   it('gamme inconnue : null, pas d’exception', () => {
     expect(unseenZoneTonic('nope', 'boxes', 0, 'standard', [], [])).toBeNull();
+  });
+});
+
+describe('scrollToKeepVisible (constat 19 : la case active au-dessus de la barre de réponse)', () => {
+  it('case visible : aucun défilement', () => {
+    expect(scrollToKeepVisible(300, 330, 844, 640)).toBe(0);
+  });
+
+  it('case sous la barre : on descend juste assez (marge de 16 px)', () => {
+    expect(scrollToKeepVisible(760, 790, 844, 640)).toBe(790 + 16 - 640);
+  });
+
+  it('sans barre, le bas de l’écran fait office de limite', () => {
+    expect(scrollToKeepVisible(820, 850, 844, 844)).toBe(850 + 16 - 844);
+  });
+
+  it('case au-dessus de l’écran : on remonte', () => {
+    expect(scrollToKeepVisible(-40, -10, 844, 640)).toBe(-40 - 16);
+  });
+
+  it('place trop courte : le haut de la case reste visible', () => {
+    expect(scrollToKeepVisible(100, 400, 844, 200)).toBe(100 - 16);
   });
 });

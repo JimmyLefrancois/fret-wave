@@ -18,7 +18,7 @@ les ordres de grandeur comptent, pas les valeurs exactes. Rapport complet : `npm
    Joueur du week-end : « 88 % » affiché trois semaines d'affilée, comme si rien ne bougeait.
 4. ✅ **Traité (D99, lot 4)** — **Joueur du week-end** : série cassée 5 fois, révisions bloquées à 5 dues (il ne les fait pas),
    alors qu'il atteint l'objectif du jour chaque samedi.
-5. **Rattrapages nombreux** (30 à 50 pour les profils réguliers) : ni XP ni preuve. L'élève comprend-il
+5. ✅ **Traité (lot 5)** — **Rattrapages nombreux** (30 à 50 pour les profils réguliers) : ni XP ni preuve. L'élève comprend-il
    pourquoi ces séries ne comptent pas ?
 6. **Plafond d'XP (120) jamais dépassé**, même par l'avancé : il ne gêne personne à 3-4 séries par jour.
 7. **Sans micro** : première forme apprise à J7, contre J3 au micro. L'écart s'explique-t-il à l'écran ?
@@ -59,7 +59,7 @@ Observés en chargeant « Décrocheur » puis en avançant l'horloge de 7 jours 
     (les cartes d'impro) ; la page Révision lance « Session 1/5 » sur d'autres formes, choisies comme
     « fragiles » : pour un élève qui a tout maîtrisé, un exercice à trous N2, tablature visible, motif
     « vue dans une seule zone du manche », alors que le panneau dit « Cette forme : maîtrisée ».
-14. **Le panneau « Exercice » de la révision est un long paragraphe** : la liste des 5 formes de la
+14. ✅ **Traité (lot 5)** — **Le panneau « Exercice » de la révision est un long paragraphe** : la liste des 5 formes de la
     session, la règle des 35 %, le mode d'emploi du pavé et l'état de la forme dans un seul bloc.
 15. **Une persona qui ne pratique pas le jour J1** (sans micro, week-end un jeudi) montre « Commencer »
     avec un journal vide : cohérent, mais rappel que le premier écran dépend du jour de lancement.
@@ -77,7 +77,7 @@ plus de cartes d'impro, l'accueil passe en « Reprendre la gamme » dès J30 (co
 18. ✅ **Corrigé (D98, lot 2)** — **« Prochain cap » est déjà pris** : l'affiche de l'accueil dit « Série : 13 jours d'affilée ·
     prochain cap : 14 jours » (palier de série). Le lot 2 du plan doit nommer autrement l'étape suivante
     du parcours (« Prochaine étape », « Nouveau défi »…), sinon deux sens pour un même mot.
-19. **Téléphone, page Révision** : la barre de réponse fixe (« Corde de Mi (grave) · case ? » + pavé)
+19. ✅ **Corrigé (lot 5)** — **Téléphone, page Révision** : la barre de réponse fixe (« Corde de Mi (grave) · case ? » + pavé)
     recouvre la seconde ligne de tablature. Possible artefact de la capture pleine page (éléments fixes) :
     à vérifier sur un vrai téléphone avant d'en faire un lot.
 
@@ -176,3 +176,23 @@ La carte de révision dit « À rafraîchir · vue il y a 12 j · palier 1 sur 6
     Ta série de semaines tient : 3 semaines. » Conforme à la règle (≥ 3 jours), mais répété chaque semaine,
     le message peut perdre son sens. Seuil à revoir pour un joueur dont la série de semaines tient ?
     (question à l'auteur)
+
+## Lot 5 — écran de révision lisible (`ux/constats-sim`, 2026-10-29)
+
+Traités : 5, 14, 19, et du plan le 23 (deux compteurs « 1 / 5 » en séance). Aucune règle nouvelle, pas de
+décision : affichage seulement.
+
+- **19** : cause exacte trouvée dans `TabView` : l'effet qui ramène la case active en vue prenait le bas de la
+  fenêtre comme limite et ignorait la barre de réponse fixe. Il passe par `scrollToKeepVisible` (pur, testé)
+  avec le haut de la barre. Contrôle `tools/answer-bar-check.mjs` (390 × 844, régulier J14, lendemain 17 h,
+  page Révision, 23 cases) : avant, **cases 17 à 23 cachées** (bas 769-825 px, barre à 640 px, défilement 0) ;
+  après, **aucune** (la page défile jusqu'à 229 px). Invariant I7 vert ; même contrôle au bureau : vert.
+- **14** : en séance, le panneau « Exercice » est une liste « Séance » (« 1 sur 4 · Position 1 · à
+  rafraîchir », formes repliées sous « Les 4 formes »), « Consigne » (« De mémoire, sans revoir la forme.
+  Seul ce premier essai compte. »), « État ». L'aide du clavier physique est repliée sous « Clavier ».
+- **23** : en séance, le pied « ‹ Position · 1 / 5 · Position › » est masqué.
+- **5** : le bilan dit « 2 rattrapages après « Regarde la forme » : comptés pour la journée, pas pour la
+  mémoire. » quand il y en a.
+
+37. Le titre de la page en séance garde « Session 1 / 4 · à froid » à côté de « Séance : 1 sur 4 » : deux
+    mots pour la même chose (« session » / « séance »). À unifier ? (petit, pas dans le plan)

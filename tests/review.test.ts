@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildReviewQueue, moreDue, reviewCount, REVIEW_MAX } from '../src/modules/gammes/review';
+import { buildReviewQueue, moreDue, reviewCount, sessionFact, REVIEW_MAX } from '../src/modules/gammes/review';
 import { GAP_TEXT } from '../src/modules/gammes/curriculum';
 import { learnedGaps, summarizeNodes, zoneOf } from '../src/core/progress';
 import { DUE_CAP } from '../src/core/progress/scheduler';
@@ -228,5 +228,17 @@ describe('révision honnête (D97)', () => {
     const [u] = buildReviewQueue(odd, NOW).filter((x) => x.nodeId.endsWith(':0'));
     expect(u!.selection.tonic).toBe('A');
     expect(u!.reason).toContain('rappel à froid');
+  });
+});
+
+describe('sessionFact (panneau « Exercice » en séance, constat 14)', () => {
+  it('rang, position et nature de la forme en cours', () => {
+    const due = [recall(at(10)), recall(at(8))];
+    const [cold] = buildReviewQueue(due, NOW);
+    expect(sessionFact(1, 5, cold!)).toBe('2 sur 5 · Position 1 · à rafraîchir');
+    const [learning] = buildReviewQueue([attempt({ ts: NOW - 7_200_000, correct: 5, total: 5 })], NOW);
+    expect(sessionFact(0, 1, learning!)).toBe('1 sur 1 · Position 1 · en apprentissage');
+    const moved = { ...cold!, reason: 'même dessin, autre case : en Ré m, cases 10–13' };
+    expect(sessionFact(0, 3, moved)).toBe('1 sur 3 · Position 1 · même dessin, autre case');
   });
 });

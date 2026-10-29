@@ -240,3 +240,14 @@ export function buildReviewQueue(
 
   return interleave(picked).slice(0, max);
 }
+
+/**
+ * « 2 sur 5 · Position 3 · à rafraîchir » : où en est la séance et pourquoi cette forme (panneau « Exercice »,
+ * constat 14). Une forme due est « à rafraîchir » (ou « même dessin, autre case » si elle change de tonique) ;
+ * une forme de complément, « en apprentissage ».
+ */
+export function sessionFact(index: number, count: number, t: ReviewTarget): string {
+  const kind = t.mode !== 'cold' ? 'en apprentissage'
+    : t.reason.startsWith('même dessin') ? 'même dessin, autre case' : 'à rafraîchir';
+  return `${index + 1} sur ${count} · ${t.positionLabel.split(' · ')[0]} · ${kind}`;
+}

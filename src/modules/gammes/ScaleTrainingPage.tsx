@@ -48,8 +48,8 @@ import {
   SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, endScreenFor, nextStepFor, STEP_LABEL, type StepKind, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
   type GridOutcome, type GridSubdivision, type Segment,
 } from './exercise';
-import { REVIEW_MAX, buildReviewQueue, moreDue, type ReviewTarget } from './review';
-import { coldNext, countsAsProof, lookRemaining, type ColdStep } from './coldReview';
+import { REVIEW_MAX, buildReviewQueue, moreDue, sessionFact, type ReviewTarget } from './review';
+import { coldNext, countsAsProof, lookRemaining, retryLine, type ColdStep } from './coldReview';
 import { blindGrid, countInBeat, scoreBlind, type BlindGrid, type HeardNote } from './blind';
 import * as clock from '../../core/clock';
 
@@ -65,6 +65,12 @@ interface Result {
   grid: GridOutcome;
   /** La tentative vaut-elle preuve ? (`false` : rattrapage, écrit `afterReveal`) */
   proof: boolean;
+}
+
+/** Haut de la barre de réponse fixe (téléphone), si elle est affichée : la case active reste au-dessus (constat 19). */
+function answerBarTop(): number | null {
+  const bar = document.querySelector('.answer-bar');
+  return bar && getComputedStyle(bar).display !== 'none' ? bar.getBoundingClientRect().top : null;
 }
 
 function mmss(seconds: number): string {
@@ -142,7 +148,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const [mixed, setMixed] = useState(initialMixed);
   const [queue, setQueue] = useState<ReviewTarget[]>([]);
   const [qIndex, setQIndex] = useState(0);
-  const [sessionDone, setSessionDone] = useState<{ forms: number; accuracy: number; xp: number } | null>(null);
+  const [sessionDone, setSessionDone] = useState<{ forms: number; accuracy: number; xp: number; retries: number } | null>(null);
   // la page Révision a trouvé une file vide : état vide explicite (pas d'exercice sur la forme courante)
   const [emptyReview, setEmptyReview] = useState(false);
   // dues restantes à la fin d'une séance (« Encore 3 formes dues »)
@@ -157,7 +163,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     return null;
   }, [sessionDone, journal]);
   // accumulateur de session : une ref, pour que le bilan soit juste dès le dernier clic (pas un rendu plus tard)
-  const sessionAcc = useRef({ forms: 0, accuracy: 0, xp: 0 });
+  const sessionAcc = useRef({ forms: 0, accuracy: 0, xp: 0, retries: 0 });
   /**
    * Rappel à froid (carte due) : `cold` = essai qui compte ; `look` = « Regarde la forme » ; `retry` =
    * rattrapage écrit `afterReveal` ; `next` = fini pour cette forme. `null` hors rappel à froid.
@@ -460,7 +466,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     if (mixed && res.proof) {
       const acc = sessionAcc.current;
       const forms = acc.forms + 1;
-      sessionAcc.current = { forms, accuracy: (acc.accuracy * acc.forms + res.accuracy) / forms, xp: acc.xp + res.xp };
+      sessionAcc.current = { ...acc, forms, accuracy: (acc.accuracy * acc.forms + res.accuracy) / forms, xp: acc.xp + res.xp };
+    } else if (mixed && coldStep === 'retry') {
+      // le bilan dit combien de rattrapages ont suivi « Regarde la forme » (constat 5)
+      sessionAcc.current = { ...sessionAcc.current, retries: sessionAcc.current.retries + 1 };
     }
     if (coldStep === 'cold' || coldStep === 'retry') setColdStep(coldNext(coldStep, { type: 'finished', accuracy }));
     // réussite = la fête ; échec = un écran calme (la série a une fin visible) ; rattrapage = rien
@@ -781,7 +790,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     setQIndex(0);
     setSessionDone(null);
     setResult(null);
-    sessionAcc.current = { forms: 0, accuracy: 0, xp: 0 };
+    sessionAcc.current = { forms: 0, accuracy: 0, xp: 0, retries: 0 };
     applyTarget(q[0]!);
   };
 
@@ -814,7 +823,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const toggleMixed = (on: boolean) => {
     setMixed(on);
     setSessionDone(null);
-    sessionAcc.current = { forms: 0, accuracy: 0, xp: 0 };
+    sessionAcc.current = { forms: 0, accuracy: 0, xp: 0, retries: 0 };
     if (!on) {
       setQueue([]);
       setQIndex(0);
@@ -931,9 +940,13 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             <button type="button" className="key" onClick={() => press('0')} disabled={!activeHole || !!result}>0</button>
             <button type="button" className="key key-ok" onClick={validate} disabled={!activeHole || entry === '' || !!result}>✓</button>
           </div>
-          <p className="t-small t-dim numpad-hint">
-            Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
-          </p>
+          {/* aide du pavé, repliée : elle ne sert qu'une fois (constat 14) */}
+          <details className="ex-more numpad-hint">
+            <summary>Clavier</summary>
+            <p className="t-small t-dim">
+              Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
+            </p>
+          </details>
     </>
   );
   const runStep = (k: StepKind) => {
@@ -1004,6 +1017,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         hideRhythm
         onPick={onPick}
         {...(activeKey ? { activeHoleKey: activeKey } : {})}
+        coverTop={answerBarTop}
       />
 
       {!(coldActive && !result) && <TabLegend def={r.def} readonly={settings.reduceMotion} />}
@@ -1026,6 +1040,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             Enchaîner des formes différentes coûte plus cher sur le moment et retient mieux que répéter la même :
             c’est fait exprès. Les échéances sont recalculées, le hub les affiche.
           </p>
+          {retryLine(sessionDone.retries) && <p className="t-small">{retryLine(sessionDone.retries)}</p>}
           {afterStep && <p className="t-small">{afterStep.text}</p>}
           <div className="row">
             {/* la séance s'arrête à 5 ; s'il reste des dues (8 au plus aujourd'hui), on propose la suite (D97),
@@ -1198,19 +1213,44 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       )}
 
       <Panel className="span-7" label="Exercice">
-        {mixed && queue.length > 0 && (
-          <p className="t-small">
-            Formes : {queue.map((t) => `${t.title} (${t.positionLabel})`).join(' → ')}.
-            {queue[qIndex] ? ` Celle-ci : ${queue[qIndex]!.reason}.` : ''}
-          </p>
+        {/* en séance : une liste de définitions plutôt qu'un long paragraphe (constat 14) */}
+        {mixed && queue.length > 0 && queue[qIndex] && (
+          <dl className="ex-facts">
+            <dt>Séance</dt>
+            <dd>
+              {sessionFact(qIndex, queue.length, queue[qIndex]!)}
+              <details className="ex-more">
+                <summary>Les {queue.length} formes</summary>
+                <ol>
+                  {queue.map((t, i) => (
+                    <li key={`${t.nodeId}-${i}`} className={i === qIndex ? 'current' : ''}>{t.title} ({t.positionLabel}) : {t.reason}</li>
+                  ))}
+                </ol>
+              </details>
+            </dd>
+            <dt>Consigne</dt>
+            <dd>
+              {coldStep === 'cold'
+                ? 'De mémoire, sans revoir la forme. Seul ce premier essai compte.'
+                : coldStep === 'retry'
+                  ? 'Rattrapage : tu viens de voir la forme, il ne compte pas.'
+                  : `${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes} notes, la position entière.`}
+            </dd>
+            {!result && (
+              <>
+                <dt>État</dt>
+                <dd>{formStateLine(formNode, settings.speedTargetBpm)}</dd>
+              </>
+            )}
+          </dl>
         )}
-        {coldStep === 'cold' && (
+        {!mixed && coldStep === 'cold' && (
           <p className="t-small">
             <strong>Rappel à froid</strong> : la position entière, de mémoire, sans la revoir avant. Seul ce premier
             essai compte pour la révision, la maîtrise et l’XP.
           </p>
         )}
-        {coldStep === 'retry' && (
+        {!mixed && coldStep === 'retry' && (
           <p className="t-small">
             <strong>Essai de rattrapage</strong> : enregistré comme pratique, sans effet sur la révision, la maîtrise
             ni l’XP — tu viens de voir la forme.
@@ -1242,6 +1282,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               : 'ouvre le micro : à l’aveugle, seul le son est jugé'}
           />
         )}
+        {!mixed && (
+        <>
         <p className="t-small">
           {level === 2
             ? `${Math.round(settings.holeRate * 100)} % des notes masquées (au moins 2, jamais toutes) : ici ${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes}. `
@@ -1252,6 +1294,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               + (micOn ? ' Joue-les dans l’ordre que tu veux.' : '')}
         </p>
         {!result && <p className="t-small">{formStateLine(formNode, settings.speedTargetBpm)}</p>}
+        </>
+        )}
         <div className="row exercise-start">
           {coldActive ? (
             // à froid, pas de nouvelle série (elle effacerait les cases déjà révélées) ni d'écoute : « Passer » suffit
@@ -1392,11 +1436,15 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         />
       )}
 
-      <div className="pos-nav">
-        <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0 || mixed}>‹ Position</PixelButton>
-        <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
-        <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1 || mixed}>Position ›</PixelButton>
-      </div>
+      {/* en séance, la file mène : changer de position en sortirait, et un second « 1 / 5 » brouillerait
+          « Séance 1 sur 5 » (constat 23) */}
+      {!mixed && (
+        <div className="pos-nav">
+          <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0}>‹ Position</PixelButton>
+          <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
+          <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1}>Position ›</PixelButton>
+        </div>
+      )}
 
       </>
       )}

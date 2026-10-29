@@ -347,3 +347,16 @@ export function isClickPitch(midi: number): boolean {
 export function clickMasked(elapsedSeconds: number, bpm: number, heardMidi: number, windowMs = 90): boolean {
   return nearClick(elapsedSeconds, bpm, windowMs) && isClickPitch(heardMidi);
 }
+
+/**
+ * Défilement (px, positif vers le bas) qui garde la case active entière au-dessus d'une barre fixe
+ * (constat 19 : au téléphone, la barre de réponse couvre le bas de l'écran). Repère de la fenêtre :
+ * `holeTop` / `holeBottom` de la case, `coverTop` haut de la barre (ou `viewportH` sans barre). Case
+ * visible → 0 ; place trop courte → le haut de la case reste à l'écran.
+ */
+export function scrollToKeepVisible(holeTop: number, holeBottom: number, viewportH: number, coverTop: number, margin = 16): number {
+  const limit = Math.min(viewportH, coverTop);
+  if (holeTop - margin < 0) return holeTop - margin;
+  if (holeBottom + margin > limit) return Math.min(holeBottom + margin - limit, holeTop - margin);
+  return 0;
+}
