@@ -19,7 +19,9 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
-import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
+import { clearTrainingStart, peekTrainingStart, setScaleSelection, useScaleSelection } from '../../app/scaleSession';
+import { openStep } from '../../app/openStep';
+import { dailySession } from '../../app/hubPlan';
 import { MAX_TEMPO, MIN_TEMPO, setSettings, useSettings } from '../../app/settings';
 import { TabView, type TabPick } from '../../app/TabView';
 import { Panel, PixelButton, Segmented, Switch } from '../../app/ui';
@@ -29,7 +31,7 @@ import { AudioEngine } from '../../core/audio/engine';
 import { describeInputError, type InputEngine, type InputFrame } from '../../core/input/engine';
 import { matchPitch, noteNameOf, targetsFor, type MatchVerdict } from '../../core/input/match';
 import { useInputSettings } from '../../core/input/settings';
-import { fmtNote } from '../../core/theory';
+import { fmtNote, type NoteName } from '../../core/theory';
 import { positionToScore } from '../../core/tab';
 import { TabPlayer } from '../../core/audio/tabPlayer';
 import {
@@ -37,7 +39,7 @@ import {
   summarizeNodes, xpForAttempt, xpSummary,
   type Attempt, type AttemptLevel, type NodeStats,
 } from '../../core/progress';
-import { missingText } from './curriculum';
+import { capStep, missingText, type FormStep } from './curriculum';
 import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
 import { LevelsNav } from './LevelsNav';
@@ -93,10 +95,15 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const settings = useSettings();
   const selection = useScaleSelection();
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
+  // départ demandé par la séance du jour (« Avancer : Position 3, de mémoire ») ; sinon N2
+  const [start] = useState(peekTrainingStart);
+  useEffect(() => clearTrainingStart(), []);
+  // la gamme de l'élève avant la séance de révision (qui change de forme, voire de tonique) : on y revient à la fin
+  const homeSelection = useRef(selection);
 
-  const [level, setLevel] = useState<AttemptLevel>(2);
+  const [level, setLevel] = useState<AttemptLevel>(start?.level ?? 2);
   // par défaut, la position entière en aller-retour : c'est la gamme qu'on joue, pas un fragment
-  const [segment, setSegment] = useState<Segment>('updown');
+  const [segment, setSegment] = useState<Segment>(start?.segment ?? 'updown');
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
   const [marks, setMarks] = useState<Record<string, HoleMark>>({});
   const [errors, setErrors] = useState<Record<string, number>>({});
@@ -140,6 +147,15 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const [emptyReview, setEmptyReview] = useState(false);
   // dues restantes à la fin d'une séance (« Encore 3 formes dues »)
   const moreDueNow = sessionDone ? moreDue(journal, clock.now()) : 0;
+  // et après les révisions : l'étape suivante de la séance du jour, sur la gamme de l'élève (D98)
+  const afterStep = useMemo(() => {
+    if (!sessionDone) return null;
+    const home = resolveScale(homeSelection.current).selection;
+    const s = dailySession(journal, clock.now(), { ...home, tonic: home.tonic as NoteName });
+    if (s.next) return { step: s.next, text: `Ensuite : ${s.next.label.replace(' · ', ', ')}`, action: s.next.level === 1 ? '▶ Écouter' : '▶ Avancer' };
+    if (s.cap) return { step: capStep(s.cap), text: `Nouveau défi : ${s.cap.title}`, action: `▶ Découvrir ${s.cap.name}` };
+    return null;
+  }, [sessionDone, journal]);
   // accumulateur de session : une ref, pour que le bilan soit juste dès le dernier clic (pas un rendu plus tard)
   const sessionAcc = useRef({ forms: 0, accuracy: 0, xp: 0 });
   /**
@@ -773,14 +789,26 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const nextInQueue = () => {
     const next = qIndex + 1;
     if (next >= queue.length) {
-      // dernière forme : on affiche le bilan, avec la dernière série déjà comptée
+      // dernière forme : on affiche le bilan, avec la dernière série déjà comptée, et l'élève retrouve sa gamme
       setSessionDone({ ...sessionAcc.current });
       setResult(null);
+      setScaleSelection(homeSelection.current);
       return;
     }
     setQIndex(next);
     setResult(null);
     applyTarget(queue[next]!);
+  };
+
+  /** Bilan → étape suivante : la page Révision ouvre l'écran d'entraînement ; ici même, on quitte la session. */
+  const goAfter = (step: FormStep) => {
+    if (initialMixed || step.level === 1) {
+      openStep({ route: step.level === 1 ? 'scale' : 'training', selection: step.selection, level: step.level, segment: step.segment });
+      return;
+    }
+    setScaleSelection(step.selection);
+    toggleMixed(false);
+    restart(step.level, step.segment);
   };
 
   const toggleMixed = (on: boolean) => {
@@ -998,12 +1026,17 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             Enchaîner des formes différentes coûte plus cher sur le moment et retient mieux que répéter la même :
             c’est fait exprès. Les échéances sont recalculées, le hub les affiche.
           </p>
+          {afterStep && <p className="t-small">{afterStep.text}</p>}
           <div className="row">
-            {/* la séance s'arrête à 5 ; s'il reste des dues (8 au plus aujourd'hui), on propose la suite (D97) */}
-            {moreDueNow > 0
-              ? <PixelButton variant="primary" onClick={startMixed}>Encore {moreDueNow} forme{moreDueNow > 1 ? 's' : ''} due{moreDueNow > 1 ? 's' : ''}</PixelButton>
-              : <PixelButton variant="primary" onClick={startMixed}>Nouvelle session</PixelButton>}
-            <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
+            {/* la séance s'arrête à 5 ; s'il reste des dues (8 au plus aujourd'hui), on propose la suite (D97),
+                puis l'étape suivante de la séance du jour (D98) */}
+            {moreDueNow > 0 && (
+              <PixelButton variant="primary" onClick={startMixed}>Encore {moreDueNow} forme{moreDueNow > 1 ? 's' : ''} due{moreDueNow > 1 ? 's' : ''}</PixelButton>
+            )}
+            {afterStep && (
+              <PixelButton variant={moreDueNow > 0 ? 'ghost' : 'primary'} onClick={() => goAfter(afterStep.step)}>{afterStep.action}</PixelButton>
+            )}
+            <PixelButton variant={moreDueNow > 0 || afterStep ? 'quiet' : 'primary'} onClick={() => navigate('hub')}>Accueil</PixelButton>
           </div>
         </Panel>
       ) : result ? (

@@ -2,18 +2,20 @@
  * Invariants du simulateur (docs/PLAN_CONSTATS.md, lot 0) : chaque constat devient une assertion. Celles
  * qui échouent aujourd'hui sont en `it.fails` et se retournent au lot qui les traite.
  *
- * Mesure à **17 h le lendemain** (l'heure où la persona revient) ; I4 se mesure à 23 h le jour même.
+ * Mesure à **17 h le lendemain** (l'heure où la persona revient) ; I4 se mesure à 23 h le jour même ; I2 à
+ * 17 h les jours de pratique, avant la première série.
  */
 import { describe, expect, it } from 'vitest';
 import { DUE_CAP, dayKey, summarizeNodes, zoneOf, type Attempt } from '../src/core/progress';
-import { buildReviewQueue, dueReviewCards, triedColdToday, type ReviewTarget } from '../src/modules/gammes/review';
+import { buildReviewQueue, dueToday, reviewCount, triedColdToday, type ReviewTarget } from '../src/modules/gammes/review';
 import { resolveScale } from '../src/modules/gammes/resolve';
-import { FIXED_END, PERSONAS, simulate, type Persona } from '../src/dev/simulate';
+import { dailySession, pathCounts, pathCountText, type DailySession } from '../src/app/hubPlan';
+import { FIXED_END, PERSONAS, simulate, type Persona, type SimSelection } from '../src/dev/simulate';
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
 
-interface Snapshot { day: number; dayEnd: number; journal: Attempt[]; practiced: boolean }
+interface Snapshot { day: number; dayEnd: number; journal: Attempt[]; practiced: boolean; sel: SimSelection }
 
 const runs = new Map<string, Snapshot[]>();
 function snapshots(p: Persona): Snapshot[] {
@@ -22,9 +24,9 @@ function snapshots(p: Persona): Snapshot[] {
   const list: Snapshot[] = [];
   simulate(p, {
     end: FIXED_END,
-    onDay: (day, dayEnd, j) => {
+    onDay: (day, dayEnd, j, sel) => {
       const key = dayKey(dayEnd);
-      list.push({ day, dayEnd, journal: [...j], practiced: j.some((a) => dayKey(a.ts) === key) });
+      list.push({ day, dayEnd, journal: [...j], practiced: j.some((a) => dayKey(a.ts) === key), sel });
     },
   });
   runs.set(p.id, list);
@@ -38,7 +40,22 @@ function nextAfternoon(dayEnd: number): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 17).getTime();
 }
 
-const dueLecture = dueReviewCards;
+const dueLecture = dueToday;
+
+/**
+ * Séance proposée en arrivant, les jours de pratique : journal de la veille, gamme de la veille au soir,
+ * à 17 h (la persona commence à 17 h au plus tôt).
+ */
+function arrivals(p: Persona): { day: number; session: DailySession }[] {
+  const snaps = snapshots(p);
+  const start: SimSelection = { scaleId: p.scaleId, tonic: p.tonic, system: p.system, tuningId: 'standard' };
+  return snaps.filter((s) => s.practiced).map((s) => {
+    const prev = snaps[s.day - 1];
+    const d = new Date(s.dayEnd);
+    const t = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 17).getTime();
+    return { day: s.day, session: dailySession(prev?.journal ?? [], t, prev?.sel ?? start) };
+  });
+}
 
 /** Zone du manche où tombe la position de la cible (sa tonique, sa forme). */
 function zoneOfTarget(t: ReviewTarget): number | null {
@@ -83,7 +100,7 @@ describe('invariants du simulateur', () => {
     for (const p of PERSONAS) {
       for (const s of snapshots(p)) {
         const now = nextAfternoon(s.dayEnd);
-        const announced = Math.min(dueLecture(s.journal, now).length, DUE_CAP);
+        const announced = reviewCount(s.journal, now);
         const cold = buildReviewQueue(s.journal, now, DUE_CAP).filter((t) => t.mode === 'cold').length;
         expect(cold, `${p.id} J${s.day + 1}`).toBe(announced);
       }
@@ -122,15 +139,58 @@ describe('invariants du simulateur', () => {
     expect(first.length + second.length).toBe(announced);
   });
 
-  it.fails('I4 une séance finie ne se rouvre pas le soir même', () => {
+  it('I4 une séance finie ne se rouvre pas le soir même', () => {
     const faults: string[] = [];
     for (const p of PERSONAS) {
       for (const s of snapshots(p)) {
         if (!s.practiced) continue;
         const evening = s.dayEnd + 1 - HOUR;
-        if (buildReviewQueue(s.journal, evening).some((t) => triedColdToday(s.journal, t.nodeId, evening))) faults.push(`${p.id} J${s.day + 1}`);
+        const session = dailySession(s.journal, evening, s.sel);
+        if ([...buildReviewQueue(s.journal, evening), ...session.review].some((t) => triedColdToday(s.journal, t.nodeId, evening))) {
+          faults.push(`${p.id} J${s.day + 1}`);
+        }
       }
     }
     expect(faults).toEqual([]);
+  });
+
+  it('I2 sur 7 jours de pratique d’affilée, au moins une étape ou un défi proposé', () => {
+    const faults: string[] = [];
+    for (const p of PERSONAS) {
+      const days = arrivals(p);
+      for (let i = 0; i + 7 <= days.length; i++) {
+        const win = days.slice(i, i + 7);
+        if (!win.some((d) => d.session.next || d.session.cap)) faults.push(`${p.id} J${win[0]!.day + 1}-J${win[6]!.day + 1}`);
+      }
+    }
+    expect(faults).toEqual([]);
+  });
+
+  it('I2 bis chaque persona reçoit une étape ou un défi à chaque jour de pratique', () => {
+    const faults: string[] = [];
+    for (const p of PERSONAS) {
+      for (const d of arrivals(p)) if (!d.session.next && !d.session.cap) faults.push(`${p.id} J${d.day + 1}`);
+    }
+    expect(faults).toEqual([]);
+  });
+
+  it('I3 une forme apprise due se dit « à rafraîchir » dans le Parcours', () => {
+    let seen = 0;
+    for (const p of PERSONAS) {
+      for (const s of snapshots(p)) {
+        const now = nextAfternoon(s.dayEnd);
+        const due = new Set(dueToday(s.journal, now).map((c) => c.nodeId));
+        const prefix = `gam:lecture:${s.sel.scaleId}:${s.sel.system}:`;
+        const learnedDue = summarizeNodes(s.journal).some((n) => n.nodeId.startsWith(prefix) && due.has(n.nodeId)
+          && (n.state === 'learned' || n.state === 'mastered'));
+        if (!learnedDue) continue;
+        seen++;
+        const c = pathCounts(s.journal, now, s.sel.scaleId, s.sel.system);
+        const total = resolveScale({ ...s.sel, positionIndex: 0 }).positions.length;
+        expect(pathCountText(c.learned, c.mastered, c.due, total), `${p.id} J${s.day + 1}`).toContain('à rafraîchir');
+      }
+    }
+    // le cas se produit vraiment dans les simulations (sinon l'invariant ne prouverait rien)
+    expect(seen).toBeGreaterThan(10);
   });
 });

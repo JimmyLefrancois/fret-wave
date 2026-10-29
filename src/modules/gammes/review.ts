@@ -115,16 +115,33 @@ export function dueReviewCards(attempts: readonly Attempt[], now: number): Card[
   return dueCards(cardsFrom(attempts), now).filter((c) => c.nodeId.startsWith('gam:lecture:'));
 }
 
-/** Rappel à froid de la forme le jour de `now` : premier essai N3 sur la position entière (pas un rattrapage). */
-export function triedColdToday(attempts: readonly Attempt[], nodeId: string, now: number): boolean {
+/** Formes rappelées à froid le jour de `now` : premier essai N3 sur la position entière (pas un rattrapage). */
+export function coldToday(attempts: readonly Attempt[], now: number): Set<string> {
   const key = dayKey(now);
-  return attempts.some((a) => isLectureSeries(a) && a.kind === 'recall' && a.level >= 3 && isFullPosition(a)
-    && !a.afterReveal && a.correct !== null && dayKey(a.ts) === key && lectureId(a) === nodeId);
+  const out = new Set<string>();
+  for (const a of attempts) {
+    if (isLectureSeries(a) && a.kind === 'recall' && a.level >= 3 && isFullPosition(a)
+      && !a.afterReveal && a.correct !== null && dayKey(a.ts) === key) out.add(lectureId(a));
+  }
+  return out;
 }
 
-/** Ce que l'accueil annonce : les formes dues, `DUE_CAP` au plus (une absence ne crée pas de dette). */
+export function triedColdToday(attempts: readonly Attempt[], nodeId: string, now: number): boolean {
+  return coldToday(attempts, now).has(nodeId);
+}
+
+/**
+ * Cartes dues **à réviser aujourd'hui** : une forme déjà rappelée à froid aujourd'hui sort de la séance
+ * jusqu'à demain (Q1, D98), même si Leitner la dit due (palier 1 = 10 min). Affichage seul : les
+ * échéances ne changent pas.
+ */
+export function dueToday(attempts: readonly Attempt[], now: number, cold = coldToday(attempts, now)): Card[] {
+  return dueReviewCards(attempts, now).filter((c) => !cold.has(c.nodeId));
+}
+
+/** Ce que l'accueil annonce : les formes dues aujourd'hui, `DUE_CAP` au plus (une absence ne crée pas de dette). */
 export function reviewCount(attempts: readonly Attempt[], now: number): number {
-  return Math.min(dueReviewCards(attempts, now).length, DUE_CAP);
+  return Math.min(dueToday(attempts, now).length, DUE_CAP);
 }
 
 /**
@@ -132,10 +149,21 @@ export function reviewCount(attempts: readonly Attempt[], now: number): number {
  * `DUE_CAP` rappels à froid dans la journée.
  */
 export function moreDue(attempts: readonly Attempt[], now: number): number {
-  const key = dayKey(now);
-  const coldToday = new Set(attempts.filter((a) => dayKey(a.ts) === key).map(lectureId)
-    .filter((id) => triedColdToday(attempts, id, now))).size;
-  return Math.max(0, Math.min(dueReviewCards(attempts, now).length, DUE_CAP - coldToday));
+  const cold = coldToday(attempts, now);
+  return Math.max(0, Math.min(dueToday(attempts, now, cold).length, DUE_CAP - cold.size));
+}
+
+/** Ce que la file et la séance du jour calculent depuis le journal, une seule fois par appel. */
+export interface ReviewContext {
+  nodes: NodeStats[];
+  cold: Set<string>;
+  /** Cartes dues aujourd'hui (`dueToday`). */
+  due: Card[];
+}
+
+export function reviewContext(attempts: readonly Attempt[], now: number): ReviewContext {
+  const cold = coldToday(attempts, now);
+  return { nodes: summarizeNodes(attempts), cold, due: dueToday(attempts, now, cold) };
 }
 
 /** « Do m », « Sol » : la tonique et, pour une gamme mineure, son « m ». */
@@ -145,9 +173,10 @@ function keyName(scale: ReturnType<typeof resolveScale>): string {
 
 export function buildReviewQueue(
   attempts: readonly Attempt[], now: number, max = REVIEW_MAX, opts: ReviewOptions = {},
+  ctx: ReviewContext = reviewContext(attempts, now),
 ): ReviewTarget[] {
   const cold = opts.cold ?? true;
-  const nodes = summarizeNodes(attempts);
+  const { nodes } = ctx;
   const byId = new Map(nodes.map((n) => [n.nodeId, n] as const));
   const lastByNode = new Map<string, Attempt>();
   for (const a of [...attempts].sort((x, y) => x.ts - y.ts)) {
@@ -167,8 +196,8 @@ export function buildReviewQueue(
   const seen = new Set<string>();
   const picked: ReviewTarget[] = [];
 
-  // 1. cartes dues
-  for (const card of dueCards(cardsFrom(attempts), now)) {
+  // 1. cartes dues aujourd'hui (une forme déjà rappelée à froid aujourd'hui attend demain, Q1)
+  for (const card of ctx.due) {
     if (seen.has(card.nodeId) || picked.length >= max) continue;
     const node = byId.get(card.nodeId);
     const last = lastByNode.get(card.nodeId);
@@ -196,7 +225,7 @@ export function buildReviewQueue(
 
   // 2. complément : formes en apprentissage pas encore rappelées à froid aujourd'hui, la plus fragile d'abord
   const learning = nodes
-    .filter((n) => n.state === 'learning' && !seen.has(n.nodeId) && !triedColdToday(attempts, n.nodeId, now))
+    .filter((n) => n.state === 'learning' && !seen.has(n.nodeId) && !ctx.cold.has(n.nodeId))
     .sort((a, b) => a.mastery - b.mastery);
   for (const node of learning) {
     if (picked.length >= max) break;

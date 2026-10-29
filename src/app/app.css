@@ -1729,6 +1729,8 @@ table.kv td:first-child { color: var(--muted); }
 .home-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: var(--gap-inside); }
 .home-step-n { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-family: var(--font-label); font-weight: 700; color: var(--magenta); border: var(--bw) solid var(--magenta); }
 .home-step-text { font-size: 16px; font-weight: 600; color: var(--text); }
+/* pourquoi cette étape (séance du jour) : sous le titre de l'étape, plus discret que lui */
+.home-step-why { display: block; font-size: 14.5px; font-weight: 400; line-height: 1.45; color: var(--muted); text-wrap: pretty; }
 /* étape franchie : cochée et estompée ; étape en cours : son numéro s'allume, c'est elle que porte le primaire */
 .home-steps li.done .home-step-n { color: var(--green); border-color: var(--green); }
 .home-steps li.done .home-step-text { color: var(--muted); font-weight: 400; }

@@ -25,6 +25,9 @@ const OUT = arg('out', '.shots/sim-tour');
 const WIDTH = Number(arg('width', 1440));
 const HEIGHT = Number(arg('height', 900));
 const ONLY = arg('personas', null)?.split(',');
+/** Thème des captures (`dawn` pour Aube) ; défaut : celui des réglages (Synthwave). */
+const THEME = arg('theme', null);
+const TAG = THEME ? `${WIDTH}-${THEME}` : `${WIDTH}`;
 const DAYS = arg('days', null)?.split(',').map(Number);
 const PAGES = [
   { id: 'hub', hash: '#/hub', label: 'Accueil' },
@@ -66,6 +69,12 @@ await page.evaluate(() => {
   target.setHours(23, 30, 0, 0);
   localStorage.setItem('fretwave.dev.clockOffset', String(target.getTime() - Date.now()));
 });
+if (THEME) {
+  await page.evaluate((theme) => {
+    const s = JSON.parse(localStorage.getItem('fretwave.settings.v1') ?? '{}');
+    localStorage.setItem('fretwave.settings.v1', JSON.stringify({ ...s, theme }));
+  }, THEME);
+}
 // un vrai rechargement : un `goto` qui ne change que le hash garde les modules (et l'ancien décalage)
 await page.reload({ waitUntil: 'networkidle' });
 await ready();
@@ -86,7 +95,7 @@ for (const id of personas) {
     const shots = [];
     for (const p of PAGES) {
       await open(p.hash);
-      const file = `${id}-J${day}-${p.id}-${WIDTH}.png`;
+      const file = `${id}-J${day}-${p.id}-${TAG}.png`;
       await page.screenshot({ path: `${OUT}/${file}`, fullPage: true });
       shots.push({ page: p, file });
     }
@@ -119,5 +128,5 @@ XP ${r.x.xp.total} · ${r.x.attempts} tentatives<br>Formes : ${esc(forms(r.x)) |
 <div class="row">${r.shots.map((s) => `<figure><a href="${s.file}"><img src="${s.file}" alt="${esc(s.page.label)}" loading="lazy"></a><figcaption>${esc(s.page.label)}</figcaption></figure>`).join('')}</div>`).join('\n')}
 </body></html>
 `;
-writeFileSync(`${OUT}/index-${WIDTH}.html`, html);
-console.log(`planche : ${OUT}/index-${WIDTH}.html (${rows.length} états, ${errors.length} erreur(s) console)`);
+writeFileSync(`${OUT}/index-${TAG}.html`, html);
+console.log(`planche : ${OUT}/index-${TAG}.html (${rows.length} états, ${errors.length} erreur(s) console)`);

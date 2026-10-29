@@ -6,6 +6,7 @@
 import { useSyncExternalStore } from 'react';
 import type { PositionSystem } from '../core/theory';
 import type { KeyValueStore } from '../core/audio/mixer';
+import type { Segment } from '../modules/gammes/exercise';
 
 export const SCALE_SELECTION_KEY = 'fretwave.scale.v1';
 
@@ -54,6 +55,22 @@ function safeStorage(): KeyValueStore | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Départ demandé à l'écran d'entraînement (niveau, découpage) par l'accueil ou le bilan de séance
+ * (« Avancer : Position 3, exercice à trous ») : lu à l'ouverture de l'écran, puis effacé.
+ */
+let pendingStart: { level: 2 | 3; segment: Segment } | null = null;
+export function setTrainingStart(start: { level: 2 | 3; segment: Segment } | null): void {
+  pendingStart = start;
+}
+/** Lecture sans effacer (React peut appeler deux fois un initialiseur d'état) ; `clearTrainingStart` ensuite. */
+export function peekTrainingStart(): { level: 2 | 3; segment: Segment } | null {
+  return pendingStart;
+}
+export function clearTrainingStart(): void {
+  pendingStart = null;
 }
 
 let current: ScaleSelection | null = null;

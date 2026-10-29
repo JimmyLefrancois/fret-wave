@@ -4,7 +4,15 @@
  * Ordre : une révision due passe avant tout (c'est la répétition espacée qui fait progresser), puis on
  * reprend le dernier module touché (gamme ou accord), et un journal vide donne « Commencer ».
  */
-import { isVerified, regressedForms, summarizeNodes, type Attempt, type AttemptLevel, type Card, type DaySummary } from '../core/progress';
+import {
+  DUE_CAP, PASS, isFullPosition, isVerified, medianOf, regressedForms, scoreOf, summarizeNodes,
+  type Attempt, type AttemptLevel, type Card, type DaySummary,
+} from '../core/progress';
+import type { NoteName, PositionSystem } from '../core/theory';
+import type { ScaleSelection } from './scaleSession';
+import type { Segment } from '../modules/gammes/exercise';
+import { buildReviewQueue, dueToday, reviewContext, type ReviewOptions, type ReviewTarget } from '../modules/gammes/review';
+import { capStep, nextCap, nextFormStep, scaleLearned, type Cap, type FormStep } from '../modules/gammes/curriculum';
 
 export type HubResume =
   | { kind: 'start' }
@@ -42,20 +50,138 @@ export function hubPlan(
   return { review, resume: { kind: 'scale' } };
 }
 
-export type HeroAction =
-  | { route: 'review' | 'tuner' | 'scale' | 'training' }
-  | { route: 'chord'; voicingId: string };
+/** La séance du jour (D98) : les révisions dues, puis l'étape suivante ou, la gamme apprise, un défi. */
+export interface DailySession {
+  /** Cartes dues pas encore tentées à froid aujourd'hui (Q1), dans l'ordre de la séance. */
+  review: ReviewTarget[];
+  /** Formes déjà rafraîchies (rappelées à froid) aujourd'hui. */
+  reviewedToday: number;
+  next: FormStep | null;
+  /** Seulement si toute la gamme est apprise (`next === null`). */
+  cap: Cap | null;
+  /** Il ne manque qu'un second jour : la suite est demain (« Séance faite »). */
+  waiting: boolean;
+  /** Durée estimée, arrondie à la minute supérieure ; 0 si rien. */
+  minutes: number;
+}
+
+export interface DailyOptions extends ReviewOptions {
+  /** Durée de « Regarde la forme » après un rappel raté (réglage). */
+  lookSeconds?: number;
+}
+
+/** Ce qu'on suppose sans mesure de l'élève : une série de 90 s, une écoute de 60 s. */
+const SERIES_SECONDS = 90;
+const LISTEN_SECONDS = 60;
+
+const isColdRecall = (a: Attempt) => a.module !== 'accords' && a.kind === 'recall' && a.level >= 3
+  && isFullPosition(a) && !a.afterReveal && a.correct !== null && a.total !== null;
+
+/**
+ * Durée estimée de la séance. Par forme due : la médiane des rappels N3 de l'élève sur la position entière
+ * (90 s sans mesure), plus son taux d'échec à froid × (regard + nouvel essai). L'étape suivante : la médiane
+ * de ses séries de ce niveau (90 s), une écoute 60 s.
+ */
+export function sessionMinutes(
+  review: readonly unknown[], next: FormStep | null, journal: readonly Attempt[], lookSeconds: number,
+): number {
+  const recalls = journal.filter(isColdRecall);
+  const med = medianOf(recalls.map((a) => a.seconds)) ?? SERIES_SECONDS;
+  const fail = recalls.length ? recalls.filter((a) => (scoreOf(a) ?? 0) < PASS).length / recalls.length : 0;
+  let total = review.length * (med + fail * (lookSeconds + med));
+  if (next) {
+    total += next.level === 1
+      ? LISTEN_SECONDS
+      : medianOf(journal.filter((a) => a.module !== 'accords' && (a.kind === 'holes' || a.kind === 'recall')
+        && a.level === next.level && isFullPosition(a) && a.correct !== null).map((a) => a.seconds)) ?? SERIES_SECONDS;
+  }
+  return total > 0 ? Math.ceil(total / 60) : 0;
+}
+
+/** « Environ 8 min » ; « Moins d'une minute ». */
+export function durationText(minutes: number): string {
+  return minutes < 1 ? 'Moins d’une minute' : `Environ ${minutes} min`;
+}
+
+/**
+ * La séance du jour sur la gamme choisie : révisions dues (pas encore tentées à froid aujourd'hui), puis
+ * l'étape suivante (`nextFormStep`) ou, si toute la gamme est apprise, le défi suivant (`nextCap`).
+ */
+export function dailySession(
+  journal: readonly Attempt[], now: number,
+  sel: { scaleId: string; tonic: NoteName; system: PositionSystem; tuningId: string }, opts: DailyOptions = {},
+): DailySession {
+  const ctx = reviewContext(journal, now);
+  const dueIds = new Set(ctx.due.map((c) => c.nodeId));
+  const review = buildReviewQueue(journal, now, DUE_CAP, opts, ctx).filter((t) => dueIds.has(t.nodeId));
+  const reviewedToday = ctx.cold.size;
+  const next = nextFormStep(journal, sel.scaleId, sel.tonic, sel.system, sel.tuningId, now, ctx.nodes);
+  const learned = !next && scaleLearned(journal, sel.scaleId, sel.tonic, sel.system, sel.tuningId, ctx.nodes);
+  const cap = learned ? nextCap(journal, sel, ctx.nodes) : null;
+  return {
+    review, reviewedToday, next, cap, waiting: !next && !learned,
+    minutes: sessionMinutes(review, next, journal, opts.lookSeconds ?? 20),
+  };
+}
+
+export interface HeroAction {
+  route: 'review' | 'tuner' | 'scale' | 'training' | 'chord';
+  label: string;
+  voicingId?: string;
+  /** Ce que l'écran d'entraînement doit ouvrir (étape suivante ou défi). */
+  selection?: ScaleSelection;
+  level?: 1 | 2 | 3;
+  segment?: Segment;
+  /** Rien d'autre aujourd'hui : un bouton secondaire, pas l'action principale. */
+  quiet?: true;
+}
+
+const FIRST_STEP: Readonly<Record<HeroStepId, HeroAction>> = {
+  tune: { route: 'tuner', label: '▶ Accordeur' },
+  listen: { route: 'scale', label: '▶ Écouter' },
+  play: { route: 'training', label: '▶ Jouer au micro' },
+};
 
 /**
  * Ce que lance le bouton primaire du héros (et Espace / Entrée). Une révision due ouvre **la séance**
  * (`#/gammes/revision`, rappel à froid de D87), jamais une forme seule en exercice (D97) ; sinon l'accord
- * repris, l'étape en cours du premier pas, ou la gamme (la jouer si elle a déjà été écoutée).
+ * repris, l'étape en cours du premier pas, l'étape suivante (« Avancer ») ou le défi (« Découvrir »).
  */
-export function heroAction(plan: HubPlan, scale: { step: 'listen' | 'play'; firstStep: HeroStepId | null }): HeroAction {
-  if (plan.review) return { route: 'review' };
-  if (plan.resume.kind === 'chord') return { route: 'chord', voicingId: plan.resume.voicingId };
-  if (scale.firstStep) return { route: scale.firstStep === 'tune' ? 'tuner' : scale.firstStep === 'listen' ? 'scale' : 'training' };
-  return { route: scale.step === 'play' ? 'training' : 'scale' };
+export function heroAction(plan: HubPlan, session: DailySession, firstStep: HeroStepId | null = null): HeroAction {
+  const n = session.review.length;
+  if (n > 0) return { route: 'review', label: `▶ Réviser (${n} forme${n > 1 ? 's' : ''})` };
+  if (plan.resume.kind === 'chord') return { route: 'chord', label: '▶ Ouvrir la leçon', voicingId: plan.resume.voicingId };
+  if (firstStep) return FIRST_STEP[firstStep];
+  const step = session.next ?? (session.cap ? capStep(session.cap) : null);
+  if (!step) return { route: 'training', label: 'Continuer quand même', quiet: true };
+  const target = { selection: step.selection, level: step.level, segment: step.segment };
+  if (step.level === 1) {
+    const what = session.next ? `la ${step.label.split(' · ')[0]!.toLowerCase()}` : session.cap!.name;
+    return { route: 'scale', label: session.next ? `▶ Écouter ${what}` : `▶ Découvrir ${what}`, ...target };
+  }
+  return { route: 'training', label: session.next ? '▶ Avancer' : `▶ Découvrir ${session.cap!.name}`, ...target };
+}
+
+/** Comptes de la bande « Parcours » pour une gamme et un système (une forme ne dépend pas de la tonique). */
+export function pathCounts(
+  journal: readonly Attempt[], now: number, scaleId: string, system: string,
+): { learned: number; mastered: number; due: number } {
+  const prefix = `gam:lecture:${scaleId}:${system}:`;
+  const nodes = summarizeNodes(journal).filter((n) => n.nodeId.startsWith(prefix) && (n.state === 'learned' || n.state === 'mastered'));
+  const due = new Set(dueToday(journal, now).map((c) => c.nodeId));
+  return {
+    learned: nodes.length,
+    mastered: nodes.filter((n) => n.state === 'mastered').length,
+    due: nodes.filter((n) => due.has(n.nodeId)).length,
+  };
+}
+
+/** « 5 formes apprises sur 5, dont 2 maîtrisées · 3 à rafraîchir » : apprise ne veut pas dire « fini ». */
+export function pathCountText(learned: number, mastered: number, due: number, total: number): string {
+  const s = (k: number) => (k > 1 ? 's' : '');
+  return `${learned} forme${s(learned)} apprise${s(learned)} sur ${total}`
+    + (mastered > 0 ? `, dont ${mastered} maîtrisée${s(mastered)}` : '')
+    + (due > 0 ? ` · ${due} à rafraîchir` : '');
 }
 
 /**

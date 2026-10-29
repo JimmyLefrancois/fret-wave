@@ -3,8 +3,9 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { dailyActivity, dayGoalText, heroAction, heroSteps, hubPlan, learnedScaleForms, regressedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
+import { dailyActivity, dailySession, dayGoalText, heroAction, heroSteps, hubPlan, pathCounts, pathCountText, sessionMinutes, type DailySession, learnedScaleForms, regressedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
+import { dueReviewCards, dueToday } from '../src/modules/gammes/review';
 import { dueNow, summarizeDay, type Attempt, type Card } from '../src/core/progress';
 
 const T0 = new Date(2026, 9, 20, 19, 0, 0).getTime();
@@ -230,23 +231,110 @@ describe('révisions dues et impro (D96)', () => {
   });
 });
 
-describe('heroAction (porte unique, D97)', () => {
-  it('le bouton de l’accueil ouvre la séance', () => {
-    const plan = hubPlan([mk(T0)], [card], none, null);
-    expect(heroAction(plan, { step: 'play', firstStep: null })).toEqual({ route: 'review' });
-    // même au tout premier pas : une révision due passe avant
-    expect(heroAction(plan, { step: 'listen', firstStep: 'tune' })).toEqual({ route: 'review' });
+/** Rappel N3 réussi sur la position entière (une forme qui devient « apprise » en deux jours). */
+const recall = (ts: number, patch: Partial<Attempt> = {}) =>
+  mk(ts, { kind: 'recall', level: 3, fullPosition: true, correct: 10, total: 10, seconds: 50, ...patch });
+const SEL = { scaleId: 'pentatonic-minor', tonic: 'A' as const, system: 'boxes' as const, tuningId: 'standard' };
+const D = 86_400_000;
+const fiveLearned = () => [0, 1, 2, 3, 4].flatMap((formIndex) => [recall(T0 - 2 * D, { formIndex }), recall(T0 - D, { formIndex })]);
+
+describe('séance du jour (D98)', () => {
+  it('rien de dû : l’étape suivante seule', () => {
+    const s = dailySession([], T0, SEL);
+    expect(s.review).toEqual([]);
+    expect(s.next?.level).toBe(1);
+    expect(s.cap).toBeNull();
+    expect(s.waiting).toBe(false);
   });
 
-  it('sans révision : l’accord repris, le premier pas, puis la gamme', () => {
+  it('une forme due et une étape : les deux, révision d’abord', () => {
+    // position 1 apprise (palier 3, due), position 2 à apprendre
+    const j = [recall(T0 - 6 * D), recall(T0 - 4 * D)];
+    const plan = hubPlan(j, dueToday(j, T0), none, null);
+    const s = dailySession(j, T0, SEL);
+    expect(s.review.map((t) => t.nodeId)).toEqual(['gam:lecture:pentatonic-minor:boxes:0']);
+    expect(s.next?.selection.positionIndex).toBe(1);
+    expect(heroAction(plan, s)).toMatchObject({ route: 'review', label: '▶ Réviser (1 forme)' });
+  });
+
+  it('forme tentée à froid aujourd’hui : sortie de la séance jusqu’à demain (Q1), comptée comme rafraîchie', () => {
+    const j = [recall(T0 - 6 * D), recall(T0 - 4 * D), recall(T0 - 3_600_000, { correct: 5 })];
+    // l'échec la remet au palier 1 (10 min) : Leitner la dit due, la séance ne la rouvre pas
+    expect(dueReviewCards(j, T0).length).toBe(1);
+    const s = dailySession(j, T0, SEL);
+    expect(s.review).toEqual([]);
+    expect(s.reviewedToday).toBe(1);
+  });
+
+  it('toutes les formes apprises : un défi (cap)', () => {
+    const s = dailySession(fiveLearned(), T0, SEL);
+    expect(s.next).toBeNull();
+    expect(s.cap?.scaleId).toBe('blues-minor');
+    const plan = hubPlan(fiveLearned(), [], none, null);
+    expect(heroAction(plan, s)).toMatchObject({ route: 'scale', label: '▶ Découvrir le blues mineur' });
+  });
+
+  it('il ne manque qu’un second jour : séance faite, la suite demain', () => {
+    const j = [recall(T0 - 2 * 3_600_000), recall(T0 - 3_600_000)];
+    const s = dailySession(j, T0, SEL);
+    expect(s.next).toBeNull();
+    expect(s.cap).toBeNull();
+    expect(s.waiting).toBe(true);
+    expect(heroAction(hubPlan(j, [], none, null), s)).toMatchObject({ route: 'training', label: 'Continuer quand même', quiet: true });
+  });
+});
+
+describe('sessionMinutes', () => {
+  const t = (n: number) => Array.from({ length: n }, () => ({}) as never);
+  it('replis : 90 s par forme due, 60 s pour une écoute, 90 s pour une série', () => {
+    expect(sessionMinutes([], null, [], 20)).toBe(0);
+    expect(sessionMinutes(t(2), null, [], 20)).toBe(3);
+    const listen = dailySession([], T0, SEL).next;
+    expect(sessionMinutes([], listen, [], 20)).toBe(1);
+  });
+
+  it('médiane des rappels de l’élève, plus le taux d’échec × (regard + nouvel essai)', () => {
+    const j = [recall(T0, { seconds: 40 }), recall(T0, { seconds: 60 }), recall(T0, { seconds: 200 }), recall(T0, { seconds: 60, correct: 2 })];
+    // médiane 60 s, 1 échec sur 4 : 60 + 0,25 × (20 + 60) = 80 s par forme ; 3 formes = 240 s
+    expect(sessionMinutes(t(3), null, j, 20)).toBe(4);
+  });
+});
+
+describe('heroAction (porte unique D97, séance D98)', () => {
+  const session = (patch: Partial<DailySession> = {}): DailySession =>
+    ({ review: [], reviewedToday: 0, next: null, cap: null, waiting: false, minutes: 0, ...patch });
+
+  it('le bouton de l’accueil ouvre la séance quand une forme est due', () => {
+    const plan = hubPlan([mk(T0)], [card], none, null);
+    const s = session({ review: [{} as never, {} as never, {} as never] });
+    expect(heroAction(plan, s)).toEqual({ route: 'review', label: '▶ Réviser (3 formes)' });
+    // même au tout premier pas : une révision due passe avant
+    expect(heroAction(plan, s, 'tune').route).toBe('review');
+  });
+
+  it('sans révision : l’accord repris, puis le premier pas, puis l’étape de la séance', () => {
     const chord = hubPlan([mk(T0, { module: 'accords', chordId: 'Em-022000' })], [], none, null);
-    expect(heroAction(chord, { step: 'play', firstStep: null })).toEqual({ route: 'chord', voicingId: 'Em-022000' });
+    expect(heroAction(chord, session())).toMatchObject({ route: 'chord', voicingId: 'Em-022000' });
     const start = hubPlan([], [], none, null);
-    expect(heroAction(start, { step: 'listen', firstStep: 'tune' })).toEqual({ route: 'tuner' });
-    expect(heroAction(start, { step: 'listen', firstStep: 'listen' })).toEqual({ route: 'scale' });
+    expect(heroAction(start, session(), 'tune')).toMatchObject({ route: 'tuner', label: '▶ Accordeur' });
+    const next = dailySession([mk(T0 - D, { kind: 'listen', level: 1, correct: null, total: null })], T0, SEL).next!;
     const scale = hubPlan([mk(T0)], [], none, null);
-    expect(heroAction(scale, { step: 'play', firstStep: 'play' })).toEqual({ route: 'training' });
-    expect(heroAction(scale, { step: 'play', firstStep: null })).toEqual({ route: 'training' });
-    expect(heroAction(scale, { step: 'listen', firstStep: null })).toEqual({ route: 'scale' });
+    expect(heroAction(scale, session({ next }))).toMatchObject({ route: 'training', label: '▶ Avancer', level: 2, segment: 'updown' });
+    const listen = dailySession([], T0, SEL).next!;
+    expect(heroAction(scale, session({ next: listen }))).toMatchObject({ route: 'scale', label: '▶ Écouter la position 1' });
+  });
+});
+
+describe('pathCountText (Parcours)', () => {
+  it('apprises, maîtrisées, à rafraîchir', () => {
+    expect(pathCountText(0, 0, 0, 5)).toBe('0 forme apprise sur 5');
+    expect(pathCountText(5, 0, 3, 5)).toBe('5 formes apprises sur 5 · 3 à rafraîchir');
+    expect(pathCountText(5, 2, 0, 5)).toBe('5 formes apprises sur 5, dont 2 maîtrisées');
+    expect(pathCountText(1, 1, 1, 5)).toBe('1 forme apprise sur 5, dont 1 maîtrisée · 1 à rafraîchir');
+  });
+
+  it('pathCounts : une forme apprise due compte « à rafraîchir »', () => {
+    const j = [recall(T0 - 6 * D), recall(T0 - 4 * D)];
+    expect(pathCounts(j, T0, 'pentatonic-minor', 'boxes')).toEqual({ learned: 1, mastered: 0, due: 1 });
   });
 });

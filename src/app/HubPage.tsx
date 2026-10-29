@@ -13,8 +13,12 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { dueReviewCards } from '../modules/gammes/review';
-import { dailyActivity, dayGoalText, heroAction, heroSteps, hubPlan, learnedScaleForms, regressedScaleForms, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
+import { openStep } from '../app/openStep';
+import { dueToday } from '../modules/gammes/review';
+import {
+  dailyActivity, dailySession, dayGoalText, durationText, heroAction, heroSteps, hubPlan, learnedScaleForms, pathCountText, pathCounts,
+  regressedScaleForms, isHeroShortcut, micHeardBefore, tuneStepDone, scaleStep,
+} from '../app/hubPlan';
 import { Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, headline, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
@@ -23,7 +27,7 @@ import { VOICINGS } from '../data/voicings';
 import { readTuningRecord } from '../core/input/tuningGuide';
 import { fmtChord } from '../core/theory';
 import {
-  DUE_CAP, loadJournal, nodeIdOf, progressStore, streak, summarizeDay,
+  DUE_CAP, loadJournal, progressStore, streak, summarizeDay,
   type Attempt,
 } from '../core/progress';
 import * as clock from '../core/clock';
@@ -155,8 +159,13 @@ export function HubPage() {
   const day = useMemo(() => summarizeDay(journal, now), [journal, now]);
   const st = useMemo(() => streak(journal, now), [journal, now]);
   // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran. Le compte est `reviewCount`
-  // (DUE_CAP au plus aujourd'hui) ; la séance en fait 5, son bilan propose la suite (D97)
-  const due = useMemo(() => dueReviewCards(journal, now.getTime()).slice(0, DUE_CAP), [journal, now]);
+  // (DUE_CAP au plus aujourd'hui, une forme déjà rappelée à froid attend demain) ; la séance en fait 5 (D97)
+  const due = useMemo(() => dueToday(journal, now.getTime()).slice(0, DUE_CAP), [journal, now]);
+  // la séance du jour sur la gamme choisie : révisions, puis « Avancer » ou « Nouveau défi » (D98)
+  const session = useMemo(
+    () => dailySession(journal, now.getTime(), { ...resolved.selection, tonic: resolved.tonic }, { cold: settings.coldReview, lookSeconds: settings.lookSeconds }),
+    [journal, now, resolved, settings.coldReview, settings.lookSeconds],
+  );
   const activity = dailyActivity(day);
   const goal = dayGoalText(activity, DAILY_GOAL);
   const feats = useMemo(() => accomplishments(journal, { limit: 10, notation: settings.noteNotation, chordNotation: settings.chordNotation }), [journal, settings.noteNotation, settings.chordNotation]);
@@ -171,7 +180,7 @@ export function HubPage() {
   const nextMilestone = nextStreakMilestone(st.days);
   const scaleForms = useMemo(() => learnedScaleForms(journal), [journal]);
   const regressed = useMemo(() => regressedScaleForms(journal), [journal]);
-  const scaleFormsHere = useMemo(() => learnedScaleForms(journal, sel.scaleId, resolved.selection.system), [journal, sel.scaleId, resolved.selection.system]);
+  const counts = useMemo(() => pathCounts(journal, now.getTime(), sel.scaleId, resolved.selection.system), [journal, now, sel.scaleId, resolved.selection.system]);
   const formTotal = resolved.positions.length;
   const micHeard = micHeardBefore(journal);
   const micHint = !micHeard && (
@@ -184,25 +193,6 @@ export function HubPage() {
   );
 
   const resume = plan.resume;
-  // « Une autre » fait tourner les cartes dues, dans l'ordre de la file (la plus en retard d'abord)
-  const [reviewIdx, setReviewIdx] = useState(0);
-  const reviewCard = plan.review ? due[reviewIdx % due.length] ?? plan.review.first : null;
-  // la dernière tentative du nœud dû : elle rouvre la bonne gamme à la bonne position
-  const reviewAttempt = reviewCard
-    ? [...journal].reverse().find((x) => nodeIdOf(x) === reviewCard.nodeId && x.correct !== null) ?? null
-    : null;
-  const reviewScale = reviewAttempt
-    ? resolveScale({ scaleId: reviewAttempt.scaleId, tonic: reviewAttempt.tonic, tuningId: reviewAttempt.tuningId, system: reviewAttempt.system as never, positionIndex: 0 }, settings.noteNotation)
-    : null;
-  const reviewPos = reviewAttempt && reviewScale
-    ? reviewScale.positions.find((p) => (p.formIndex ?? p.index) === reviewAttempt.formIndex) ?? null
-    : null;
-  // « Dernière activité » ne répète pas la carte due : même gamme, même tonique, même forme = même geste
-  const sameAsReview = resume.kind === 'scale' && !!reviewAttempt
-    && reviewAttempt.scaleId === sel.scaleId && reviewAttempt.tonic === resolved.tonic
-    && reviewAttempt.formIndex === (resolved.position?.formIndex ?? resolved.position?.index);
-  // porte unique (D97) : la séance, à froid, jamais la forme seule en exercice à trous
-  const review = () => navigate('review');
 
   // un voicing retiré des données (vieux journal) ne doit pas faire tomber l'accueil : on montre l'id tel quel
   const chordName = (id: string) => {
@@ -231,11 +221,13 @@ export function HubPage() {
     play: { text: 'Jouer la gamme au micro', action: '▶ Jouer au micro', go: () => navigate('training') },
   };
   // ce que lance le raccourci : toujours le bouton primaire affiché
-  const action = heroAction(plan, { step, firstStep: firstSteps?.current ?? null });
-  const heroGo = () => (action.route === 'chord' ? openChord(action.voicingId) : navigate(action.route));
+  // porte unique (D97) : une révision due ouvre la séance, à froid ; sinon l'étape de la séance du jour (D98)
+  const action = heroAction(plan, session, firstSteps?.current ?? null);
+  const heroGo = () => (action.route === 'chord' ? openChord(action.voicingId!) : openStep({ ...action, route: action.route }));
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!isHeroShortcut(e, e.target as HTMLElement | null)) return;
+      // « Séance faite » : rien de principal à lancer d'un geste
+      if (action.quiet || !isHeroShortcut(e, e.target as HTMLElement | null)) return;
       e.preventDefault();
       heroGo();
     };
@@ -244,29 +236,50 @@ export function HubPage() {
   }, [heroGo]);
 
   const hero = (() => {
-    if (plan.review) {
+    // séance du jour (D98) : révisions dues, puis « Avancer » ou « Nouveau défi » ; une seule action principale
+    const n = session.review.length;
+    const rdone = session.reviewedToday;
+    const pl = (k: number) => (k > 1 ? 's' : '');
+    const reviewStep = n > 0
+      ? { text: `Rafraîchir ${n} forme${pl(n)}, de mémoire`, why: '', done: false, current: true }
+      : rdone > 0 ? { text: `${rdone} forme${pl(rdone)} rafraîchie${pl(rdone)}`, why: '', done: true, current: false } : null;
+    const second = session.next
+      ? { text: `Avancer : ${session.next.label.replace(' · ', ', ')}`, why: session.next.why, done: false, current: n === 0 }
+      : session.cap ? { text: `Nouveau défi : ${session.cap.title}`, why: session.cap.why, done: false, current: n === 0 } : null;
+    const sessionSteps = [reviewStep, second].filter((x) => x !== null);
+    if (plan.review || (resume.kind !== 'chord' && !firstSteps)) {
       return (
-        <Panel
-          className="span-12 home-go"
-          accent="magenta"
-          label="À réviser"
-        >
-          <h3 className="home-title">{reviewScale ? reviewScale.title : 'Révision du jour'}</h3>
-          {reviewPos && <p className="t-small">{positionLabelPlain(reviewPos, settings.noteNotation)}</p>}
-          <p className="t-small home-why">
-            {reviewSummary(reviewCard!)} · {whenLabel(reviewCard!.lastTs, now.getTime())}
-            <br />
-            {plan.review.count > 1
-              ? `Forme ${(reviewIdx % plan.review.count) + 1} sur ${plan.review.count} à revoir aujourd’hui`
-              : 'La seule forme à revoir aujourd’hui'}
-            {/* la file est plafonnée : on le dit là où le compte s'affiche, pas dans un repli */}
-            {plan.review.count >= DUE_CAP && ` (${DUE_CAP} au plus aujourd’hui)`}
-          </p>
+        <Panel className="span-12 home-go" accent="magenta" label="Séance du jour">
+          <h3 className="home-title">{resolved.title}</h3>
+          {session.minutes > 0 && <p className="t-small">{durationText(session.minutes)}</p>}
+          {sessionSteps.length > 0 && (
+            <ol className="home-steps">
+              {sessionSteps.map((x, i) => (
+                <li key={x.text} className={x.done ? 'done' : x.current ? 'current' : ''}>
+                  <span className="home-step-n" aria-hidden="true">{x.done ? '✓' : i + 1}</span>
+                  <span className="home-step-text">
+                    {x.text}
+                    {x.done && <span className="sr-only"> (fait)</span>}
+                    {x.why && <span className="home-step-why">{x.why}</span>}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+          {/* la file est plafonnée : on le dit là où le compte s'affiche, pas dans un repli */}
+          {n >= DUE_CAP && <p className="t-small t-dim">{DUE_CAP} au plus aujourd’hui.</p>}
+          {action.quiet && (
+            <p className="t-small home-why">Séance faite. La suite demain : un second jour compte pour « apprise ».</p>
+          )}
           <div className="row home-actions">
-            <HeroGo onClick={review}>▶ Réviser maintenant</HeroGo>
-            {plan.review.count > 1 && <Switch onClick={() => setReviewIdx((i) => i + 1)}>Une autre forme</Switch>}
+            {action.quiet
+              ? <PixelButton onClick={heroGo}>{action.label}</PixelButton>
+              : <HeroGo onClick={heroGo}>{action.label}</HeroGo>}
+            {/* G8 : l'impro n'est jamais le défi du jour, elle reste à portée dès 3 formes apprises */}
+            {scaleForms >= 3 && <PixelButton onClick={() => navigate('impro')}>Improviser sur ce que tu sais</PixelButton>}
+            <Switch onClick={() => navigate('gammes')}>Changer de gamme</Switch>
           </div>
-          {resume.kind !== 'start' && !sameAsReview && (
+          {resume.kind === 'chord' && (
             <div className="home-resume">
               <span className="t-small">Dernière activité : <strong>{resumeTitle}</strong></span>
               <PixelButton onClick={resumeGo}>Reprendre</PixelButton>
@@ -338,22 +351,8 @@ export function HubPage() {
       >
         <h3 className="home-title">{resolved.title}</h3>
         <p className="t-small">{scaleLine}</p>
-        {stepsBlock || (
-          <div className="row home-actions">
-            {step === 'listen' ? (
-              <>
-                <HeroGo onClick={() => navigate('scale')}>▶ Écouter</HeroGo>
-                <PixelButton onClick={() => navigate('training')}>Jouer au micro</PixelButton>
-              </>
-            ) : (
-              <>
-                <HeroGo onClick={() => navigate('training')}>▶ Jouer au micro</HeroGo>
-                <PixelButton onClick={() => navigate('scale')}>Réécouter</PixelButton>
-              </>
-            )}
-            {changeScale}
-          </div>
-        )}
+        {/* premier pas seulement : ensuite, la séance du jour (ci-dessus) mène la gamme */}
+        {stepsBlock}
       </Panel>
     );
   })();
@@ -399,11 +398,12 @@ export function HubPage() {
               <span className="path-what">
                 {resolved.title}
                 <span className="path-count">
-                  {scaleFormsHere} forme{scaleFormsHere > 1 ? 's' : ''} apprise{scaleFormsHere > 1 ? 's' : ''} sur {formTotal}
-                  {scaleForms > scaleFormsHere ? ` · ${scaleForms} en tout` : ''}
+                  {/* « apprise » n'est pas « fini » : on dit aussi ce qui est à rafraîchir (D98) */}
+                  {pathCountText(counts.learned, counts.mastered, counts.due, formTotal)}
+                  {scaleForms > counts.learned ? ` · ${scaleForms} en tout` : ''}
                 </span>
               </span>
-              <PathBar done={scaleFormsHere} total={formTotal} />
+              <PathBar done={counts.learned} total={formTotal} />
             </button>
           </li>
           <li>

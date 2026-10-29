@@ -9,8 +9,9 @@ import {
   DAILY_XP_CAP, cardsFrom, dayKey, dueCards, isProof, streak, stringWeakness, summarizeDay, summarizeNodes,
   xpForAttempt, type Attempt, type NodeState,
 } from '../core/progress';
-import { dailyActivity, dayGoalText, hubPlan, reviewSummary } from '../app/hubPlan';
-import { simulate, type Persona, type SimOptions } from './simulate';
+import { dailyActivity, dailySession, dayGoalText, type DailySession } from '../app/hubPlan';
+import { resolveScale } from '../modules/gammes/resolve';
+import { simulate, type Persona, type SimOptions, type SimSelection } from './simulate';
 
 /** Objectif du jour de l'accueil (`DAILY_GOAL` de `HubPage.tsx`, qui ne s'importe pas hors navigateur). */
 export const SIM_DAILY_GOAL = 3;
@@ -31,7 +32,10 @@ export interface DayRow {
   due: number;
   /** Parmi elles, celles déjà jouées le jour même (palier 1 = 10 min : elles reviennent le soir). */
   dueToday: number;
-  /** Action principale de l'accueil en fin de journée (23 h 59 : ce que voit l'élève après sa séance). */
+  /**
+   * Séance du jour que l'accueil propose en arrivant (17 h, avant la pratique) : « 3 révisions +
+   * Position 3, trous », « défi : blues mineur, position 1 », « séance faite ».
+   */
   hero: string;
   /** État de chaque forme, dans l'ordre du manche : `·` disponible, `a` en cours, `A` apprise, `M` maîtrisée, `M+` vitesse vérifiée. */
   forms: string[];
@@ -49,22 +53,48 @@ export interface SimReport {
 
 const STATE_MARK: Readonly<Record<NodeState, string>> = { available: '·', learning: 'a', learned: 'A', mastered: 'M' };
 
+const SHORT_STEP: readonly [RegExp, string][] = [
+  [/ · exercice à trous, au micro$/, ', trous au micro'], [/ · exercice à trous$/, ', trous'],
+  [/ · de mémoire$/, ', mémoire'], [/ · écouter$/, ', écoute'],
+];
+
+/** La séance du jour en quelques mots (colonne « séance » du rapport). */
+export function sessionText(s: DailySession, sel: SimSelection, start: Pick<Persona, 'scaleId' | 'tonic'>): string {
+  const parts: string[] = [];
+  if (s.review.length) parts.push(`${s.review.length} révision${s.review.length > 1 ? 's' : ''}`);
+  if (s.next) {
+    const label = SHORT_STEP.reduce((l, [re, to]) => l.replace(re, to), s.next.label);
+    const other = sel.scaleId !== start.scaleId || sel.tonic !== start.tonic;
+    parts.push(other ? `${resolveScale({ ...sel, positionIndex: 0 }).title} : ${label}` : label);
+  } else if (s.cap) parts.push(`défi : ${s.cap.title}`);
+  else if (s.waiting) parts.push('séance faite');
+  return parts.join(' + ') || 'rien';
+}
+
 export function simReport(persona: Persona, opts: Omit<SimOptions, 'onDay'> = {}): SimReport {
   const rows: DayRow[] = [];
   let formOrder: number[] = [];
+  // la gamme travaillée la veille au soir : c'est elle que l'accueil a en sélection en arrivant
+  let prevSel: SimSelection = { scaleId: persona.scaleId, tonic: persona.tonic, system: persona.system, tuningId: 'standard' };
+  const prefix = `gam:lecture:${persona.scaleId}:${persona.system}:`;
   const journal = simulate(persona, {
     ...opts,
-    onDay: (day, dayEnd, j) => {
+    onDay: (day, dayEnd, j, sel) => {
       const now = new Date(dayEnd);
       const key = dayKey(dayEnd);
       const mine = j.filter((a) => dayKey(a.ts) === key);
       const xpRaw = mine.reduce((s, a) => s + xpForAttempt(a), 0);
-      const nodes = summarizeNodes(j).filter((n) => n.nodeId.startsWith('gam:lecture:'));
+      // colonnes de formes : la gamme de départ de la persona (une forme d'une autre gamme a son propre nœud)
+      const nodes = summarizeNodes(j).filter((n) => n.nodeId.startsWith(prefix));
+      const d = new Date(dayEnd);
+      const arrival = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 17).getTime();
+      const session = dailySession(j.filter((a) => a.ts < arrival), arrival, prevSel);
+      const heroSel = prevSel;
+      prevSel = sel;
       if (!formOrder.length) formOrder = [...new Set(mine.filter((a) => a.kind !== 'listen').map((a) => a.formIndex))];
       for (const n of nodes) if (!formOrder.includes(n.formIndex)) formOrder.push(n.formIndex);
       // même filtre que l'accueil (HubPage) : tout ce qui n'est pas un accord, impro comprise
       const due = dueCards(cardsFrom(j), dayEnd).filter((c) => !c.nodeId.startsWith('acc:'));
-      const plan = hubPlan(j, due, new Set(), null);
       const counts = new Map<string, number>();
       for (const a of mine) counts.set(a.kind, (counts.get(a.kind) ?? 0) + 1);
       const day0 = summarizeDay(j, now);
@@ -77,9 +107,7 @@ export function simReport(persona: Persona, opts: Omit<SimOptions, 'onDay'> = {}
         streak: streak(j, now).days,
         due: due.length,
         dueToday: due.filter((c) => dayKey(c.lastTs) === key).length,
-        hero: plan.review
-          ? `À réviser (${plan.review.count}) — ${reviewSummary(plan.review.first)}`
-          : plan.resume.kind === 'start' ? 'Commencer' : 'Reprendre la gamme',
+        hero: sessionText(session, heroSel, persona),
         forms: formOrder.map((f) => {
           const n = nodes.find((x) => x.formIndex === f);
           if (!n) return '·';
@@ -130,12 +158,13 @@ export function findingsOf(rows: readonly DayRow[], formOrder: readonly number[]
   // accueil : la même action proposée plusieurs jours de pratique d'affilée
   let run = 0; let best = 0; let bestHero = ''; let prev = '';
   for (const r of practiced) {
-    const h = r.hero.replace(/\s*—.*$/, '').replace(/\(\d+\)/, '(n)');
+    // le nombre de révisions varie d'un jour à l'autre : c'est l'étape proposée qui doit bouger
+    const h = r.hero.replace(/^\d+ révisions?/, 'n révisions');
     run = h === prev ? run + 1 : 1;
     prev = h;
     if (run > best) { best = run; bestHero = h; }
   }
-  if (best >= 5) out.push(`L'accueil propose « ${bestHero} » ${best} jours de pratique d'affilée : l'élève sent-il qu'il avance ?`);
+  if (best >= 5) out.push(`La séance propose « ${bestHero} » ${best} jours de pratique d'affilée : l'élève sent-il qu'il avance ?`);
   const retries = rows.reduce((s, r) => s + r.retries, 0);
   if (retries) out.push(`${retries} rattrapage(s) après avoir revu la forme (exclus de la preuve et de l'XP).`);
   let breaks = 0;
@@ -150,7 +179,7 @@ export function findingsOf(rows: readonly DayRow[], formOrder: readonly number[]
 }
 
 export function reportMarkdown(r: SimReport): string {
-  const head = ['J', 'date', 'genres', 'exos', 'obj.', 'XP (brut)', 'série', 'dues', 'dont jouées auj.', 'accueil, le soir', ...r.formLabels];
+  const head = ['J', 'date', 'genres', 'exos', 'obj.', 'XP (brut)', 'série', 'dues', 'dont jouées auj.', 'séance (17 h)', ...r.formLabels];
   const lines = [
     `## ${r.persona.label} (\`${r.persona.id}\`)`,
     '',

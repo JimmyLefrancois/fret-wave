@@ -8,12 +8,14 @@
  * règle de l'app. Aucune règle musicale, barème ni seuil n'est défini ici : on appelle ceux de l'app.
  */
 import {
-  DAY, dayKey, dueNow, hash32, isProof, newAttemptId, nodeIdOf, scoreOf, summarizeNodes,
-  PASS, type Attempt, type AttemptKind, type AttemptLevel, type NodeStats,
+  DAY, dayKey, hash32, newAttemptId, nodeIdOf, summarizeNodes,
+  PASS, type Attempt, type AttemptKind, type AttemptLevel,
 } from '../core/progress';
 import { generatePositions, TUNINGS, type NoteName, type Position, type PositionSystem } from '../core/theory';
 import { SEQUENCE_PATTERNS } from '../core/tab/generators';
 import { mulberry32, HOLES_RATIO, MIN_HOLES } from '../modules/gammes/exercise';
+import { capStep, type FormStep } from '../modules/gammes/curriculum';
+import { dailySession } from '../app/hubPlan';
 
 const HOUR = 3_600_000;
 
@@ -104,44 +106,52 @@ export interface SimOptions {
   /** Instant de fin : le dernier jour simulé est celui-ci (défaut : maintenant). */
   end?: number;
   seed?: number;
-  /** Appelé à la fin de chaque jour simulé, pratiqué ou non (rapport chronologique). */
-  onDay?: (day: number, dayEnd: number, journal: readonly Attempt[]) => void;
+  /**
+   * Appelé à la fin de chaque jour simulé, pratiqué ou non (rapport chronologique), avec la gamme que
+   * l'élève travaille ce soir-là (elle change quand il relève un défi).
+   */
+  onDay?: (day: number, dayEnd: number, journal: readonly Attempt[], sel: SimSelection) => void;
 }
 
-/** Une forme jouée dans le parcours, avec son nœud de lecture. */
+/** La gamme travaillée : ce que l'accueil a en sélection. */
+export interface SimSelection { scaleId: string; tonic: NoteName; system: PositionSystem; tuningId: string }
+
+/** Une forme jouée, dans une gamme et une tonique, avec son nœud de lecture. */
 interface Form {
   position: Position;
   formIndex: number;
   node: string;
   notes: number;
+  scaleId: string;
+  tonic: NoteName;
+  system: PositionSystem;
 }
 
-function formsOf(p: Persona): Form[] {
+function formsOf(sel: { scaleId: string; tonic: NoteName; system: PositionSystem }): Form[] {
   const tuning = TUNINGS.standard!;
-  return generatePositions(p.scaleId, p.tonic, tuning, p.system).map((position) => {
+  return generatePositions(sel.scaleId, sel.tonic, tuning, sel.system).map((position) => {
     const formIndex = position.formIndex ?? position.index;
     return {
-      position, formIndex,
-      node: nodeIdOf({ scaleId: p.scaleId, system: p.system, formIndex }),
+      position, formIndex, scaleId: sel.scaleId, tonic: sel.tonic, system: sel.system,
+      node: nodeIdOf({ scaleId: sel.scaleId, system: sel.system, formIndex }),
       notes: position.notes.length,
     };
   });
+}
+
+/** La forme qu'ouvre une étape (ou une cible de révision) : sa gamme, sa tonique, sa position. */
+function formAt(sel: { scaleId: string; tonic: string; system: PositionSystem; positionIndex: number }): Form | null {
+  return formsOf({ scaleId: sel.scaleId, tonic: sel.tonic as NoteName, system: sel.system })[sel.positionIndex] ?? null;
 }
 
 function clamp01(x: number): number {
   return Math.max(0, Math.min(1, x));
 }
 
-/** Ce que l'élève fait sur une forme, déduit de ce que le journal dit d'elle (le parcours N1 → N3). */
-type Step = 'listen' | 'n2-segment' | 'n2-full' | 'n3' | 'n3-grid' | 'blind' | 'sequence' | 'impro';
+/** Séries de vitesse de l'avancé sur une forme déjà apprise (le reste du parcours suit la séance du jour). */
+type Step = 'listen' | 'n2-full' | 'n3' | 'n3-grid' | 'blind' | 'sequence' | 'impro';
 
-function nextStep(p: Persona, form: Form, journal: readonly Attempt[], node: NodeStats | null, rng: () => number): Step {
-  const mine = journal.filter((a) => a.formIndex === form.formIndex && a.scaleId === p.scaleId);
-  if (!mine.some((a) => a.kind === 'listen')) return 'listen';
-  const passed = (pred: (a: Attempt) => boolean) => mine.filter((a) => pred(a) && isProof(a) && (scoreOf(a) ?? 0) >= PASS).length;
-  if (passed((a) => a.kind === 'holes' && a.fullPosition !== true) < 2) return 'n2-segment';
-  if (passed((a) => a.kind === 'holes' && a.fullPosition === true) < 1) return 'n2-full';
-  if (!node || node.state === 'learning' || !p.speed) return 'n3';
+function speedStep(p: Persona, rng: () => number): Step {
   const r = rng();
   if (p.impro && r < 0.2) return 'impro';
   if (r < 0.45) return 'sequence';
@@ -149,10 +159,16 @@ function nextStep(p: Persona, form: Form, journal: readonly Attempt[], node: Nod
   return 'n3-grid';
 }
 
+/** Ce que l'élève joue pour une étape de la séance : écouter, trous sur la position entière (D91), de mémoire. */
+function stepOf(s: FormStep): Step {
+  return s.level === 1 ? 'listen' : s.level === 2 ? 'n2-full' : 'n3';
+}
+
 /**
  * Rejoue `persona` sur `days` jours et rend le journal produit (trié, déterministe pour une graine).
- * Chaque jour pratiqué : révisions dues d'abord (comme l'accueil les propose), puis séries sur la première
- * forme pas encore apprise, et sur les formes apprises pour la vitesse.
+ * Chaque jour pratiqué, l'élève suit la **séance du jour** de l'accueil (D98) : les révisions dues (à
+ * froid, rattrapage sous 80 %), puis l'étape suivante, puis le défi (il change de gamme ou de tonique).
+ * L'avancé ajoute des séries de vitesse sur les formes apprises.
  */
 export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
   const days = opts.days ?? persona.days;
@@ -161,14 +177,15 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
   // minuit local de chaque jour, en calendrier : un jour de changement d'heure ne dure pas 24 h
   const midnight = (day: number) => new Date(endDay.getFullYear(), endDay.getMonth(), endDay.getDate() - (days - 1) + day).getTime();
   const rng = mulberry32((opts.seed ?? 1) ^ hash32(persona.id));
-  const forms = formsOf(persona);
+  let sel: SimSelection = { scaleId: persona.scaleId, tonic: persona.tonic, system: persona.system, tuningId: 'standard' };
   const journal: Attempt[] = [];
   // vitesse atteinte en séquence, par forme (le palier monte avec la pratique)
   const bpm = new Map<number, number>();
   let gridNpm = 100;
 
   const skillOn = (form: Form, t: number, level: AttemptLevel): number => {
-    const mine = journal.filter((a) => a.formIndex === form.formIndex && a.correct !== null);
+    const mine = journal.filter((a) => a.formIndex === form.formIndex && a.scaleId === form.scaleId
+      && a.system === form.system && a.correct !== null);
     const last = mine.length ? mine[mine.length - 1]!.ts : t;
     const idle = (t - last) / DAY;
     const levelCost = level >= 3 ? 0.08 : 0;
@@ -178,7 +195,7 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
 
   const push = (a: Omit<Attempt, 'id' | 'scaleId' | 'tonic' | 'tuningId' | 'system' | 'positionId' | 'fretMin'>, form: Form): Attempt => {
     const full: Attempt = {
-      id: '', scaleId: persona.scaleId, tonic: persona.tonic, tuningId: 'standard', system: persona.system,
+      id: '', scaleId: form.scaleId, tonic: form.tonic, tuningId: 'standard', system: form.system,
       positionId: form.position.id, fretMin: form.position.fretMin, ...a,
     };
     full.id = newAttemptId(full.ts, nodeIdOf(full), journal.length);
@@ -226,7 +243,6 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
           seconds: 40, missedStrings: [], tempoOk: false,
         }, form);
         return 40;
-      case 'n2-segment': series(form, t, { level: 2, segment: 'strings3' }); return 60;
       case 'n2-full': series(form, t, { level: 2, segment: 'updown' }); return 90;
       case 'n3': series(form, t, { level: 3, segment: 'updown' }); return 90;
       case 'n3-grid': series(form, t, { level: 3, segment: 'updown', grid: gridNpm }); return 90;
@@ -265,10 +281,10 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
       let t = dayStart + (17 + Math.floor(rng() * 4)) * HOUR + Math.floor(rng() * 60) * 60_000;
       const gap = () => { t += (1 + Math.floor(rng() * 3)) * 60_000; };
 
-      // 1. révisions dues (rappel à froid, position entière) ; un échec ouvre « regarde, puis refais »
+      // 1. révisions de la séance du jour (rappel à froid, position entière) ; un échec ouvre « regarde, puis refais »
       if (persona.reviews) {
-        for (const card of dueNow(journal, t).filter((c) => c.nodeId.startsWith('gam:lecture:'))) {
-          const form = forms.find((f) => f.node === card.nodeId);
+        for (const target of dailySession(journal, t, sel).review) {
+          const form = formAt(target.selection);
           if (!form) continue;
           const acc = series(form, t, { level: 3, segment: 'updown' });
           t += 90_000; gap();
@@ -279,25 +295,41 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
         }
       }
 
-      // 2. séries de travail : la première forme pas encore apprise, sinon de la vitesse sur une apprise
+      // 2. séries de travail : l'étape suivante de la séance, ou le défi ; l'avancé mêle de la vitesse
       for (let s = 0; s < persona.sessions; s++) {
-        const nodes = summarizeNodes(journal);
-        const byId = new Map(nodes.map((n) => [n.nodeId, n] as const));
-        const learning = forms.find((f) => {
-          const st = byId.get(f.node)?.state;
-          return st !== 'learned' && st !== 'mastered';
+        const nodes = new Map(summarizeNodes(journal).map((n) => [n.nodeId, n] as const));
+        const learned = formsOf(sel).filter((f) => {
+          const st = nodes.get(f.node)?.state;
+          return st === 'learned' || st === 'mastered';
         });
-        const learned = forms.filter((f) => f !== learning && byId.has(f.node));
-        const useLearned = persona.speed && learned.length > 0 && (!learning || rng() < 0.4);
-        const form = useLearned ? learned[Math.floor(rng() * learned.length)]! : learning ?? forms[0]!;
-        const step = nextStep(persona, form, journal, byId.get(form.node) ?? null, rng);
-        t += play(step, form, t) * 1000; gap();
+        let session = dailySession(journal, t, sel);
+        if (persona.speed && learned.length > 0 && (rng() < 0.4 || (!session.next && !session.cap))) {
+          t += play(speedStep(persona, rng), learned[Math.floor(rng() * learned.length)]!, t) * 1000; gap();
+          continue;
+        }
+        // un défi sur une autre gamme : l'élève la sélectionne, la séance repart de sa position 1
+        if (!session.next && session.cap?.kind === 'scale') {
+          sel = { scaleId: session.cap.scaleId, tonic: session.cap.tonic, system: session.cap.system, tuningId: 'standard' };
+          session = dailySession(journal, t, sel);
+        }
+        const step = session.next ?? (session.cap ? capStep(session.cap) : null);
+        // « reviens demain » : la séance est faite
+        if (!step) break;
+        const form = formAt(step.selection);
+        if (!form) break;
+        // même dessin ailleurs (2ᵉ tonique, transposition) : l'élève le joue de mémoire
+        const kind: Step = session.cap && !session.next ? 'n3' : stepOf(step);
+        t += play(kind, form, t) * 1000; gap();
         // l'écoute ouvre la forme : la série qui suit est le premier essai du jour
-        if (step === 'listen') { t += play(nextStep(persona, form, journal, null, rng), form, t) * 1000; gap(); }
+        if (kind === 'listen') {
+          const after = dailySession(journal, t, sel).next;
+          const f = after ? formAt(after.selection) : null;
+          if (after && f && after.level > 1) { t += play(stepOf(after), f, t) * 1000; gap(); }
+        }
       }
     }
     // le dernier jour s'arrête à `end` : charger une persona à 19 h n'écrit pas les séries de 20 h
-    opts.onDay?.(day, midnight(day + 1) - 1, day === days - 1 ? journal.filter((x) => x.ts <= end) : journal);
+    opts.onDay?.(day, midnight(day + 1) - 1, day === days - 1 ? journal.filter((x) => x.ts <= end) : journal, sel);
   }
   return journal.filter((x) => x.ts <= end);
 }
