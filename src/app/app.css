@@ -2424,40 +2424,74 @@ table.kv td:first-child { color: var(--muted); }
 .impro-summary { display: grid; gap: var(--gap-tight); padding-top: var(--gap-inside); border-top: 2px solid var(--line-soft); }
 .impro-summary .t-body { color: var(--text); }
 
-/* Bande « m'écouter » sous la tablature : **un seul cadre** — la bande. Le commutateur y perd son propre
-   fond et sa bordure (sinon on voit une boîte dans une boîte), sa case passe à 26 px et son libellé à
-   15 px : c'était un petit contrôle de formulaire, illisible au milieu de l'écran. */
+/* Bande « jouer avec la tablature » : deux modes côte à côte, chacun une tuile entière qui s'active d'un
+   toucher. Pas de cadre autour des deux (une boîte dans une boîte) : la tuile porte le cadre, le titre,
+   sa précision d'une ligne et un vrai commutateur à droite (piste + curseur), lisible de loin.
+   Actif = bord et piste cyan ; inactif = bord discret, piste éteinte. */
 .listen-band {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 24px;
-  padding: 12px 14px;
-  background: var(--surface);
-  border: 2px solid var(--line-soft);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
 }
-/* deux façons de jouer avec la tablature, côte à côte ; l'aide du quiz prend toute la largeur */
-.listen-band .switch { flex: 1 1 260px; }
-.listen-band > p { flex: 1 1 100%; margin: 0; }
-/* au bureau, la page est une grille de 12 colonnes : sans cette ligne la bande tombait dans UNE
-   colonne (90 px), et la phrase se repliait sur 158 px de haut (mesuré) */
+/* deux tuiles égales dès que la ligne les porte ; en dessous, empilées pleine largeur */
+@media (min-width: 640px) {
+  .listen-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (min-width: 900px) {
   .listen-band { grid-column: 1 / -1; }
 }
+/* l'aide du quiz : sur un fond de carte (jamais du texte nu sur le décor) */
+.listen-band > p { grid-column: 1 / -1; margin: 0; padding: 10px 14px; max-width: none; background: var(--surface); border: var(--bw) solid var(--line-soft); }
 .listen-band .switch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "label box" "hint box";
+  align-items: center;
+  column-gap: 16px;
+  row-gap: 2px;
   margin: 0;
-  padding: 0;
-  min-height: 44px;
-  background: transparent;
-  border: 0;
-  grid-template-columns: 26px minmax(0, 1fr);
-  gap: 12px;
+  padding: 12px 14px;
+  min-height: 68px;
+  background: var(--surface-hi);
+  border: var(--bw) solid var(--line);
+  box-shadow: 3px 3px 0 var(--shadow-ink);
 }
-.listen-band .switch-box { width: 26px; height: 26px; }
-.listen-band .switch.on .switch-box::after { inset: 5px; }
-.listen-band .switch-label { font-size: 15px; font-weight: 700; }
-/* la phrase est une explication, pas une note de bas de page : 13 px et une couleur lisible (la nuance
-   `dim` était trop pâle sous 13 px) */
-.listen-band .switch-hint { font-size: 13px; line-height: 1.45; color: var(--muted); }
+.listen-band .switch.on { border-color: var(--cyan); }
+.listen-band .switch:hover:not(:disabled) { border-color: var(--cyan); }
+.listen-band .switch:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.listen-band .switch-label { grid-area: label; font-size: 16px; font-weight: 700; line-height: 1.3; color: var(--text); }
+.listen-band .switch-hint,
+.listen-band .switch.inline .switch-hint {
+  grid-area: hint;
+  grid-column: auto;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--muted);
+  white-space: normal;
+}
+.listen-band .switch.inline .switch-hint::before { content: ''; }
+/* commutateur : piste 44 × 24 et curseur carré, à l'échelle des pixels de la tablature */
+.listen-band .switch-box {
+  grid-area: box;
+  width: 44px;
+  height: 24px;
+  background: var(--bg);
+  border: var(--bw) solid var(--line);
+}
+.listen-band .switch-box::after,
+.listen-band .switch.on .switch-box::after {
+  content: '';
+  position: absolute;
+  inset: auto;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--dim);
+}
+.listen-band .switch.on .switch-box { background: var(--cyan); border-color: var(--cyan); }
+.listen-band .switch.on .switch-box::after { left: auto; right: 2px; background: var(--on-accent); }
 
 /* Réglage de tempo : deux boutons carrés et une valeur, sur une seule ligne. */
 .impro-tempo-row { display: flex; align-items: center; gap: 8px; }
@@ -2465,11 +2499,6 @@ table.kv td:first-child { color: var(--muted); }
 /* Le nom d'accord se lit en clair : dans la police pixel, « Am » s'écrit « AM » et le mineur disparaît. */
 .impro-chord-name { font-family: var(--font-body); font-weight: 700; letter-spacing: 0; }
 
-/* La précision de la bande « m'écouter » est une phrase : elle a le droit d'aller à la ligne (en
-   `nowrap` elle poussait la bande à 430 px sur un écran de 390), et elle suit le libellé. */
-.listen-band .switch.inline { grid-template-columns: 26px minmax(0, 1fr); }
-.listen-band .switch.inline .switch-hint { grid-column: 2; white-space: normal; }
-.listen-band .switch.inline .switch-hint::before { content: ''; }
 
 /* --- rien de transparent sur le décor (D75) --------------------------------------------------------
    La scène (soleil, grille, étoiles) est un canvas derrière l'application : un bouton ou un texte sans
