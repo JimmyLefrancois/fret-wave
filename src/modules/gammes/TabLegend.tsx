@@ -18,16 +18,8 @@ export function TabLegend(props: { def: ScaleDef; readonly?: boolean }) {
   const { def, readonly = false } = props;
   const chars = useMemo(() => legendFor(def).filter((i) => i.characteristic), [def]);
 
-  if (chars.length === 0) {
-    return (
-      <div className="tab-legend">
-        <span className="tab-legend-body">
-          <span className="tab-legend-title">Aucune note caractéristique</span>
-          <span className="tab-legend-note">Rien ne clignote sur cette gamme : toutes ses notes ont le même poids.</span>
-        </span>
-      </div>
-    );
-  }
+  // rien ne clignote : rien à expliquer (le panneau vide occupait une rangée sur chaque écran)
+  if (chars.length === 0) return null;
 
   const plural = chars.length > 1;
   return (

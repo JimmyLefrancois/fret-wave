@@ -599,7 +599,7 @@ export function ScaleDiscoveryPage() {
         </Panel>
       )}
 
-      <Panel className="span-12" label="Instrument">
+      <Panel className="span-12">
         <InstrumentPicker />
       </Panel>
 

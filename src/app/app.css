@@ -482,7 +482,7 @@ a { color: var(--cyan); }
   line-height: 1.1;
   letter-spacing: 0.01em;
   color: var(--text);
-  text-shadow: 0 0 18px var(--magenta), 3px 3px 0 #2a0a3d;
+  text-shadow: 0 0 18px var(--magenta), 3px 3px 0 var(--shadow-ink);
 }
 .hero-sub {
   margin-top: 18px;
@@ -816,8 +816,8 @@ label { display: block; margin: 8px 0 2px; color: var(--muted); }
 .transport p { flex-basis: 100%; margin: 0; }
 label.inline { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
 label.inline input[type='range'] { width: 140px; }
-.error { border-color: var(--magenta); color: #ffb3c9; }
-.error-text { color: #ffb3c9; }
+.error { border-color: var(--magenta); color: var(--danger); }
+.error-text { color: var(--danger); }
 
 .tabview { position: relative; background: var(--surface); border: var(--bw) solid var(--line); overflow: hidden; margin: 10px 0; }
 .tabview.wrap { overflow-x: auto; overflow-y: hidden; }
@@ -1125,6 +1125,8 @@ table.kv td:first-child { color: var(--muted); }
   text-wrap: pretty;
 }
 .verdict:empty { height: 0; min-height: 0; padding: 0; border: 0; overflow: hidden; }
+/* série en cours : la place du verdict est réservée, le pavé ne saute plus à la première réponse */
+.shell > .verdict.reserve:empty { position: static; height: auto; min-height: 51px; border: var(--bw) solid var(--line-soft); }
 .verdict.ok { border-color: var(--ok); }
 .verdict.no { border-color: var(--danger); }
 .verdict.info { font-size: 17px; font-weight: 500; color: var(--muted); }

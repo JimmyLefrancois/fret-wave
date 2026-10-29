@@ -911,7 +911,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
 
       {/* verdict : sous la tablature, là où sont les yeux — pas au bas du pavé */}
-      <p className={`verdict ${feedback ? (feedback.info ? 'info' : feedback.ok ? 'ok' : 'no') : ''}`} role="status">
+      <p className={`verdict ${feedback ? (feedback.info ? 'info' : feedback.ok ? 'ok' : 'no') : ''} ${startedAt !== null && !result ? 'reserve' : ''}`} role="status">
         {feedback && !feedback.info && <span className="verdict-mark" aria-hidden="true">{feedback.ok ? '✓' : '✕'}</span>}
         {feedback?.text}
       </p>
@@ -1157,7 +1157,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               {!mixed && level === 3 && blindOn && micState === 'listening' && !result && (
                 <PixelButton variant="primary" onClick={() => void startBlind()}>▶ Lancer à l’aveugle</PixelButton>
               )}
-              <PixelButton variant="primary" onClick={() => restart()} title="Même gamme, nouveaux trous">▶ Nouvelle série</PixelButton>
+              {/* jamais l'action principale : en pleine série elle efface les trous trouvés, et le micro
+                  (avant) ou « Rejouer » (après) portent déjà l'accent */}
+              <PixelButton variant="ghost" onClick={() => restart()} title="Même gamme, nouveaux trous">↻ Nouvelle série</PixelButton>
               <PixelButton variant="quiet" onClick={() => navigate('scale')}>Écouter d’abord</PixelButton>
             </>
           )}
