@@ -68,7 +68,7 @@ export function sessionText(s: DailySession, sel: SimSelection, start: Pick<Pers
     const other = sel.scaleId !== start.scaleId || sel.tonic !== start.tonic;
     parts.push(other ? `${resolveScale({ ...sel, positionIndex: 0 }).title} : ${label}` : label);
   } else if (s.cap) parts.push(`défi : ${s.cap.title}`);
-  else if (s.waiting) parts.push('séance faite');
+  else if (s.waiting) parts.push('session faite');
   return parts.join(' + ') || 'rien';
 }
 
@@ -169,7 +169,7 @@ export function findingsOf(rows: readonly DayRow[], formOrder: readonly number[]
     prev = h;
     if (run > best) { best = run; bestHero = h; }
   }
-  if (best >= 5) out.push(`La séance propose « ${bestHero} » ${best} jours de pratique d'affilée : l'élève sent-il qu'il avance ?`);
+  if (best >= 5) out.push(`La session propose « ${bestHero} » ${best} jours de pratique d'affilée : l'élève sent-il qu'il avance ?`);
   const retries = rows.reduce((s, r) => s + r.retries, 0);
   if (retries) out.push(`${retries} rattrapage(s) après avoir revu la forme (exclus de la preuve et de l'XP).`);
   let breaks = 0;
@@ -188,7 +188,7 @@ export function findingsOf(rows: readonly DayRow[], formOrder: readonly number[]
 }
 
 export function reportMarkdown(r: SimReport): string {
-  const head = ['J', 'date', 'genres', 'exos', 'obj.', 'XP (brut)', 'série', 'dues', 'dont jouées auj.', 'séance (17 h)', ...r.formLabels];
+  const head = ['J', 'date', 'genres', 'exos', 'obj.', 'XP (brut)', 'série', 'dues', 'dont jouées auj.', 'session (17 h)', ...r.formLabels];
   const lines = [
     `## ${r.persona.label} (\`${r.persona.id}\`)`,
     '',

@@ -220,7 +220,7 @@ export function HubPage() {
   const heroGo = () => (action.route === 'chord' ? openChord(action.voicingId!) : openStep({ ...action, route: action.route }));
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // « Séance faite » : rien de principal à lancer d'un geste
+      // « Session faite » : rien de principal à lancer d'un geste
       if (action.quiet || !isHeroShortcut(e, e.target as HTMLElement | null)) return;
       e.preventDefault();
       heroGo();
@@ -273,7 +273,7 @@ export function HubPage() {
     const sessionSteps = [reviewStep, second].filter((x) => x !== null);
     if (plan.review || (resume.kind !== 'chord' && !firstSteps)) {
       return (
-        <Panel className="span-12 home-go" accent="magenta" label="Séance du jour">
+        <Panel className="span-12 home-go" accent="magenta" label="Session du jour">
           {welcome.length > 0 && (
             <div className="home-welcome" role="status">
               {welcome.map((l, i) => <p key={l} className={i === 0 ? 't-body' : 't-small'}>{l}</p>)}
@@ -300,7 +300,7 @@ export function HubPage() {
           {/* la file est plafonnée : on le dit là où le compte s'affiche, pas dans un repli */}
           {n >= DUE_CAP && welcome.length === 0 && <p className="t-small t-dim">{DUE_CAP} au plus aujourd’hui.</p>}
           {action.quiet && (
-            <p className="t-small home-why">Séance faite. La suite demain : un second jour compte pour « apprise ».</p>
+            <p className="t-small home-why">Session faite. La suite demain : un second jour compte pour « apprise ».</p>
           )}
           <div className="row home-actions">
             {action.quiet

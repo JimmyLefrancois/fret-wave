@@ -18,7 +18,7 @@ function mk(ts: number, patch: Partial<Attempt> = {}): Attempt {
   };
 }
 
-const card: Card = { nodeId: 'gam:x', box: 2, due: T0, lastTs: T0, lapses: 0, reps: 1, lastLevel: 2, lastScore: 1 };
+const card: Card = { nodeId: 'gam:x', box: 2, due: T0, lastTs: T0, lapses: 0, reps: 1, lastLevel: 2, lastScore: 1, slowStreak: 0 };
 const none = new Set<string>();
 
 describe('hubPlan', () => {
@@ -153,12 +153,10 @@ describe('retour après une absence (lot 3)', () => {
     expect(absenceDays([mk(T0 - 5 * D), mk(T0 - D, { kind: 'listen', correct: null, total: null })], now)).toBe(5);
   });
 
-  it('jamais avant 3 jours ; la série de semaines qui tient, ou une nouvelle série ; jamais de reproche', () => {
-    expect(returnLines(2, 4, 6, 0, 5)).toEqual([]);
-    expect(returnLines(4, 4, 6, 0, 5)).toEqual([
-      `Content de te revoir. 4 formes à rafraîchir, environ 6 min${NB}: on reprend doucement.`,
-      `Ta série de semaines tient${NB}: 5 semaines.`,
-    ]);
+  it('jamais avant 3 jours, ni tant que la série de semaines tient (D101) ; une nouvelle série ; jamais de reproche', () => {
+    expect(returnLines(2, 4, 6, 0, 0)).toEqual([]);
+    // le joueur du week-end : 5 jours sans jouer chaque semaine, mais sa série de semaines tient
+    expect(returnLines(5, 4, 6, 0, 5)).toEqual([]);
     expect(returnLines(12, 1, 2, 0, 0)).toEqual([
       `Content de te revoir. 1 forme à rafraîchir, environ 2 min${NB}: on reprend doucement.`,
       'Une nouvelle série commence aujourd’hui.',

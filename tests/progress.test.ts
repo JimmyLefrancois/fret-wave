@@ -236,6 +236,35 @@ describe('répétition espacée (Leitner)', () => {
     expect(cardsFrom([attempt({ kind: 'listen', correct: null, total: null })])).toEqual([]);
   });
 
+  it('réussite lente : une seule reste sur place, deux d’affilée au même palier montent d’un palier (D101)', () => {
+    let card = leitner.next(null, 'n', 'clean', today, 2, 1);
+    card = leitner.next(card, 'n', 'clean', today + 2 * DAY, 2, 1);
+    expect(card.box).toBe(3);
+    card = leitner.next(card, 'n', 'slow', today + 5 * DAY, 3, 0.9);
+    expect(card.box).toBe(3);
+    card = leitner.next(card, 'n', 'slow', today + 8 * DAY, 3, 0.94);
+    expect(card.box).toBe(4);
+    expect(card.slowStreak).toBe(0);
+    // le compte repart à zéro après la montée : il faut deux nouvelles lentes au palier 4
+    card = leitner.next(card, 'n', 'slow', today + 15 * DAY, 3, 0.9);
+    expect(card.box).toBe(4);
+  });
+
+  it('réussite lente : un échec ou une réussite nette entre deux lentes remet le compte à zéro', () => {
+    let card = leitner.next(null, 'n', 'slow', today, 2, 0.9);
+    expect(card.box).toBe(1);
+    expect(card.slowStreak).toBe(1);
+    // première rencontre lente + une lente : deux d'affilée au palier 1 → palier 2
+    expect(leitner.next(card, 'n', 'slow', today + DAY, 2, 0.9).box).toBe(2);
+    card = leitner.next(card, 'n', 'fail', today + DAY, 2, 0.5);
+    card = leitner.next(card, 'n', 'slow', today + 2 * DAY, 2, 0.9);
+    expect(card.box).toBe(1);
+    expect(card.slowStreak).toBe(1);
+    card = leitner.next(card, 'n', 'clean', today + 3 * DAY, 2, 1);
+    expect(card.box).toBe(2);
+    expect(card.slowStreak).toBe(0);
+  });
+
   it('échec : la boîte recule de 2 sans descendre sous 1', () => {
     let card = leitner.next(null, 'n', 'clean', today, 2, 1);
     card = leitner.next(card, 'n', 'clean', today + 2 * DAY, 2, 1);
@@ -293,7 +322,7 @@ describe('maîtrise', () => {
     expect(n.tonics.sort()).toEqual(['A', 'C']);
     expect(n.zones).toEqual([1, 2]);
     expect(n.state).toBe('learned');
-    expect(n.box).toBe(2); // 1 réussite nette puis 2 réussites « lentes » : la boîte ne monte plus
+    expect(n.box).toBe(3); // 1 réussite nette (palier 2) puis 2 réussites « lentes » d'affilée : +1 palier (D101)
     expect(n.mastery).toBeGreaterThan(0.8);
   });
 

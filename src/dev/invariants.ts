@@ -93,7 +93,7 @@ export function checkInvariants(persona: Persona, snaps: readonly DaySnapshot[])
       if (!pathCountText(c.learned, c.mastered, c.due, total).includes('à rafraîchir')) i3.push(J(s));
     }
   }
-  add('I1', 'la séance ne propose jamais une forme apprise non due', i1, n1);
+  add('I1', 'la session ne propose jamais une forme apprise non due', i1, n1);
   add('I1 bis', 'toute raison « autre zone » est tenue', i1bis, n1bis);
   add('I1 ter', 'compte de l’accueil = rappels à froid de la journée', i1ter, snaps.length);
 
@@ -115,15 +115,16 @@ export function checkInvariants(persona: Persona, snaps: readonly DaySnapshot[])
     const session = dailySession(s.journal, evening, s.sel);
     return [...buildReviewQueue(s.journal, evening), ...session.review].some((t) => triedColdToday(s.journal, t.nodeId, evening));
   }).map(J);
-  add('I4', 'une séance finie ne se rouvre pas le soir même', i4, practiced.length);
+  add('I4', 'une session finie ne se rouvre pas le soir même', i4, practiced.length);
 
-  // I5 : message de retour exactement à partir de 3 jours d'absence
+  // I5 : message de retour exactement à partir de 3 jours d'absence, si la série de semaines est tombée (D101)
   const i5 = arr.filter((d) => {
     const absence = absenceDays(d.journal, d.t);
-    const lines = returnLines(absence, dueToday(d.journal, d.t.getTime()).length, 0, streak(d.journal, d.t).days, weekStreak(d.journal, d.t).weeks);
-    return (lines.length > 0) !== (absence >= 3);
+    const weeks = weekStreak(d.journal, d.t).weeks;
+    const lines = returnLines(absence, dueToday(d.journal, d.t.getTime()).length, 0, streak(d.journal, d.t).days, weeks);
+    return (lines.length > 0) !== (absence >= 3 && weeks === 0);
   }).map(J);
-  add('I5', '≥ 3 jours d’absence → message de retour ; jamais sinon', i5, arr.length);
+  add('I5', '≥ 3 jours d’absence, semaines tombées → message de retour ; jamais sinon', i5, arr.length);
 
   // I6 : pour qui joue au moins 2 jours chaque semaine pleine (le joueur du week-end), la série de semaines
   // ne retombe jamais à 0 une fois lancée ; une vraie pause (le décrocheur) la casse, à juste titre

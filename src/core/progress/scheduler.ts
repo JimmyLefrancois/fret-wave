@@ -37,7 +37,12 @@ export interface Card {
   /** Niveau et score de la dernière tentative **qui prouve** (ratée comprise) — sert à proposer le bon écran. */
   lastLevel: AttemptLevel;
   lastScore: number;
+  /** Réussites lentes d'affilée à ce palier : à 2, la carte monte d'un palier (D101). */
+  slowStreak: number;
 }
+
+/** Réussites lentes d'affilée au même palier qui font monter d'un palier (D101, constat 38). */
+export const SLOWS_TO_PROMOTE = 2;
 
 export interface Scheduler {
   readonly id: string;
@@ -61,13 +66,21 @@ function jiggle(nodeId: string, reps: number, base: number): number {
 export const leitner: Scheduler = {
   id: 'leitner-6',
   next(card, nodeId, outcome, now, level, score) {
-    const prev = card ?? { nodeId, box: 1, due: now, lastTs: now, lapses: 0, reps: 0, lastLevel: level, lastScore: score };
+    const prev = card ?? { nodeId, box: 1, due: now, lastTs: now, lapses: 0, reps: 0, lastLevel: level, lastScore: score, slowStreak: 0 };
     const reps = prev.reps + 1;
     let box = prev.box;
     let lapses = prev.lapses;
+    let slowStreak = 0;
     if (outcome === 'clean') box = Math.min(MAX_BOX, box + 1);
-    else if (outcome === 'slow') box = Math.max(1, box);
-    else {
+    else if (outcome === 'slow') {
+      // une réussite lente reste sur place ; deux d'affilée au même palier montent d'un palier (D101) :
+      // sinon une forme jouée à 94 % revenait chaque jour au palier 1, sans fin (constat 38)
+      slowStreak = prev.slowStreak + 1;
+      if (slowStreak >= SLOWS_TO_PROMOTE) {
+        box = Math.min(MAX_BOX, box + 1);
+        slowStreak = 0;
+      }
+    } else {
       box = Math.max(1, box - 2);
       lapses += 1;
     }
@@ -83,6 +96,7 @@ export const leitner: Scheduler = {
       reps,
       lastLevel: level,
       lastScore: score,
+      slowStreak,
     };
   },
 };
