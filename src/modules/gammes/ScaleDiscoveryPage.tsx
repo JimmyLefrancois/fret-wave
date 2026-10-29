@@ -27,6 +27,7 @@ import { locateInScore, scoreNotes } from '../../core/impro/locate';
 import { appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts } from '../../core/progress';
 import { degreeName, fmtDegree, legendFor, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
+import { LevelsNav } from './LevelsNav';
 import {
   COMPARISON_LABEL, counterpartPosition, differingDegrees, markDegrees, neighbourDef, neighbourMode, neighbourPositions,
 } from './compare';
@@ -416,28 +417,7 @@ export function ScaleDiscoveryPage() {
       <TabLegend def={r.def} readonly={settings.reduceMotion} />
 
       {/* le chemin d'une forme en quatre niveaux : on est au 1, les trois suivants sont à un toucher */}
-      <nav className="levels" aria-label="Niveaux de travail">
-        <div className="level here" aria-current="step">
-          <span className="level-n">N1</span>
-          <span className="level-t">Découvrir</span>
-          <span className="level-s">avec le son · tu es ici</span>
-        </div>
-        <button type="button" className="level" onClick={() => navigate('training')}>
-          <span className="level-n">N2</span>
-          <span className="level-t">Trous</span>
-          <span className="level-s">compléter les notes masquées</span>
-        </button>
-        <button type="button" className="level" onClick={() => navigate('training')}>
-          <span className="level-n">N3</span>
-          <span className="level-t">Rappel</span>
-          <span className="level-s">tout de mémoire, tablature cachée</span>
-        </button>
-        <button type="button" className="level" onClick={() => navigate('impro')}>
-          <span className="level-n">N4</span>
-          <span className="level-t">Improviser</span>
-          <span className="level-s">sur un accompagnement</span>
-        </button>
-      </nav>
+      <LevelsNav current={1} onSelect={(n) => navigate(n === 4 ? 'impro' : 'training')} />
 
       <div className="pos-nav">
         <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>‹ Position</PixelButton>

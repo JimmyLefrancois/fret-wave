@@ -39,6 +39,7 @@ import {
 } from '../../core/progress';
 import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
+import { LevelsNav } from './LevelsNav';
 import { Celebration } from './Celebration';
 import {
   SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, endScreenFor, nextStepFor, STEP_LABEL, type StepKind, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
@@ -1252,9 +1253,13 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
 
 
+      {!mixed && (
+        <LevelsNav
+          current={level === 3 ? 3 : 2}
+          onSelect={(n) => (n === 1 ? navigate('scale') : n === 4 ? navigate('impro') : restart(n, segment))}
+        />
+      )}
       <p className="t-small t-dim foot-note">
-        Niveau 1 (découverte, avec le son) : <button type="button" className="linkish" onClick={() => navigate('scale')}>écran d’écoute</button>.
-        Niveau 4 (improvisation) : <button type="button" className="linkish" onClick={() => navigate('impro')}>improviser sur un accompagnement</button>.
         Vitesse : <button type="button" className="linkish" onClick={() => navigate('sequences')}>séquences au métronome, palier automatique</button>.
       </p>
 
