@@ -506,6 +506,8 @@ a { color: var(--cyan); }
 }
 .stat-line { font-size: 19px; color: var(--muted); margin-bottom: 2px; }
 .stat-line strong { font-family: var(--font-body); font-weight: 700; font-size: 19px; color: var(--cyan); }
+/* un score raté n'emprunte pas la couleur du succès */
+.stat-line.miss strong { color: var(--orange); }
 
 .entries { display: grid; gap: 8px; }
 .entry {
@@ -905,8 +907,6 @@ table.kv td:first-child { color: var(--muted); }
   .span-8 { grid-column: span 8; }
   /* pleine largeur : une section seule sur sa rangée (module Accords, leçon d'accord) */
   .span-12 { grid-column: 1 / -1; }
-  /* verdict vide : pas de rangée fantôme (l'écart de grille est de 20 px) */
-  .shell > .verdict:empty { margin-top: -20px; }
 
   .panel { padding: 16px 18px; }
   .panel-head { margin-bottom: 10px; }
@@ -1079,7 +1079,6 @@ table.kv td:first-child { color: var(--muted); }
   font-family: var(--font-display);
   font-size: 18px;
   color: var(--cyan);
-  text-shadow: 0 0 10px var(--cyan);
   min-width: 2ch;
   text-align: right;
 }
@@ -1099,7 +1098,8 @@ table.kv td:first-child { color: var(--muted); }
   cursor: pointer;
 }
 .key:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--bg-deep); }
-.key:disabled { opacity: 0.35; cursor: default; box-shadow: none; }
+/* désactivée mais lisible (en Aube, l'opacité 0,35 effaçait le pavé) : couleurs de repos, pas de transparence */
+.key:disabled { cursor: default; box-shadow: none; color: var(--dim); background: var(--surface); border-color: var(--line-soft); }
 .key:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .key-ok { border-color: var(--green); color: var(--green); }
 .key-alt { border-color: var(--line-soft); color: var(--muted); }
@@ -1118,17 +1118,15 @@ table.kv td:first-child { color: var(--muted); }
   border: var(--bw) solid var(--line);
   text-wrap: pretty;
 }
-.verdict:empty { padding: 0; border: 0; }
+.verdict:empty { height: 0; min-height: 0; padding: 0; border: 0; overflow: hidden; }
 .verdict.ok { border-color: var(--ok); }
 .verdict.no { border-color: var(--danger); }
 .verdict.info { font-size: 17px; font-weight: 500; color: var(--muted); }
 .verdict-mark { font-size: 22px; flex: none; }
 .verdict.ok .verdict-mark { color: var(--ok); }
 .verdict.no .verdict-mark { color: var(--danger); }
-@media (max-width: 899px) {
-  /* téléphone : l'écart de bloc ne s'applique pas à une région vide */
-  .shell > .verdict:empty { margin-block: calc(-1 * var(--gap-block)) 0; }
-}
+/* vide, il sort du flux (grille du bureau comme colonne du téléphone) : pas d'écart fantôme */
+.shell > .verdict:empty { position: absolute; }
 
 /* --- résultat d'une série --- */
 .result-stars {
@@ -1823,7 +1821,10 @@ table.kv td:first-child { color: var(--muted); }
 }
 .pos-act:hover { border-color: var(--cyan); }
 .pos-act.primary { background: var(--violet); border-color: var(--violet); color: var(--on-accent); }
-.pos-act.primary:hover { background: #bb8bff; border-color: #bb8bff; }
+.pos-act.primary:hover { border-color: var(--text); }
+/* une seule action pleine par écran : celle de la position choisie ; les autres restent au trait */
+.pos-item:not(.on) .pos-act.primary { background: var(--surface-hi); border-color: var(--violet); color: var(--text); }
+.pos-item:not(.on) .pos-act.primary:hover { border-color: var(--text); }
 
 @media (max-width: 519px) {
   /* sur téléphone les deux gestes passent sous le libellé : la ligne reste lisible sans troncature */
@@ -2418,7 +2419,7 @@ table.kv td:first-child { color: var(--muted); }
 .linkish {
   background: var(--surface-hi);
   border: 2px solid var(--line-soft);
-  padding: 2px 6px;
+  padding: 2px 9px;
   color: var(--cyan);
 }
 .linkish:hover { border-color: var(--cyan); color: var(--text); }

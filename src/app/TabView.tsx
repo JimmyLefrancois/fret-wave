@@ -288,6 +288,25 @@ export function TabView(props: TabViewProps) {
     };
   }, [layout, score, player, cssPerLogical, viewLogical]);
 
+  // le trou désigné change (flèches, réponse juste) : sur une tablature repliée en plusieurs lignes,
+  // il peut sortir de l'écran — on le ramène en vue. Pas au premier trou : la page ne saute pas à l'ouverture.
+  const prevHole = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const prev = prevHole.current;
+    prevHole.current = activeHoleKey;
+    if (!activeHoleKey || !prev || prev === activeHoleKey) return;
+    const pill = layout.columns.flatMap((c) => c.pills).find((p) => p.active);
+    const stage = stageRef.current;
+    if (!pill || !stage) return;
+    const r = stage.getBoundingClientRect();
+    const top = r.top + pill.y * cssPerLogical;
+    const bottom = r.top + (pill.y + pill.h) * cssPerLogical;
+    if (top >= 0 && bottom <= window.innerHeight) return;
+    // défilement minimal (la pastille arrive juste au bord) : le pavé, sous la tablature, reste le plus visible possible
+    const delta = top < 0 ? top - 24 : bottom - window.innerHeight + 24;
+    window.scrollTo({ top: window.scrollY + delta, behavior: reduceMotion ? 'auto' : 'smooth' });
+  }, [activeHoleKey, layout, cssPerLogical, reduceMotion]);
+
   // crochet du mode exercice : la seule tablature qui contient des trous et accepte le toucher
   useEffect(() => {
     if (!import.meta.env.DEV) return;

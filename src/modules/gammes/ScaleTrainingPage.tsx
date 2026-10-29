@@ -1096,7 +1096,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         <Panel className="span-7" accent={result.stars > 0 ? 'green' : 'orange'} label="Résultat">
           {/* pas d'étoiles sur un rattrapage : on ne félicite que ce qui prouve (MUSIC_DESIGN §17.1) */}
           {result.proof ? <p className="result-stars">{starRow(result.stars)}</p> : <p className="t-label">Rattrapage</p>}
-          <p className="stat-line">
+          <p className={`stat-line ${result.stars === 0 ? 'miss' : ''}`}>
             <strong>{Math.round(result.accuracy * 100)} %</strong> de trous justes au premier essai · {result.revealed} révélé{result.revealed > 1 ? 's' : ''} · {result.errors} erreur{result.errors > 1 ? 's' : ''}
           </p>
           {missedLine && <p className="t-small">{missedLine} — contour pointillé sur la tablature.</p>}
@@ -1216,9 +1216,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       )}
 
       <div className="pos-nav">
-        <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0}>‹ Position</PixelButton>
+        <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0 || mixed}>‹ Position</PixelButton>
         <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
-        <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1}>Position ›</PixelButton>
+        <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1 || mixed}>Position ›</PixelButton>
       </div>
 
       <p className="t-small t-dim foot-note">

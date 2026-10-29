@@ -74,13 +74,23 @@ export function Celebration(props: CelebrationProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const perfect = stars === 3 && revealed === 0 && errors === 0;
 
-  // Échap ferme ; le focus part sur « Continuer » pour ne pas piéger le clavier
+  // le focus entre sur « Continuer » à l'ouverture et revient d'où il venait à la fermeture
+  useEffect(() => {
+    const before = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
+    return () => before?.focus?.();
+  }, []);
+
+  // Échap ferme ; Tab reste dans la boîte (un seul contrôle : « Continuer »)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
+      else if (e.key === 'Tab') {
+        e.preventDefault();
+        closeRef.current?.focus();
+      }
     };
     window.addEventListener('keydown', onKey);
-    closeRef.current?.focus();
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
