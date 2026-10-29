@@ -17,10 +17,9 @@
  *    vérifiée » — on ne bloque pas l'élève sans micro, on ne lui certifie rien non plus.
  */
 import {
-  chordIdOfNode, dayKey, isProof, isVerified, nodeIdOf, progressionIdOfNode, scoreOf, transitionOfNode, zoneOf, type Attempt,
+  chordIdOfNode, dayKey, isFullPosition, isProof, isVerified, nodeIdOf, progressionIdOfNode, scoreOf, transitionOfNode, zoneOf, type Attempt,
 } from './journal';
 import { cardsFrom, type Card } from './scheduler';
-import { TUNINGS } from '../theory/tunings';
 
 export const PASS = 0.8;
 export const EXCELLENT = 0.95;
@@ -169,21 +168,9 @@ export const SPEED_CLEAN = 0.95;
 /** Réussites fortes exigées pour qu'une forme de gamme soit « apprise ». */
 export const SCALE_STRONG = 1;
 
-function stringsOfTuning(tuningId: string): number {
-  return TUNINGS[tuningId]?.strings.length ?? 6;
-}
-
 /** Série de lecture d'une forme (trous ou rappel), pas une impro, un accord ou une séquence. */
 function isFormSeries(a: Attempt): boolean {
   return a.module !== 'accords' && (a.kind === 'holes' || a.kind === 'recall');
-}
-
-/**
- * La série couvrait-elle toute la position ? Champ explicite depuis ce lot ; avant, on le déduit du
- * nombre de cordes (un segment « 1/2/3 cordes » n'atteint jamais le nombre de cordes de l'accordage).
- */
-export function isFullPosition(a: Attempt): boolean {
-  return a.fullPosition === true || a.strings >= stringsOfTuning(a.tuningId);
 }
 
 /** Réussite **forte** : ≥ 80 %, position entière, de mémoire (N3) ou jouée au micro (N2). */

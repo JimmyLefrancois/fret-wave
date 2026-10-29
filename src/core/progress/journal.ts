@@ -11,6 +11,7 @@
 import { dayKey, readLog, type PracticeEntry } from './practiceLog';
 import type { KeyValueStore } from '../audio/mixer';
 import { SEQUENCE_PATTERNS, type SequencePattern } from '../tab/generators';
+import { TUNINGS } from '../theory/tunings';
 
 export { dayKey } from './practiceLog';
 
@@ -134,6 +135,15 @@ export interface Attempt {
 
 export function zoneOf(fret: number): number {
   return Math.max(0, Math.min(4, Math.floor(Math.max(0, fret) / 5)));
+}
+
+/**
+ * La série couvrait-elle toute la position ? Champ explicite depuis le lot « mémoire et vitesse » ; avant,
+ * on le déduit du nombre de cordes (un segment « 1/2/3 cordes » n'atteint jamais le nombre de cordes de
+ * l'accordage). Ici et non dans `mastery.ts` : la révision espacée s'en sert aussi (D97).
+ */
+export function isFullPosition(a: Attempt): boolean {
+  return a.fullPosition === true || a.strings >= (TUNINGS[a.tuningId]?.strings.length ?? 6);
 }
 
 /** Nœud de progression : une **forme lue dans un mode**, indépendante de la tonique. */

@@ -3,7 +3,7 @@
  * dernier module touché ; un journal vide propose de commencer.
  */
 import { describe, expect, it } from 'vitest';
-import { dailyActivity, dayGoalText, heroSteps, hubPlan, learnedScaleForms, regressedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
+import { dailyActivity, dayGoalText, heroAction, heroSteps, hubPlan, learnedScaleForms, regressedScaleForms, isHeroShortcut, tuneStepDone, micHeardBefore, reviewSummary, scaleStep } from '../src/app/hubPlan';
 import { nextStreakMilestone } from '../src/modules/gammes/accomplishments';
 import { dueNow, summarizeDay, type Attempt, type Card } from '../src/core/progress';
 
@@ -227,5 +227,26 @@ describe('révisions dues et impro (D96)', () => {
     const holes = mk(T0 - 30 * 86_400_000, { correct: 2, total: 3 });
     const impro = mk(T0 - 29 * 86_400_000, { kind: 'impro', level: 4, correct: 12, total: 30, id: 'i' });
     expect(dueNow([holes, impro], T0).map((c) => c.nodeId)).toEqual(['gam:lecture:pentatonic-minor:boxes:0']);
+  });
+});
+
+describe('heroAction (porte unique, D97)', () => {
+  it('le bouton de l’accueil ouvre la séance', () => {
+    const plan = hubPlan([mk(T0)], [card], none, null);
+    expect(heroAction(plan, { step: 'play', firstStep: null })).toEqual({ route: 'review' });
+    // même au tout premier pas : une révision due passe avant
+    expect(heroAction(plan, { step: 'listen', firstStep: 'tune' })).toEqual({ route: 'review' });
+  });
+
+  it('sans révision : l’accord repris, le premier pas, puis la gamme', () => {
+    const chord = hubPlan([mk(T0, { module: 'accords', chordId: 'Em-022000' })], [], none, null);
+    expect(heroAction(chord, { step: 'play', firstStep: null })).toEqual({ route: 'chord', voicingId: 'Em-022000' });
+    const start = hubPlan([], [], none, null);
+    expect(heroAction(start, { step: 'listen', firstStep: 'tune' })).toEqual({ route: 'tuner' });
+    expect(heroAction(start, { step: 'listen', firstStep: 'listen' })).toEqual({ route: 'scale' });
+    const scale = hubPlan([mk(T0)], [], none, null);
+    expect(heroAction(scale, { step: 'play', firstStep: 'play' })).toEqual({ route: 'training' });
+    expect(heroAction(scale, { step: 'play', firstStep: null })).toEqual({ route: 'training' });
+    expect(heroAction(scale, { step: 'listen', firstStep: null })).toEqual({ route: 'scale' });
   });
 });

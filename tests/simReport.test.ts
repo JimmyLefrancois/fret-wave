@@ -4,7 +4,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { PERSONAS, getPersona } from '../src/dev/simulate';
+import { FIXED_END, PERSONAS, getPersona } from '../src/dev/simulate';
 import { reportMarkdown, simReport } from '../src/dev/report';
 
 const END = new Date(2026, 9, 29, 22, 0, 0).getTime();
@@ -27,7 +27,8 @@ describe('simReport', () => {
 describe.runIf(process.env.SIM_REPORT)('rapport complet', () => {
   it('écrit .shots/sim/report.md (ou le dossier SIM_REPORT_OUT)', () => {
     const dir = process.env.SIM_REPORT_OUT ?? '.shots/sim';
-    const end = Date.now();
+    // fin fixe : le rapport ne change pas d'un jour à l'autre
+    const end = FIXED_END;
     const parts = PERSONAS.map((p) => reportMarkdown(simReport(p, { end })));
     mkdirSync(dir, { recursive: true });
     writeFileSync(`${dir}/report.md`, [`# Simulation de progression — ${new Date(end).toLocaleString('fr-FR')}`, '', ...parts].join('\n'));

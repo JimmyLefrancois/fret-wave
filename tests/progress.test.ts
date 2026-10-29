@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ATTEMPTS_KEY, ATTEMPT_CAP, appendAttempt, loadJournal, newAttemptId, nodeIdOf, normalizeAttempt, readAttempts,
+  ATTEMPTS_KEY, ATTEMPT_CAP, appendAttempt, isFullPosition, loadJournal, newAttemptId, nodeIdOf, normalizeAttempt, readAttempts,
   scoreOf, summarizeDay, writeAttempts, zoneOf, type Attempt,
 } from '../src/core/progress/journal';
 import { PRACTICE_KEY, logPractice } from '../src/core/progress/practiceLog';
 import { BOX_INTERVALS_MS, cardsFrom, dueNow, leitner, outcomeFor } from '../src/core/progress/scheduler';
 import {
-  isFullPosition, isSpeedProof, isStrongSuccess, learnedGaps, masteryOf, regressedForms, stateLabel, stateOf, stringWeakness,
+  isSpeedProof, isStrongSuccess, learnedGaps, masteryOf, regressedForms, stateLabel, stateOf, stringWeakness,
   summarizeNodes, weakTonics,
 } from '../src/core/progress/mastery';
 import { DAILY_XP_CAP, badgeStatus, streak, xpForAttempt, xpSummary } from '../src/core/progress/rewards';
@@ -38,7 +38,8 @@ function attempt(patch: Partial<Attempt> = {}): Attempt {
     positionId: 'boxes:0',
     formIndex: 0,
     level: 2,
-    strings: 2,
+    // position entière : un échauffement sur 1-3 cordes ne touche pas la carte (D97)
+    strings: 6,
     correct: 4,
     total: 5,
     seconds: 42,
@@ -200,6 +201,17 @@ describe('répétition espacée (Leitner)', () => {
     expect(a.length).toBe(1);
     expect(a[0]!.reps).toBe(3);
     expect(a[0]!.box).toBeGreaterThan(2);
+  });
+
+  it('un échauffement sur 3 cordes ne crée ni ne déplace de carte', () => {
+    // Q2 (D97) : seules les séries sur la position entière (ou de mémoire) touchent la carte
+    const warm = (ts: number, correct = 5) => attempt({ ts, kind: 'holes', level: 2, strings: 3, correct, total: 5 });
+    expect(cardsFrom([warm(at(3))])).toEqual([]);
+    const full = attempt({ ts: at(4), kind: 'holes', level: 2, strings: 6, fullPosition: true, correct: 5, total: 5 });
+    expect(cardsFrom([full, warm(at(3), 1), warm(at(2), 5)])).toEqual(cardsFrom([full]));
+    // un rappel de mémoire sur un segment touche toujours la carte
+    const recall = attempt({ ts: at(3), kind: 'recall', level: 3, strings: 3, correct: 5, total: 5 });
+    expect(cardsFrom([full, recall])[0]!.reps).toBe(2);
   });
 
   it('les écoutes ne créent pas de carte', () => {

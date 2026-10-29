@@ -9,7 +9,7 @@
  *  3. **déterministe** — la gigue ±15 % est dérivée d'un hachage du nœud, pas de `Math.random` :
  *     deux calculs successifs donnent la même échéance (sans quoi un test ne peut rien affirmer).
  */
-import { hash32, isProof, nodeIdOf, scoreOf, type Attempt, type AttemptLevel } from './journal';
+import { hash32, isFullPosition, isProof, nodeIdOf, scoreOf, type Attempt, type AttemptLevel } from './journal';
 
 const MIN = 60_000;
 export const DAY = 86_400_000;
@@ -34,7 +34,7 @@ export interface Card {
   lapses: number;
   /** Nombre de tentatives vérifiées prises en compte. */
   reps: number;
-  /** Niveau du dernier exercice réussi — sert à proposer le bon écran. */
+  /** Niveau et score de la dernière tentative **qui prouve** (ratée comprise) — sert à proposer le bon écran. */
   lastLevel: AttemptLevel;
   lastScore: number;
 }
@@ -97,6 +97,9 @@ export function cardsFrom(attempts: readonly Attempt[], scheduler: Scheduler = l
     // Une prise d'impro non plus : son score est un taux de notes d'accord, pas un exercice réussi ou
     // raté (D74) ; en carte, il la laissait due à jamais, alors que la révision n'ouvre pas d'impro (D96)
     if (a.kind === 'sequence' || a.kind === 'impro') continue;
+    // un échauffement (trous sur 1-3 cordes) ne crée ni ne déplace de carte : seules la position
+    // entière ou une série de mémoire disent si la forme tient (D97)
+    if (a.kind === 'holes' && !isFullPosition(a)) continue;
     const nodeId = nodeIdOf(a);
     const card = cards.get(nodeId) ?? null;
     cards.set(nodeId, scheduler.next(card, nodeId, outcomeFor(score), a.ts, a.level, score));

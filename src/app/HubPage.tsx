@@ -13,7 +13,8 @@ import { navigate } from '../app/router';
 import { setScaleSelection, useScaleSelection } from '../app/scaleSession';
 import { setChordSelection } from '../app/chordSession';
 import { useSettings } from '../app/settings';
-import { dailyActivity, dayGoalText, heroSteps, hubPlan, learnedScaleForms, regressedScaleForms, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
+import { dueReviewCards } from '../modules/gammes/review';
+import { dailyActivity, dayGoalText, heroAction, heroSteps, hubPlan, learnedScaleForms, regressedScaleForms, isHeroShortcut, micHeardBefore, tuneStepDone, reviewSummary, scaleStep } from '../app/hubPlan';
 import { Panel, PixelButton } from '../app/ui';
 import { positionLabelPlain, resolveScale } from '../modules/gammes/resolve';
 import { accomplishments, headline, nextStreakMilestone, type Accomplishment } from '../modules/gammes/accomplishments';
@@ -22,7 +23,7 @@ import { VOICINGS } from '../data/voicings';
 import { readTuningRecord } from '../core/input/tuningGuide';
 import { fmtChord } from '../core/theory';
 import {
-  DUE_CAP, dueNow, loadJournal, nodeIdOf, progressStore, streak, summarizeDay,
+  DUE_CAP, loadJournal, nodeIdOf, progressStore, streak, summarizeDay,
   type Attempt,
 } from '../core/progress';
 import * as clock from '../core/clock';
@@ -153,8 +154,9 @@ export function HubPage() {
   const now = useMemo(() => clock.nowDate(), []);
   const day = useMemo(() => summarizeDay(journal, now), [journal, now]);
   const st = useMemo(() => streak(journal, now), [journal, now]);
-  // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran
-  const due = useMemo(() => dueNow(journal, now.getTime()).filter((c) => !c.nodeId.startsWith('acc:')), [journal, now]);
+  // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran. Le compte est `reviewCount`
+  // (DUE_CAP au plus aujourd'hui) ; la séance en fait 5, son bilan propose la suite (D97)
+  const due = useMemo(() => dueReviewCards(journal, now.getTime()).slice(0, DUE_CAP), [journal, now]);
   const activity = dailyActivity(day);
   const goal = dayGoalText(activity, DAILY_GOAL);
   const feats = useMemo(() => accomplishments(journal, { limit: 10, notation: settings.noteNotation, chordNotation: settings.chordNotation }), [journal, settings.noteNotation, settings.chordNotation]);
@@ -199,7 +201,8 @@ export function HubPage() {
   const sameAsReview = resume.kind === 'scale' && !!reviewAttempt
     && reviewAttempt.scaleId === sel.scaleId && reviewAttempt.tonic === resolved.tonic
     && reviewAttempt.formIndex === (resolved.position?.formIndex ?? resolved.position?.index);
-  const review = () => (reviewAttempt ? openAttempt(reviewAttempt) : navigate('training'));
+  // porte unique (D97) : la séance, à froid, jamais la forme seule en exercice à trous
+  const review = () => navigate('review');
 
   // un voicing retiré des données (vieux journal) ne doit pas faire tomber l'accueil : on montre l'id tel quel
   const chordName = (id: string) => {
@@ -228,15 +231,8 @@ export function HubPage() {
     play: { text: 'Jouer la gamme au micro', action: '▶ Jouer au micro', go: () => navigate('training') },
   };
   // ce que lance le raccourci : toujours le bouton primaire affiché
-  const heroGo = plan.review
-    ? review
-    : resume.kind === 'chord'
-      ? () => openChord(resume.voicingId)
-      : firstSteps
-        ? STEP[firstSteps.current].go
-        : step === 'play'
-          ? () => navigate('training')
-          : () => navigate('scale');
+  const action = heroAction(plan, { step, firstStep: firstSteps?.current ?? null });
+  const heroGo = () => (action.route === 'chord' ? openChord(action.voicingId) : navigate(action.route));
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!isHeroShortcut(e, e.target as HTMLElement | null)) return;
@@ -264,7 +260,7 @@ export function HubPage() {
               ? `Forme ${(reviewIdx % plan.review.count) + 1} sur ${plan.review.count} à revoir aujourd’hui`
               : 'La seule forme à revoir aujourd’hui'}
             {/* la file est plafonnée : on le dit là où le compte s'affiche, pas dans un repli */}
-            {plan.review.count >= DUE_CAP && ` (${DUE_CAP} au plus par séance)`}
+            {plan.review.count >= DUE_CAP && ` (${DUE_CAP} au plus aujourd’hui)`}
           </p>
           <div className="row home-actions">
             <HeroGo onClick={review}>▶ Réviser maintenant</HeroGo>
@@ -458,7 +454,7 @@ export function HubPage() {
             <p className="t-small t-dim">
             L’objectif du jour et la série comptent les exercices vérifiés : une écoute n’y entre pas, un grattage déclaré non plus.
           </p>
-          <p className="t-small t-dim">{DUE_CAP} révisions au plus par séance : après quelques jours d’absence, le retard ne s’accumule pas.</p>
+          <p className="t-small t-dim">{DUE_CAP} révisions au plus aujourd’hui : après quelques jours d’absence, le retard ne s’accumule pas.</p>
           </details>
         </Panel>
       )}

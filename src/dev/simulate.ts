@@ -17,6 +17,9 @@ import { mulberry32, HOLES_RATIO, MIN_HOLES } from '../modules/gammes/exercise';
 
 const HOUR = 3_600_000;
 
+/** Fin fixe des rapports et des invariants (29 oct. 2026, 19 h) : un rapport stable d'un jour à l'autre. */
+export const FIXED_END = new Date(2026, 9, 29, 19, 0).getTime();
+
 export interface Persona {
   id: string;
   label: string;

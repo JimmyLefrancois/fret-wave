@@ -29,7 +29,9 @@ export interface DayRow {
   streak: number;
   /** Cartes de gammes dues en fin de journée (ce que l'accueil montre le lendemain matin). */
   due: number;
-  /** Action principale de l'accueil en fin de journée. */
+  /** Parmi elles, celles déjà jouées le jour même (palier 1 = 10 min : elles reviennent le soir). */
+  dueToday: number;
+  /** Action principale de l'accueil en fin de journée (23 h 59 : ce que voit l'élève après sa séance). */
   hero: string;
   /** État de chaque forme, dans l'ordre du manche : `·` disponible, `a` en cours, `A` apprise, `M` maîtrisée, `M+` vitesse vérifiée. */
   forms: string[];
@@ -74,6 +76,7 @@ export function simReport(persona: Persona, opts: Omit<SimOptions, 'onDay'> = {}
         xpRaw, xp: Math.min(DAILY_XP_CAP, xpRaw),
         streak: streak(j, now).days,
         due: due.length,
+        dueToday: due.filter((c) => dayKey(c.lastTs) === key).length,
         hero: plan.review
           ? `À réviser (${plan.review.count}) — ${reviewSummary(plan.review.first)}`
           : plan.resume.kind === 'start' ? 'Commencer' : 'Reprendre la gamme',
@@ -121,6 +124,8 @@ export function findingsOf(rows: readonly DayRow[], formOrder: readonly number[]
   const missedGoal = practiced.filter((r) => r.goal === 'non');
   if (missedGoal.length) out.push(`${missedGoal.length} jour(s) de pratique sans objectif atteint (écoutes ou séries non vérifiées seulement ?).`);
   const maxDue = Math.max(0, ...rows.map((r) => r.due));
+  const allPlayed = practiced.filter((r) => r.due > 0 && r.dueToday === r.due).length;
+  if (allPlayed) out.push(`${allPlayed} soir(s) où toutes les dues ont déjà été jouées le jour même.`);
   if (maxDue) out.push(`Pic de ${maxDue} révision(s) due(s) (J${(firstDay(rows, (r) => r.due === maxDue) ?? 0) + 1}).`);
   // accueil : la même action proposée plusieurs jours de pratique d'affilée
   let run = 0; let best = 0; let bestHero = ''; let prev = '';
@@ -145,7 +150,7 @@ export function findingsOf(rows: readonly DayRow[], formOrder: readonly number[]
 }
 
 export function reportMarkdown(r: SimReport): string {
-  const head = ['J', 'date', 'genres', 'exos', 'obj.', 'XP (brut)', 'série', 'dues', 'accueil', ...r.formLabels];
+  const head = ['J', 'date', 'genres', 'exos', 'obj.', 'XP (brut)', 'série', 'dues', 'dont jouées auj.', 'accueil, le soir', ...r.formLabels];
   const lines = [
     `## ${r.persona.label} (\`${r.persona.id}\`)`,
     '',
@@ -163,7 +168,7 @@ export function reportMarkdown(r: SimReport): string {
     `| ${head.map(() => '---').join(' | ')} |`,
     ...r.rows.map((d) => `| ${[
       d.day + 1, d.date, d.practiced ? d.kinds : '—', d.exercises, d.goal,
-      d.xpRaw > d.xp ? `${d.xp} (${d.xpRaw})` : d.xp, d.streak, d.due, d.hero, ...d.forms,
+      d.xpRaw > d.xp ? `${d.xp} (${d.xpRaw})` : d.xp, d.streak, d.due, d.dueToday, d.hero, ...d.forms,
     ].join(' | ')} |`),
     '',
   ];

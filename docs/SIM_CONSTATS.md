@@ -55,7 +55,7 @@ Observés en chargeant « Décrocheur » puis en avançant l'horloge de 7 jours 
     carte ne sera jamais revue. Le rapport (étape D) le masquait, il filtre maintenant comme l'accueil.
     *Correction* : `cardsFrom` ne crée plus de carte pour une prise d'impro. Simulation refaite :
     l'avancé repasse en « Reprendre la gamme » (constat 2 de nouveau visible, il est réel).
-13. **La révision ouverte n'est pas celle annoncée.** L'accueil annonce « Forme 1 sur 5 à revoir »
+13. ✅ **Corrigé (D97, lot 1)** — **La révision ouverte n'est pas celle annoncée.** L'accueil annonce « Forme 1 sur 5 à revoir »
     (les cartes d'impro) ; la page Révision lance « Session 1/5 » sur d'autres formes, choisies comme
     « fragiles » : pour un élève qui a tout maîtrisé, un exercice à trous N2, tablature visible, motif
     « vue dans une seule zone du manche », alors que le panneau dit « Cette forme : maîtrisée ».
@@ -71,7 +71,7 @@ Observés en chargeant « Décrocheur » puis en avançant l'horloge de 7 jours 
 Rapport et tournée complète refaits (bureau 1440 et téléphone 390). Chiffres inchangés sauf l'avancé :
 plus de cartes d'impro, l'accueil passe en « Reprendre la gamme » dès J30 (constat 2 de nouveau visible).
 
-17. **Le constat 13 ne venait pas seulement de l'impro.** Avancé à J30, rien n'est dû, mais
+17. ✅ **Corrigé (D97, lot 1)** — **Le constat 13 ne venait pas seulement de l'impro.** Avancé à J30, rien n'est dû, mais
     `#/gammes/revision` lance quand même « Session 1/5 » sur des formes maîtrisées, en N2 à trous,
     motif « vue dans une seule zone du manche », tonique inchangée. Le lot 1 du plan reste nécessaire.
 18. **« Prochain cap » est déjà pris** : l'affiche de l'accueil dit « Série : 13 jours d'affilée ·
@@ -80,3 +80,28 @@ plus de cartes d'impro, l'accueil passe en « Reprendre la gamme » dès J30 (co
 19. **Téléphone, page Révision** : la barre de réponse fixe (« Corde de Mi (grave) · case ? » + pavé)
     recouvre la seconde ligne de tablature. Possible artefact de la capture pleine page (éléments fixes) :
     à vérifier sur un vrai téléphone avant d'en faire un lot.
+
+## Lot 1 — porte unique et file honnête (`ux/constats-sim`, 2026-10-29)
+
+Traités (D97) : 13, 17, et du plan les constats 20 (le bouton de l'accueil contournait le rappel à froid),
+22 (deux plafonds : le texte disait « 8 au plus par séance », la séance en fait 5) et 25 (un échauffement
+sur 3 cordes créait la carte : cause du « 50 % » du constat 3 à J1). Invariants (fin fixe 29 oct. 19 h) :
+I1 230 fautes → 0 (avancé 186 → 0), I1 bis 249 → 0, I1 ter vert ; I4 131 soirs fautifs → 85 (lot 2).
+
+20. ✅ **Corrigé (D97)** — Le bouton « Réviser maintenant » ouvrait une forme seule en N2.
+22. ✅ **Corrigé (D97)** — Deux plafonds : en fait un défaut de texte. Deux séances de 5 couvraient déjà les
+    8 dues annoncées (vérifié par I1 ter sur un journal fabriqué) ; l'accueil dit « 8 au plus
+    aujourd'hui », le bilan propose « Encore 3 formes dues ».
+25. ✅ **Corrigé (D97)** — Le premier échauffement créait une carte.
+26. **Page Révision à file vide** (vu pendant la tournée du lot 1) : avancé J30, la page retombait sur un
+    exercice N2 de la forme courante, maîtrisée, sans dire pourquoi. Corrigé dans le lot (D97) : « Aucune
+    forme à réviser pour l'instant. »
+27. **Effet de Q2 sur le simulateur, pas sur l'app** : première forme apprise plus tard chez le régulier
+    (J3 → J6) et le décrocheur (J4, mais 3 apprises au lieu de 5 en fin de course). L'élève virtuel ne fait
+    de rappel N3 que sur une carte due ; sans carte créée par l'échauffement, il n'en a plus le 2ᵉ jour. À
+    revoir quand le simulateur suivra la séance du jour (lot 2c). Les tirages aléatoires se décalent aussi
+    (jours pratiqués, série cassée 1 fois chez le régulier) : bruit.
+28. **Avancé : plafond d'XP touché un jour** (133 XP bruts, 13 non comptés), jamais avant le lot. Son parcours
+    a changé (formes maîtrisées dès J12 au lieu de J16) ; à relire avec le constat 6 après le lot 2c.
+29. **« Une autre forme » trompe désormais** : elle fait tourner la forme affichée, mais le bouton ouvre la
+    séance dans son ordre à elle. Le lot 2b la retire (prévu au plan).

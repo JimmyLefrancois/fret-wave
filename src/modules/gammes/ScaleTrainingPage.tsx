@@ -33,10 +33,11 @@ import { fmtNote } from '../../core/theory';
 import { positionToScore } from '../../core/tab';
 import { TabPlayer } from '../../core/audio/tabPlayer';
 import {
-  appendAttempt, learnedGaps, newAttemptId, nodeIdOf, progressStore, readAttempts, stateLabel, streak, summarizeDay,
+  appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, stateLabel, streak, summarizeDay,
   summarizeNodes, xpForAttempt, xpSummary,
-  type Attempt, type AttemptLevel, type LearnedGap, type NodeStats,
+  type Attempt, type AttemptLevel, type NodeStats,
 } from '../../core/progress';
+import { missingText } from './curriculum';
 import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
 import { LevelsNav } from './LevelsNav';
@@ -45,7 +46,7 @@ import {
   SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, endScreenFor, nextStepFor, STEP_LABEL, type StepKind, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
   type GridOutcome, type GridSubdivision, type Segment,
 } from './exercise';
-import { REVIEW_MAX, buildReviewQueue, type ReviewTarget } from './review';
+import { REVIEW_MAX, buildReviewQueue, moreDue, type ReviewTarget } from './review';
 import { coldNext, countsAsProof, lookRemaining, type ColdStep } from './coldReview';
 import { blindGrid, countInBeat, scoreBlind, type BlindGrid, type HeardNote } from './blind';
 import * as clock from '../../core/clock';
@@ -70,13 +71,6 @@ function mmss(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-/** Ce qui manque pour « apprise », en mots d'élève (une phrase, pas une liste de codes). */
-const GAP_TEXT: Readonly<Record<LearnedGap, string>> = {
-  successes: 'encore une réussite (≥ 80 %)',
-  days: 'une réussite un autre jour',
-  strong: 'une réussite sur la position entière, de mémoire (N3) ou au micro',
-};
-
 /**
  * État de la forme en une phrase, là où l'élève le lit : ce qui manque pour « apprise », ou pour la vitesse.
  * La maîtrise se recalcule depuis le journal : si les règles changent, cette phrase dit ce qui compte.
@@ -84,8 +78,7 @@ const GAP_TEXT: Readonly<Record<LearnedGap, string>> = {
 function formStateLine(n: NodeStats | null, speedTarget: number): string {
   if (!n) return 'Cette forme : jamais vérifiée. « Apprise » = 2 réussites sur 2 jours, dont une sur la position entière, de mémoire (N3) ou au micro.';
   if (n.state === 'learning' || n.state === 'available') {
-    const gaps = learnedGaps(n);
-    return `Cette forme : en apprentissage. Pour « apprise », il manque ${gaps.map((g) => GAP_TEXT[g]).join(' et ')}.`;
+    return `Cette forme : en apprentissage. Pour « apprise », il manque ${missingText(n)}.`;
   }
   if (n.state === 'learned') return 'Cette forme : apprise. « Maîtrisée » viendra avec la révision tenue à 16 jours.';
   return `Cette forme : ${stateLabel(n)}.`
@@ -143,6 +136,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const [queue, setQueue] = useState<ReviewTarget[]>([]);
   const [qIndex, setQIndex] = useState(0);
   const [sessionDone, setSessionDone] = useState<{ forms: number; accuracy: number; xp: number } | null>(null);
+  // la page Révision a trouvé une file vide : état vide explicite (pas d'exercice sur la forme courante)
+  const [emptyReview, setEmptyReview] = useState(false);
+  // dues restantes à la fin d'une séance (« Encore 3 formes dues »)
+  const moreDueNow = sessionDone ? moreDue(journal, clock.now()) : 0;
   // accumulateur de session : une ref, pour que le bilan soit juste dès le dernier clic (pas un rendu plus tard)
   const sessionAcc = useRef({ forms: 0, accuracy: 0, xp: 0 });
   /**
@@ -756,7 +753,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const startMixed = () => {
     const q = buildReviewQueue(readAttempts(progressStore()), clock.now(), REVIEW_MAX, { cold: settings.coldReview });
     setJournal(readAttempts(progressStore()));
+    setEmptyReview(q.length === 0);
     if (q.length === 0) {
+      setSessionDone(null);
+      setResult(null);
       setFeedback({ ok: false, text: 'aucune forme à réviser : commence par une écoute ou une série de trous' });
       return;
     }
@@ -835,6 +835,33 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const totals = useMemo(() => xpSummary(journal, clock.nowDate()), [journal]);
   const streakDays = useMemo(() => streak(journal, clock.nowDate()).days, [journal]);
   const sessionsToday = useMemo(() => summarizeDay(journal, clock.nowDate()).exercises, [journal]);
+
+  // page Révision sans rien à réviser : on le dit, au lieu d'ouvrir un exercice sur la forme courante (D97)
+  if (initialMixed && emptyReview) {
+    const started = journal.some((a) => a.module !== 'accords' && (a.kind === 'holes' || a.kind === 'recall'));
+    return (
+      <main className="shell">
+        <header className="page-head">
+          <button type="button" className="back" onClick={() => navigate('hub')} aria-label="Retour à l’accueil">‹</button>
+          <div>
+            <h1 className="page-title">Révision</h1>
+          </div>
+        </header>
+        <Panel accent="green" label="Révision">
+          <p className="t-body">Aucune forme à réviser pour l’instant.</p>
+          <p className="t-small">
+            {started
+              ? 'Rien n’est dû, et aucune forme en apprentissage n’attend aujourd’hui. L’accueil te dira quand une forme revient.'
+              : 'Commence par une écoute ou une série de trous : une forme travaillée revient ici à son heure.'}
+          </p>
+          <div className="row">
+            <PixelButton variant="primary" onClick={() => navigate('hub')}>Accueil</PixelButton>
+            <PixelButton onClick={() => navigate('gammes')}>Gammes</PixelButton>
+          </div>
+        </Panel>
+      </main>
+    );
+  }
 
   if (!r.position || !exercise || !display || !plan) {
     return (
@@ -972,7 +999,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             c’est fait exprès. Les échéances sont recalculées, le hub les affiche.
           </p>
           <div className="row">
-            <PixelButton variant="primary" onClick={startMixed}>Nouvelle session</PixelButton>
+            {/* la séance s'arrête à 5 ; s'il reste des dues (8 au plus aujourd'hui), on propose la suite (D97) */}
+            {moreDueNow > 0
+              ? <PixelButton variant="primary" onClick={startMixed}>Encore {moreDueNow} forme{moreDueNow > 1 ? 's' : ''} due{moreDueNow > 1 ? 's' : ''}</PixelButton>
+              : <PixelButton variant="primary" onClick={startMixed}>Nouvelle session</PixelButton>}
             <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
           </div>
         </Panel>

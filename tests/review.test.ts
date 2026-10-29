@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildReviewQueue, REVIEW_MAX } from '../src/modules/gammes/review';
+import { buildReviewQueue, moreDue, reviewCount, REVIEW_MAX } from '../src/modules/gammes/review';
+import { GAP_TEXT } from '../src/modules/gammes/curriculum';
+import { learnedGaps, summarizeNodes, zoneOf } from '../src/core/progress';
+import { DUE_CAP } from '../src/core/progress/scheduler';
 import { resolveScale } from '../src/modules/gammes/resolve';
 import type { Attempt } from '../src/core/progress/journal';
 import { cardsFrom, dueCards } from '../src/core/progress/scheduler';
@@ -21,7 +24,8 @@ function attempt(patch: Partial<Attempt> = {}): Attempt {
     positionId: 'boxes:0',
     formIndex: 0,
     level: 2,
-    strings: 2,
+    // position entière : un segment de 1-3 cordes ne crée pas de carte (D97)
+    strings: 6,
     correct: 4,
     total: 5,
     seconds: 30,
@@ -139,5 +143,90 @@ describe('session de révision mélangée', () => {
     const lecture = q.find((t) => t.nodeId === 'gam:lecture:pentatonic-minor:boxes:0')!;
     // la forme rouvre dans la tonique de la dernière série de lecture, pas dans celle de l'impro
     expect(lecture.selection.tonic).toBe('A');
+  });
+});
+
+/** Rappel N3 sur la position entière (ce qui fait une forme « apprise » ou « maîtrisée »). */
+const recall = (ts: number, patch: Partial<Attempt> = {}) =>
+  attempt({ ts, kind: 'recall', level: 3, strings: 6, fullPosition: true, correct: 10, total: 10, ...patch });
+
+describe('révision honnête (D97)', () => {
+  it('une forme maîtrisée non due n’entre jamais en complément', () => {
+    // 4 réussites nettes sur 4 jours : palier 5 (16 j), donc maîtrisée et pas due
+    const list = [recall(at(30)), recall(at(28)), recall(at(24)), recall(at(16))];
+    const node = summarizeNodes(list)[0]!;
+    expect(node.state).toBe('mastered');
+    expect(dueCards(cardsFrom(list), NOW)).toEqual([]);
+    expect(buildReviewQueue(list, NOW)).toEqual([]);
+  });
+
+  it('le complément ne prend que des formes en apprentissage, raison tirée de learnedGaps', () => {
+    const list = [
+      // apprise, pas due : jamais en complément
+      recall(at(3), { formIndex: 1 }), recall(at(1), { formIndex: 1 }),
+      // en apprentissage, jouée en N2 il y a 2 h : complément
+      attempt({ ts: NOW - 2 * 3_600_000, formIndex: 2, correct: 5, total: 5 }),
+      // en apprentissage, déjà rappelée à froid aujourd'hui : elle sort de la file jusqu'à demain
+      recall(NOW - 2 * 3_600_000, { formIndex: 3 }),
+    ];
+    const nodes = new Map(summarizeNodes(list).map((n) => [n.nodeId, n] as const));
+    expect(nodes.get('gam:lecture:pentatonic-minor:boxes:1')!.state).toBe('learned');
+    const q = buildReviewQueue(list, NOW);
+    expect(q.map((t) => t.nodeId)).toEqual(['gam:lecture:pentatonic-minor:boxes:2']);
+    const t = q[0]!;
+    expect(t.mode).toBe('practice');
+    const gaps = learnedGaps(nodes.get(t.nodeId)!).map((g) => GAP_TEXT[g]).join(' et ');
+    expect(t.reason).toBe(`en apprentissage · il manque ${gaps}`);
+  });
+
+  it('reviewCount plafonne à DUE_CAP, la séance à REVIEW_MAX', () => {
+    // 8 formes dues sur 2 gammes (réussite nette il y a 2 jours : palier 2, due)
+    const eight = [
+      ...[0, 1, 2, 3, 4].map((formIndex) => recall(at(2), { formIndex })),
+      ...[0, 1, 2].map((formIndex) => ionian(at(2), { kind: 'recall', level: 3, strings: 6, fullPosition: true, formIndex, correct: 10, total: 10 })),
+    ];
+    expect(reviewCount(eight, NOW)).toBe(8);
+    expect(buildReviewQueue(eight, NOW).filter((t) => t.mode === 'cold')).toHaveLength(REVIEW_MAX);
+    expect(moreDue(eight, NOW)).toBe(8);
+    // 10 dues : l'accueil en annonce 8
+    const ten = [...eight, ...[0, 1].map((formIndex) => dorian(at(2), { kind: 'recall', level: 3, strings: 6, fullPosition: true, formIndex, correct: 10, total: 10 }))];
+    expect(reviewCount(ten, NOW)).toBe(DUE_CAP);
+    // après une séance de 5 rappels à froid réussis : il en reste 3 sur les 8 du jour
+    const done = buildReviewQueue(eight, NOW).map((t, i) => {
+      const base = eight.find((a) => `gam:lecture:${a.scaleId}:${a.system}:${a.formIndex}` === t.nodeId)!;
+      return { ...base, id: `d-${i}`, ts: NOW + (i + 1) * 60_000 };
+    });
+    expect(moreDue([...eight, ...done], NOW + 10 * 60_000)).toBe(3);
+    expect(moreDue([...ten, ...done], NOW + 10 * 60_000)).toBe(DUE_CAP - REVIEW_MAX);
+  });
+
+  it('une forme due dans une seule tonique n’est jamais transposée', () => {
+    // apprise (2 réussites fortes, 2 jours), palier 3, due ; rang de révision pair
+    const list = [recall(at(10)), recall(at(8))];
+    expect(summarizeNodes(list)[0]!.state).toBe('learned');
+    expect(cardsFrom(list)[0]!.reps % 2).toBe(0);
+    const [t] = buildReviewQueue(list, NOW);
+    expect(t!.mode).toBe('cold');
+    expect(t!.selection.tonic).toBe('A');
+    expect(t!.reason).toContain('rappel à froid');
+  });
+
+  it('avec 2 toniques travaillées, un rappel sur deux change de zone', () => {
+    // une 2e tonique travaillée sur la gamme (Mi m, position 2) : la transposition est débloquée (G1.4)
+    const mi = attempt({ ts: at(9), tonic: 'E', formIndex: 1, fretMin: 3, correct: 5, total: 5 });
+    // rang pair : transposée, dans une zone que la forme n'a jamais vue
+    const even = [recall(at(10)), recall(at(8)), mi];
+    const [t] = buildReviewQueue(even, NOW).filter((x) => x.nodeId.endsWith(':0'));
+    expect(t!.mode).toBe('cold');
+    expect(t!.selection.tonic).not.toBe('A');
+    const pos = resolveScale(t!.selection).position!;
+    expect(summarizeNodes(even).find((n) => n.nodeId === t!.nodeId)!.zones).not.toContain(zoneOf(pos.fretMin));
+    expect(t!.reason).toMatch(/^même dessin, autre case : en .+, cases \d+–\d+$/);
+    // rang impair : la tonique apprise
+    const odd = [recall(at(14)), recall(at(12)), recall(at(9)), mi];
+    expect(cardsFrom(odd).find((c) => c.nodeId.endsWith(':0'))!.reps % 2).toBe(1);
+    const [u] = buildReviewQueue(odd, NOW).filter((x) => x.nodeId.endsWith(':0'));
+    expect(u!.selection.tonic).toBe('A');
+    expect(u!.reason).toContain('rappel à froid');
   });
 });

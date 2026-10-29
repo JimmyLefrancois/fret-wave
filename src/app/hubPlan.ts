@@ -42,6 +42,22 @@ export function hubPlan(
   return { review, resume: { kind: 'scale' } };
 }
 
+export type HeroAction =
+  | { route: 'review' | 'tuner' | 'scale' | 'training' }
+  | { route: 'chord'; voicingId: string };
+
+/**
+ * Ce que lance le bouton primaire du héros (et Espace / Entrée). Une révision due ouvre **la séance**
+ * (`#/gammes/revision`, rappel à froid de D87), jamais une forme seule en exercice (D97) ; sinon l'accord
+ * repris, l'étape en cours du premier pas, ou la gamme (la jouer si elle a déjà été écoutée).
+ */
+export function heroAction(plan: HubPlan, scale: { step: 'listen' | 'play'; firstStep: HeroStepId | null }): HeroAction {
+  if (plan.review) return { route: 'review' };
+  if (plan.resume.kind === 'chord') return { route: 'chord', voicingId: plan.resume.voicingId };
+  if (scale.firstStep) return { route: scale.firstStep === 'tune' ? 'tuner' : scale.firstStep === 'listen' ? 'scale' : 'training' };
+  return { route: scale.step === 'play' ? 'training' : 'scale' };
+}
+
 /**
  * Activités du jour pour la jauge : les exercices vérifiés, et eux seuls (décision de l'auteur). Une
  * écoute ne compte pas : l'app a joué, pas l'élève. Un grattage déclaré « sans micro » non plus :
@@ -56,8 +72,8 @@ const LEVEL_NAME: Readonly<Record<AttemptLevel, string>> = {
 };
 
 /**
- * Pourquoi cette forme revient : son dernier passage réussi, tel que la carte l'a retenu
- * (« Dernier passage : exercice à trous, 85 % »). Aucune durée ni consigne inventée.
+ * Pourquoi cette forme revient : sa dernière tentative **qui prouve** (ratée comprise), telle que la carte
+ * l'a retenue (« Dernier passage : exercice à trous, 85 % »). Aucune durée ni consigne inventée.
  */
 export function reviewSummary(card: Pick<Card, 'lastLevel' | 'lastScore'>): string {
   return `Dernier passage : ${LEVEL_NAME[card.lastLevel]}, ${Math.round(card.lastScore * 100)}\u00a0%`;

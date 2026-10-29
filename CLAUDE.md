@@ -25,6 +25,9 @@ Vite + TypeScript + React 19 · Canvas 2D (un seul « pixel logique », échelle
 - `tools/*.mjs` : contrôles de mise en page et de micro simulé (Playwright), hors `npm test`
 
 ## Règles
+- Le style pixel art est voulu : garde le thème Synthwave Neon (et son jumeau Aube) et les tokens de `src/core/themes/`. Pas de refonte vers un autre style ; les améliorations se font dans ce monde (voir `DESIGN.md`).
+- Toute modif de style passe par les tokens de thème, et les deux thèmes (Synthwave, Aube) doivent rester cohérents.
+- Impeccable (skill de design) ne concerne pas la tablature : elle est dessinée en canvas par le moteur maison, alors qu'Impeccable travaille sur le DOM et le CSS. `src/core/tab/` est exclu de ses demandes.
 - La logique vit dans des modules TS purs testables ; React ne gère que l'UI.
 - Aucun hex de couleur dans `app.css` : tout passe par les tokens de thème.
 - Les couleurs d'intervalle (`core/tab/colors.ts`) sont hors thème.
