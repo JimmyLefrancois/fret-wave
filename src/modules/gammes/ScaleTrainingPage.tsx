@@ -1006,7 +1006,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           className="span-5 numpad-panel"
           {...(result ? {} : { accent: 'cyan' as const })}
           label="Réponse"
-          right={activeStringLabel ? <span className="tag">corde de {activeStringLabel}</span> : <span className="tag">aucun trou</span>}
+          right={<span className="badge badge-count">{done} / {total}</span>}
         >
           <div className={`mic-line ${micState === 'listening' ? 'on' : ''}`}>
             <div className="mic-line-body">
@@ -1047,7 +1047,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             {activeIndex > 0 && activeStringLabel ? `Emplacement ${activeIndex} sur ${total}, corde de ${activeStringLabel}. Flèches gauche et droite pour changer.` : ''}
           </p>
           <div className="numpad-entry" aria-live="polite">
-            <span className="numpad-label">{activeStringLabel ? 'Case ?' : 'touche un emplacement vide'}</span>
+            <span className="numpad-label">{activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide'}</span>
             <span className="numpad-digits">{entry || '—'}</span>
           </div>
           <div className="numpad">
@@ -1093,7 +1093,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         </div>
       )}
 
-      <Panel className="span-7" label="Exercice" right={<span className="badge">{done} / {total}</span>}>
+      <Panel className="span-7" label="Exercice">
         {mixed && queue.length > 0 && (
           <p className="t-small">
             Formes : {queue.map((t) => `${t.title} (${t.positionLabel})`).join(' → ')}.

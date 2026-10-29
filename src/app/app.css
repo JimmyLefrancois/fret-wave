@@ -233,6 +233,8 @@ a { color: var(--cyan); }
   margin: 2px 0 4px;
   overflow-wrap: anywhere;
 }
+/* compteur de progression (« 3 / 8 ») : un nombre lu en jouant, pas une étiquette */
+.badge.badge-count { font-family: var(--font-body); font-size: 15px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
 .badge {
   font-family: var(--font-label);
   font-weight: 700;
@@ -441,8 +443,9 @@ a { color: var(--cyan); }
   height: 44px;
   display: grid;
   place-items: center;
-  font-family: var(--font-display);
-  font-size: 16px;
+  font-family: var(--font-body);
+  font-size: 22px;
+  font-weight: 700;
   line-height: 1;
   background: var(--surface);
   color: var(--magenta);
@@ -660,7 +663,8 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   font-size: 14px;
   cursor: pointer;
 }
-.tempo-val { font-family: var(--font-label); font-size: 11px; padding: 0 4px; min-width: 56px; text-align: center; }
+/* valeur de tempo : un nombre qu'on lit en jouant — texte courant, chiffres tabulaires */
+.tempo-val { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; padding: 0 4px; min-width: 64px; text-align: center; }
 .toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; margin-top: 8px; }
 .status { margin-top: 6px; }
 
@@ -1068,9 +1072,9 @@ table.kv td:first-child { color: var(--muted); }
   border: var(--bw) solid var(--line);
   background: var(--bg);
 }
-/* consigne du pavé (« touche un emplacement vide », « Case ? ») : une phrase à lire, donc en texte courant */
+/* consigne du pavé (« Corde de Mi grave · case ? ») : la corde visée se lit de loin, en texte courant */
 .numpad-label {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--muted);
   line-height: 1.4;
@@ -1089,8 +1093,10 @@ table.kv td:first-child { color: var(--muted); }
 }
 .key {
   min-height: 48px;
-  font-family: var(--font-display);
-  font-size: 15px;
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--text);
   background: var(--surface-hi);
   border: var(--bw) solid var(--line);
@@ -1839,6 +1845,7 @@ table.kv td:first-child { color: var(--muted); }
 /* geste suivant sur l'écran de découverte, et bandeau micro de l'exercice */
 .next-step { margin: 12px 0 4px; }
 .next-step .btn { width: 100%; }
+.next-step > p { max-width: 75ch; }
 .mic-line {
   display: flex;
   flex-wrap: wrap;
