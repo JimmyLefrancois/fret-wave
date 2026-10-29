@@ -1014,6 +1014,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             : `${exercise.notes} cases à écrire de mémoire : seules les cordes, les mesures et le rythme restent visibles.`
               + (micOn ? ' Joue-les dans l’ordre que tu veux.' : '')}
         </p>
+        {!result && <p className="t-small">{formStateLine(formNode, settings.speedTargetBpm)}</p>}
         <div className="row exercise-start">
           {coldActive ? (
             // à froid, pas de nouvelle série (elle effacerait les cases déjà révélées) ni d'écoute : « Passer » suffit
@@ -1071,15 +1072,6 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             </PixelButton>
             <span className="t-small t-dim">{gridSpec.beats} temps ≈ {gridSpec.seconds.toFixed(1)} s</span>
           </div>
-          <p className="t-small t-dim">
-            {settings.gridSubdivision === 2 ? 'Deux trous par temps' : 'Un temps par trou'}, en mesures entières
-            ({gridSpec.npm} notes/min). Finir dans la grille et juste à ≥ 95 % vaut ★★, parfait sans une erreur vaut ★★★.
-            Le métronome ne joue aucune note : il ne donne pas les réponses.
-          </p>
-          <p className="t-small t-dim">
-            Vitesse « maîtrisée » : de mémoire (N3), au micro, position entière, ≥ 95 %, grille tenue à
-            {' '}{settings.speedTargetBpm} BPM en croches ({settings.speedTargetBpm * 2} notes/min) — réglage du tempo cible dans Réglages.
-          </p>
         </details>
       </Panel>
 
@@ -1164,28 +1156,39 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               </>
             )}
           </div>
-          <p className="t-small t-dim">
-            Étoiles : ★ dès 80 % · ★★ dès 95 % · ★★★ sans une erreur ni une case révélée. Si tu as lancé la grille,
-            ★★ et ★★★ exigent de la tenir ; la manquer plafonne à ★. Une case écrite de mémoire (N3) pèse 1,5 dans la
-            maîtrise, un trou comblé (N2) pèse 1.
-          </p>
         </Panel>
-      ) : (
-        <Panel className="span-12" accent="violet" label="Ce que cet exercice mesure">
-          <p className="t-body">
-            Les trous justes <strong>au premier essai</strong>. Une case trouvée du deuxième coup n’est pas « sue »,
-            elle est reconnue. Le score d’aujourd’hui déplace la case dans la file de révision, il ne la certifie pas.
-          </p>
-          <p className="t-small">{formStateLine(formNode, settings.speedTargetBpm)}</p>
-          <p className="t-small t-dim">
-            Série de {total} trou{total > 1 ? 's' : ''} sur {exercise.notes} note{exercise.notes > 1 ? 's' : ''} ({plan.strings} corde{plan.strings > 1 ? 's' : ''}).
-            {journal.length > 0 ? ` ${journal.length} tentative${journal.length > 1 ? 's' : ''} déjà enregistrée${journal.length > 1 ? 's' : ''} sur cet appareil.` : ' Aucune tentative enregistrée pour l’instant.'}
-          </p>
-          <p className="t-small t-dim">
-            L’annotation sous la tablature reste celle de ton réglage (notes, degrés, intervalles, doigtés) — elle est masquée sur les trous.
-          </p>
-        </Panel>
-      )}
+      ) : null}
+
+      {/* tout le barème au même endroit, replié : l'élève qui joue n'a pas à le lire pour jouer */}
+      <details className="how-scored">
+        <summary>Comment c’est noté ?</summary>
+        <p className="t-small">
+          Les trous justes <strong>au premier essai</strong>. Une case trouvée du deuxième coup n’est pas « sue »,
+          elle est reconnue. Le score d’aujourd’hui déplace la case dans la file de révision, il ne la certifie pas.
+        </p>
+        <p className="t-small t-dim">
+          Étoiles : ★ dès 80 % · ★★ dès 95 % · ★★★ sans une erreur ni une case révélée. Si tu as lancé la grille,
+          ★★ et ★★★ exigent de la tenir ; la manquer plafonne à ★. Une case écrite de mémoire (N3) pèse 1,5 dans la
+          maîtrise, un trou comblé (N2) pèse 1.
+        </p>
+        <p className="t-small t-dim">
+          {settings.gridSubdivision === 2 ? 'Deux trous par temps' : 'Un temps par trou'}, en mesures entières
+          ({gridSpec.npm} notes/min). Finir dans la grille et juste à ≥ 95 % vaut ★★, parfait sans une erreur vaut ★★★.
+          Le métronome ne joue aucune note : il ne donne pas les réponses.
+        </p>
+        <p className="t-small t-dim">
+          Vitesse « maîtrisée » : de mémoire (N3), au micro, position entière, ≥ 95 %, grille tenue à
+          {' '}{settings.speedTargetBpm} BPM en croches ({settings.speedTargetBpm * 2} notes/min) — réglage du tempo cible dans Réglages.
+        </p>
+        <p className="t-small t-dim">
+          Série de {total} trou{total > 1 ? 's' : ''} sur {exercise.notes} note{exercise.notes > 1 ? 's' : ''} ({plan.strings} corde{plan.strings > 1 ? 's' : ''}).
+          {journal.length > 0 ? ` ${journal.length} tentative${journal.length > 1 ? 's' : ''} déjà enregistrée${journal.length > 1 ? 's' : ''} sur cet appareil.` : ' Aucune tentative enregistrée pour l’instant.'}
+        </p>
+        <p className="t-small t-dim">
+          L’annotation sous la tablature reste celle de ton réglage (notes, degrés, intervalles, doigtés) — elle est masquée sur les trous.
+          Une note masquée n’est jamais jouée par l’app avant d’être trouvée.
+        </p>
+      </details>
 
       {result && celebrate && result.stars > 0 && (
         <Celebration
@@ -1217,7 +1220,6 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         Niveau 1 (découverte, avec le son) : <button type="button" className="linkish" onClick={() => navigate('scale')}>écran d’écoute</button>.
         Niveau 4 (improvisation) : <button type="button" className="linkish" onClick={() => navigate('impro')}>improviser sur un accompagnement</button>.
         Vitesse : <button type="button" className="linkish" onClick={() => navigate('sequences')}>séquences au métronome, palier automatique</button>.
-        Une note masquée n’est jamais jouée par l’app avant d’être trouvée.
       </p>
       </>
       )}

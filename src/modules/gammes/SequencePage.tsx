@@ -415,7 +415,7 @@ export function SequencePage() {
         {...(cursor ? { activeHoleKey: cursor } : {})}
       />
 
-      <Panel className="span-7" label="Séquence" right={<span className="badge">{phase === 'pass' && listening ? `${consumed} / ${targets.length}` : `${targets.length} notes`}</span>}>
+      <Panel className="span-12" label="Séquence" right={<span className="badge">{phase === 'pass' && listening ? `${consumed} / ${targets.length}` : `${targets.length} notes`}</span>}>
         <div className="field">
           <span className="t-label">Motif</span>
           <Segmented<SequencePattern>
@@ -439,6 +439,16 @@ export function SequencePage() {
             <PixelButton variant="primary" onClick={() => setMicOn(true)} disabled={micBusy || !!ladder}>▶ Ouvrir le micro</PixelButton>
           )}
         </div>
+        {listening && (
+          <MicStrip
+            engine={engine}
+            notation={settings.noteNotation}
+            thresholdDb={input.thresholds[input.source]}
+            tolerance={input.centsTolerance}
+            tuning={r.tuning}
+            a4={input.a4}
+          />
+        )}
         {!listening && !ladder && (
           <div className="tempo-row">
             <div className="tempo">
@@ -465,17 +475,8 @@ export function SequencePage() {
         {status && <p className="t-small numpad-feedback no" role="status">{status}</p>}
       </Panel>
 
-      <Panel className="span-5" label="Ce que ça mesure">
-        {listening && (
-          <MicStrip
-            engine={engine}
-            notation={settings.noteNotation}
-            thresholdDb={input.thresholds[input.source]}
-            tolerance={input.centsTolerance}
-            tuning={r.tuning}
-            a4={input.a4}
-          />
-        )}
+      <details className="how-scored">
+        <summary>Comment c’est noté ?</summary>
         <p className="t-small">
           Une passe est réussie à ≥ 95 % de notes justes <strong>et</strong> en place : neuf notes sur dix à moins d’une
           demi-croche de leur temps (un retard constant ne compte pas, c’est la latence). C’est un exercice de technique,
@@ -484,7 +485,7 @@ export function SequencePage() {
         <p className="t-small t-dim">
           Une seule tentative par session au journal. Le tempo validé le plus haut sert de départ la fois suivante.
         </p>
-      </Panel>
+      </details>
 
       <div className="pos-nav">
         <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0 || !!ladder}>‹ Position</PixelButton>

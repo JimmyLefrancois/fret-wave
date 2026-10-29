@@ -888,6 +888,7 @@ table.kv td:first-child { color: var(--muted); }
   .shell > .tabview,
   .shell > .verdict,
   .shell > .seq-stage,
+  .shell > .how-scored,
   .shell > .quiz-strip,
   .shell > .pos-nav,
   .shell > .cta-block,
@@ -1841,6 +1842,31 @@ table.kv td:first-child { color: var(--muted); }
 .mic-line-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
 .mic-line-title { font-size: 14px; font-weight: 600; }
 .mic-line-error { color: var(--danger); }
+
+/* « Comment c'est noté ? » : tout le barème d'un écran, replié en un seul endroit */
+.how-scored {
+  padding: 0 14px;
+  background: var(--surface);
+  border: var(--bw) solid var(--line-soft);
+}
+.how-scored > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.how-scored > summary::-webkit-details-marker { display: none; }
+.how-scored > summary::before { content: '▸'; color: var(--cyan); }
+.how-scored[open] > summary::before { content: '▾'; }
+.how-scored > summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.how-scored[open] { padding-bottom: 12px; }
+.how-scored > p { max-width: 75ch; margin: 0; }
+.how-scored > p + p { margin-top: var(--gap-inside); }
 /* dans la colonne étroite du panneau Réponse : le texte au-dessus, le bouton sur toute la largeur */
 .numpad-panel .mic-line .btn { flex: 1 1 100%; }
 /* aide « clavier physique » : sans objet sur un écran tactile */
