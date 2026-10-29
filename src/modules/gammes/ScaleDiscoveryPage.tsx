@@ -16,7 +16,7 @@ import { useSettings } from '../../app/settings';
 import { TabView, type TabPick } from '../../app/TabView';
 import { InstrumentPicker } from '../../app/AudioControls';
 import { Panel, PixelButton, PixelIcon, Segmented, Switch } from '../../app/ui';
-import { filterPosition, fmtNote, type NoteNotation } from '../../core/theory';
+import { filterPosition, fmtNote } from '../../core/theory';
 import { type AnnotationKind, type Direction, defaultChordForScale, positionToScore } from '../../core/tab';
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
 import { AudioEngine } from '../../core/audio/engine';
@@ -338,7 +338,6 @@ export function ScaleDiscoveryPage() {
   };
 
   const characteristic = (r.def.characteristic ?? []).map(fmtDegree);
-  const tuningLabel = r.tuning.strings.map((s) => fmtNote(s.replace(/-?\d+$/, ''), settings.noteNotation)).join(' ');
 
   return (
     <main className="shell">
@@ -579,7 +578,7 @@ export function ScaleDiscoveryPage() {
         </Panel>
       )}
 
-      <Panel className="span-12" label="Couleurs = fonctions">
+      <Panel className="span-12" label="Une couleur par rôle">
         <div className="legend">
           {legend.map((it) => (
             <div key={it.fn} className="legend-item">
@@ -590,7 +589,7 @@ export function ScaleDiscoveryPage() {
           ))}
         </div>
         <p className="t-small t-dim">
-          La couleur est attachée à la <strong>fonction</strong> : ♯4 et ♭5 tombent sur la même touche mais n’ont pas la même couleur.
+          Chaque couleur marque le <strong>rôle</strong> de la note dans la gamme, pas sa place sur le manche : ♯4 et ♭5 sont sur la même case, mais gardent chacune leur couleur.
           {characteristic.length > 0 ? ` Note${characteristic.length > 1 ? 's' : ''} caractéristique${characteristic.length > 1 ? 's' : ''} : ${characteristic.join(', ')} (anneau qui pulse).` : ''}
         </p>
       </Panel>
@@ -631,16 +630,8 @@ export function ScaleDiscoveryPage() {
 
       <div className="row span-7 page-exit">
         <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
-        <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
       </div>
-      <p className="t-small t-dim foot-note">
-        Cordes {tuningLabel} · notation {noteSummary(settings.noteNotation)} · son{' '}
-        {AudioEngine.get().settings.instrument === 'nylon' ? 'nylon' : 'électrique'} (CC0, crédits dans la page Audio).
-      </p>
     </main>
   );
 }
 
-function noteSummary(n: NoteNotation): string {
-  return n === 'fr' ? 'solfège' : 'anglo-saxonne';
-}
