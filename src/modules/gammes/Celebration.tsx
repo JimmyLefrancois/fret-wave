@@ -36,6 +36,15 @@ export interface CelebrationProps {
   onClose: () => void;
   /** « Réduire les animations » : aucune animation, même mise en page. */
   readonly?: boolean;
+  /**
+   * Échec (0 ★) : même cadre, sans fête — ni étoiles, ni compteur d'XP, ni animation. La série a une
+   * fin visible, et la suite utile est proposée (revoir la forme d'abord, rejouer ensuite).
+   */
+  calm?: boolean;
+  /** Ligne de détail sous le titre (« 3 cases manquées : Sol ×2, Si ×1 »). */
+  detail?: string | null;
+  /** Actions à la place de « Continuer » ; la première est l'action principale. */
+  actions?: { label: string; onClick: () => void }[];
 }
 
 function mmss(seconds: number): string {
@@ -68,9 +77,10 @@ function useCountUp(value: number, readonly: boolean, ms = 700): number {
 export function Celebration(props: CelebrationProps) {
   const {
     title, position, stars, accuracy, seconds, revealed, errors, earned, totalXp, todayXp, cap,
-    streakDays, sessionsToday, onClose, readonly = false,
+    streakDays, sessionsToday, onClose, readonly = false, calm = false, detail = null, actions,
   } = props;
-  const shownXp = useCountUp(earned, readonly);
+  const still = readonly || calm;
+  const shownXp = useCountUp(earned, still);
   const closeRef = useRef<HTMLButtonElement>(null);
   const perfect = stars === 3 && revealed === 0 && errors === 0;
 
@@ -81,13 +91,18 @@ export function Celebration(props: CelebrationProps) {
     return () => before?.focus?.();
   }, []);
 
-  // Échap ferme ; Tab reste dans la boîte (un seul contrôle : « Continuer »)
+  // Échap ferme ; Tab tourne entre les boutons de la boîte, sans en sortir
+  const cardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       else if (e.key === 'Tab') {
         e.preventDefault();
-        closeRef.current?.focus();
+        const btns = [...(cardRef.current?.querySelectorAll('button') ?? [])];
+        if (btns.length === 0) return;
+        const i = btns.indexOf(document.activeElement as HTMLButtonElement);
+        const next = (i + (e.shiftKey ? -1 : 1) + btns.length) % btns.length;
+        btns[i === -1 ? 0 : next]!.focus();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -96,7 +111,7 @@ export function Celebration(props: CelebrationProps) {
 
   return (
     <div
-      className={`celebrate ${readonly ? 'still' : ''}`}
+      className={`celebrate ${still ? 'still' : ''} ${calm ? 'calm' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label={`Série terminée : ${title}`}
@@ -110,11 +125,13 @@ export function Celebration(props: CelebrationProps) {
         <div className="celebrate-grid" />
       </div>
 
-      <div className="celebrate-card">
+      <div className="celebrate-card" ref={cardRef}>
         <p className="celebrate-kicker">{stars >= 2 ? 'Série tenue' : 'Série terminée'}</p>
-        <h2 className="celebrate-title">{perfect ? 'Sans faute' : stars > 0 ? 'Réussi' : 'Achevée'}</h2>
+        <h2 className="celebrate-title">{perfect ? 'Sans faute' : stars > 0 ? 'Réussi' : 'À revoir'}</h2>
         <p className="celebrate-sub">{title} · {position}</p>
+        {detail && <p className="celebrate-detail">{detail}</p>}
 
+        {!calm && (<>
         <p className="celebrate-stars" aria-label={`${stars} étoile${stars > 1 ? 's' : ''} sur 3`}>
           {[0, 1, 2].map((i) => (
             <span key={i} className={i < stars ? 'on' : ''} style={{ animationDelay: `${120 + i * 110}ms` }}>★</span>
@@ -136,6 +153,7 @@ export function Celebration(props: CelebrationProps) {
             {sessionsToday > 1 ? `${sessionsToday}e série aujourd’hui` : ''}
           </p>
         )}
+        </>)}
 
         <dl className="celebrate-stats">
           <div><dt>Précision</dt><dd>{Math.round(accuracy * 100)} %</dd></div>
@@ -150,11 +168,29 @@ export function Celebration(props: CelebrationProps) {
           </p>
         )}
 
-        <button type="button" className="btn btn-primary wide" onClick={onClose} ref={closeRef}>
-          Continuer
-        </button>
+        {actions && actions.length > 0 ? (
+          <div className="celebrate-actions">
+            {actions.map((a, i) => (
+              <button
+                key={a.label}
+                type="button"
+                className={`btn ${i === 0 ? 'btn-primary' : ''} wide`}
+                onClick={a.onClick}
+                ref={i === 0 ? closeRef : undefined}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button type="button" className="btn btn-primary wide" onClick={onClose} ref={closeRef}>
+            Continuer
+          </button>
+        )}
         <p className="celebrate-note">
-          La tentative est enregistrée : elle déplace la forme dans la file de révision, elle ne la certifie pas.
+          {calm
+            ? 'La tentative est enregistrée quand même : elle dit où tu en es, et rien n’est bloqué.'
+            : 'La tentative est enregistrée : elle déplace la forme dans la file de révision, elle ne la certifie pas.'}
         </p>
       </div>
     </div>

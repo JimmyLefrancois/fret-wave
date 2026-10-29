@@ -2089,6 +2089,12 @@ table.kv td:first-child { color: var(--muted); }
   background: rgba(124, 255, 107, 0.08);
 }
 .celebrate-note { margin: 10px 0 0; font-size: 11.5px; color: var(--dim); line-height: 1.45; }
+.celebrate-detail { margin: 4px 0 10px; font-size: 16px; font-weight: 600; color: var(--text); }
+.celebrate-actions { display: grid; gap: 8px; margin-top: 4px; }
+/* échec : même cadre, lumière baissée — pas de fête, mais une fin visible */
+.celebrate.calm .celebrate-sun { opacity: 0.35; }
+.celebrate.calm .celebrate-grid { opacity: 0.5; }
+.celebrate.calm .celebrate-card { border-color: var(--orange); }
 
 /* animations réduites : rien ne bouge, tout reste lisible */
 .celebrate.still .celebrate-sun { animation: none; opacity: 0.9; transform: translate(-50%, 0); }

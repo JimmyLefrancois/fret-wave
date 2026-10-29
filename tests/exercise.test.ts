@@ -3,7 +3,7 @@ import { TUNINGS, generatePositions, getScale, pitchClassOf, tonicSpellings } fr
 import { layoutScore, positionToScore, validateScore } from '../src/core/tab';
 import {
   HOLES_RATIO, SEGMENTS, buildExercise, checkAnswer, holeKey, insideGrid, mulberry32, segmentPlan, starsFor,
-  tempoGrid, withRevealed, clickMasked, isClickPitch, missedSummary, stepOpen,
+  tempoGrid, withRevealed, clickMasked, isClickPitch, missedSummary, stepOpen, endScreenFor,
 } from '../src/modules/gammes/exercise';
 import { unseenTonic } from '../src/modules/gammes/transpose';
 
@@ -291,5 +291,16 @@ describe('fin de série : où l’on a raté', () => {
     expect(stepOpen(order, open, 'a', -1)).toBe('d');
     expect(stepOpen(order, open, null, -1)).toBe('d');
     expect(stepOpen(order, () => false, 'a', 1)).toBeNull();
+  });
+});
+
+describe('écran de fin de série', () => {
+  it('fête la réussite, encadre l’échec calmement, ignore le rattrapage', () => {
+    expect(endScreenFor(2, true, false)).toBe('celebrate');
+    expect(endScreenFor(1, true, true)).toBe('celebrate');
+    expect(endScreenFor(0, true, false)).toBe('calm');
+    expect(endScreenFor(0, true, true)).toBeNull();
+    expect(endScreenFor(3, false, false)).toBeNull();
+    expect(endScreenFor(0, false, false)).toBeNull();
   });
 });

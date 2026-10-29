@@ -191,6 +191,17 @@ export function stepOpen(order: readonly string[], isOpen: (key: string) => bool
   return null;
 }
 
+/**
+ * Écran de fin d'une série : la fête pour une réussite (≥ ★), un écran calme pour un échec, rien pour
+ * un rattrapage (la réponse venait d'être montrée). En session mélangée, un échec ne bloque pas
+ * l'enchaînement : le panneau de résultat suffit.
+ */
+export function endScreenFor(stars: number, proof: boolean, mixed: boolean): 'celebrate' | 'calm' | null {
+  if (!proof) return null;
+  if (stars > 0) return 'celebrate';
+  return mixed ? null : 'calm';
+}
+
 /** Pastille désignée par un toucher (`columnIndex:string`). */
 export function holeKey(columnIndex: number, string: number): string {
   return `${columnIndex}:${string}`;

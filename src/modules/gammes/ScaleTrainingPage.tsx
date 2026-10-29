@@ -41,7 +41,7 @@ import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resol
 import { TabLegend } from './TabLegend';
 import { Celebration } from './Celebration';
 import {
-  SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
+  SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, endScreenFor, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
   type GridOutcome, type GridSubdivision, type Segment,
 } from './exercise';
 import { REVIEW_MAX, buildReviewQueue, type ReviewTarget } from './review';
@@ -116,6 +116,11 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const [journal, setJournal] = useState<Attempt[]>(() => readAttempts(progressStore()));
   /** Panneau de réussite : ouvert à la fin d'une série, refermé par « Continuer » ou Échap. */
   const [celebrate, setCelebrate] = useState(false);
+  // le résultat prend le focus (et s'annonce) dès qu'aucun écran de fin ne le recouvre
+  const resultRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (result && !celebrate) resultRef.current?.focus();
+  }, [result, celebrate]);
 
   // --- grille rythmique
   const [grid, setGrid] = useState<'off' | 'running' | 'over'>('off');
@@ -360,7 +365,12 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
   // un trou est toujours désigné : sans lui, les chiffres tapés au clavier ne vont nulle part
   useEffect(() => {
-    if (!exercise || result || blindLive || activeKey !== null) return;
+    // série finie : plus de trou désigné (son cadre restait dessiné sur la dernière étiquette)
+    if (result) {
+      if (activeKey !== null) setActiveKey(null);
+      return;
+    }
+    if (!exercise || blindLive || activeKey !== null) return;
     const first = nextOpen(null);
     if (first) setActiveKey(first);
   }, [exercise, result, blindLive, activeKey, nextOpen]);
@@ -430,9 +440,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       sessionAcc.current = { forms, accuracy: (acc.accuracy * acc.forms + res.accuracy) / forms, xp: acc.xp + res.xp };
     }
     if (coldStep === 'cold' || coldStep === 'retry') setColdStep(coldNext(coldStep, { type: 'finished', accuracy }));
-    // réussite = au moins une étoile ; en dessous, le panneau de résultat dit la vérité sans fête.
-    // Un rattrapage ne se fête pas : la réponse venait d'être montrée.
-    if (res.stars > 0 && res.proof) setCelebrate(true);
+    // réussite = la fête ; échec = un écran calme (la série a une fin visible) ; rattrapage = rien
+    if (endScreenFor(res.stars, res.proof, mixed)) setCelebrate(true);
   }, [exercise, plan, r, level, segment, startedAt, grid, settings.trainingTempo, settings.gridSubdivision, stopGrid, proofless, mixed, coldStep]);
 
   /** Réponse juste : la pastille reprend sa couleur, le curseur passe au trou suivant. */
@@ -587,8 +596,15 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   // --- clavier physique : chiffres, retour arrière, entrée
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (result) return;
       const t = e.target as HTMLElement | null;
+      if (result) {
+        // après le résultat : Entrée rejoue (hors session mélangée, hors écran de fin, hors bouton focalisé)
+        if (e.key === 'Enter' && !mixed && !celebrate && !(t && t.closest('button, a, summary, input, select, textarea'))) {
+          e.preventDefault();
+          restart();
+        }
+        return;
+      }
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
       if (/^[0-9]$/.test(e.key)) {
         e.preventDefault();
@@ -609,7 +625,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [press, validate, result, nextOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [press, validate, result, nextOpen, mixed, celebrate]);
 
   // --- micro : ouverture à la demande, fermeture en quittant l'écran
   useEffect(() => {
@@ -899,66 +916,153 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         {feedback?.text}
       </p>
 
-      <Panel
-        className="span-5 numpad-panel"
-        {...(result ? {} : { accent: 'cyan' as const })}
-        label="Réponse"
-        right={activeStringLabel ? <span className="tag">corde de {activeStringLabel}</span> : <span className="tag">aucun trou</span>}
-      >
-        <div className={`mic-line ${micState === 'listening' ? 'on' : ''}`}>
-          <div className="mic-line-body">
-            <span className="mic-line-title">
-              {micState === 'listening' ? 'Micro ouvert : joue la note, elle se remplit' : 'Valide au micro (tu joues) ou au pavé (tu tapes)'}
-            </span>
-            {micError ? (
-              <span className="t-small mic-line-error" role="alert">{micError}</span>
+      {sessionDone && mixed ? (
+        <Panel className="span-5" accent="green" label="Session terminée">
+          <p className="stat-line">
+            <strong>{sessionDone.forms}</strong> forme{sessionDone.forms > 1 ? 's' : ''} · précision moyenne{' '}
+            <strong>{Math.round(sessionDone.accuracy * 100)} %</strong> · <strong>{sessionDone.xp}</strong> XP
+          </p>
+          <p className="t-small">
+            Enchaîner des formes différentes coûte plus cher sur le moment et retient mieux que répéter la même :
+            c’est fait exprès. Les échéances sont recalculées, le hub les affiche.
+          </p>
+          <div className="row">
+            <PixelButton variant="primary" onClick={startMixed}>Nouvelle session</PixelButton>
+            <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
+          </div>
+        </Panel>
+      ) : result ? (
+        <Panel className="span-5" accent={result.stars > 0 ? 'green' : 'orange'} label="Résultat">
+          {/* pas d'étoiles sur un rattrapage : on ne félicite que ce qui prouve (MUSIC_DESIGN §17.1) */}
+          {result.proof ? <p className="result-stars">{starRow(result.stars)}</p> : <p className="t-label">Rattrapage</p>}
+          <p className={`stat-line ${result.stars === 0 ? 'miss' : ''}`} ref={resultRef} tabIndex={-1}>
+            <strong>{Math.round(result.accuracy * 100)} %</strong> de trous justes au premier essai · {result.revealed} révélé{result.revealed > 1 ? 's' : ''} · {result.errors} erreur{result.errors > 1 ? 's' : ''}
+          </p>
+          {missedLine && <p className="t-small">{missedLine} — contour pointillé sur la tablature.</p>}
+          <p className="t-small">
+            {result.grid === 'kept'
+              ? `tempo : grille tenue en ${mmss(result.seconds)} · `
+              : result.grid === 'missed'
+                ? `tempo : hors grille (${mmss(result.seconds)} pour ${gridSpec.seconds.toFixed(1)} s) · `
+                : ''}
+            {!result.proof
+              ? 'Essai de rattrapage : enregistré, sans effet sur la révision, la maîtrise ni l’XP.'
+              : result.xp > 0
+                ? `+${result.xp} XP. Tentative enregistrée : elle entre dans la répétition espacée.`
+                : '0 XP. La tentative est enregistrée quand même : elle dit où tu en es, et rien n’est bloqué.'}
+          </p>
+          <p className="t-small">
+            {formStateLine(formNode, settings.speedTargetBpm)}
+            {result.proof && result.accuracy < 0.8 && formNode?.state === 'learned'
+              ? ' Un essai raté ne retire pas « apprise » : elle se compte en réussites.'
+              : ''}
+          </p>
+          {coldStep === 'look' && (
+            <>
+              <p className="t-small">
+                {lookStart === null
+                  ? `${Math.round(result.accuracy * 100)} % à froid, sous les 80 % : la carte revient bientôt. Regarde la forme ${settings.lookSeconds} s, puis rejoue-la de mémoire — ce second essai ne compte pas.`
+                  : `Regarde la forme : elle se masque dans ${lookRemaining(lookStart, now, settings.lookSeconds)} s.`}
+              </p>
+              <div className="row">
+                {lookStart === null ? (
+                  <PixelButton variant="primary" onClick={() => { setLookStart(Date.now()); setNow(Date.now()); }}>
+                    ▶ Regarde la forme ({settings.lookSeconds} s)
+                  </PixelButton>
+                ) : (
+                  <PixelButton variant="primary" onClick={beginRetry}>J’ai vu, masquer</PixelButton>
+                )}
+                <PixelButton variant="quiet" onClick={nextInQueue}>Passer · forme suivante</PixelButton>
+              </div>
+            </>
+          )}
+          <div className="row">
+            {coldStep === 'look' ? null : mixed ? (
+              <>
+                <PixelButton variant="primary" onClick={nextInQueue} disabled={queue.length === 0}>
+                  {qIndex + 1 >= queue.length ? 'Terminer la session' : `Suivant · ${queue[qIndex + 1]?.title ?? ''}`}
+                </PixelButton>
+                <PixelButton variant="quiet" onClick={() => { setRetake(true); restart(); }} title="Juste après la correction : l’essai est enregistré sans compter">
+                  Refaire celle-ci
+                </PixelButton>
+              </>
             ) : (
-            <span className="t-small t-dim">
-              {micBusy
-                ? 'ouverture du périphérique…'
-                : micState === 'listening'
-                  ? 'le pavé numérique reste disponible à tout moment'
-                  : 'le micro ou l’interface USB doit être branché avant d’ouvrir'}
-            </span>
+              <>
+                <PixelButton variant="primary" onClick={() => restart()}>Rejouer</PixelButton>
+                {level === 2 && result.accuracy < 0.8 ? (
+                  // sous ★ (80 %), monter au rappel n'a pas de sens : la suite utile est de revoir la forme
+                  <PixelButton onClick={() => navigate('scale')}>Revoir la forme (N1)</PixelButton>
+                ) : (
+                  <PixelButton onClick={() => restart(level === 2 ? 3 : 2, segment)}>{level === 2 ? 'Passer au rappel (N3)' : 'Revenir aux trous (N2)'}</PixelButton>
+                )}
+                <PixelButton variant="quiet" onClick={() => navigate('gammes')}>Changer de gamme</PixelButton>
+                <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
+              </>
             )}
           </div>
-          {micState === 'listening' ? (
-            <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer</PixelButton>
-          ) : (
-            <PixelButton variant="primary" onClick={() => setMicOn(true)} disabled={micBusy}>
-              ▶ Ouvrir le micro
-            </PixelButton>
+        </Panel>
+      ) : (
+      <Panel
+          className="span-5 numpad-panel"
+          {...(result ? {} : { accent: 'cyan' as const })}
+          label="Réponse"
+          right={activeStringLabel ? <span className="tag">corde de {activeStringLabel}</span> : <span className="tag">aucun trou</span>}
+        >
+          <div className={`mic-line ${micState === 'listening' ? 'on' : ''}`}>
+            <div className="mic-line-body">
+              <span className="mic-line-title">
+                {micState === 'listening' ? 'Micro ouvert : joue la note, elle se remplit' : 'Valide au micro (tu joues) ou au pavé (tu tapes)'}
+              </span>
+              {micError ? (
+                <span className="t-small mic-line-error" role="alert">{micError}</span>
+              ) : (
+              <span className="t-small t-dim">
+                {micBusy
+                  ? 'ouverture du périphérique…'
+                  : micState === 'listening'
+                    ? 'le pavé numérique reste disponible à tout moment'
+                    : 'le micro ou l’interface USB doit être branché avant d’ouvrir'}
+              </span>
+              )}
+            </div>
+            {micState === 'listening' ? (
+              <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer</PixelButton>
+            ) : (
+              <PixelButton variant="primary" onClick={() => setMicOn(true)} disabled={micBusy}>
+                ▶ Ouvrir le micro
+              </PixelButton>
+            )}
+          </div>
+          {micOn && (
+            <MicStrip
+              engine={engine}
+              notation={settings.noteNotation}
+              thresholdDb={input.thresholds[input.source]}
+              tolerance={input.centsTolerance}
+              tuning={r.tuning}
+              a4={input.a4}
+            />
           )}
-        </div>
-        {micOn && (
-          <MicStrip
-            engine={engine}
-            notation={settings.noteNotation}
-            thresholdDb={input.thresholds[input.source]}
-            tolerance={input.centsTolerance}
-            tuning={r.tuning}
-            a4={input.a4}
-          />
-        )}
-        <p className="sr-only" aria-live="polite">
-          {activeIndex > 0 && activeStringLabel ? `Emplacement ${activeIndex} sur ${total}, corde de ${activeStringLabel}. Flèches gauche et droite pour changer.` : ''}
-        </p>
-        <div className="numpad-entry" aria-live="polite">
-          <span className="numpad-label">{activeStringLabel ? 'Case ?' : 'touche un emplacement vide'}</span>
-          <span className="numpad-digits">{entry || '—'}</span>
-        </div>
-        <div className="numpad">
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-            <button key={d} type="button" className="key" onClick={() => press(d)} disabled={!activeHole || !!result}>{d}</button>
-          ))}
-          <button type="button" className="key key-alt" onClick={() => setEntry('')} disabled={!entry}>C</button>
-          <button type="button" className="key" onClick={() => press('0')} disabled={!activeHole || !!result}>0</button>
-          <button type="button" className="key key-ok" onClick={validate} disabled={!activeHole || entry === '' || !!result}>✓</button>
-        </div>
-        <p className="t-small t-dim numpad-hint">
-          Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
-        </p>
-      </Panel>
+          <p className="sr-only" aria-live="polite">
+            {activeIndex > 0 && activeStringLabel ? `Emplacement ${activeIndex} sur ${total}, corde de ${activeStringLabel}. Flèches gauche et droite pour changer.` : ''}
+          </p>
+          <div className="numpad-entry" aria-live="polite">
+            <span className="numpad-label">{activeStringLabel ? 'Case ?' : 'touche un emplacement vide'}</span>
+            <span className="numpad-digits">{entry || '—'}</span>
+          </div>
+          <div className="numpad">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+              <button key={d} type="button" className="key" onClick={() => press(d)} disabled={!activeHole || !!result}>{d}</button>
+            ))}
+            <button type="button" className="key key-alt" onClick={() => setEntry('')} disabled={!entry}>C</button>
+            <button type="button" className="key" onClick={() => press('0')} disabled={!activeHole || !!result}>0</button>
+            <button type="button" className="key key-ok" onClick={validate} disabled={!activeHole || entry === '' || !!result}>✓</button>
+          </div>
+          <p className="t-small t-dim numpad-hint">
+            Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
+          </p>
+        </Panel>
+      )}
 
       <Panel className="span-7" label="Exercice" right={<span className="badge">{done} / {total}</span>}>
         {mixed && queue.length > 0 && (
@@ -1077,92 +1181,6 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
 
 
-      {sessionDone && mixed ? (
-        <Panel className="span-7" accent="green" label="Session terminée">
-          <p className="stat-line">
-            <strong>{sessionDone.forms}</strong> forme{sessionDone.forms > 1 ? 's' : ''} · précision moyenne{' '}
-            <strong>{Math.round(sessionDone.accuracy * 100)} %</strong> · <strong>{sessionDone.xp}</strong> XP
-          </p>
-          <p className="t-small">
-            Enchaîner des formes différentes coûte plus cher sur le moment et retient mieux que répéter la même :
-            c’est fait exprès. Les échéances sont recalculées, le hub les affiche.
-          </p>
-          <div className="row">
-            <PixelButton variant="primary" onClick={startMixed}>Nouvelle session</PixelButton>
-            <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
-          </div>
-        </Panel>
-      ) : result ? (
-        <Panel className="span-7" accent={result.stars > 0 ? 'green' : 'orange'} label="Résultat">
-          {/* pas d'étoiles sur un rattrapage : on ne félicite que ce qui prouve (MUSIC_DESIGN §17.1) */}
-          {result.proof ? <p className="result-stars">{starRow(result.stars)}</p> : <p className="t-label">Rattrapage</p>}
-          <p className={`stat-line ${result.stars === 0 ? 'miss' : ''}`}>
-            <strong>{Math.round(result.accuracy * 100)} %</strong> de trous justes au premier essai · {result.revealed} révélé{result.revealed > 1 ? 's' : ''} · {result.errors} erreur{result.errors > 1 ? 's' : ''}
-          </p>
-          {missedLine && <p className="t-small">{missedLine} — contour pointillé sur la tablature.</p>}
-          <p className="t-small">
-            {result.grid === 'kept'
-              ? `tempo : grille tenue en ${mmss(result.seconds)} · `
-              : result.grid === 'missed'
-                ? `tempo : hors grille (${mmss(result.seconds)} pour ${gridSpec.seconds.toFixed(1)} s) · `
-                : ''}
-            {!result.proof
-              ? 'Essai de rattrapage : enregistré, sans effet sur la révision, la maîtrise ni l’XP.'
-              : result.xp > 0
-                ? `+${result.xp} XP. Tentative enregistrée : elle entre dans la répétition espacée.`
-                : '0 XP. La tentative est enregistrée quand même : elle dit où tu en es, et rien n’est bloqué.'}
-          </p>
-          <p className="t-small">
-            {formStateLine(formNode, settings.speedTargetBpm)}
-            {result.proof && result.accuracy < 0.8 && formNode?.state === 'learned'
-              ? ' Un essai raté ne retire pas « apprise » : elle se compte en réussites.'
-              : ''}
-          </p>
-          {coldStep === 'look' && (
-            <>
-              <p className="t-small">
-                {lookStart === null
-                  ? `${Math.round(result.accuracy * 100)} % à froid, sous les 80 % : la carte revient bientôt. Regarde la forme ${settings.lookSeconds} s, puis rejoue-la de mémoire — ce second essai ne compte pas.`
-                  : `Regarde la forme : elle se masque dans ${lookRemaining(lookStart, now, settings.lookSeconds)} s.`}
-              </p>
-              <div className="row">
-                {lookStart === null ? (
-                  <PixelButton variant="primary" onClick={() => { setLookStart(Date.now()); setNow(Date.now()); }}>
-                    ▶ Regarde la forme ({settings.lookSeconds} s)
-                  </PixelButton>
-                ) : (
-                  <PixelButton variant="primary" onClick={beginRetry}>J’ai vu, masquer</PixelButton>
-                )}
-                <PixelButton variant="quiet" onClick={nextInQueue}>Passer · forme suivante</PixelButton>
-              </div>
-            </>
-          )}
-          <div className="row">
-            {coldStep === 'look' ? null : mixed ? (
-              <>
-                <PixelButton variant="primary" onClick={nextInQueue} disabled={queue.length === 0}>
-                  {qIndex + 1 >= queue.length ? 'Terminer la session' : `Suivant · ${queue[qIndex + 1]?.title ?? ''}`}
-                </PixelButton>
-                <PixelButton variant="quiet" onClick={() => { setRetake(true); restart(); }} title="Juste après la correction : l’essai est enregistré sans compter">
-                  Refaire celle-ci
-                </PixelButton>
-              </>
-            ) : (
-              <>
-                <PixelButton variant="primary" onClick={() => restart()}>Rejouer</PixelButton>
-                {level === 2 && result.accuracy < 0.8 ? (
-                  // sous ★ (80 %), monter au rappel n'a pas de sens : la suite utile est de revoir la forme
-                  <PixelButton onClick={() => navigate('scale')}>Revoir la forme (N1)</PixelButton>
-                ) : (
-                  <PixelButton onClick={() => restart(level === 2 ? 3 : 2, segment)}>{level === 2 ? 'Passer au rappel (N3)' : 'Revenir aux trous (N2)'}</PixelButton>
-                )}
-                <PixelButton variant="quiet" onClick={() => navigate('gammes')}>Changer de gamme</PixelButton>
-                <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
-              </>
-            )}
-          </div>
-        </Panel>
-      ) : null}
 
       {/* tout le barème au même endroit, replié : l'élève qui joue n'a pas à le lire pour jouer */}
       <details className="how-scored">
@@ -1195,7 +1213,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         </p>
       </details>
 
-      {result && celebrate && result.stars > 0 && (
+      {result && celebrate && endScreenFor(result.stars, result.proof, mixed) && (
         <Celebration
           title={r.title}
           position={positionLabelPlain(r.position, settings.noteNotation)}
@@ -1212,6 +1230,16 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           sessionsToday={sessionsToday}
           readonly={settings.reduceMotion}
           onClose={() => setCelebrate(false)}
+          {...(endScreenFor(result.stars, result.proof, mixed) === 'calm'
+            ? {
+                calm: true,
+                detail: missedLine ?? `${Math.round(result.accuracy * 100)} % au premier essai`,
+                actions: [
+                  { label: 'Revoir la forme (N1)', onClick: () => navigate('scale') },
+                  { label: 'Rejouer', onClick: () => { setCelebrate(false); restart(); } },
+                ],
+              }
+            : {})}
         />
       )}
 
