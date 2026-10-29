@@ -12,6 +12,7 @@ import {
 import { dailyActivity, dailySession, dayGoalText, type DailySession } from '../app/hubPlan';
 import { resolveScale } from '../modules/gammes/resolve';
 import { simulate, type Persona, type SimOptions, type SimSelection } from './simulate';
+import { checkInvariants, invariantsLine, type DaySnapshot } from './invariants';
 
 /** Objectif du jour de l'accueil (`DAILY_GOAL` de `HubPage.tsx`, qui ne s'importe pas hors navigateur). */
 export const SIM_DAILY_GOAL = 3;
@@ -73,6 +74,7 @@ export function sessionText(s: DailySession, sel: SimSelection, start: Pick<Pers
 
 export function simReport(persona: Persona, opts: Omit<SimOptions, 'onDay'> = {}): SimReport {
   const rows: DayRow[] = [];
+  const snaps: DaySnapshot[] = [];
   let formOrder: number[] = [];
   // la gamme travaillée la veille au soir : c'est elle que l'accueil a en sélection en arrivant
   let prevSel: SimSelection = { scaleId: persona.scaleId, tonic: persona.tonic, system: persona.system, tuningId: 'standard' };
@@ -80,6 +82,7 @@ export function simReport(persona: Persona, opts: Omit<SimOptions, 'onDay'> = {}
   const journal = simulate(persona, {
     ...opts,
     onDay: (day, dayEnd, j, sel) => {
+      snaps.push({ day, dayEnd, journal: [...j], practiced: j.some((a) => dayKey(a.ts) === dayKey(dayEnd)), sel });
       const now = new Date(dayEnd);
       const key = dayKey(dayEnd);
       const mine = j.filter((a) => dayKey(a.ts) === key);
@@ -119,7 +122,9 @@ export function simReport(persona: Persona, opts: Omit<SimOptions, 'onDay'> = {}
   });
   // les premiers jours ont été écrits avant de connaître toutes les formes : on complète la colonne
   for (const r of rows) while (r.forms.length < formOrder.length) r.forms.push('·');
-  return { persona, rows, formLabels: formOrder.map((f) => `F${f}`), findings: findingsOf(rows, formOrder, journal), journal };
+  // les invariants en tête : ce que l'app doit tenir, avant ce qui mérite un regard
+  const findings = [invariantsLine(checkInvariants(persona, snaps)), ...findingsOf(rows, formOrder, journal)];
+  return { persona, rows, formLabels: formOrder.map((f) => `F${f}`), findings, journal };
 }
 
 function firstDay(rows: readonly DayRow[], pred: (r: DayRow) => boolean): number | null {
@@ -171,7 +176,11 @@ export function findingsOf(rows: readonly DayRow[], formOrder: readonly number[]
   for (let i = 1; i < rows.length; i++) if (rows[i - 1]!.streak > 1 && rows[i]!.streak === 0) breaks++;
   if (breaks) out.push(`Série cassée ${breaks} fois.`);
   const weak = stringWeakness(journal)[0];
-  if (weak && weak.attempts >= 5) out.push(`Corde la plus ratée : ${weak.string} (0 = grave), dans ${weak.attempts} série(s) vérifiée(s).`);
+  // rapportée aux séries où la corde était jouée, et seulement au-delà de 5 (un échauffement sur les cordes
+  // graves ne fait plus d'elles les « plus ratées »)
+  if (weak && weak.exposure >= 5) {
+    out.push(`Corde la plus ratée : ${weak.string} (0 = grave), ratée dans ${weak.attempts} série(s) sur ${weak.exposure} où elle était jouée.`);
+  }
   const proofless = journal.filter((a) => a.correct !== null && !isProof(a)).length;
   const verified = journal.filter((a) => a.correct !== null).length;
   out.push(`${journal.length} tentatives, ${verified} vérifiées, ${proofless} sans valeur de preuve, ${start > 0 ? `début à J${start + 1}` : 'début à J1'}.`);

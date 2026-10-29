@@ -23,7 +23,7 @@ les ordres de grandeur comptent, pas les valeurs exactes. Rapport complet : `npm
 6. **Plafond d'XP (120) jamais dépassé**, même par l'avancé : il ne gêne personne à 3-4 séries par jour.
 7. **Sans micro** : première forme apprise à J7, contre J3 au micro. L'écart s'explique-t-il à l'écran ?
 
-Bruit connu : « corde la plus ratée » n'a de sens que pour la persona Si fragile ; ailleurs, c'est un
+✅ **Traité (lot 6)** — Bruit connu : « corde la plus ratée » n'a de sens que pour la persona Si fragile ; ailleurs, c'est un
 effet du simulateur (les segments de 3 cordes graves concentrent les ratés sur les cordes 0-2).
 
 ## Étape C — panneau DEV (2026-10-29)
@@ -125,7 +125,7 @@ aucune, Si fragile 21 → **8** (voir 30). L'avancé atteint le blues mineur à 
 31. **Avancé : la charge de révision grimpe avec chaque gamme** (18 formes dues à J43 sur 5 gammes ; 8 par
     jour au plus) et le **plafond d'XP est atteint 34 jours** (999 XP non comptés). Le constat 6 s'inverse :
     le plafond gêne l'élève qui suit tout le parcours. Aucune règle d'XP changée.
-32. **Avancé : plus aucune forme « vitesse vérifiée »** (5 avant le lot). Artefact du simulateur : ses séries
+32. ✅ **Corrigé (lot 6)** — **Avancé : plus aucune forme « vitesse vérifiée »** (5 avant le lot). Artefact du simulateur : ses séries
     de vitesse ne portent que sur la gamme en cours, qui change à chaque défi. À revoir au lot 6.
 33. ✅ **Traité (D98)** — **Défis « même dessin » validés en un essai** : Mi m et la transposition se valident par une réussite
     forte (N3 ou N2 au micro) sur la position 1 ; l'avancé les passe le soir même où il finit le blues.
@@ -159,7 +159,7 @@ Traité (D99) : 4. Invariant I6 vert. Mesures (fin fixe 29 oct.) :
 
 L'accueil du joueur du week-end affiche « Série : 4 semaines » (J30) au lieu de rien.
 
-35. Outillage : la tournée charge le journal d'une persona sans sa gamme en cours ; l'accueil montre donc la
+35. ✅ **Corrigé (lot 6)** — Outillage : la tournée charge le journal d'une persona sans sa gamme en cours ; l'accueil montre donc la
     séance de La m pentatonique même quand la persona travaille le blues (régulier J30 : « Nouveau défi : Mi m »
     alors qu'il en est au blues, position 3). À régler dans `tools/sim-tour.mjs` / `devStore` (lot 6).
 
@@ -196,3 +196,27 @@ décision : affichage seulement.
 
 37. Le titre de la page en séance garde « Session 1 / 4 · à froid » à côté de « Séance : 1 sur 4 » : deux
     mots pour la même chose (« session » / « séance »). À unifier ? (petit, pas dans le plan)
+
+## Lot 6 — outillage et bruit du rapport (`ux/constats-sim`, 2026-10-29)
+
+- **Corde la plus ratée** : `stringWeakness` compte l'**exposition** (séries vérifiées où la corde était
+  jouée : un segment « 1/2/3 cordes » ne joue que les graves) et trie par taux de ratés. Le rapport ne la
+  cite qu'à partir de 5 expositions : « Corde la plus ratée : 4, ratée dans 154 série(s) sur 198 où elle était
+  jouée » (Si fragile, 78 %) ; ailleurs 20 à 40 %, ce qui reste est l'aléa du simulateur.
+- **Invariants dans le rapport** : `src/dev/invariants.ts`, une seule source pour le test et le rapport ; en
+  tête de chaque persona, « Invariants : I1 ✓ · I1 bis ✓ · … · I6 ✓ ». Les 6 personas les tiennent tous.
+  I6 ne s'applique qu'aux personas qui jouent 2 jours chaque semaine pleine (pas au décrocheur en pause).
+  I7 reste un contrôle Playwright (`tools/answer-bar-check.mjs`).
+- **32** : les séries de vitesse de l'avancé portent sur toutes ses formes apprises ; 3 formes à vitesse
+  vérifiée à J45 (0 avant).
+- **35** : charger une persona (panneau DEV, tournée) sélectionne la gamme qu'elle travaille ; l'accueil de
+  l'avancé à J45 montre Do majeur et « Nouveau défi : mode mixolydien ».
+- **11** : rien dans le dépôt (déjà en mémoire de travail).
+
+Fin de chantier : `npm test` 808 tests verts, `npm run build` vert, tournée complète (26 états, bureau et
+téléphone) sans erreur console.
+
+38. **Une forme jouée à 94 % reste au palier 1** : avancé J45, « Do majeur · Position 2 — palier 1 sur 6 ·
+    94 % → 94 % → 94 % ». Une réussite lente (80-94 %) ne fait pas monter de palier (MUSIC_DESIGN §5) : la
+    forme revient chaque jour tant que l'élève ne passe pas 95 %. Règle inchangée (hors périmètre du plan) ;
+    à décider : faut-il qu'une réussite lente répétée fasse monter d'un palier ? (question à l'auteur)

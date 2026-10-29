@@ -3,6 +3,7 @@
  * main est une tentative que l'app accepte, la radiographie lit le journal sans rien inventer.
  */
 import { describe, expect, it } from 'vitest';
+import { SCALE_SELECTION_KEY } from '../src/app/scaleSession';
 import { BACKUP_KEY, addSeries, clearJournal, hasBackup, loadPersona, restoreJournal, seriesAttempt, xray, type SeriesSpec } from '../src/dev/devStore';
 import { getPersona } from '../src/dev/simulate';
 import { isProof, isStrongSuccess, normalizeAttempt, readAttempts, writeAttempts, type Attempt } from '../src/core/progress';
@@ -34,6 +35,15 @@ describe('devStore', () => {
     expect(readAttempts(s)).toEqual(real);
     expect(hasBackup(s)).toBe(false);
     expect(s.getItem(BACKUP_KEY)).toBe('');
+  });
+
+  it('charger une persona sélectionne la gamme qu’elle travaille (constat 35)', () => {
+    const s = memStore();
+    loadPersona(s, getPersona('avance')!, { end: NOW.getTime() });
+    const sel = JSON.parse(s.getItem(SCALE_SELECTION_KEY)!);
+    // l'avancé a quitté la pentatonique mineure pour les défis suivants
+    expect(sel.scaleId).not.toBe('pentatonic-minor');
+    expect(sel.positionIndex).toBe(0);
   });
 
   it('restaurer sans sauvegarde ne touche à rien', () => {

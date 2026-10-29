@@ -200,8 +200,11 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
     };
     full.id = newAttemptId(full.ts, nodeIdOf(full), journal.length);
     journal.push(full);
+    // dernière tonique jouée par forme (une forme de lecture ; la vitesse la rejoue dans cette tonique)
+    if (full.kind === 'holes' || full.kind === 'recall') lastByNode.set(nodeIdOf(full), full);
     return full;
   };
+  const lastByNode = new Map<string, Attempt>();
 
   /** Une série de lecture (trous N2 ou rappel N3) ; rend sa précision. */
   const series = (form: Form, t: number, o: {
@@ -297,11 +300,15 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
 
       // 2. séries de travail : l'étape suivante de la séance, ou le défi ; l'avancé mêle de la vitesse
       for (let s = 0; s < persona.sessions; s++) {
-        const nodes = new Map(summarizeNodes(journal).map((n) => [n.nodeId, n] as const));
-        const learned = formsOf(sel).filter((f) => {
-          const st = nodes.get(f.node)?.state;
-          return st === 'learned' || st === 'mastered';
-        });
+        // la vitesse se travaille sur toutes les formes apprises, pas seulement celles de la gamme en cours
+        // (sinon chaque défi remettait le compteur à zéro : constat 32)
+        const learned: Form[] = [];
+        for (const n of summarizeNodes(journal)) {
+          if (!n.nodeId.startsWith('gam:lecture:') || (n.state !== 'learned' && n.state !== 'mastered')) continue;
+          const last = lastByNode.get(n.nodeId);
+          const f = last ? formsOf({ scaleId: n.scaleId, tonic: last.tonic, system: n.system as PositionSystem }).find((x) => x.formIndex === n.formIndex) : null;
+          if (f) learned.push(f);
+        }
         let session = dailySession(journal, t, sel);
         if (persona.speed && learned.length > 0 && (rng() < 0.4 || (!session.next && !session.cap))) {
           t += play(speedStep(persona, rng), learned[Math.floor(rng() * learned.length)]!, t) * 1000; gap();

@@ -20,6 +20,7 @@ import {
   chordIdOfNode, dayKey, isFullPosition, isProof, isVerified, nodeIdOf, progressionIdOfNode, scoreOf, transitionOfNode, zoneOf, type Attempt,
 } from './journal';
 import { cardsFrom, type Card } from './scheduler';
+import { TUNINGS } from '../theory/tunings';
 
 export const PASS = 0.8;
 export const EXCELLENT = 0.95;
@@ -366,16 +367,29 @@ export interface StringWeakness {
   attempts: number;
   /** Nombre total de cases manquées sur cette corde. */
   misses: number;
+  /** Tentatives vérifiées où la corde était **jouée** (un segment de 3 cordes graves n'expose pas les aiguës). */
+  exposure: number;
+}
+
+/** Cordes jouées par une tentative : un segment « 1/2/3 cordes » couvre les graves, le reste toute la position. */
+function exposedStrings(a: Attempt): number[] {
+  const all = TUNINGS[a.tuningId]?.strings.length ?? 6;
+  const n = (a.kind === 'holes' || a.kind === 'recall') && !isFullPosition(a) ? Math.min(a.strings, all) : all;
+  return Array.from({ length: n }, (_, i) => i);
 }
 
 /**
  * Diagnostic par corde : agrège les cases manquées. Seules les tentatives vérifiées comptent
- * (une écoute ne dit rien de la main gauche). Trié par nombre de cases manquées.
+ * (une écoute ne dit rien de la main gauche). Trié par **taux** : cases manquées rapportées aux séries où
+ * la corde était jouée (`exposure`) ; sans cela, des échauffements sur les cordes graves les désignaient à
+ * tort (lot 6 du simulateur).
  */
 export function stringWeakness(attempts: readonly Attempt[]): StringWeakness[] {
   const byString = new Map<number, { attempts: number; misses: number }>();
+  const exposure = new Map<number, number>();
   for (const a of attempts) {
     if (!isVerified(a)) continue;
+    for (const s of exposedStrings(a)) exposure.set(s, (exposure.get(s) ?? 0) + 1);
     for (const s of a.missedStrings) {
       const cur = byString.get(s) ?? { attempts: 0, misses: 0 };
       cur.misses += 1;
@@ -386,7 +400,9 @@ export function stringWeakness(attempts: readonly Attempt[]): StringWeakness[] {
       cur.attempts += 1;
     }
   }
+  // une case ratée sur une corde « non jouée » (journal ancien) compte comme exposée
+  const rate = (w: StringWeakness) => w.misses / w.exposure;
   return [...byString.entries()]
-    .map(([string, v]) => ({ string, ...v }))
-    .sort((x, y) => y.misses - x.misses || x.string - y.string);
+    .map(([string, v]) => ({ string, ...v, exposure: Math.max(exposure.get(string) ?? 0, v.attempts) }))
+    .sort((x, y) => rate(y) - rate(x) || y.misses - x.misses || x.string - y.string);
 }

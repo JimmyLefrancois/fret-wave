@@ -12,7 +12,8 @@ import { accomplishments } from '../modules/gammes/accomplishments';
 import type { KeyValueStore } from '../core/audio/mixer';
 import { generatePositions, TUNINGS, type NoteName, type PositionSystem } from '../core/theory';
 import { dailyActivity, hubPlan, reviewLine } from '../app/hubPlan';
-import { simulate, type Persona } from './simulate';
+import { simulate, type Persona, type SimSelection } from './simulate';
+import { SCALE_SELECTION_KEY } from '../app/scaleSession';
 
 /** Copie du vrai journal, prise avant la première simulation ; vide = aucune sauvegarde en cours. */
 export const BACKUP_KEY = 'fretwave.dev.backup';
@@ -45,8 +46,11 @@ export function restoreJournal(store: KeyValueStore | null): number | null {
 /** Remplace le journal par celui d'une persona (après sauvegarde du vrai). */
 export function loadPersona(store: KeyValueStore | null, persona: Persona, opts: { end: number; days?: number; seed?: number }): Attempt[] {
   backupJournal(store, new Date(opts.end));
-  const journal = simulate(persona, opts);
+  // la gamme que la persona travaille le dernier soir : l'accueil la propose, comme chez l'élève (constat 35)
+  let sel: SimSelection | null = null;
+  const journal = simulate(persona, { ...opts, onDay: (_day, _end, _j, s) => { sel = s; } });
   writeAttempts(store, journal);
+  if (sel) store?.setItem(SCALE_SELECTION_KEY, JSON.stringify({ ...(sel as SimSelection), positionIndex: 0 }));
   return journal;
 }
 

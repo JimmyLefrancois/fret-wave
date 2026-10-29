@@ -151,9 +151,26 @@ describe('journal de tentatives', () => {
       attempt({ kind: 'listen', correct: null, total: null, missedStrings: [0] }),
     ];
     expect(stringWeakness(list)).toEqual([
-      { string: 1, attempts: 2, misses: 3 },
-      { string: 4, attempts: 1, misses: 1 },
+      { string: 1, attempts: 2, misses: 3, exposure: 2 },
+      { string: 4, attempts: 1, misses: 1, exposure: 2 },
     ]);
+  });
+
+  it('corde la plus ratée : rapportée aux séries où elle était jouée (exposition)', () => {
+    // trois échauffements sur les 3 cordes graves (ratés sur la corde 0), une position entière ratée sur la corde 4
+    const list = [
+      attempt({ strings: 3, missedStrings: [0] }),
+      attempt({ strings: 3, missedStrings: [0] }),
+      attempt({ strings: 3, missedStrings: [0, 2] }),
+      attempt({ strings: 6, fullPosition: true, missedStrings: [4] }),
+    ];
+    const w = stringWeakness(list);
+    // les cordes aiguës ne sont exposées que par la position entière
+    expect(w.find((x) => x.string === 4)).toEqual({ string: 4, attempts: 1, misses: 1, exposure: 1 });
+    expect(w.find((x) => x.string === 0)).toEqual({ string: 0, attempts: 3, misses: 3, exposure: 4 });
+    // 1 sur 1 pour la corde 4, 3 sur 4 pour la corde 0 : la plus ratée est la 4
+    expect(w[0]!.string).toBe(4);
+    expect(w.every((x) => x.exposure >= x.attempts)).toBe(true);
   });
 
   it('zone du manche : 5 cases par zone, bornée à la 5e', () => {
