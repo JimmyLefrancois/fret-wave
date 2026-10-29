@@ -293,9 +293,10 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
         if (step === 'listen') { t += play(nextStep(persona, form, journal, null, rng), form, t) * 1000; gap(); }
       }
     }
-    opts.onDay?.(day, midnight(day + 1) - 1, journal);
+    // le dernier jour s'arrête à `end` : charger une persona à 19 h n'écrit pas les séries de 20 h
+    opts.onDay?.(day, midnight(day + 1) - 1, day === days - 1 ? journal.filter((x) => x.ts <= end) : journal);
   }
-  return journal;
+  return journal.filter((x) => x.ts <= end);
 }
 
 /** Jours distincts où le journal a une tentative (contrôle rapide d'une simulation). */

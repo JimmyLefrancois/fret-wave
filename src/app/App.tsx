@@ -2,7 +2,7 @@
  * Coquille de l'app (phase 1d) : écran de chargement, décor pixel, routeur par hash, barre de navigation.
  * Les pages de contrôle des phases 1a-1c restent joignables (#/tab, #/audio, #/theorie, depuis les réglages).
  */
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { lazy, Suspense, useEffect, useState, useSyncExternalStore } from 'react';
 import { AudioEngine } from '../core/audio/engine';
 import { applyTheme, getTheme } from '../core/themes';
 import { AudioPage } from './AudioPage';
@@ -25,6 +25,9 @@ import { SequencePage } from '../modules/gammes/SequencePage';
 import { ChordsPage } from '../modules/accords/ChordsPage';
 import { ChordLessonPage } from '../modules/accords/ChordLessonPage';
 import { ChordQuizPage } from '../modules/accords/ChordQuizPage';
+
+/** Panneau DEV : chargé à la demande en développement, éliminé du build de production. */
+const DevPanel = import.meta.env.DEV ? lazy(() => import('../dev/DevPanel')) : null;
 
 const SHORT_NAME: Record<string, string> = { nylon: 'GUITARE NYLON', electric: 'GUITARE ÉLECTRIQUE' };
 
@@ -131,6 +134,7 @@ export function App() {
       <div className={`app-content ${isDevPage ? 'dev' : ''}`}>
         <Page route={route} />
       </div>
+      {DevPanel && <Suspense fallback={null}><DevPanel /></Suspense>}
       <nav className="bottombar" aria-label="Navigation principale">
         {NAV.map((n) => (
           <button

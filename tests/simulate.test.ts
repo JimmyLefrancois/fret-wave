@@ -19,6 +19,11 @@ describe('simulate', () => {
     expect(new Set(j.map((a) => a.id)).size).toBe(j.length);
   });
 
+  it('n’écrit rien après l’instant de fin', () => {
+    const end = new Date(2026, 9, 29, 18, 0, 0).getTime();
+    for (const p of PERSONAS) expect(simulate(p, { end }).every((a) => a.ts <= end)).toBe(true);
+  });
+
   it('est déterministe pour une graine', () => {
     const p = getPersona('regulier')!;
     expect(simulate(p, { end: END, seed: 7 })).toEqual(simulate(p, { end: END, seed: 7 }));

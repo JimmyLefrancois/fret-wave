@@ -25,3 +25,20 @@ les ordres de grandeur comptent, pas les valeurs exactes. Rapport complet : `npm
 
 Bruit connu : « corde la plus ratée » n'a de sens que pour la persona Si fragile ; ailleurs, c'est un
 effet du simulateur (les segments de 3 cordes graves concentrent les ratés sur les cordes 0-2).
+
+## Étape C — panneau DEV (2026-10-29)
+
+Observés en chargeant « Décrocheur » puis en avançant l'horloge de 7 jours (`__sim.shift(7)`).
+
+8. **Retour après une absence : rien ne le dit.** Une semaine sans jouer, l'accueil affiche « Dernier
+   passage : de mémoire, 87 % · 28 oct. » comme si de rien n'était ; la série retombe à 0 sans un mot,
+   la jauge dit « 0 / 3 exercices aujourd'hui ». Pas d'accueil du type « content de te revoir, on
+   reprend doucement ».
+9. **« 5 formes apprises sur 5 » et 5 révisions dues en même temps.** Le parcours dit « tout est appris »
+   pendant que le héros dit « à revoir » : l'état « apprise » ne bouge jamais avec l'oubli, l'élève peut
+   ne pas comprendre pourquoi une forme apprise revient sans cesse.
+10. **« Forme 1 sur 5 à revoir aujourd'hui »** : bonne indication du volume, mais rien n'annonce la
+    durée (5 rappels à froid ≈ 8-10 min).
+11. **Le simulateur a révélé un piège d'outillage** (pas de l'app) : remplacer un fichier par un nouveau
+    (`perl -i`, `sed -i`) peut échapper à l'observateur de Vite, qui sert alors l'ancien module. Après
+    une modification de ce genre, recharger ou toucher le fichier en place.

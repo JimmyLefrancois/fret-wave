@@ -1,0 +1,55 @@
+/* Panneau DEV (développement seulement) : chargé avec DevPanel.tsx, absent du build. Tokens de thème uniquement. */
+.devpanel-root { position: fixed; left: 8px; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); z-index: 40; }
+/* grand écran : la barre de navigation passe en haut, le coin bas est libre */
+@media (min-width: 900px) { .devpanel-root { bottom: 8px; } }
+.devpanel-toggle {
+  font-family: var(--font-label);
+  font-size: 11px;
+  padding: 4px 8px;
+  color: var(--muted);
+  background: var(--surface);
+  border: var(--bw) solid var(--line-soft);
+  opacity: 0.7;
+  cursor: pointer;
+}
+.devpanel-toggle:hover, .devpanel-toggle[aria-expanded='true'] { opacity: 1; color: var(--text); }
+.devpanel-live { color: var(--yellow); border-color: var(--yellow); opacity: 1; }
+.devpanel {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  width: min(560px, calc(100vw - 32px));
+  max-height: 72vh;
+  overflow: auto;
+  padding: var(--gap-inside);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-inside);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg-deep);
+  border: var(--bw) solid var(--yellow);
+  box-shadow: 4px 4px 0 var(--shadow-ink);
+}
+.devpanel section { display: flex; flex-direction: column; gap: var(--gap-tight); }
+.devpanel section + section { border-top: 1px solid var(--line-soft); padding-top: var(--gap-inside); }
+.devpanel h3 { margin: 0; font-family: var(--font-label); font-size: 11px; color: var(--yellow); letter-spacing: 0.06em; }
+.devpanel p { margin: 0; }
+.devpanel-hint { color: var(--muted); }
+.devpanel-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-tight); }
+.devpanel-row label { display: inline-flex; align-items: center; gap: 4px; }
+.devpanel input[type='number'] { width: 64px; }
+.devpanel select, .devpanel input[type='number'] {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 2px 4px;
+}
+.devpanel .btn { min-height: 32px; padding: 4px 10px; font-size: 11px; }
+.devpanel ul { margin: 4px 0 0; padding-left: 18px; }
+.devpanel summary { cursor: pointer; color: var(--cyan); }
+.devpanel-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.devpanel-table th, .devpanel-table td { text-align: left; padding: 2px 6px 2px 0; border-bottom: 1px solid var(--line-soft); }
+.devpanel-table th { color: var(--muted); font-weight: 400; }
