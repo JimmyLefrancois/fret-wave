@@ -408,6 +408,7 @@ export function SequencePage() {
         annotation="finger"
         mode="wrap"
         scale="auto"
+        minScale={3}
         reduceMotion={settings.reduceMotion}
         player={null}
         transport="stopped"

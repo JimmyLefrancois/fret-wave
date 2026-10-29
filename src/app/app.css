@@ -513,6 +513,7 @@ a { color: var(--cyan); }
 .stat-line.miss strong { color: var(--orange); }
 /* le score reçoit le focus par programme (annonce du résultat) : ce n'est pas un contrôle, pas d'anneau */
 .stat-line[tabindex='-1']:focus { outline: none; }
+.result-links { margin-top: var(--gap-inside); }
 
 .entries { display: grid; gap: 8px; }
 .entry {
@@ -1131,6 +1132,13 @@ table.kv td:first-child { color: var(--muted); }
 .shell > .verdict.reserve:empty { position: static; height: auto; min-height: 51px; border: var(--bw) solid var(--line-soft); }
 .verdict.ok { border-color: var(--ok); }
 .verdict.no { border-color: var(--danger); }
+/* consigne de l'exercice (pas de verdict) : la corde visée, en grand */
+.verdict.prompt { font-size: 30px; font-weight: 700; line-height: 1.2; color: var(--text); border-color: var(--cyan); }
+@media (max-width: 899px) { .verdict.prompt { display: none; } }
+/* pavé de secours replié quand le micro écoute */
+.pad-fold > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: 14.5px; font-weight: 600; color: var(--cyan); }
+.pad-fold[open] > summary { margin-bottom: var(--gap-inside); }
+@media (max-width: 899px) { .pad-fold { display: none; } }
 .verdict.info { font-size: 17px; font-weight: 500; color: var(--muted); }
 .verdict-mark { font-size: 22px; flex: none; }
 .verdict.ok .verdict-mark { color: var(--ok); }
@@ -1848,7 +1856,10 @@ table.kv td:first-child { color: var(--muted); }
 
 /* geste suivant sur l'écran de découverte, et bandeau micro de l'exercice */
 .next-step { margin: 12px 0 4px; }
-.next-step .btn { width: 100%; }
+/* trois gestes sur une ligne, à largeur égale ; un libellé trop long passe à la ligne dans son bouton */
+.next-step-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.next-step-row .btn { width: 100%; min-width: 0; padding-inline: 6px; line-height: 1.25; white-space: normal; }
+@media (max-width: 379px) { .next-step-row .btn { font-size: 11.5px; letter-spacing: 0; padding-inline: 3px; } }
 .next-step > p { max-width: 75ch; }
 .mic-line {
   display: flex;
@@ -1882,6 +1893,12 @@ table.kv td:first-child { color: var(--muted); }
   }
   .answer-bar.ok { border-top-color: var(--ok); }
   .answer-bar.no { border-top-color: var(--danger); }
+  /* le verdict remplace la consigne ~1,6 s : bordure entière et texte lisible à bout de bras */
+  .answer-bar.flash.ok { border: var(--bw) solid var(--ok); }
+  .answer-bar.flash.no { border: var(--bw) solid var(--danger); }
+  .answer-bar-verdict { flex: 1 1 auto; min-width: 0; font-size: 17px; font-weight: 700; line-height: 1.3; color: var(--text); }
+  .answer-bar.flash.no .answer-bar-verdict { color: var(--danger); }
+  .answer-bar.flash.ok .answer-bar-verdict { color: var(--ok); }
   .answer-bar-line { display: flex; align-items: baseline; gap: 10px; margin: 0; }
   .answer-bar-target { flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 650; color: var(--text); }
   .answer-bar-digits { font-size: 20px; font-weight: 700; color: var(--cyan); font-variant-numeric: tabular-nums; }

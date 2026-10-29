@@ -351,6 +351,77 @@ export function ScaleDiscoveryPage() {
         <span className="tag tag-on">N1</span>
       </header>
 
+      {quiz && (
+        <div className={`quiz-strip ${feedback ? (feedback.ok ? 'ok' : 'no') : ''}`} role="status">
+          <span className="quiz-q">
+            Touche la <strong>{targetLabel ?? '—'}</strong>
+            {target ? <em> · {degreeName(target)}</em> : null}
+          </span>
+          <span className="quiz-score">
+            {feedback
+              ? `${feedback.text} · ${score.right}/${score.right + score.wrong}`
+              : `${score.right} juste${score.right > 1 ? 's' : ''} · ${score.wrong} erreur${score.wrong > 1 ? 's' : ''}`}
+          </span>
+        </div>
+      )}
+
+      {scoreTab ? (
+        <TabView
+          score={scoreTab}
+          notes={settings.noteNotation}
+          chords={settings.chordNotation}
+          annotation={annotation}
+          mode="wrap"
+          scale="auto"
+          reduceMotion={settings.reduceMotion}
+          player={player.current}
+          transport={transport}
+          emphasizeChordTones={chordLayer}
+          hideRhythm={!showRhythm}
+          {...(reveal ? { highlightFn: reveal } : {})}
+          {...(quiz ? { onPick } : {})}
+          {...(flash.length > 0 ? { flash } : {})}
+        />
+      ) : (
+        <Panel accent="yellow">
+          <p className="t-body">Aucune position pour cette gamme / cet accordage.</p>
+          <PixelButton onClick={() => navigate('gammes')}>Changer de système</PixelButton>
+        </Panel>
+      )}
+
+      {scoreTab && (
+        <div className="listen-band">
+          <Switch
+            checked={listenOn}
+            onChange={setListenOn}
+            label={listenBusy ? 'Micro…' : 'M’écouter'}
+            hint="la note que tu joues s’allume sur la position"
+            inline
+          />
+          {/* sans instrument : l'interrupteur vit à côté de la tablature qu'il interroge, pas 600 px plus bas */}
+          <Switch
+            checked={quiz}
+            onChange={toggleQuiz}
+            label="Montre-moi la note"
+            hint="l’app demande une fonction, tu touches la pastille"
+            inline
+          />
+          {quiz && (
+            <p className="t-small t-dim">
+              Les fonctions demandées sont celles qui sont affichées : « Fondamentales », dans « Plus d’options », réduit la difficulté.
+            </p>
+          )}
+        </div>
+      )}
+
+      <TabLegend def={r.def} readonly={settings.reduceMotion} />
+
+      <div className="pos-nav">
+        <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>‹ Position</PixelButton>
+        <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
+        <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2}>Position ›</PixelButton>
+      </div>
+
       <Panel className="span-7" accent="magenta" label="Écoute" right={<span className="badge">{r.formula}</span>}>
         <div className="transport-row">
           <PixelButton variant="primary" onClick={onPlay} disabled={!scoreTab || playing} ariaLabel="Lecture" className="play">
@@ -432,92 +503,23 @@ export function ScaleDiscoveryPage() {
         {status && <p className="t-small t-dim status">{status}</p>}
       </Panel>
 
-      {quiz && (
-        <div className={`quiz-strip ${feedback ? (feedback.ok ? 'ok' : 'no') : ''}`} role="status">
-          <span className="quiz-q">
-            Touche la <strong>{targetLabel ?? '—'}</strong>
-            {target ? <em> · {degreeName(target)}</em> : null}
-          </span>
-          <span className="quiz-score">
-            {feedback
-              ? `${feedback.text} · ${score.right}/${score.right + score.wrong}`
-              : `${score.right} juste${score.right > 1 ? 's' : ''} · ${score.wrong} erreur${score.wrong > 1 ? 's' : ''}`}
-          </span>
-        </div>
-      )}
-
-      {scoreTab ? (
-        <TabView
-          score={scoreTab}
-          notes={settings.noteNotation}
-          chords={settings.chordNotation}
-          annotation={annotation}
-          mode="wrap"
-          scale="auto"
-          reduceMotion={settings.reduceMotion}
-          player={player.current}
-          transport={transport}
-          emphasizeChordTones={chordLayer}
-          hideRhythm={!showRhythm}
-          {...(reveal ? { highlightFn: reveal } : {})}
-          {...(quiz ? { onPick } : {})}
-          {...(flash.length > 0 ? { flash } : {})}
-        />
-      ) : (
-        <Panel accent="yellow">
-          <p className="t-body">Aucune position pour cette gamme / cet accordage.</p>
-          <PixelButton onClick={() => navigate('gammes')}>Changer de système</PixelButton>
-        </Panel>
-      )}
-
-      {scoreTab && (
-        <div className="listen-band">
-          <Switch
-            checked={listenOn}
-            onChange={setListenOn}
-            label={listenBusy ? 'Micro…' : 'M’écouter'}
-            hint="la note que tu joues s’allume sur la position"
-            inline
-          />
-          {/* sans instrument : l'interrupteur vit à côté de la tablature qu'il interroge, pas 600 px plus bas */}
-          <Switch
-            checked={quiz}
-            onChange={toggleQuiz}
-            label="Montre-moi la note"
-            hint="l’app demande une fonction, tu touches la pastille"
-            inline
-          />
-          {quiz && (
-            <p className="t-small t-dim">
-              Les fonctions demandées sont celles qui sont affichées : « Fondamentales », dans « Plus d’options », réduit la difficulté.
-            </p>
-          )}
-        </div>
-      )}
-
-      <TabLegend def={r.def} readonly={settings.reduceMotion} />
-
-      <div className="pos-nav">
-        <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>‹ Position</PixelButton>
-        <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
-        <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2}>Position ›</PixelButton>
-      </div>
-
       {/* Le geste suivant, écrit noir sur blanc : on a vu la position, on la joue. Deux suites, et pas
           une seule : répéter la position (justesse) ou improviser dessus (musique) — c'est la même
           position, ce ne sont pas les mêmes compétences. */}
       <div className="next-step">
-        <PixelButton variant="primary" className="wide" onClick={() => navigate('training')}>
-          ▶ S’exercer sur cette position, au micro
-        </PixelButton>
-        <PixelButton className="wide" onClick={() => navigate('impro')}>
-          ▶ Improviser sur cette position, avec un accompagnement
-        </PixelButton>
-        <PixelButton variant="quiet" className="wide" onClick={() => navigate('sequences')}>
-          Séquences au métronome : par 3, par 4, tierces, quartes
-        </PixelButton>
+        <div className="next-step-row">
+          <PixelButton variant="primary" onClick={() => navigate('training')} title="S’exercer sur cette position, au micro" ariaLabel="S’exercer sur cette position, au micro">
+            ▶ S’exercer
+          </PixelButton>
+          <PixelButton onClick={() => navigate('impro')} title="Improviser sur cette position, avec un accompagnement" ariaLabel="Improviser sur cette position, avec un accompagnement">
+            Improviser
+          </PixelButton>
+          <PixelButton variant="quiet" onClick={() => navigate('sequences')} title="Séquences au métronome : par 3, par 4, tierces, quartes" ariaLabel="Séquences au métronome : par 3, par 4, tierces, quartes">
+            Séquences
+          </PixelButton>
+        </div>
         <p className="t-small t-dim">
-          Le micro valide chaque note : tu la joues, la case se remplit. Sans micro, le pavé numérique
+          S’exercer : le micro valide chaque note, la case se remplit. Sans micro, le pavé numérique
           prend le relais. Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature : seule une
           tentative de l’exercice sert à la révision, une écoute ici ne prouve rien.
         </p>

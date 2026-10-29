@@ -202,6 +202,30 @@ export function endScreenFor(stars: number, proof: boolean, mixed: boolean): 'ce
   return mixed ? null : 'calm';
 }
 
+export type StepKind = 'review' | 'upgrade' | 'replay' | 'downgrade';
+
+export const STEP_LABEL: Readonly<Record<StepKind, string>> = {
+  review: 'Revoir la forme (N1)',
+  upgrade: 'Passer au rappel (N3)',
+  replay: 'Rejouer',
+  downgrade: 'Revenir aux trous (N2)',
+};
+
+/**
+ * Suite proposée après une série, une seule action principale par issue — la même sur l'écran de fin
+ * et sur le panneau de résultat :
+ *  - échec (0 ★) : revoir la forme d'abord, rejouer ensuite ;
+ *  - N2 réussi : monter au rappel (N3), rejouer ensuite ;
+ *  - N3 réussi : rejouer, ou redescendre aux trous ;
+ *  - rattrapage (la réponse venait d'être montrée) : rejouer.
+ */
+export function nextStepFor(level: 2 | 3, stars: number, proof: boolean): { primary: StepKind; secondary: StepKind } {
+  if (!proof) return { primary: 'replay', secondary: level === 2 ? 'upgrade' : 'downgrade' };
+  if (stars === 0) return { primary: 'review', secondary: 'replay' };
+  if (level === 2) return { primary: 'upgrade', secondary: 'replay' };
+  return { primary: 'replay', secondary: 'downgrade' };
+}
+
 /** Pastille désignée par un toucher (`columnIndex:string`). */
 export function holeKey(columnIndex: number, string: number): string {
   return `${columnIndex}:${string}`;

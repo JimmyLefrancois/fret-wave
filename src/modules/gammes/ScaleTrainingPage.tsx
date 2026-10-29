@@ -41,7 +41,7 @@ import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resol
 import { TabLegend } from './TabLegend';
 import { Celebration } from './Celebration';
 import {
-  SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, endScreenFor, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
+  SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, endScreenFor, nextStepFor, STEP_LABEL, type StepKind, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
   type GridOutcome, type GridSubdivision, type Segment,
 } from './exercise';
 import { REVIEW_MAX, buildReviewQueue, type ReviewTarget } from './review';
@@ -116,6 +116,14 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const [journal, setJournal] = useState<Attempt[]>(() => readAttempts(progressStore()));
   /** Panneau de réussite : ouvert à la fin d'une série, refermé par « Continuer » ou Échap. */
   const [celebrate, setCelebrate] = useState(false);
+  // téléphone : le verdict (« non — réessaie… ») est caché sous la barre de réponse ; on l'y montre ~1,6 s
+  const [barFlash, setBarFlash] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => {
+    if (!feedback || feedback.info) return;
+    setBarFlash({ ok: feedback.ok, text: feedback.text });
+    const t = window.setTimeout(() => setBarFlash(null), 1600);
+    return () => window.clearTimeout(t);
+  }, [feedback]);
   // le résultat prend le focus (et s'annonce) dès qu'aucun écran de fin ne le recouvre
   const resultRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
@@ -458,7 +466,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         + (cents === null ? '' : ` · ${cents > 0 ? '+' : ''}${cents.toFixed(0)} ¢`)
         + ' — juste',
     });
-    if (Object.keys(nextMarks).length === total) finish(nextMarks, errors);
+    if (Object.keys(nextMarks).length === total) {
+      setFeedback(null); // la série est finie : le dernier verdict ne reste pas affiché sous le résultat
+      finish(nextMarks, errors);
+    }
   }, [exercise, marks, nextOpen, settings.noteNotation, total, finish, errors]);
 
   /**
@@ -479,7 +490,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       setMarks(nextMarks);
       setFeedback({ ok: false, text: `${heardText}c’était ${hole.fret} (case révélée)` });
       setActiveKey(nextOpen(key));
-      if (Object.keys(nextMarks).length === total) finish(nextMarks, nextErrors);
+      if (Object.keys(nextMarks).length === total) {
+        setFeedback(null);
+        finish(nextMarks, nextErrors);
+      }
     } else {
       setFeedback({ ok: false, text: `${heardText}non — réessaie (encore une erreur et je révèle la case)` });
     }
@@ -845,6 +859,33 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const stringNames = r.tuning.strings.map((pitch, i, all) =>
     `${fmtNote(pitch.replace(/-?\d+$/, ''), settings.noteNotation)}${i === 0 ? ' grave' : i === all.length - 1 ? ' aigu' : ''}`);
   const missedLine = result ? missedSummary(exercise.holes, missed, stringNames) : null;
+  const nextSteps = nextStepFor(level === 3 ? 3 : 2, result?.stars ?? 0, result?.proof ?? true);
+  const padBody = (
+    <>
+          <div className="numpad-entry" aria-live="polite">
+            <span className="numpad-label">{activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide'}</span>
+            <span className="numpad-digits">{entry || '—'}</span>
+          </div>
+          <div className="numpad">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+              <button key={d} type="button" className="key" onClick={() => press(d)} disabled={!activeHole || !!result}>{d}</button>
+            ))}
+            <button type="button" className="key key-alt" onClick={() => setEntry('')} disabled={!entry}>C</button>
+            <button type="button" className="key" onClick={() => press('0')} disabled={!activeHole || !!result}>0</button>
+            <button type="button" className="key key-ok" onClick={validate} disabled={!activeHole || entry === '' || !!result}>✓</button>
+          </div>
+          <p className="t-small t-dim numpad-hint">
+            Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
+          </p>
+    </>
+  );
+  const runStep = (k: StepKind) => {
+    setCelebrate(false);
+    if (k === 'review') navigate('scale');
+    else if (k === 'upgrade') restart(3, segment);
+    else if (k === 'downgrade') restart(2, segment);
+    else restart();
+  };
   const activeIndex = activeKey ? exercise.holes.findIndex((h) => h.key === activeKey) + 1 : 0;
 
   return (
@@ -899,6 +940,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         annotation={coldActive && !result ? 'none' : 'degree'}
         mode="wrap"
         scale="auto"
+        minScale={3}
         reduceMotion={settings.reduceMotion}
         player={null}
         transport="stopped"
@@ -911,9 +953,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
 
       {/* verdict : sous la tablature, là où sont les yeux — pas au bas du pavé */}
-      <p className={`verdict ${feedback ? (feedback.info ? 'info' : feedback.ok ? 'ok' : 'no') : ''} ${startedAt !== null && !result ? 'reserve' : ''}`} role="status">
+      <p className={`verdict ${feedback ? (feedback.info ? 'info' : feedback.ok ? 'ok' : 'no') : !result ? 'prompt' : ''}`} role="status">
         {feedback && !feedback.info && <span className="verdict-mark" aria-hidden="true">{feedback.ok ? '✓' : '✕'}</span>}
-        {feedback?.text}
+        {/* sans verdict, la consigne tient la place : « Corde de La · case ? », lisible de loin (le saut du pavé au premier chiffre n'existe plus) */}
+        {feedback ? feedback.text : !result ? (activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide') : ''}
       </p>
 
       {sessionDone && mixed ? (
@@ -988,18 +1031,18 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               </>
             ) : (
               <>
-                <PixelButton variant="primary" onClick={() => restart()}>Rejouer</PixelButton>
-                {level === 2 && result.accuracy < 0.8 ? (
-                  // sous ★ (80 %), monter au rappel n'a pas de sens : la suite utile est de revoir la forme
-                  <PixelButton onClick={() => navigate('scale')}>Revoir la forme (N1)</PixelButton>
-                ) : (
-                  <PixelButton onClick={() => restart(level === 2 ? 3 : 2, segment)}>{level === 2 ? 'Passer au rappel (N3)' : 'Revenir aux trous (N2)'}</PixelButton>
-                )}
-                <PixelButton variant="quiet" onClick={() => navigate('gammes')}>Changer de gamme</PixelButton>
-                <PixelButton variant="quiet" onClick={() => navigate('hub')}>Accueil</PixelButton>
+                <PixelButton variant="primary" onClick={() => runStep(nextSteps.primary)}>{STEP_LABEL[nextSteps.primary]}</PixelButton>
+                <PixelButton onClick={() => runStep(nextSteps.secondary)}>{STEP_LABEL[nextSteps.secondary]}</PixelButton>
               </>
             )}
           </div>
+          {!mixed && coldStep !== 'look' && (
+            <p className="t-small result-links">
+              <button type="button" className="linkish" onClick={() => navigate('gammes')}>Changer de gamme</button>
+              {' · '}
+              <button type="button" className="linkish" onClick={() => navigate('hub')}>Accueil</button>
+            </p>
+          )}
         </Panel>
       ) : (
       <Panel
@@ -1046,31 +1089,27 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           <p className="sr-only" aria-live="polite">
             {activeIndex > 0 && activeStringLabel ? `Emplacement ${activeIndex} sur ${total}, corde de ${activeStringLabel}. Flèches gauche et droite pour changer.` : ''}
           </p>
-          <div className="numpad-entry" aria-live="polite">
-            <span className="numpad-label">{activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide'}</span>
-            <span className="numpad-digits">{entry || '—'}</span>
-          </div>
-          <div className="numpad">
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-              <button key={d} type="button" className="key" onClick={() => press(d)} disabled={!activeHole || !!result}>{d}</button>
-            ))}
-            <button type="button" className="key key-alt" onClick={() => setEntry('')} disabled={!entry}>C</button>
-            <button type="button" className="key" onClick={() => press('0')} disabled={!activeHole || !!result}>0</button>
-            <button type="button" className="key key-ok" onClick={validate} disabled={!activeHole || entry === '' || !!result}>✓</button>
-          </div>
-          <p className="t-small t-dim numpad-hint">
-            Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
-          </p>
+          {micState === 'listening' ? (
+            // micro ouvert : le pavé n'est plus le geste principal — replié, il reste un secours
+            <details className="pad-fold">
+              <summary>Pavé de secours</summary>
+              {padBody}
+            </details>
+          ) : padBody}
         </Panel>
       )}
 
       {/* téléphone : barre de réponse fixe au-dessus de la navigation — la tablature et la réponse
           restent à l'écran ensemble (le pavé du panneau, 1 000 px plus bas, y est masqué) */}
       {!result && !blindLive && !(coldStep === 'look') && (
-        <div className={`answer-bar ${feedback && !feedback.info ? (feedback.ok ? 'ok' : 'no') : ''}`} role="group" aria-label="Réponse">
+        <div className={`answer-bar ${barFlash ? `flash ${barFlash.ok ? 'ok' : 'no'}` : feedback && !feedback.info ? (feedback.ok ? 'ok' : 'no') : ''}`} role="group" aria-label="Réponse">
           <p className="answer-bar-line">
-            <span className="answer-bar-target">{activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide'}</span>
-            {feedback && !feedback.info && !entry && (
+            {barFlash ? (
+              <span className="answer-bar-verdict" aria-hidden="true">{barFlash.ok ? '✓' : '✕'} {barFlash.text}</span>
+            ) : (
+              <span className="answer-bar-target">{activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide'}</span>
+            )}
+            {!barFlash && feedback && !feedback.info && !entry && (
               <span className="answer-bar-mark" aria-hidden="true">{feedback.ok ? '✓' : '✕'}</span>
             )}
             <span className="answer-bar-digits">{entry || '—'}</span>
@@ -1158,9 +1197,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
                 <PixelButton variant="primary" onClick={() => void startBlind()}>▶ Lancer à l’aveugle</PixelButton>
               )}
               {/* jamais l'action principale : en pleine série elle efface les trous trouvés, et le micro
-                  (avant) ou « Rejouer » (après) portent déjà l'accent */}
-              <PixelButton variant="ghost" onClick={() => restart()} title="Même gamme, nouveaux trous">↻ Nouvelle série</PixelButton>
-              <PixelButton variant="quiet" onClick={() => navigate('scale')}>Écouter d’abord</PixelButton>
+                  (avant) ou la suite du résultat (après) portent déjà l'accent */}
+              {!result && <PixelButton variant="ghost" onClick={() => restart()} title="Même gamme, nouveaux trous">↻ Nouvelle série</PixelButton>}
+              {!result && <PixelButton variant="quiet" onClick={() => navigate('scale')}>Écouter d’abord</PixelButton>}
             </>
           )}
           {startedAt !== null && !result && <span className="t-label">{mmss(elapsed)}</span>}
@@ -1262,15 +1301,18 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           readonly={settings.reduceMotion}
           onClose={() => setCelebrate(false)}
           gridKept={result.grid === 'kept'}
-          {...(endScreenFor(result.stars, result.proof, mixed) === 'calm'
-            ? {
-                calm: true,
-                detail: missedLine ?? `${Math.round(result.accuracy * 100)} % au premier essai`,
+          {...(mixed
+            ? {}
+            : {
                 actions: [
-                  { label: 'Revoir la forme (N1)', onClick: () => navigate('scale') },
-                  { label: 'Rejouer', onClick: () => { setCelebrate(false); restart(); } },
+                  { label: STEP_LABEL[nextSteps.primary], onClick: () => runStep(nextSteps.primary) },
+                  endScreenFor(result.stars, result.proof, mixed) === 'calm'
+                    ? { label: STEP_LABEL[nextSteps.secondary], onClick: () => runStep(nextSteps.secondary) }
+                    : { label: 'Continuer', onClick: () => setCelebrate(false) },
                 ],
-              }
+              })}
+          {...(endScreenFor(result.stars, result.proof, mixed) === 'calm'
+            ? { calm: true, detail: missedLine ?? `${Math.round(result.accuracy * 100)} % au premier essai` }
             : {})}
         />
       )}

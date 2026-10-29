@@ -3,7 +3,7 @@ import { TUNINGS, generatePositions, getScale, pitchClassOf, tonicSpellings } fr
 import { layoutScore, positionToScore, validateScore } from '../src/core/tab';
 import {
   HOLES_RATIO, SEGMENTS, buildExercise, checkAnswer, holeKey, insideGrid, mulberry32, segmentPlan, starsFor,
-  tempoGrid, withRevealed, clickMasked, isClickPitch, missedSummary, stepOpen, endScreenFor,
+  tempoGrid, withRevealed, clickMasked, isClickPitch, missedSummary, stepOpen, endScreenFor, nextStepFor,
 } from '../src/modules/gammes/exercise';
 import { unseenTonic } from '../src/modules/gammes/transpose';
 
@@ -302,5 +302,17 @@ describe('écran de fin de série', () => {
     expect(endScreenFor(0, true, true)).toBeNull();
     expect(endScreenFor(3, false, false)).toBeNull();
     expect(endScreenFor(0, false, false)).toBeNull();
+  });
+});
+
+describe('suite proposée après une série', () => {
+  it('une seule action principale par issue', () => {
+    expect(nextStepFor(2, 0, true)).toEqual({ primary: 'review', secondary: 'replay' });
+    expect(nextStepFor(3, 0, true)).toEqual({ primary: 'review', secondary: 'replay' });
+    expect(nextStepFor(2, 1, true)).toEqual({ primary: 'upgrade', secondary: 'replay' });
+    expect(nextStepFor(2, 3, true)).toEqual({ primary: 'upgrade', secondary: 'replay' });
+    expect(nextStepFor(3, 2, true)).toEqual({ primary: 'replay', secondary: 'downgrade' });
+    expect(nextStepFor(2, 3, false).primary).toBe('replay');
+    expect(nextStepFor(3, 3, false).primary).toBe('replay');
   });
 });

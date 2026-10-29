@@ -37,6 +37,8 @@ export interface TabViewProps {
   highlightFn?: string;
   /** Trou désigné dans un exercice de mémorisation (`${columnIndex}:${string}`). */
   activeHoleKey?: string;
+  /** Échelle minimale en mode auto, appliquée seulement sur un grand écran (≥ 880 × 1 100 px) : tablature de jeu, lue à 1-2 m. Plus bas, une tablature à l'échelle 3 repousse la consigne et la réponse sous la ligne de flottaison. */
+  minScale?: number;
   /** Toucher une pastille (exercice « montre-moi la ♭3 »). */
   onPick?: (pick: TabPick) => void;
   /**
@@ -84,7 +86,7 @@ function autoScale(viewWidth: number, viewHeight: number): number {
 
 export function TabView(props: TabViewProps) {
   const tabTheme = useThemeTokens().tab;
-  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, activeHoleKey, onPick, flash } = props;
+  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, activeHoleKey, minScale, onPick, flash } = props;
   const playing = transport === 'playing';
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -115,7 +117,7 @@ export function TabView(props: TabViewProps) {
     };
   }, []);
 
-  const S = scale === 'auto' ? autoScale(box.w, box.h) : scale;
+  const S = scale === 'auto' ? Math.max(autoScale(box.w, box.h), box.w >= 880 && box.h >= 1100 ? (minScale ?? 0) : 0) : scale;
   const k = Math.max(1, Math.round(S * dpr));
   const cssPerLogical = k / dpr;
   const viewLogical = Math.max(60, Math.floor(box.w / cssPerLogical));
