@@ -244,7 +244,7 @@ export function ChordQuizPage() {
           <li className="t-small t-dim">Retrouver : une case est masquée dans la pile (pointillés).</li>
         </ul>
         <p className="t-small t-dim">
-          Le tirage est déterministe pour une manche donnée : rejouer ne triche pas, et deux séances
+          Le tirage est déterministe pour une manche donnée : rejouer ne triche pas, et deux sessions
           différentes ne posent pas les mêmes questions.
         </p>
         <p className="t-small t-dim">

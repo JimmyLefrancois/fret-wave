@@ -122,7 +122,7 @@ aucune, Si fragile 21 → **8** (voir 30). L'avancé atteint le blues mineur à 
 30. ✅ **Traité (D98, règle à l'essai)** — **Si fragile : 8 jours de pratique sur « Position 1, trous »**, puis 13 jours sur « Position 2, trous ».
     La position entière ratée en boucle (corde de Si) n'a aucun repli : la séance ne propose jamais
     l'échauffement sur 1-3 cordes ni « Revoir la forme (N1) ». Règle pédagogique à décider (question à l'auteur).
-31. **Avancé : la charge de révision grimpe avec chaque gamme** (18 formes dues à J43 sur 5 gammes ; 8 par
+31. ✅ **Résolu par D101** — **Avancé : la charge de révision grimpe avec chaque gamme** (18 formes dues à J43 sur 5 gammes ; 8 par
     jour au plus) et le **plafond d'XP est atteint 34 jours** (999 XP non comptés). Le constat 6 s'inverse :
     le plafond gêne l'élève qui suit tout le parcours. Aucune règle d'XP changée.
 32. ✅ **Corrigé (lot 6)** — **Avancé : plus aucune forme « vitesse vérifiée »** (5 avant le lot). Artefact du simulateur : ses séries
@@ -172,7 +172,7 @@ message paraît exactement quand l'absence atteint 3 jours.
 La carte de révision dit « À rafraîchir · vue il y a 12 j · palier 1 sur 6 » et la tendance
 « 74 % → 83 % → 78 % » au lieu de « Dernier passage : … 88 % · 4 oct. ».
 
-36. **Le joueur du week-end est accueilli tous les samedis** (5 jours sans jouer) : « Content de te revoir…
+36. ✅ **Traité (D101)** — **Le joueur du week-end est accueilli tous les samedis** (5 jours sans jouer) : « Content de te revoir…
     Ta série de semaines tient : 3 semaines. » Conforme à la règle (≥ 3 jours), mais répété chaque semaine,
     le message peut perdre son sens. Seuil à revoir pour un joueur dont la série de semaines tient ?
     (question à l'auteur)
@@ -194,7 +194,7 @@ décision : affichage seulement.
 - **5** : le bilan dit « 2 rattrapages après « Regarde la forme » : comptés pour la journée, pas pour la
   mémoire. » quand il y en a.
 
-37. Le titre de la page en séance garde « Session 1 / 4 · à froid » à côté de « Séance : 1 sur 4 » : deux
+37. ✅ **Traité (D101)** — Le titre de la page en séance garde « Session 1 / 4 · à froid » à côté de « Séance : 1 sur 4 » : deux
     mots pour la même chose (« session » / « séance »). À unifier ? (petit, pas dans le plan)
 
 ## Lot 6 — outillage et bruit du rapport (`ux/constats-sim`, 2026-10-29)
@@ -216,7 +216,19 @@ décision : affichage seulement.
 Fin de chantier : `npm test` 808 tests verts, `npm run build` vert, tournée complète (26 états, bureau et
 téléphone) sans erreur console.
 
-38. **Une forme jouée à 94 % reste au palier 1** : avancé J45, « Do majeur · Position 2 — palier 1 sur 6 ·
+38. ✅ **Traité (D101)** — **Une forme jouée à 94 % reste au palier 1** : avancé J45, « Do majeur · Position 2 — palier 1 sur 6 ·
     94 % → 94 % → 94 % ». Une réussite lente (80-94 %) ne fait pas monter de palier (MUSIC_DESIGN §5) : la
     forme revient chaque jour tant que l'élève ne passe pas 95 %. Règle inchangée (hors périmètre du plan) ;
     à décider : faut-il qu'une réussite lente répétée fasse monter d'un palier ? (question à l'auteur)
+
+## Réponses de l'auteur aux constats 36-38 (2026-10-29, branche `ux/constats-36-38`)
+
+- **36** : pas de message de retour tant que la série de semaines tient ; le joueur du week-end n'est plus
+  accueilli chaque samedi, le décrocheur l'est toujours à son retour (J23). I5 suit la règle.
+- **37** : « Session » partout dans l'interface (« Session du jour », « Session faite », panneau « Session :
+  1 sur 4 », quiz d'accords) et dans le rapport ; les commentaires du code gardent « séance ».
+- **38** : deux réussites lentes (80-94 %) d'affilée au même palier font monter d'un palier ; une seule reste
+  sur place ; un échec ou une réussite nette remet le compte à zéro. Mesure (rapport, fin fixe) : avancé, pic
+  de formes dues **16 → 5**, plafond d'XP dépassé **33 jours → 1** (constat 31 résolu du même coup), première
+  forme maîtrisée J16 → J14 ; les autres personas bougent peu (pics de 4 à 6 dues, 4 à 5 formes apprises).
+  Invariants I1-I6 verts pour les 6 personas.

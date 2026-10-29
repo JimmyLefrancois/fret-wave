@@ -1216,7 +1216,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         {/* en séance : une liste de définitions plutôt qu'un long paragraphe (constat 14) */}
         {mixed && queue.length > 0 && queue[qIndex] && (
           <dl className="ex-facts">
-            <dt>Séance</dt>
+            <dt>Session</dt>
             <dd>
               {sessionFact(qIndex, queue.length, queue[qIndex]!)}
               <details className="ex-more">

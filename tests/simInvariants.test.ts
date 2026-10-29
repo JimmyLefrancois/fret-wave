@@ -71,7 +71,7 @@ describe('invariants du simulateur', () => {
     expect(first.length + second.length).toBe(announced);
   });
 
-  it('I5 décrocheur : accueilli à son retour (J23) ; régulier : jamais', () => {
+  it('I5 décrocheur : accueilli à son retour (J23) ; régulier et joueur du week-end (semaines tenues) : jamais', () => {
     const lines = (p: Persona) => arrivals(p, snaps.get(p.id)!).map((d) => {
       const absence = absenceDays(d.journal, d.t);
       return { day: d.day, lines: returnLines(absence, dueToday(d.journal, d.t.getTime()).length, 0, streak(d.journal, d.t).days, weekStreak(d.journal, d.t).weeks) };
@@ -80,6 +80,10 @@ describe('invariants du simulateur', () => {
     expect(back.day).toBe(22);
     expect(back.lines[0]).toMatch(/^Content de te revoir/);
     expect(lines(persona('regulier')).filter((d) => d.lines.length > 0)).toEqual([]);
+    // D101 : 5 jours sans jouer chaque semaine, mais la série de semaines tient → pas d'accueil chaque samedi
+    // (seulement au tout début, avant la première semaine pleine)
+    const weekend = lines(persona('week-end')).filter((d) => d.lines.length > 0);
+    expect(weekend.length).toBeLessThanOrEqual(1);
   });
 
   it('I6 week-end : la série de jours, inchangée, casse toujours', () => {

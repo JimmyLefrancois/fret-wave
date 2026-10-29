@@ -261,14 +261,14 @@ export const ABSENCE_DAYS = 3;
  * tient de la série (jamais de reproche). Vide sous `ABSENCE_DAYS`.
  */
 export function returnLines(absence: number, due: number, minutes: number, days: number, weeks: number): string[] {
-  if (absence < ABSENCE_DAYS) return [];
+  // tant que la série de semaines tient, l'absence est un rythme, pas un retour : le joueur du week-end ne
+  // se fait pas accueillir chaque samedi (D101, constat 36)
+  if (absence < ABSENCE_DAYS || weeks > 0) return [];
   const n = Math.min(due, DUE_CAP);
   const out = [n > 0
     ? `Content de te revoir. ${n} forme${n > 1 ? 's' : ''} à rafraîchir, environ ${minutes} min : on reprend doucement.`
     : 'Content de te revoir : on reprend doucement.'];
-  if (days <= 1) {
-    out.push(weeks > 0 ? `Ta série de semaines tient : ${weeks} semaine${weeks > 1 ? 's' : ''}.` : 'Une nouvelle série commence aujourd’hui.');
-  }
+  if (days <= 1) out.push('Une nouvelle série commence aujourd’hui.');
   if (due > DUE_CAP) out.push(`${DUE_CAP} aujourd’hui, les autres reviendront.`);
   return out;
 }
