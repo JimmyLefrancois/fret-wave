@@ -6,6 +6,7 @@
  *  - le bonus de vitesse n'existe qu'à ≥ 95 % de précision ;
  *  - un badge dit ce qu'il récompense et ne décorera jamais un chiffre faux.
  */
+import * as clock from '../clock';
 import { dayKey, isProof, isVerified, nodeIdOf, scoreOf, type Attempt } from './journal';
 import { PASS, summarizeNodes } from './mastery';
 
@@ -192,5 +193,5 @@ export function badgeStatus(attempts: readonly Attempt[], now: Date): BadgeStatu
 
 /** Nœuds distincts travaillés (utile au hub : « 3 formes »). */
 export function distinctNodes(attempts: readonly Attempt[]): number {
-  return new Set(verifiedOf({ attempts, now: new Date() }).map(nodeIdOf)).size;
+  return new Set(verifiedOf({ attempts, now: clock.nowDate() }).map(nodeIdOf)).size;
 }

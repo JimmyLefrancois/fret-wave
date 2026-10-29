@@ -34,6 +34,7 @@ import { progressStore } from '../../core/progress';
 import type { Attempt } from '../../core/progress/journal';
 import { chordAtMeasure, chordName, backingsFor, IMPRO_BACKINGS, STYLE_LABEL, type BackingMode, type BackingStyle } from './impro';
 import { positionLabelPlain, resolveScale } from './resolve';
+import * as clock from '../../core/clock';
 
 const ROLE_CLASS: Record<NoteRole, string> = {
   chord: 'impro-role-chord',
@@ -128,8 +129,8 @@ export function ImproPage() {
     const seconds = startedAt.current ? Math.round((performance.now() - startedAt.current) / 1000) : 0;
     if (!r.position || takes.length < 6) return; // moins de six notes : rien à conclure, rien au journal
     const attempt: Attempt = {
-      id: newAttemptId(Date.now(), `${r.def.id}:impro:${r.selection.system}:${r.position.formIndex ?? r.position.index}`, readAttempts(progressStore()).length),
-      ts: Date.now(),
+      id: newAttemptId(clock.now(), `${r.def.id}:impro:${r.selection.system}:${r.position.formIndex ?? r.position.index}`, readAttempts(progressStore()).length),
+      ts: clock.now(),
       kind: 'impro',
       scaleId: r.def.id,
       tonic: r.tonic,

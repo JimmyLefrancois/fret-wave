@@ -48,6 +48,7 @@ import {
 import { REVIEW_MAX, buildReviewQueue, type ReviewTarget } from './review';
 import { coldNext, countsAsProof, lookRemaining, type ColdStep } from './coldReview';
 import { blindGrid, countInBeat, scoreBlind, type BlindGrid, type HeardNote } from './blind';
+import * as clock from '../../core/clock';
 
 type HoleMark = 'right' | 'revealed';
 
@@ -112,7 +113,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   // erreur d'ouverture du micro : affichée à côté du bouton qui l'a provoquée, pas dans le verdict
   const [micError, setMicError] = useState<string | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => clock.now());
   const [result, setResult] = useState<Result | null>(null);
   const [journal, setJournal] = useState<Attempt[]>(() => readAttempts(progressStore()));
   /** Panneau de réussite : ouvert à la fin d'une série, refermé par « Continuer » ou Échap. */
@@ -259,7 +260,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
   useEffect(() => {
     if (startedAt === null || result) return;
-    const t = window.setInterval(() => setNow(Date.now()), 250);
+    const t = window.setInterval(() => setNow(clock.now()), 250);
     return () => window.clearInterval(t);
   }, [startedAt, result]);
 
@@ -271,7 +272,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const touch = () => {
     if (startedAt !== null) return;
     // `now` n'avance qu'au tick de 250 ms : sans ce rafraîchissement, le chrono affiche « -1:-2 » au premier appui
-    const t = Date.now();
+    const t = clock.now();
     setStartedAt(t);
     setNow(t);
   };
@@ -293,7 +294,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       gridStartPerf.current = performance.now();
       lastNotePerf.current = null;
       // le chrono repart de la grille : sinon une grille lancée puis abandonnée compte dans la tentative
-      setStartedAt(Date.now());
+      setStartedAt(clock.now());
       setGrid('running');
       setFeedback({ ok: true, info: true, text: `grille : ${g.beats} temps à ${g.score.tempo} BPM (${g.seconds.toFixed(1)} s)` });
     } catch (e) {
@@ -323,8 +324,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       setMarks({});
       setErrors({});
       setFeedback(null);
-      setStartedAt(Date.now());
-      setNow(Date.now());
+      setStartedAt(clock.now());
+      setNow(clock.now());
       setBlindPhase('countin');
     } catch (e) {
       setFeedback({ ok: false, text: `métronome indisponible : ${(e as Error).message}` });
@@ -335,7 +336,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   useEffect(() => {
     if (!blindLive) return;
     const t = window.setInterval(() => {
-      setNow(Date.now());
+      setNow(clock.now());
       if (performance.now() >= blindStartPerf.current) setBlindPhase('running');
     }, 100);
     return () => window.clearInterval(t);
@@ -394,7 +395,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     const accuracy = totalHoles > 0 ? right / totalHoles : 0;
     const revealedCount = Object.values(finalMarks).filter((m) => m === 'revealed').length;
     const errorTotal = Object.values(errorCount).reduce((s, v) => s + v, 0);
-    const seconds = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0;
+    const seconds = startedAt ? Math.round((clock.now() - startedAt) / 1000) : 0;
     // grille tenue ? (finie avant la fin du métronome, tolérance d'un dixième de temps)
     // au micro, le temps de jeu est celui de l'attaque de la dernière note, latence mesurée retranchée ;
     // au pavé, c'est le temps de saisie (inchangé depuis la phase 2).
@@ -404,8 +405,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     const gridOutcome: GridOutcome = blindResult ? blindResult.grid : grid === 'off' ? 'off' : grid === 'running' && insideGrid(playedSeconds, tempoGrid(totalHoles, settings.trainingTempo, settings.gridSubdivision)) ? 'kept' : 'missed';
     if (grid !== 'off') stopGrid();
     const attempt: Attempt = {
-      id: newAttemptId(Date.now(), nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index }), readAttempts(progressStore()).length),
-      ts: Date.now(),
+      id: newAttemptId(clock.now(), nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index }), readAttempts(progressStore()).length),
+      ts: clock.now(),
       kind: level >= 3 ? 'recall' : 'holes',
       scaleId: r.def.id,
       tonic: r.tonic,
@@ -746,14 +747,14 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   useEffect(() => {
     if (coldStep !== 'look' || lookStart === null) return;
     const t = window.setInterval(() => {
-      setNow(Date.now());
-      if (lookRemaining(lookStart, Date.now(), settings.lookSeconds) === 0) beginRetry();
+      setNow(clock.now());
+      if (lookRemaining(lookStart, clock.now(), settings.lookSeconds) === 0) beginRetry();
     }, 250);
     return () => window.clearInterval(t);
   }, [coldStep, lookStart, settings.lookSeconds, beginRetry]);
 
   const startMixed = () => {
-    const q = buildReviewQueue(readAttempts(progressStore()), Date.now(), REVIEW_MAX, { cold: settings.coldReview });
+    const q = buildReviewQueue(readAttempts(progressStore()), clock.now(), REVIEW_MAX, { cold: settings.coldReview });
     setJournal(readAttempts(progressStore()));
     if (q.length === 0) {
       setFeedback({ ok: false, text: 'aucune forme à réviser : commence par une écoute ou une série de trous' });
@@ -810,7 +811,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       startMixed: () => startMixed(),
       nextInQueue: () => nextInQueue(),
       // rappel à froid : étape courante et raccourcis de l'écran « Regarde la forme »
-      cold: { step: coldStep, lookStart, startLook: () => setLookStart(Date.now()), endLook: () => beginRetry() },
+      cold: { step: coldStep, lookStart, startLook: () => setLookStart(clock.now()), endLook: () => beginRetry() },
       // série à l'aveugle : phase, notes entendues (le verdict reste caché à l'écran)
       blind: {
         on: blindOn, phase: blindPhase, set: (v: boolean) => setBlindOn(v), start: () => void startBlind(),
@@ -831,9 +832,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   }, [exercise, plan, marks, errors, activeKey, result, level, segment, total, done, grid, mixed, queue, qIndex, press, validate, journal.length, micOn, engine, coldStep, lookStart, beginRetry, blindOn, blindPhase]);
 
   // XP total (hooks : avant tout return anticipé) et XP du jour : recalculés depuis le journal, comme partout ailleurs
-  const totals = useMemo(() => xpSummary(journal, new Date()), [journal]);
-  const streakDays = useMemo(() => streak(journal, new Date()).days, [journal]);
-  const sessionsToday = useMemo(() => summarizeDay(journal, new Date()).exercises, [journal]);
+  const totals = useMemo(() => xpSummary(journal, clock.nowDate()), [journal]);
+  const streakDays = useMemo(() => streak(journal, clock.nowDate()).days, [journal]);
+  const sessionsToday = useMemo(() => summarizeDay(journal, clock.nowDate()).exercises, [journal]);
 
   if (!r.position || !exercise || !display || !plan) {
     return (
@@ -1010,7 +1011,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               </p>
               <div className="row">
                 {lookStart === null ? (
-                  <PixelButton variant="primary" onClick={() => { setLookStart(Date.now()); setNow(Date.now()); }}>
+                  <PixelButton variant="primary" onClick={() => { setLookStart(clock.now()); setNow(clock.now()); }}>
                     ▶ Regarde la forme ({settings.lookSeconds} s)
                   </PixelButton>
                 ) : (

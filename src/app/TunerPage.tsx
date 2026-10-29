@@ -33,6 +33,7 @@ import { useSettings } from './settings';
 import { MicStrip } from './MicStrip';
 import { navigate } from './router';
 import { Panel, PixelButton, Segmented } from './ui';
+import * as clock from '../core/clock';
 
 type Phase = 'idle' | 'running' | 'done';
 
@@ -53,7 +54,7 @@ export function TunerPage() {
   const [latencyPhase, setLatencyPhase] = useState<Phase>('idle');
   const [msg, setMsg] = useState<string | null>(null);
   const [guideSaved, setGuideSaved] = useState(false);
-  const [fresh, setFresh] = useState(() => tuningFreshness(readTuningRecord(progressStore()), new Date()));
+  const [fresh, setFresh] = useState(() => tuningFreshness(readTuningRecord(progressStore()), clock.nowDate()));
   const timers = useRef<number[]>([]);
 
   const thresholdDb = input.thresholds[input.source];
@@ -397,9 +398,9 @@ export function TunerPage() {
           a4={input.a4}
           notation={settings.noteNotation}
           onDone={() => {
-            writeTuningRecord(progressStore(), { at: Date.now(), tuningId: tuning.id, strings: tuning.strings.length });
+            writeTuningRecord(progressStore(), { at: clock.now(), tuningId: tuning.id, strings: tuning.strings.length });
             setGuideSaved(true);
-            setFresh(tuningFreshness(readTuningRecord(progressStore()), new Date()));
+            setFresh(tuningFreshness(readTuningRecord(progressStore()), clock.nowDate()));
           }}
         />
         {guideSaved && <p className="t-small ok">Accordage enregistré : les exercices au micro ne seront plus faussés par un instrument bas.</p>}

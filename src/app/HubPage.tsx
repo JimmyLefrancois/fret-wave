@@ -25,6 +25,7 @@ import {
   DUE_CAP, dueNow, loadJournal, nodeIdOf, progressStore, streak, summarizeDay,
   type Attempt,
 } from '../core/progress';
+import * as clock from '../core/clock';
 
 /** Objectif proposé : 3 exercices vérifiés par jour (une écoute ne compte pas), pas 3 « clics ». */
 export const DAILY_GOAL = 3;
@@ -149,7 +150,7 @@ export function HubPage() {
   const sel = useScaleSelection();
   const resolved = useMemo(() => resolveScale(sel, settings.noteNotation), [sel, settings.noteNotation]);
   const [journal] = useState<Attempt[]>(() => loadJournal(progressStore()));
-  const now = useMemo(() => new Date(), []);
+  const now = useMemo(() => clock.nowDate(), []);
   const day = useMemo(() => summarizeDay(journal, now), [journal, now]);
   const st = useMemo(() => streak(journal, now), [journal, now]);
   // seules les cartes de gammes s'ouvrent d'ici : un accord a son propre écran

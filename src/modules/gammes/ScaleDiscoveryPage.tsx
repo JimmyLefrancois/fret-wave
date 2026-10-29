@@ -31,6 +31,7 @@ import { LevelsNav } from './LevelsNav';
 import {
   COMPARISON_LABEL, counterpartPosition, differingDegrees, markDegrees, neighbourDef, neighbourMode, neighbourPositions,
 } from './compare';
+import * as clock from '../../core/clock';
 
 const DIRECTION_LABEL: Record<Direction, string> = { up: 'Montée', down: 'Descente', updown: 'Aller-retour' };
 
@@ -244,8 +245,8 @@ export function ScaleDiscoveryPage() {
       const formIndex = r.position.formIndex ?? r.position.index;
       const node = nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex });
       appendAttempt(progressStore(), {
-        id: newAttemptId(Date.now(), node, readAttempts(progressStore()).length),
-        ts: Date.now(),
+        id: newAttemptId(clock.now(), node, readAttempts(progressStore()).length),
+        ts: clock.now(),
         kind: 'listen',
         scaleId: r.def.id,
         tonic: r.tonic,

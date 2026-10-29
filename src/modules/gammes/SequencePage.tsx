@@ -35,6 +35,7 @@ import {
   LADDER_MAX, LADDER_MIN, judgePass, ladderStart, ladderStep, pauseDue, startTempo,
   type LadderState, type PassResult,
 } from './sequence';
+import * as clock from '../../core/clock';
 
 type Phase = 'idle' | 'countin' | 'pass' | 'between';
 
@@ -65,7 +66,7 @@ export function SequencePage() {
   // dernier changement de palier (+4, −5, 0) : affiché en grand, c'est le moment qui motive
   const [shift, setShift] = useState(0);
   const [manualBpm, setManualBpm] = useState(60);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => clock.now());
   const [saved, setSaved] = useState<{ xp: number; verified: boolean } | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -125,7 +126,7 @@ export function SequencePage() {
       acted.current = null;
       setConsumed(0);
       setPhase('countin');
-      setNow(Date.now());
+      setNow(clock.now());
     } catch (e) {
       setStatus(`métronome indisponible : ${(e as Error).message}`);
       setPhase('idle');
@@ -161,7 +162,7 @@ export function SequencePage() {
   useEffect(() => {
     if (!running) return;
     const t = window.setInterval(() => {
-      setNow(Date.now());
+      setNow(clock.now());
       const g = gridRef.current;
       if (!g) return;
       const perf = performance.now();
@@ -183,7 +184,7 @@ export function SequencePage() {
   const begin = () => {
     if (!form) return;
     const start = listening ? startTempo(readAttempts(progressStore()), form, pattern) : manualBpm;
-    session.current = { startedAt: Date.now(), correct: 0, total: 0, missed: new Set(), verified: false };
+    session.current = { startedAt: clock.now(), correct: 0, total: 0, missed: new Set(), verified: false };
     setSaved(null);
     setLastPass(null);
     setShift(0);
@@ -203,8 +204,8 @@ export function SequencePage() {
     if (!lad || !form || !r.position || lad.passes === 0) return;
     const verified = s.verified && s.total > 0;
     const attempt: Attempt = {
-      id: newAttemptId(Date.now(), nodeIdOf({ ...form, kind: 'sequence' }), readAttempts(progressStore()).length),
-      ts: Date.now(),
+      id: newAttemptId(clock.now(), nodeIdOf({ ...form, kind: 'sequence' }), readAttempts(progressStore()).length),
+      ts: clock.now(),
       kind: 'sequence',
       scaleId: form.scaleId,
       tonic: r.tonic,
@@ -217,7 +218,7 @@ export function SequencePage() {
       // sans micro, rien n'est vérifié : une activité, jamais une preuve
       correct: verified ? s.correct : null,
       total: verified ? s.total : null,
-      seconds: Math.round((Date.now() - s.startedAt) / 1000),
+      seconds: Math.round((clock.now() - s.startedAt) / 1000),
       fretMin: r.position.fretMin,
       missedStrings: [...s.missed],
       tempoOk: lad.best !== null,
