@@ -4,7 +4,7 @@
  * de l'état dérivé. Logique pure (le stockage est passé en argument) : le panneau React ne fait que l'UI.
  */
 import {
-  ATTEMPTS_KEY, badgeStatus, cardsFrom, dueCards, exportText, newAttemptId, nodeIdOf, parseImport,
+  badgeStatus, cardsFrom, dueCards, exportText, newAttemptId, nodeIdOf, parseImport,
   readAttempts, streak, summarizeDay, summarizeNodes, writeAttempts, xpSummary,
   type Attempt, type AttemptLevel,
 } from '../core/progress';
@@ -53,7 +53,7 @@ export function loadPersona(store: KeyValueStore | null, persona: Persona, opts:
 /** Vide le journal (après sauvegarde du vrai) : l'accueil d'un premier lancement. */
 export function clearJournal(store: KeyValueStore | null, now: Date): void {
   backupJournal(store, now);
-  store?.setItem(ATTEMPTS_KEY, '[]');
+  writeAttempts(store, []);
 }
 
 export type SeriesKind = 'listen' | 'holes' | 'recall' | 'blind' | 'sequence' | 'impro';

@@ -46,6 +46,7 @@ function installConsole(): void {
   const store = progressStore();
   (window as unknown as Record<string, unknown>).__sim = {
     personas: PERSONAS.map((p) => p.id),
+    days: Object.fromEntries(PERSONAS.map((p) => [p.id, p.days])),
     load: (id: string, days?: number) => {
       const p = getPersona(id);
       if (!p) return `persona inconnue : ${id}`;

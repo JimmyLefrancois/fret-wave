@@ -42,3 +42,24 @@ Observés en chargeant « Décrocheur » puis en avançant l'horloge de 7 jours 
 11. **Le simulateur a révélé un piège d'outillage** (pas de l'app) : remplacer un fichier par un nouveau
     (`perl -i`, `sed -i`) peut échapper à l'observateur de Vite, qui sert alors l'ancien module. Après
     une modification de ce genre, recharger ou toucher le fichier en place.
+
+## Étape E — tournée visuelle (2026-10-29)
+
+`node tools/sim-tour.mjs` : 6 personas × jours clés, 4 écrans, planche `.shots/sim-tour/index.html`.
+
+12. **Les prises d'impro deviennent des révisions dues que rien ne peut vider** (le plus grave relevé).
+    `cardsFrom` crée une carte Leitner pour `gam:impro:…` ; un taux de notes d'accord de 40-80 % y vaut
+    un « échec », la carte reste en boîte 1. L'accueil (filtre `!acc:`) la compte : avancé à J45,
+    « À réviser (5) — Dernier passage : impro, 72 % · 12 oct. », 44 jours de pratique d'affilée en
+    « À réviser ». Or la file de révision (`buildReviewQueue`) n'ouvre que les séries de lecture : la
+    carte ne sera jamais revue. Le rapport (étape D) le masquait, il filtre maintenant comme l'accueil.
+13. **La révision ouverte n'est pas celle annoncée.** L'accueil annonce « Forme 1 sur 5 à revoir »
+    (les cartes d'impro) ; la page Révision lance « Session 1/5 » sur d'autres formes, choisies comme
+    « fragiles » : pour un élève qui a tout maîtrisé, un exercice à trous N2, tablature visible, motif
+    « vue dans une seule zone du manche », alors que le panneau dit « Cette forme : maîtrisée ».
+14. **Le panneau « Exercice » de la révision est un long paragraphe** : la liste des 5 formes de la
+    session, la règle des 35 %, le mode d'emploi du pavé et l'état de la forme dans un seul bloc.
+15. **Une persona qui ne pratique pas le jour J1** (sans micro, week-end un jeudi) montre « Commencer »
+    avec un journal vide : cohérent, mais rappel que le premier écran dépend du jour de lancement.
+16. Outillage : dans Playwright, un `goto` qui ne change que le hash ne recharge pas la page (les modules,
+    donc le décalage d'horloge, restent en mémoire) ; la tournée recharge explicitement.

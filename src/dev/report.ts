@@ -60,7 +60,8 @@ export function simReport(persona: Persona, opts: Omit<SimOptions, 'onDay'> = {}
       const nodes = summarizeNodes(j).filter((n) => n.nodeId.startsWith('gam:lecture:'));
       if (!formOrder.length) formOrder = [...new Set(mine.filter((a) => a.kind !== 'listen').map((a) => a.formIndex))];
       for (const n of nodes) if (!formOrder.includes(n.formIndex)) formOrder.push(n.formIndex);
-      const due = dueCards(cardsFrom(j), dayEnd).filter((c) => c.nodeId.startsWith('gam:lecture:'));
+      // même filtre que l'accueil (HubPage) : tout ce qui n'est pas un accord, impro comprise
+      const due = dueCards(cardsFrom(j), dayEnd).filter((c) => !c.nodeId.startsWith('acc:'));
       const plan = hubPlan(j, due, new Set(), null);
       const counts = new Map<string, number>();
       for (const a of mine) counts.set(a.kind, (counts.get(a.kind) ?? 0) + 1);
