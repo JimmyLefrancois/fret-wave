@@ -12,12 +12,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
 import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
-import { useSettings } from '../../app/settings';
+import { setSettings, useSettings } from '../../app/settings';
 import { TabView, type TabPick } from '../../app/TabView';
+import { NeckView } from '../../app/NeckView';
 import { InstrumentPicker } from '../../app/AudioControls';
 import { Panel, PixelButton, PixelIcon, Segmented, Switch } from '../../app/ui';
 import { filterPosition, fmtNote } from '../../core/theory';
-import { type AnnotationKind, type Direction, defaultChordForScale, positionToScore } from '../../core/tab';
+import { type AnnotationKind, type Direction, defaultChordForScale, neckNotes, positionToScore } from '../../core/tab';
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
 import { AudioEngine } from '../../core/audio/engine';
 import { describeInputError, type InputEngine, type InputFrame } from '../../core/input/engine';
@@ -100,6 +101,16 @@ export function ScaleDiscoveryPage() {
     if (stringLimit) p = filterPosition(p, (n) => n.string < stringLimit);
     return p.notes.length ? p : r.position;
   }, [r.position, rootsOnly, stringLimit]);
+
+  // --- vue manche : les notes affichées par la tab, étiquetées comme elle, sur le fond de la position entière
+  const neckLabelled = useMemo(
+    () => (shownPos ? neckNotes(shownPos, annotation, settings.noteNotation) : []),
+    [shownPos, annotation, settings.noteNotation],
+  );
+  const neckZone = useMemo(
+    () => (r.position ? { from: r.position.fretMin, to: r.position.fretMax } : null),
+    [r.position],
+  );
 
   // degrés en ASCII (modèle) : l'affichage passe par fmtDegree, la mise en évidence par n.fn
   const availableDegrees = useMemo(() => [...new Set((shownPos?.notes ?? []).map((n) => n.degree))], [shownPos]);
@@ -407,12 +418,36 @@ export function ScaleDiscoveryPage() {
             hint="l’app demande une fonction, tu touches la pastille"
             inline
           />
+          <Switch
+            checked={settings.showNeck}
+            onChange={(v) => setSettings({ showNeck: v })}
+            label="Vue manche"
+            hint="la forme de la position, tonique cerclée"
+            inline
+          />
           {quiz && (
             <p className="t-small t-dim">
               Les fonctions demandées sont celles qui sont affichées : « Fondamentales », dans « Plus d’options », réduit la difficulté.
             </p>
           )}
         </div>
+      )}
+
+      {/* la forme que la tab écrit en chiffres : même pastilles, même orientation (aiguë en haut) */}
+      {settings.showNeck && scoreTab && neckZone && (
+        <Panel
+          className="span-12 neck-panel"
+          label="Manche"
+          right={<span className="badge">tonique {fmtNote(r.tonic, settings.noteNotation)} · cases {neckZone.from}–{neckZone.to}</span>}
+        >
+          <NeckView
+            tuning={r.tuning}
+            notes={neckLabelled}
+            zone={neckZone}
+            notation={settings.noteNotation}
+            label={positionLabelPlain(r.position, settings.noteNotation)}
+          />
+        </Panel>
       )}
 
       <TabLegend def={r.def} readonly={settings.reduceMotion} />
@@ -477,6 +512,7 @@ export function ScaleDiscoveryPage() {
             onChange={setAnnotation}
             options={ANNOTATIONS.map((a) => ({ value: a.value, label: a.label }))}
           />
+          {settings.showNeck && <p className="t-small t-dim">Elle s’applique aussi au manche.</p>}
         </div>
         <details className="more-opts">
           <summary className="t-label">Plus d’options</summary>

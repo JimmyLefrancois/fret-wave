@@ -24,6 +24,7 @@ import { openStep } from '../../app/openStep';
 import { dailySession } from '../../app/hubPlan';
 import { MAX_TEMPO, MIN_TEMPO, setSettings, useSettings } from '../../app/settings';
 import { TabView, type TabPick } from '../../app/TabView';
+import { NeckView } from '../../app/NeckView';
 import { Panel, PixelButton, Segmented, Switch } from '../../app/ui';
 import { MicStrip } from '../../app/MicStrip';
 import { ensureInputEngine, inputEngineIfAny, windowFor } from '../../app/inputSession';
@@ -32,7 +33,7 @@ import { describeInputError, type InputEngine, type InputFrame } from '../../cor
 import { matchPitch, noteNameOf, targetsFor, type MatchVerdict } from '../../core/input/match';
 import { useInputSettings } from '../../core/input/settings';
 import { fmtNote, type NoteName } from '../../core/theory';
-import { positionToScore } from '../../core/tab';
+import { neckNotes, positionToScore } from '../../core/tab';
 import { TabPlayer } from '../../core/audio/tabPlayer';
 import {
   appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, stateLabel, streak, summarizeDay,
@@ -209,6 +210,11 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const actedRef = useRef<{ midi: number; at: number } | null>(null);
 
   const plan = useMemo(() => (r.position ? segmentPlan(r.position, segment) : null), [r.position, segment]);
+  // « Regarde la forme » : la position entière sur le manche (mémoïsée : l'écran se redessine chaque seconde)
+  const lookNeck = useMemo(
+    () => (r.position ? { notes: neckNotes(r.position, 'degree', settings.noteNotation), zone: { from: r.position.fretMin, to: r.position.fretMax } } : null),
+    [r.position, settings.noteNotation],
+  );
 
   const baseScore = useMemo(() => {
     if (!plan) return null;
@@ -1021,6 +1027,23 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       />
 
       {!(coldActive && !result) && <TabLegend def={r.def} readonly={settings.reduceMotion} />}
+
+      {/* « Regarde la forme » : le temps de regarder, la forme se lit aussi sur le manche (D103) */}
+      {coldStep === 'look' && lookStart !== null && lookNeck && (
+        <Panel
+          className="span-12 neck-panel"
+          label="Manche"
+          right={<span className="badge">tonique {fmtNote(r.tonic, settings.noteNotation)} · cases {lookNeck.zone.from}–{lookNeck.zone.to}</span>}
+        >
+          <NeckView
+            tuning={r.tuning}
+            notes={lookNeck.notes}
+            zone={lookNeck.zone}
+            notation={settings.noteNotation}
+            label={positionLabelPlain(r.position, settings.noteNotation)}
+          />
+        </Panel>
+      )}
 
 
       {/* verdict : sous la tablature, là où sont les yeux — pas au bas du pavé */}

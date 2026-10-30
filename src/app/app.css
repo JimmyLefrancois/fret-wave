@@ -2449,7 +2449,7 @@ details[open] > * + * { margin-block-start: var(--gap-inside); }
   .listen-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (min-width: 900px) {
-  .listen-band { grid-column: 1 / -1; }
+  .listen-band { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 /* l'aide du quiz : sur un fond de carte (jamais du texte nu sur le décor) */
 .listen-band > p { grid-column: 1 / -1; margin: 0; padding: 10px 14px; max-width: none; background: var(--surface); border: var(--bw) solid var(--line-soft); }
@@ -2628,3 +2628,8 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   text-underline-offset: 3px;
 }
 .home-foot button:hover { color: var(--cyan); }
+
+/* Vue manche (module Gammes, Découvrir) : canvas à échelle entière ; trop large pour un téléphone à
+   l'échelle 2, il défile dans son panneau plutôt que de rapetisser ses pastilles. */
+.neck { line-height: 0; overflow-x: auto; overflow-y: hidden; }
+.neck canvas { display: block; margin-inline: auto; image-rendering: pixelated; }

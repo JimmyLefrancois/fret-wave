@@ -235,6 +235,12 @@ export function SettingsPage() {
           label="Boîte d’accord"
           hint="module Accords, étapes Découvrir et Construire"
         />
+        <Switch
+          checked={settings.showNeck}
+          onChange={(v) => setSettings({ showNeck: v })}
+          label="Vue manche"
+          hint="module Gammes, page Découvrir : la forme de la position, tonique cerclée"
+        />
       </Panel>
 
       <Panel className="span-12" accent="yellow" label="Son">

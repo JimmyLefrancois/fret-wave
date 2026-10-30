@@ -8,3 +8,4 @@ export * from './render';
 export * from './chordBox';
 export * from './playback';
 export * from './describe';
+export * from './neck';

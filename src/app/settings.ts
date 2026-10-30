@@ -38,6 +38,12 @@ export interface AppSettings {
    */
   showChordBox: boolean;
   /**
+   * Vue manche sous la tablature, page « Découvrir » du module Gammes (MUSIC_DESIGN §7.1) : la forme de
+   * la position et sa place sur le manche. Jamais aux niveaux 2-4, où elle donnerait les réponses.
+   * Masquée par défaut (la tab reste la règle du brief) : un interrupteur à côté de la tab l'ouvre.
+   */
+  showNeck: boolean;
+  /**
    * Rappel à froid en révision : une carte due se révise d'abord en N3 sur la position entière, sans
    * revoir la forme (MUSIC_DESIGN §5). Désactivable : la révision reprend alors le choix de la phase 2.
    */
@@ -64,6 +70,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   gridSubdivision: 1,
   speedTargetBpm: SPEED_TARGET_BPM,
   showChordBox: true,
+  showNeck: false,
   coldReview: true,
   lookSeconds: DEFAULT_LOOK_SECONDS,
 };
@@ -85,6 +92,7 @@ export function loadAppSettings(store: KeyValueStore | null): AppSettings {
     if (typeof o.scanlines === 'boolean') out.scanlines = o.scanlines;
     if (typeof o.showDegreeRow === 'boolean') out.showDegreeRow = o.showDegreeRow;
     if (typeof o.showChordBox === 'boolean') out.showChordBox = o.showChordBox;
+    if (typeof o.showNeck === 'boolean') out.showNeck = o.showNeck;
     if (typeof o.coldReview === 'boolean') out.coldReview = o.coldReview;
     if (LOOK_SECONDS.includes(o.lookSeconds as LookSeconds)) out.lookSeconds = o.lookSeconds as LookSeconds;
     if (HOLE_RATES.includes(o.holeRate as HoleRate)) out.holeRate = o.holeRate as HoleRate;

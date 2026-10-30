@@ -527,6 +527,7 @@ Options **[À TRANCHER]** (rien n'est implémenté) :
 - **(B) Tab + boîte d'accord uniquement dans les étapes Découvrir/Construire du module Accords** (réglage activable, off possible) — **ma recommandation** : une aide ponctuelle, pas un deuxième format à lire.
 - **(C) Boîte d'accord partout** : contraire à l'esprit du brief, déconseillé.
 Même question, plus modérée, pour les positions de gamme : une vue « manche » optionnelle dans le module Gammes aiderait CAGED et les boxes. Je ne la propose **pas** par défaut ; je la signale comme limite réelle.
+**Tranché (D103)** : vue manche implémentée sur la page Découvrir du module Gammes (N1 seulement, masquée par défaut, un interrupteur à côté de la tab) et sur l'écran « Regarde la forme » ; tonique cerclée.
 
 ### 7.2 Place des power chords
 Je les place **en branche optionnelle parallèle à partir de P2** (après Em/E/A) : ils sont **faciles pour la main gauche** (2-3 doigts, peu d'exigence de netteté sur 6 cordes), très motivants pour qui veut du rock, **mais** ils masquent la notion majeur/mineur (pas de tierce) et peuvent retarder les vrais accords. Opt-in au départ (« je veux jouer du rock ») : la branche s'ouvre dès Em+E ou A connus, et est présentée comme « accord *sans* tierce », donc ni majeur ni mineur.
