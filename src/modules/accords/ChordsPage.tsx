@@ -11,7 +11,7 @@ import { navigate } from '../../app/router';
 import { requestLessonStep, setChordSelection } from '../../app/chordSession';
 import { useSettings } from '../../app/settings';
 import { ChordBoxView } from '../../app/ChordBoxView';
-import { Bar, Chip, Panel, PixelButton } from '../../app/ui';
+import { Bar, Chip, Panel, PixelButton, Reveal } from '../../app/ui';
 import { fmtChord, fmtNote } from '../../core/theory';
 import { interpretChord } from '../../core/theory/chords';
 import { loadJournal, progressStore, summarizeNodes } from '../../core/progress';
@@ -259,15 +259,16 @@ export function ChordsPage() {
         <p className="t-small">De la découverte du nom au jeu en mesure, chaque geste validé au micro.</p>
         <details className="ex-more chord-more">
           <summary>Voir les sept étapes</summary>
-          <ul className="module-facts">
-            <li className="t-small">Découvrir : nom, notes, degrés, écoute plaquée et arpégée</li>
-            <li className="t-small">Construire : un doigt à la fois, dans l’ordre, validé au micro</li>
-            <li className="t-small">Vérifier : corde par corde (étouffée, fausse, trop basse)</li>
-            <li className="t-small">Plaquer : le geste complet, <strong>écouté</strong>, six cordes ensemble</li>
-            <li className="t-small">Fixer : pose à froid chronométrée (8 s, puis 5 s, puis 3 s)</li>
-            <li className="t-small">Enchaîner : changement mesuré entre deux accords</li>
-            <li className="t-small">Intégrer : quatre accords en mesure, avec un motif de strum</li>
-          </ul>
+          {/* le nom de l'étape mène la ligne, son contenu suit en atténué : on parcourt la colonne des noms */}
+          <ol className="pix-steps pix-steps-tight">
+            <li><strong>Découvrir</strong> <span>nom, notes, degrés, écoute plaquée et arpégée</span></li>
+            <li><strong>Construire</strong> <span>un doigt à la fois, dans l’ordre, validé au micro</span></li>
+            <li><strong>Vérifier</strong> <span>corde par corde (étouffée, fausse, trop basse)</span></li>
+            <li><strong>Plaquer</strong> <span>le geste complet, écouté, six cordes ensemble</span></li>
+            <li><strong>Fixer</strong> <span>pose à froid chronométrée (8 s, puis 5 s, puis 3 s)</span></li>
+            <li><strong>Enchaîner</strong> <span>changement mesuré entre deux accords</span></li>
+            <li><strong>Intégrer</strong> <span>quatre accords en mesure, avec un motif de strum</span></li>
+          </ol>
         </details>
         <p className="t-small t-dim">Sans guitare sous la main : six questions pour apprendre à lire un accord écrit.</p>
         <div className="row">
@@ -289,20 +290,35 @@ export function ChordsPage() {
         {!firstFolded && (
           <>
             <div className="first-grid">{FIRST_CHORDS.map(firstTile)}</div>
-            <details className="ex-more chord-more">
-              <summary>Ta semaine, en trois temps</summary>
-              <ol className="first-plan">
-                {FIRST_CHORDS_PLAN.map((line) => <li key={line} className="t-small">{line}</li>)}
-              </ol>
-              <p className="t-small t-dim">
-                Lentement : un changement à la fois, d’abord deux accords, puis trois. La progression « Mineurs en La »
-                (étape Intégrer) enchaîne La mineur, Mi et Ré mineur.
-              </p>
-            </details>
-            <details className="ex-more chord-more">
-              <summary>Pour aller plus loin, toujours sans barré</summary>
-              <div className="first-grid">{FIRST_CHORDS_MORE.map(firstTile)}</div>
-            </details>
+            <Reveal
+              label="Compléments sur les premiers accords"
+              items={[
+                {
+                  id: 'semaine',
+                  label: 'Ta semaine',
+                  content: (
+                    <>
+                      <ol className="pix-steps">
+                        {FIRST_CHORDS_PLAN.map((line) => <li key={line}>{line}</li>)}
+                      </ol>
+                      <p className="t-small t-dim">
+                        La progression « Mineurs en La » (étape Intégrer) enchaîne La mineur, Mi et Ré mineur.
+                      </p>
+                    </>
+                  ),
+                },
+                {
+                  id: 'plus',
+                  label: 'Pour aller plus loin',
+                  content: (
+                    <>
+                      <p className="t-small t-dim">Toujours sans barré.</p>
+                      <div className="first-grid">{FIRST_CHORDS_MORE.map(firstTile)}</div>
+                    </>
+                  ),
+                },
+              ]}
+            />
           </>
         )}
         <div className="row palier-actions">
@@ -314,33 +330,50 @@ export function ChordsPage() {
 
       {/* D106 : comment travailler un changement ; l'exercice mesuré reste l'étape Enchaîner de la leçon */}
       <Panel className="span-12 change-guide" accent="violet" label="Changer d’accord">
-        <ol className="change-rules">
-          {CHANGE_RULES.map((r) => <li key={r} className="t-body">{r}</li>)}
+        {/* les trois règles sont la page : côte à côte au bureau, empilées serrées au téléphone */}
+        <ol className="pix-steps pix-steps-rules">
+          {CHANGE_RULES.map((r) => <li key={r}>{r}</li>)}
         </ol>
-        <details className="ex-more chord-more">
-          <summary>La méthode, en six étapes</summary>
-          <ol className="first-plan">
-            {CHANGE_STEPS.map((r) => <li key={r} className="t-small">{r}</li>)}
-          </ol>
-          <p className="t-small t-dim">La main droite ne joue qu’à la dernière étape : avant, c’est la main gauche seule qui apprend.</p>
-        </details>
-        <details className="ex-more chord-more">
-          <summary>Quand aucun doigt ne reste posé</summary>
-          <ul className="module-facts">
-            {CHANGE_WHOLE_SHAPE.map((r) => <li key={r} className="t-small">{r}</li>)}
-          </ul>
-        </details>
-        <details className="ex-more chord-more">
-          <summary>Ce qui ralentit</summary>
-          <ul className="module-facts">
-            {CHANGE_MISTAKES.map((r) => <li key={r} className="t-small">{r}</li>)}
-          </ul>
-        </details>
-        <p className="t-small t-dim">
-          L’étape Enchaîner de la leçon chronomètre 30 secondes de va-et-vient et mesure ton temps de changement au
-          micro. Compte les changements propres, pas les rapides : cinq nets valent mieux que quinze crispés.
-        </p>
-        <div className="row">
+        <Reveal
+          label="Pour aller plus loin sur le changement d’accord"
+          items={[
+            {
+              id: 'methode',
+              label: 'Méthode',
+              content: (
+                <>
+                  <ol className="pix-steps pix-steps-cols">
+                    {CHANGE_STEPS.map((r) => <li key={r}>{r}</li>)}
+                  </ol>
+                  <p className="t-small t-dim">La main droite ne joue qu’à la dernière étape : avant, c’est la main gauche seule qui apprend.</p>
+                </>
+              ),
+            },
+            {
+              id: 'sans-pivot',
+              label: 'Sans pivot',
+              content: (
+                <ul className="module-facts">
+                  {CHANGE_WHOLE_SHAPE.map((r) => <li key={r} className="t-small">{r}</li>)}
+                </ul>
+              ),
+            },
+            {
+              id: 'pieges',
+              label: 'Pièges',
+              content: (
+                <ul className="module-facts module-facts-cols">
+                  {CHANGE_MISTAKES.map((r) => <li key={r} className="t-small">{r}</li>)}
+                </ul>
+              ),
+            },
+          ]}
+        />
+        <div className="change-foot">
+          <p className="t-small t-dim">
+            L’étape Enchaîner chronomètre 30 secondes de va-et-vient au micro. Cinq changements nets valent mieux que
+            quinze crispés.
+          </p>
           <PixelButton onClick={practiseChange}>S’entraîner : Enchaîner</PixelButton>
         </div>
       </Panel>

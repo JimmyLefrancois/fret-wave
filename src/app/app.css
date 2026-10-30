@@ -546,8 +546,19 @@ a { color: var(--cyan); }
 .module-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .module h3 { font-family: var(--font-body); font-weight: 650; font-size: 15.5px; color: var(--text); }
 /* un élément sur deux lignes se lisait comme la suite du précédent à 1 px : l'écart serré les sépare */
-.module-facts { list-style: none; padding: 0; display: grid; gap: var(--gap-tight); }
-.module-facts li::before { content: '· '; color: var(--accent); }
+/* liste à puces : un carré pixel de 6 px à la couleur du panneau, et un retrait suspendu (la deuxième
+   ligne d'un point s'aligne sur le texte, plus sous la puce) ; mesure bornée, lisible au bureau */
+.module-facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-inline-size: 72ch; }
+.module-facts > li { position: relative; padding-left: 16px; }
+.module-facts > li::before {
+  content: '';
+  position: absolute;
+  left: 1px;
+  top: calc(0.75em - 3px);
+  width: 6px;
+  height: 6px;
+  background: var(--accent, var(--cyan));
+}
 .module .btn { margin-top: 6px; }
 .foot-note { margin: 18px 0 6px; max-width: 75ch; }
 
@@ -2725,7 +2736,6 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .first-tile.learned { border-color: var(--green); }
 .first-name { font-family: var(--font-body); font-size: 18px; font-weight: 700; line-height: 1.25; }
 .first-note { font-size: 13.5px; line-height: 1.35; color: var(--muted); text-wrap: balance; }
-.first-plan { margin: 4px 0 0; padding-left: 20px; display: grid; gap: var(--gap-tight); }
 /* téléphone : la phrase de chaque tuile reste dans son nom accessible ; affichée, elle doublait la
    hauteur du panneau (huit tuiles sur quatre rangées) */
 @media (max-width: 519px) {
@@ -2734,6 +2744,60 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 /* doigt pivot (Enchaîner) : la consigne du changement, juste sous la paire */
 .pivot-line { color: var(--text); }
 
-/* « Changer d'accord » (D106) : trois règles lisibles sans rien déplier */
-.change-rules { margin: 0; padding-left: 22px; display: grid; gap: var(--gap-inside); }
-.change-rules li::marker { color: var(--violet); font-weight: 700; }
+/* --- listes numérotées : le chiffre dans une pastille pixel, comme les étapes de l'accueil -------- */
+.pix-steps {
+  list-style: none;
+  counter-reset: pix;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  max-inline-size: 72ch;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.pix-steps > li { counter-increment: pix; position: relative; min-height: 24px; padding: 2px 0 0 34px; }
+.pix-steps > li::before {
+  content: counter(pix);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  /* chiffre en sans-serif : en Silkscreen à 11 px, le « 4 » ne se lisait pas (même constat que D24) */
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent, var(--cyan));
+  border: var(--bw) solid currentColor;
+}
+.pix-steps strong { font-weight: 650; }
+/* nom d'étape et description sur la même ligne : la colonne des noms se parcourt d'un coup d'œil */
+.pix-steps-tight { gap: 6px; }
+.pix-steps-tight span { color: var(--muted); }
+/* les règles du changement : le texte qu'on retient, à 16 px ; côte à côte au bureau */
+.pix-steps-rules { font-size: 16px; gap: var(--gap-block); max-inline-size: none; }
+@media (min-width: 900px) {
+  .pix-steps-rules { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 24px; }
+  /* six étapes en deux colonnes, lues de haut en bas */
+  .pix-steps-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(3, auto); grid-auto-flow: column; column-gap: 32px; max-inline-size: none; }
+  .module-facts-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; max-inline-size: none; }
+}
+
+/* --- compléments d'un panneau : une rangée de pastilles, un seul contenu ouvert (Reveal) --------- */
+.reveal { display: grid; gap: var(--gap-inside); margin-top: var(--gap-block); }
+.reveal-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.reveal-tabs .chip::after { content: ' ▸'; white-space: pre; }
+.reveal-tabs .chip.on::after { content: ' ▾'; }
+.reveal-body { display: grid; gap: var(--gap-inside); padding: 12px 14px; background: var(--bg); border: var(--bw) solid var(--line-soft); }
+.reveal-body[hidden] { display: none; }
+.reveal-body > p { margin: 0; }
+
+/* pied de « Changer d'accord » : la phrase et l'action sur une ligne au bureau */
+.change-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside) 16px; margin-top: var(--gap-block); padding-top: var(--gap-block); border-top: var(--bw) solid var(--line-soft); }
+.change-foot > p { margin: 0; flex: 1 1 280px; max-inline-size: 72ch; }

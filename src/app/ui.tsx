@@ -3,7 +3,7 @@
  * segments défilants, barres de progression crantées, icônes en bitmap.
  * Aucune logique métier ici : seulement du rendu et de l'accessibilité (cible tactile ≥ 44 px).
  */
-import type { CSSProperties, ReactNode } from 'react';
+import { useId, useState, type CSSProperties, type ReactNode } from 'react';
 
 export const ACCENTS = ['magenta', 'cyan', 'yellow', 'violet', 'green', 'orange'] as const;
 export type Accent = (typeof ACCENTS)[number];
@@ -129,6 +129,41 @@ export function Chip(props: {
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * Contenus d'appoint d'un panneau, un seul ouvert à la fois : une rangée de pastilles au lieu de replis
+ * empilés. Trois `<details>` l'un sous l'autre prenaient chacun une ligne fermés, et s'additionnaient
+ * ouverts ; ici, fermé, tout tient sur une rangée, et ouvert, une seule liste à la fois. Retoucher la
+ * pastille ouverte referme.
+ */
+export function Reveal(props: { label: string; items: readonly { id: string; label: string; content: ReactNode }[] }) {
+  const { label, items } = props;
+  const [open, setOpen] = useState<string | null>(null);
+  const base = useId();
+  return (
+    <div className="reveal">
+      <div className="reveal-tabs" role="group" aria-label={label}>
+        {items.map((it) => (
+          <button
+            key={it.id}
+            type="button"
+            className={`chip chip-sm ${open === it.id ? 'on' : ''}`}
+            aria-expanded={open === it.id}
+            aria-controls={`${base}-${it.id}`}
+            onClick={() => setOpen((o) => (o === it.id ? null : it.id))}
+          >
+            {it.label}
+          </button>
+        ))}
+      </div>
+      {items.map((it) => (
+        <div key={it.id} id={`${base}-${it.id}`} className="reveal-body" hidden={open !== it.id}>
+          {it.content}
+        </div>
+      ))}
+    </div>
   );
 }
 

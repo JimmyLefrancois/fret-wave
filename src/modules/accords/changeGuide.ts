@@ -32,9 +32,9 @@ export const CHANGE_WHOLE_SHAPE: readonly string[] = [
 
 /** Ce qui ralentit un débutant, dit sans reproche. */
 export const CHANGE_MISTAKES: readonly string[] = [
-  'ralentir le rythme pendant le changement ;',
-  'décoller tous les doigts loin de la touche ;',
-  'accélérer avant que le geste soit stable ;',
-  'crisper la main : un doigt tendu bouge moins vite ;',
-  'enchaîner un accord qui grésille déjà seul.',
+  'Ralentir le rythme pendant le changement',
+  'Décoller tous les doigts loin de la touche',
+  'Accélérer avant que le geste soit stable',
+  'Crisper la main : un doigt tendu bouge moins vite',
+  'Enchaîner un accord qui grésille déjà seul',
 ];
