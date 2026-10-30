@@ -15,7 +15,7 @@
  * La basse n'est pas choisie au hasard : c'est la note qui identifie le mieux la forme (la plus grave
  * de l'accord, celle qu'on entend en premier dans un arpège, celle qui porte le nom).
  */
-import { CURRICULUM, type Palier } from './curriculum';
+import { CURRICULUM, FIRST_CHORDS, allChordIds, palierOfVoicing, type Palier } from './curriculum';
 import { progressionToScore } from '../../core/tab/generators';
 import type { TabScore } from '../../core/tab/model';
 import type { Voicing } from '../../core/theory/voicings';
@@ -148,20 +148,85 @@ export function transitionCandidates(learned: ReadonlySet<string>, started: Read
   const pairs = allTransitionPairs();
   const out: (TransitionCandidate & { order: number })[] = [];
   pairs.forEach((pair, order) => {
-    const knownA = learned.has(pair.a);
-    const knownB = learned.has(pair.b);
-    const tier: TransitionTier = knownA && knownB ? 'ready' : knownA || knownB || started.has(pair.a) || started.has(pair.b) ? 'learning' : 'new';
-    const reason = tier === 'ready'
-      ? pair.shared > 0
-        ? `${pair.shared} doigt${pair.shared > 1 ? 's' : ''} en commun : le changement est court`
-        : 'aucun doigt en commun : c’est le changement coûteux, à travailler tôt'
-      : tier === 'learning'
-        ? 'un des deux accords est déjà travaillé — l’enchaînement révèle ce qui manque'
-        : 'aucun des deux n’est encore vérifié ; le faire maintenant sert de découverte';
-    out.push({ pair, tier, reason, order });
+    out.push({ ...describePair(pair, learned, started), order });
   });
   const rank: Record<TransitionTier, number> = { ready: 0, learning: 1, new: 2 };
   return out.sort((x, y) => rank[x.tier] - rank[y.tier] || x.order - y.order);
+}
+
+/** Niveau et raison d'un enchaînement : la même règle pour une paire du parcours ou choisie par l'élève. */
+function describePair(pair: TransitionPair, learned: ReadonlySet<string>, started: ReadonlySet<string>): TransitionCandidate {
+  const knownA = learned.has(pair.a);
+  const knownB = learned.has(pair.b);
+  const tier: TransitionTier = knownA && knownB ? 'ready' : knownA || knownB || started.has(pair.a) || started.has(pair.b) ? 'learning' : 'new';
+  const reason = tier === 'ready'
+    ? pair.shared > 0
+      ? `${pair.shared} doigt${pair.shared > 1 ? 's' : ''} en commun : le changement est court`
+      : 'aucun doigt en commun : c’est le changement coûteux, à travailler tôt'
+    : tier === 'learning'
+      ? 'un des deux accords est déjà travaillé — l’enchaînement révèle ce qui manque'
+      : 'aucun des deux n’est encore vérifié ; le faire maintenant sert de découverte';
+  return { pair, tier, reason };
+}
+
+// ---------------------------------------------------------------------------
+// Accord cible choisi par l'élève (D107)
+// ---------------------------------------------------------------------------
+
+/**
+ * L'enchaînement depuis l'accord de la leçon vers n'importe quel accord du parcours, décrit comme une
+ * paire du curriculum (doigts communs, niveau, raison). `null` si l'un des deux voicings est inconnu
+ * ou si c'est le même accord.
+ */
+export function transitionTo(
+  fromId: string,
+  toId: string,
+  learned: ReadonlySet<string>,
+  started: ReadonlySet<string> = new Set(),
+): TransitionCandidate | null {
+  if (fromId === toId) return null;
+  const a = VOICINGS.find((v) => v.id === fromId);
+  const b = VOICINGS.find((v) => v.id === toId);
+  if (!a || !b) return null;
+  const palierId = palierOfVoicing(toId)?.id ?? palierOfVoicing(fromId)?.id ?? '';
+  return describePair({ a: fromId, b: toId, palierId, shared: sharedPositions(a, b) }, learned, started);
+}
+
+/** Les partenaires d'un accord dans les transitions du parcours, dans l'ordre d'utilité. */
+export function curriculumPartners(fromId: string): string[] {
+  const out: string[] = [];
+  for (const p of allTransitionPairs()) {
+    const other = p.a === fromId ? p.b : p.b === fromId ? p.a : null;
+    if (other && !out.includes(other)) out.push(other);
+  }
+  return out;
+}
+
+export interface TargetOptions {
+  /** Proposés en premier, en pastilles. */
+  priority: string[];
+  /** Tous les autres accords du parcours, dans l'ordre du parcours (liste déroulante). */
+  others: string[];
+  /** Vrai tant que « Mes premiers accords » sont proposés en tête. */
+  firstChordsFirst: boolean;
+}
+
+/**
+ * Accords cibles proposés depuis l'accord de la leçon. Tant que les huit « premiers accords » ne sont
+ * pas **tous appris et maîtrisés**, ce sont eux qu'on propose d'abord (ce sont les changements des
+ * chansons) ; ensuite, la priorité revient aux transitions du parcours pour cet accord. Rien n'est
+ * exclu : tout le reste du parcours reste choisissable.
+ */
+export function targetOptions(
+  fromId: string,
+  learned: ReadonlySet<string>,
+  mastered: ReadonlySet<string>,
+): TargetOptions {
+  const firstIds = FIRST_CHORDS.map((c) => c.voicingId);
+  const firstChordsFirst = !firstIds.every((id) => learned.has(id) && mastered.has(id));
+  const priority = (firstChordsFirst ? firstIds : curriculumPartners(fromId)).filter((id) => id !== fromId);
+  const others = allChordIds().filter((id) => id !== fromId && !priority.includes(id));
+  return { priority, others, firstChordsFirst };
 }
 
 /** Forme d'un accord en chiffres (corde grave → aiguë, `x` = étouffée) : lève l'ambiguïté entre deux F. */

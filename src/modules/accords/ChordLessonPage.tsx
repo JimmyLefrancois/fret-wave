@@ -51,7 +51,7 @@ import {
   appendAttempt, loadJournal, newAttemptId, nodeIdOf, progressStore, readAttempts, summarizeNodes,
   type Attempt,
 } from '../../core/progress';
-import { entryOf, palierOfVoicing, whySentence } from './curriculum';
+import { CURRICULUM, entryOf, palierOfVoicing, whySentence } from './curriculum';
 import {
   LESSON_STEPS, MAX_TRIES, adviceFor, parseLessonStep, applyVerdict, arpeggioCheck, checkSummary,
   judgeString, mutedAdvice, newCheck, type ArpeggioCheck, type LessonStep, type StringOutcome,
@@ -62,10 +62,10 @@ import {
 } from './fixer';
 import {
   CHANGE_CLEAN_MS, CHANGE_FLUENT_MS, changeGrade, changeStats, detectChanges, markersOf, pairScore, pivotSentence, shapeOf,
-  transitionCandidates, type ChangeEvent, type ChangeStats,
+  targetOptions, transitionTo, type ChangeEvent, type ChangeStats,
 } from './transitions';
 import { PROGRESSIONS, progressionById, progressionCandidates, progressionScore } from './progressions';
-import { learnedChordIds, nextChord, startedChordIds } from './recommend';
+import { learnedChordIds, masteredChordIds, nextChord, startedChordIds } from './recommend';
 import * as clock from '../../core/clock';
 
 function ordinal(i: number): string {
@@ -114,7 +114,8 @@ export function ChordLessonPage() {
   const drillNotes = useRef<ChangeEvent[]>([]);
   const [drillStats, setDrillStats] = useState<ChangeStats | null>(null);
   const [drillSaved, setDrillSaved] = useState(false);
-  const [pairKey, setPairKey] = useState('');
+  // accord cible d'Enchaîner, choisi par l'élève (D107) ; vide = le premier proposé
+  const [targetId, setTargetId] = useState('');
   const [progId, setProgId] = useState('rock-A');
   const [progTempo, setProgTempo] = useState(70);
   const [progPattern, setProgPattern] = useState<StrumPatternId>('quarters');
@@ -142,14 +143,12 @@ export function ChordLessonPage() {
   // recommandait… Em
   const next = useMemo(() => nextChord(new Set([...learned, v.id])), [learned, v.id]);
 
-  // --- transitions : la paire choisie, ou la plus utile du moment
-  const candidates = useMemo(() => transitionCandidates(learned, started), [learned, started]);
-  const pair = useMemo(() => {
-    const byKey = candidates.find((c) => `${c.pair.a}|${c.pair.b}` === pairKey);
-    if (byKey) return byKey;
-    // par défaut : une paire qui contient l'accord de la leçon, sinon la première proposée
-    return candidates.find((c) => c.pair.a === v.id || c.pair.b === v.id) ?? candidates[0] ?? null;
-  }, [candidates, pairKey, v.id]);
+  // --- transitions : de l'accord de la leçon vers l'accord cible choisi (D107). « Mes premiers
+  // accords » sont proposés d'abord tant qu'ils ne sont pas tous appris et maîtrisés.
+  const mastered = useMemo(() => masteredChordIds(summarizeNodes(journal)), [journal]);
+  const targets = useMemo(() => targetOptions(v.id, learned, mastered), [v.id, learned, mastered]);
+  const target = targetId && targetId !== v.id ? targetId : targets.priority[0] ?? targets.others[0] ?? '';
+  const pair = useMemo(() => transitionTo(v.id, target, learned, started), [v.id, target, learned, started]);
   const voicingA = pair ? voicingById(pair.pair.a) ?? null : null;
   const voicingB = pair ? voicingById(pair.pair.b) ?? null : null;
   // la basse quand elle change, sinon la première corde qui bouge (Em → Em7 garde la même basse)
@@ -227,6 +226,7 @@ export function ChordLessonPage() {
   useEffect(() => {
     if (stepVoicing.current !== v.id) setStep('decouvrir');
     stepVoicing.current = v.id;
+    setTargetId('');
     setBuildIndex(0);
     setBuildState(newCheck());
     setCheck(newCheck());
@@ -617,6 +617,19 @@ export function ChordLessonPage() {
   const highlight = step === 'construire' ? buildChecks[buildIndex]?.string ?? null : null;
   const entry = entryOf(v.id)?.entry ?? null;
   const coldSecondsNow = coldSeconds(coldRun.current);
+  // nom d'un accord cible ; la forme en chiffres seulement si la même liste a deux voicings du même
+  // accord (les trois Fa du parcours dans la liste déroulante, pas le Sol seul des pastilles)
+  const targetName = (id: string, pool: readonly string[]) => {
+    const t = voicingById(id);
+    if (!t) return id;
+    const twin = pool.some((o) => o !== t.id && voicingById(o)?.chord === t.chord);
+    return `${fmtChord(t.chord, settings.chordNotation)}${twin ? ` ${shapeOf(t)}` : ''}`;
+  };
+  const chooseTarget = (id: string) => {
+    setTargetId(id);
+    setDrillStats(null);
+    setDrillSaved(false);
+  };
 
   return (
     <main className="shell">
@@ -1165,28 +1178,31 @@ export function ChordLessonPage() {
               )}
               {drill.active && <PixelButton onClick={stopDrill}>Arrêter</PixelButton>}
             </div>
-            <div className="field">
-              <span className="t-label">Changer de paire</span>
-              <div className="pair-list">
-                {candidates.slice(0, 6).map((c) => {
-                  const a = voicingById(c.pair.a);
-                  const b = voicingById(c.pair.b);
-                  if (!a || !b) return null;
-                  const on = pair && pair.pair.a === c.pair.a && pair.pair.b === c.pair.b;
-                  return (
-                    <Chip
-                      key={`${c.pair.a}|${c.pair.b}`}
-                      selected={Boolean(on)}
-                      small
-                      onClick={() => { setPairKey(`${c.pair.a}|${c.pair.b}`); setDrillStats(null); setDrillSaved(false); }}
-                    >
-                      {fmtChord(a.chord, settings.chordNotation)}{a.chord === b.chord ? ` ${shapeOf(a)}` : ''}
-                      {' → '}
-                      {fmtChord(b.chord, settings.chordNotation)}{a.chord === b.chord ? ` ${shapeOf(b)}` : ''}
-                    </Chip>
-                  );
-                })}
+            {/* l'accord de départ est celui de la leçon ; l'élève choisit vers quoi il change (D107) */}
+            <div className="field target-field">
+              <span className="t-label" id="target-label">Vers quel accord ?</span>
+              {targets.firstChordsFirst && (
+                <p className="t-small t-dim">Mes premiers accords d’abord : ce sont les changements des chansons.</p>
+              )}
+              <div className="pair-list" role="group" aria-labelledby="target-label">
+                {targets.priority.map((id) => (
+                  <Chip key={id} small selected={id === target} onClick={() => chooseTarget(id)}>{targetName(id, targets.priority)}</Chip>
+                ))}
               </div>
+              <label className="target-other">
+                <span className="t-small">Un autre accord</span>
+                <select value={targets.others.includes(target) ? target : ''} onChange={(e) => e.target.value && chooseTarget(e.target.value)}>
+                  <option value="">Choisir dans le parcours…</option>
+                  {CURRICULUM.map((p) => {
+                    const ids = p.entries.map((e) => e.voicingId).filter((id) => targets.others.includes(id));
+                    return ids.length > 0 ? (
+                      <optgroup key={p.id} label={p.title}>
+                        {ids.map((id) => <option key={id} value={id}>{targetName(id, targets.others)}</option>)}
+                      </optgroup>
+                    ) : null;
+                  })}
+                </select>
+              </label>
             </div>
             {!micOn && (
               <p className="t-small ko">

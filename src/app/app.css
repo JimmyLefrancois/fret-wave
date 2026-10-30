@@ -2801,3 +2801,8 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 /* pied de « Changer d'accord » : la phrase et l'action sur une ligne au bureau */
 .change-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside) 16px; margin-top: var(--gap-block); padding-top: var(--gap-block); border-top: var(--bw) solid var(--line-soft); }
 .change-foot > p { margin: 0; flex: 1 1 280px; max-inline-size: 72ch; }
+
+/* Enchaîner, accord cible (D107) : les premiers accords en pastilles, le reste du parcours en liste */
+.target-field > p { margin: 0; }
+.field .target-other { display: grid; gap: var(--gap-tight); max-inline-size: 420px; margin-top: var(--gap-tight); }
+.field .target-other select { width: 100%; }

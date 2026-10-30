@@ -215,6 +215,11 @@ export function reviewDelayText(ms: number): string {
   return `révision dans ${d} jour${d > 1 ? 's' : ''}`;
 }
 
+/** Accords (voicings) dont le nœud de forme est « maîtrisé » : la maîtrise vient du journal, pas d'ici. */
+export function masteredChordIds(nodes: readonly { nodeKind: string; state: string; chordId: string | null }[]): Set<string> {
+  return new Set(nodes.filter((n) => n.nodeKind === 'accord' && n.state === 'mastered' && n.chordId).map((n) => n.chordId!));
+}
+
 /** Progression de la sélection « Mes premiers accords » : les huit essentiels, pas les extras. */
 export function firstChordsProgress(learned: ReadonlySet<string>): { done: number; total: number } {
   return { done: FIRST_CHORDS.filter((c) => learned.has(c.voicingId)).length, total: FIRST_CHORDS.length };
