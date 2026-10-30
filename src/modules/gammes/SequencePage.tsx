@@ -13,9 +13,10 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
-import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
+import { setScaleSelection, takeLiaisonRequest, useScaleSelection } from '../../app/scaleSession';
 import { useSettings } from '../../app/settings';
 import { TabView } from '../../app/TabView';
+import { NeckView } from '../../app/NeckView';
 import { Panel, PixelButton, Segmented } from '../../app/ui';
 import { MicStrip } from '../../app/MicStrip';
 import { ensureInputEngine, inputEngineIfAny, windowFor } from '../../app/inputSession';
@@ -24,7 +25,11 @@ import { TabPlayer } from '../../core/audio/tabPlayer';
 import { describeInputError, type InputEngine, type InputFrame } from '../../core/input/engine';
 import { targetsFor, type HoleLike, type Target } from '../../core/input/match';
 import { useInputSettings } from '../../core/input/settings';
-import { SEQUENCE_LABEL, SEQUENCE_PATTERNS, sequenceToScore, type SequencePattern, type TabScore } from '../../core/tab';
+import {
+  SEQUENCE_LABEL, SEQUENCE_PATTERNS, isLiaison, liaisonToScore, liaisonsFor, linkNeckNotes, neckNotes, sequenceToScore,
+  type NeckNote, type SequencePattern, type TabScore,
+} from '../../core/tab';
+import { extendedPosition, linkedPair, positionsOnNeck } from '../../core/theory';
 import {
   appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, xpForAttempt, type Attempt,
 } from '../../core/progress';
@@ -59,7 +64,8 @@ export function SequencePage() {
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
   const input = useInputSettings();
 
-  const [pattern, setPattern] = useState<SequencePattern>('g3');
+  const [wanted, setPattern] = useState<SequencePattern>('g3');
+  const [liaisonMode, setLiaisonMode] = useState(takeLiaisonRequest);
   const [startDegree, setStartDegree] = useState('1');
   const [phase, setPhase] = useState<Phase>('idle');
   const [ladder, setLadder] = useState<LadderState | null>(null);
@@ -94,6 +100,12 @@ export function SequencePage() {
   const ladderRef = useRef<LadderState | null>(null);
   ladderRef.current = ladder;
 
+  const liaisons = useMemo(() => (r.position ? liaisonsFor(r.positions, r.position) : []), [r.positions, r.position]);
+  // une liaison indisponible sur cette position retombe sur la première possible, ou sur les motifs
+  const inLiaisons = liaisonMode && liaisons.length > 0;
+  const pattern: SequencePattern = inLiaisons
+    ? (isLiaison(wanted) && liaisons.includes(wanted) ? wanted : liaisons[0]!)
+    : isLiaison(wanted) ? 'g3' : wanted;
   const form = r.position ? { scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index } : null;
   // départs proposés : les degrés de la gamme présents sur la position (un choix d'une autre gamme retombe sur le premier)
   const startDegrees = useMemo(
@@ -105,11 +117,41 @@ export function SequencePage() {
     if (!r.position) return null;
     try {
       // étiquette courte (« tierces · cases 5–8 ») : la position est déjà dans l'en-tête, et 390 px ne la tiennent pas deux fois
-      return sequenceToScore(r.position, r.tuning, pattern, { startDegree: start });
+      return isLiaison(pattern)
+        ? liaisonToScore(r.positions, r.position, r.tuning, pattern)
+        : sequenceToScore(r.position, r.tuning, pattern, { startDegree: start });
     } catch {
       return null;
     }
-  }, [r.position, r.tuning, pattern, start]);
+  }, [r.position, r.positions, r.tuning, pattern, start]);
+  // le manche d'une liaison : ce que la tablature écrit en chiffres, les ponts en pointillés
+  const liaisonNeck = useMemo((): { notes: NeckNote[]; zone: { from: number; to: number }; text: string } | null => {
+    if (!r.position || !isLiaison(pattern)) return null;
+    const zoneOf = (ps: readonly { fretMin: number; fretMax: number }[]) => ({
+      from: Math.min(...ps.map((p) => p.fretMin)), to: Math.max(...ps.map((p) => p.fretMax)),
+    });
+    if (pattern === 'link') {
+      const [low, high] = linkedPair(r.positions, r.position)!;
+      return {
+        notes: linkNeckNotes(low, high, 'finger', settings.noteNotation), zone: zoneOf([low, high]),
+        text: `Monte dans les cases ${low.fretMin}–${low.fretMax}, descends dans les cases ${high.fretMin}–${high.fretMax} : la main change de position sur la note qui brille.`,
+      };
+    }
+    if (pattern === 'extended') {
+      const ext = extendedPosition(r.positions, r.position)!;
+      return {
+        notes: neckNotes(ext, 'finger', settings.noteNotation), zone: zoneOf([ext]),
+        text: 'La même position, plus les notes de la suivante sur les deux cordes aiguës : la main sort de la box et y revient.',
+      };
+    }
+    const neck = positionsOnNeck(r.positions);
+    return {
+      notes: neck.flatMap((p, i) => (neck[i + 1] ? linkNeckNotes(p, neck[i + 1]!, 'degree', settings.noteNotation).filter((n) => !n.dim) : neckNotes(p, 'degree', settings.noteNotation)))
+        .filter((n, i, all) => all.findIndex((m) => m.string === n.string && m.fret === n.fret) === i),
+      zone: zoneOf(neck),
+      text: `${neck.length} positions d’un seul trait, du bas au haut du manche : une en montant, la suivante en descendant, en changeant sur la note qui brille.`,
+    };
+  }, [r.position, r.positions, pattern, settings.noteNotation]);
   const targets = useMemo(() => (score ? targetsOf(score) : []), [score]);
   const bpm = ladder ? ladder.bpm : manualBpm;
   const running = phase === 'countin' || phase === 'pass';
@@ -424,15 +466,40 @@ export function SequencePage() {
         {...(cursor ? { activeHoleKey: cursor } : {})}
       />
 
+      {liaisonNeck && (
+        <Panel className="span-12 neck-panel" label="Manche" right={<span className="badge">cases {liaisonNeck.zone.from}–{liaisonNeck.zone.to}</span>}>
+          <NeckView
+            tuning={r.tuning}
+            notes={liaisonNeck.notes}
+            zone={liaisonNeck.zone}
+            notation={settings.noteNotation}
+            label={`${SEQUENCE_LABEL[pattern]}, cases ${liaisonNeck.zone.from} à ${liaisonNeck.zone.to}`}
+          />
+          <p className="t-small t-dim">{liaisonNeck.text}</p>
+        </Panel>
+      )}
+
       <Panel className="span-12" label="Séquence" right={<span className="badge">{phase === 'pass' && listening ? `${consumed} / ${targets.length}` : `${targets.length} notes`}</span>}>
+        {liaisons.length > 0 && (
+          <div className="field">
+            <span className="t-label">Travail</span>
+            <Segmented<'motifs' | 'liaisons'>
+              size="sm"
+              label="Type de travail"
+              value={inLiaisons ? 'liaisons' : 'motifs'}
+              onChange={(v) => { if (!ladder) setLiaisonMode(v === 'liaisons'); }}
+              options={[{ value: 'motifs', label: 'Motifs' }, { value: 'liaisons', label: 'Liaisons' }]}
+            />
+          </div>
+        )}
         <div className="field">
-          <span className="t-label">Motif</span>
+          <span className="t-label">{inLiaisons ? 'Liaison' : 'Motif'}</span>
           <Segmented<SequencePattern>
             size="sm"
-            label="Motif"
+            label={inLiaisons ? 'Liaison' : 'Motif'}
             value={pattern}
             onChange={(v) => { if (!ladder) setPattern(v); }}
-            options={SEQUENCE_PATTERNS.map((p) => ({ value: p, label: SEQUENCE_LABEL[p] }))}
+            options={(inLiaisons ? liaisons : SEQUENCE_PATTERNS).map((p) => ({ value: p, label: SEQUENCE_LABEL[p] }))}
           />
         </div>
         {pattern === 'cycle' && (
@@ -490,7 +557,7 @@ export function SequencePage() {
         {saved && (
           <p className="t-small" role="status">
             {saved.verified
-              ? `Session enregistrée${saved.xp > 0 ? ` : +${saved.xp} XP` : ''}. Le meilleur tempo validé compte pour la vitesse de la forme.`
+              ? `Session enregistrée${saved.xp > 0 ? ` : +${saved.xp} XP` : ''}.${isLiaison(pattern) ? '' : ' Le meilleur tempo validé compte pour la vitesse de la forme.'}`
               : 'Session enregistrée comme activité, non vérifiée : sans micro, l’app n’entend rien.'}
           </p>
         )}
@@ -502,7 +569,8 @@ export function SequencePage() {
         <p className="t-small">
           Une passe est réussie à ≥ 95 % de notes justes <strong>et</strong> en place : neuf notes sur dix à moins d’une
           demi-croche de leur temps (un retard constant ne compte pas, c’est la latence). C’est un exercice de technique,
-          tablature visible : il prouve la <strong>vitesse</strong> d’une forme, pas qu’on la sait par cœur.
+          tablature visible : il prouve la <strong>vitesse</strong> d’une forme, pas qu’on la sait par cœur. Les liaisons
+          travaillent le passage d’une forme à l’autre : elles ne comptent pas pour la vitesse d’une forme.
         </p>
         <p className="t-small t-dim">
           Une seule tentative par session au journal. Le tempo validé le plus haut sert de départ la fois suivante.

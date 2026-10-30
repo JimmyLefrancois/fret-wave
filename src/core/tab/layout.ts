@@ -96,6 +96,8 @@ export interface PillLayout {
   passing: boolean;
   /** Estompée : la note n'est pas une note de l'accord alors que le calque « accord » est actif. */
   dim?: boolean;
+  /** Vue manche : case commune à deux positions. */
+  shared?: boolean;
   /** Mise en évidence par un exercice (anneau blanc). */
   highlight?: boolean;
   /** Trou désigné par l'utilisateur dans l'exercice de mémorisation (anneau du curseur). */

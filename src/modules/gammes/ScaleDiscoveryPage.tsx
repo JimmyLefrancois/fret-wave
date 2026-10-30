@@ -11,14 +11,14 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
-import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
+import { requestLiaison, setScaleSelection, useScaleSelection } from '../../app/scaleSession';
 import { setSettings, useSettings } from '../../app/settings';
 import { TabView, type TabPick } from '../../app/TabView';
 import { NeckView } from '../../app/NeckView';
 import { InstrumentPicker } from '../../app/AudioControls';
 import { Panel, PixelButton, PixelIcon, Segmented, Switch } from '../../app/ui';
-import { filterPosition, fmtNote, relabelPosition, stepFormula } from '../../core/theory';
-import { type AnnotationKind, type Direction, defaultChordForScale, neckNotes, positionToScore } from '../../core/tab';
+import { filterPosition, fmtNote, linkedPair, relabelPosition, stepFormula } from '../../core/theory';
+import { type AnnotationKind, type Direction, defaultChordForScale, linkNeckNotes, neckNotes, positionToScore } from '../../core/tab';
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
 import { AudioEngine } from '../../core/audio/engine';
 import { describeInputError, type InputEngine, type InputFrame } from '../../core/input/engine';
@@ -78,6 +78,7 @@ export function ScaleDiscoveryPage() {
   const [showRhythm, setShowRhythm] = useState(false);
   const [compare, setCompare] = useState(false);
   const [compareId, setCompareId] = useState('');
+  const [neckLink, setNeckLink] = useState(false);
   const [transport, setTransport] = useState<'stopped' | 'playing' | 'paused'>('stopped');
   const [status, setStatus] = useState('');
   const playing = transport === 'playing';
@@ -105,14 +106,25 @@ export function ScaleDiscoveryPage() {
   }, [r.position, rootsOnly, stringLimit]);
 
   // --- vue manche : les notes affichées par la tab, étiquetées comme elle, sur le fond de la position entière
+  // avec la position voisine, la zone couvre les deux : c'est le passage de l'une à l'autre qu'on regarde
+  const neighbourPos = useMemo(() => {
+    const pair = r.position ? linkedPair(r.positions, r.position) : null;
+    return pair ? (pair[0].id === r.position!.id ? pair[1] : pair[0]) : null;
+  }, [r.positions, r.position]);
+  const linkOn = neckLink && neighbourPos !== null;
   const neckLabelled = useMemo(
-    () => (shownPos ? neckNotes(shownPos, annotation, settings.noteNotation) : []),
-    [shownPos, annotation, settings.noteNotation],
+    () => (shownPos
+      ? (linkOn ? linkNeckNotes(shownPos, neighbourPos!, annotation, settings.noteNotation) : neckNotes(shownPos, annotation, settings.noteNotation))
+      : []),
+    [shownPos, linkOn, neighbourPos, annotation, settings.noteNotation],
   );
-  const neckZone = useMemo(
-    () => (r.position ? { from: r.position.fretMin, to: r.position.fretMax } : null),
-    [r.position],
-  );
+  const neckZone = useMemo(() => {
+    if (!r.position) return null;
+    const { fretMin, fretMax } = r.position;
+    return linkOn
+      ? { from: Math.min(fretMin, neighbourPos!.fretMin), to: Math.max(fretMax, neighbourPos!.fretMax) }
+      : { from: fretMin, to: fretMax };
+  }, [r.position, linkOn, neighbourPos]);
 
   // degrés en ASCII (modèle) : l'affichage passe par fmtDegree, la mise en évidence par n.fn
   const availableDegrees = useMemo(() => [...new Set((shownPos?.notes ?? []).map((n) => n.degree))], [shownPos]);
@@ -463,6 +475,25 @@ export function ScaleDiscoveryPage() {
             notation={settings.noteNotation}
             label={positionLabelPlain(r.position, settings.noteNotation)}
           />
+          {neighbourPos && (
+            <div className="neck-link">
+              <Switch
+                checked={linkOn}
+                onChange={setNeckLink}
+                label="Position voisine"
+                hint={`cases ${neighbourPos.fretMin}–${neighbourPos.fretMax}`}
+                inline
+              />
+              {linkOn && (
+                <>
+                  <p className="t-small t-dim">En pointillés, les cases communes : c’est par elles que la main passe d’une position à l’autre.</p>
+                  <PixelButton variant="quiet" onClick={() => { requestLiaison(); navigate('sequences'); }}>
+                    Travailler la liaison ›
+                  </PixelButton>
+                </>
+              )}
+            </div>
+          )}
         </Panel>
       )}
 

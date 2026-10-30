@@ -2742,8 +2742,10 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 
 /* Vue manche (module Gammes, Découvrir) : canvas à échelle entière ; trop large pour un téléphone à
    l'échelle 2, il défile dans son panneau plutôt que de rapetisser ses pastilles. */
-.neck { line-height: 0; overflow-x: auto; overflow-y: hidden; }
+.neck-panel { min-inline-size: 0; }
+.neck { line-height: 0; overflow-x: auto; overflow-y: hidden; max-inline-size: 100%; min-inline-size: 0; }
 .neck canvas { display: block; margin-inline: auto; image-rendering: pixelated; }
+.neck-link { display: grid; gap: var(--gap-inside); justify-items: start; margin-block-start: var(--gap-inside); }
 
 /* replis de l'index des accords : la ligne entière est une cible tactile, pas seulement ses 22 px de texte */
 .chord-more > summary { display: flex; align-items: center; min-height: 38px; }

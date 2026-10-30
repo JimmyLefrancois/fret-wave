@@ -15,7 +15,7 @@
  */
 import { fingeringsForPosition, noteKey } from '../theory/fingerings';
 import { fmtNote, fmtStringLabel } from '../theory/notation';
-import type { Position } from '../theory/positions';
+import { sharedNotes, type Position } from '../theory/positions';
 import type { NoteNotation } from '../theory/types';
 import type { Tuning } from '../theory/tunings';
 import { mix, type TabTheme } from './colors';
@@ -51,6 +51,10 @@ export interface NeckNote {
   degree: string;
   /** Texte de la pastille ; à défaut, le chiffre du degré (l'altération est dite par l'encoche). */
   label?: string;
+  /** Note de l'autre position : estompée, elle situe sans se lire comme la forme en cours. */
+  dim?: boolean;
+  /** Case commune à deux positions : entourée de pointillés, c'est le pont. */
+  shared?: boolean;
 }
 
 /**
@@ -73,6 +77,15 @@ export function neckNotes(pos: Position, kind: AnnotationKind, notation: NoteNot
       case 'none': return { ...base, label: '' };
     }
   });
+}
+
+/** Deux positions sur le même manche : la première en plein, l'autre estompée, leurs cases communes marquées. */
+export function linkNeckNotes(pos: Position, other: Position, kind: AnnotationKind, notation: NoteNotation = 'fr'): NeckNote[] {
+  const key = (n: { string: number; fret: number }) => noteKey(n.string, n.fret);
+  const shared = new Set(sharedNotes(pos, other).map(key));
+  const mine = neckNotes(pos, kind, notation).map((n) => (shared.has(key(n)) ? { ...n, shared: true } : n));
+  const theirs = neckNotes(other, kind, notation).filter((n) => !shared.has(key(n))).map((n) => ({ ...n, dim: true }));
+  return [...mine, ...theirs];
 }
 
 function degreeDigit(degree: string): string {
@@ -196,7 +209,9 @@ export function layoutNeck(
       characteristic: false,
       passing: false,
       // la tonique (degré 1 juste) est cerclée : on lit la forme à partir d'elle
-      highlight: note.degree === '1',
+      highlight: note.degree === '1' && !note.dim,
+      ...(note.dim ? { dim: true } : {}),
+      ...(note.shared ? { shared: true } : {}),
     };
   });
 
@@ -229,6 +244,18 @@ export function drawNeck(s: Surface, l: NeckLayout, theme: TabTheme): void {
     s.fillRect(p.x - 2, p.y + p.h + 1, p.w + 4, 1, theme.text);
     s.fillRect(p.x - 2, p.y - 2, 1, p.h + 4, theme.text);
     s.fillRect(p.x + p.w + 1, p.y - 2, 1, p.h + 4, theme.text);
+  }
+  // case commune : le même cadre, en pointillés (la forme le distingue de la tonique, pas une couleur)
+  for (const p of l.pills) {
+    if (!p.shared || p.highlight) continue;
+    for (let i = 0; i < p.w + 4; i += 2) {
+      s.fillRect(p.x - 2 + i, p.y - 2, 1, 1, theme.text);
+      s.fillRect(p.x - 2 + i, p.y + p.h + 1, 1, 1, theme.text);
+    }
+    for (let j = 0; j < p.h + 4; j += 2) {
+      s.fillRect(p.x - 2, p.y - 2 + j, 1, 1, theme.text);
+      s.fillRect(p.x + p.w + 1, p.y - 2 + j, 1, 1, theme.text);
+    }
   }
   for (const p of l.pills) drawPill(s, theme, p);
 }

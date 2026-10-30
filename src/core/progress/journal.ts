@@ -10,7 +10,7 @@
  */
 import { dayKey, readLog, type PracticeEntry } from './practiceLog';
 import type { KeyValueStore } from '../audio/mixer';
-import { SEQUENCE_PATTERNS, type SequencePattern } from '../tab/generators';
+import { SEQUENCE_PATTERNS, isLiaison, type MotifPattern, type SequencePattern } from '../tab/generators';
 import { TUNINGS } from '../theory/tunings';
 
 export { dayKey } from './practiceLog';
@@ -297,7 +297,7 @@ export function normalizeAttempt(v: unknown): Attempt | null {
     // un débit hors de 20-400 notes/min n'est pas une grille de l'app : absent plutôt que faux
     ...(typeof a.gridNpm === 'number' && Number.isFinite(a.gridNpm) && a.gridNpm >= 20 && a.gridNpm <= 400
       ? { gridNpm: Math.round(a.gridNpm) } : {}),
-    ...(SEQUENCE_PATTERNS.includes(a.pattern as SequencePattern) ? { pattern: a.pattern } : {}),
+    ...(SEQUENCE_PATTERNS.includes(a.pattern as MotifPattern) || isLiaison(a.pattern) ? { pattern: a.pattern } : {}),
     // tempos de séquence hors des bornes du palier (40-200) : absents plutôt que faux
     ...(typeof a.bpmStart === 'number' && Number.isFinite(a.bpmStart) && a.bpmStart >= 40 && a.bpmStart <= 200
       ? { bpmStart: Math.round(a.bpmStart) } : {}),

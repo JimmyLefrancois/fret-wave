@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generatePositions, TUNINGS } from '../src/core/theory';
-import { PPQ, SEQUENCE_PATTERNS, sequenceToScore, validateScore, type SequencePattern } from '../src/core/tab';
+import { PPQ, SEQUENCE_PATTERNS, sequenceToScore, validateScore, type MotifPattern } from '../src/core/tab';
 import { targetsFor } from '../src/core/input/match';
 import {
   LADDER_START, judgePass, ladderStart, ladderStep, pauseDue, startTempo,
@@ -13,7 +13,7 @@ import { xpForAttempt } from '../src/core/progress/rewards';
 const std = TUNINGS.standard!;
 const box = generatePositions('pentatonic-minor', 'A', std, 'boxes')[0]!;
 const nps = generatePositions('ionian', 'G', std, '3nps')[0]!;
-const notesOf = (pattern: SequencePattern, pos = box) =>
+const notesOf = (pattern: MotifPattern, pos = box) =>
   sequenceToScore(pos, std, pattern).measures.flatMap((m) => m.events).filter((e) => e.kind === 'notes').map((e) => e.notes[0]!);
 
 describe('séquences : générateur', () => {

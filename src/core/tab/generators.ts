@@ -5,7 +5,10 @@
 import { interpretChord, CHORD_QUALITIES, type ChordInfo } from '../theory/chords';
 import { fingeringsForPosition, noteKey } from '../theory/fingerings';
 import { fretToMidi } from '../theory/fretboard';
-import { defaultSystem, generatePositions, type Position, type PositionNote } from '../theory/positions';
+import {
+  defaultSystem, extendedPosition, generatePositions, linkedPair, positionsOnNeck, sharedNotes,
+  type Position, type PositionNote,
+} from '../theory/positions';
 import { getScale } from '../theory/scales';
 import type { Tuning } from '../theory/tunings';
 import { TUNINGS } from '../theory/tunings';
@@ -183,8 +186,14 @@ export function positionToScore(pos: Position, tuning: Tuning, opts: PositionSco
  * Motifs de séquence : groupes de 3, groupes de 4, tierces, quartes (dans la gamme, pas chromatiques),
  * saut de corde (corde n, puis n+2) et tour de la position depuis un degré choisi.
  */
-export type SequencePattern = 'g3' | 'g4' | 'thirds' | 'fourths' | 'skip' | 'cycle';
-export const SEQUENCE_PATTERNS: readonly SequencePattern[] = ['g3', 'g4', 'thirds', 'fourths', 'skip', 'cycle'];
+export type SequencePattern = 'g3' | 'g4' | 'thirds' | 'fourths' | 'skip' | 'cycle' | LiaisonPattern;
+export type MotifPattern = Exclude<SequencePattern, LiaisonPattern>;
+export const SEQUENCE_PATTERNS: readonly MotifPattern[] = ['g3', 'g4', 'thirds', 'fourths', 'skip', 'cycle'];
+
+/** Liaisons : deux positions voisines, traversée de toutes les positions, position étendue. */
+export type LiaisonPattern = 'link' | 'traverse' | 'extended';
+export const LIAISON_PATTERNS: readonly LiaisonPattern[] = ['link', 'traverse', 'extended'];
+export const isLiaison = (p: string | undefined): p is LiaisonPattern => LIAISON_PATTERNS.includes(p as LiaisonPattern);
 
 /** Nom d'élève d'un motif. */
 export const SEQUENCE_LABEL: Readonly<Record<SequencePattern, string>> = {
@@ -194,6 +203,9 @@ export const SEQUENCE_LABEL: Readonly<Record<SequencePattern, string>> = {
   fourths: 'quartes',
   skip: 'saut de corde',
   cycle: 'tour',
+  link: 'deux positions',
+  traverse: 'traversée',
+  extended: 'position étendue',
 };
 
 type GroupPattern = 'g3' | 'g4' | 'thirds' | 'fourths';
@@ -242,7 +254,7 @@ export interface SequenceScoreOptions extends PositionScoreOptions {
  * reprendre le sommet : pas de note répétée au demi-tour (`… 3 4 5 · 4 3 2 …`), comme on la travaille.
  * Croches, doigtés de la position (`fingeringsForPosition`, MUSIC_DESIGN §3.8).
  */
-export function sequenceToScore(pos: Position, tuning: Tuning, pattern: SequencePattern, opts: SequenceScoreOptions = {}): TabScore {
+export function sequenceToScore(pos: Position, tuning: Tuning, pattern: MotifPattern, opts: SequenceScoreOptions = {}): TabScore {
   const def = getScale(pos.scaleId);
   const chars = new Set(def.characteristic ?? []);
   const fingers = fingeringsForPosition(pos);
@@ -261,6 +273,119 @@ export function sequenceToScore(pos: Position, tuning: Tuning, pattern: Sequence
     order.map((n) => {
       const finger = fingers.get(noteKey(n.string, n.fret));
       return { durTick: dur, notes: [tabNoteFromPosition(n, chars, finger !== undefined ? { finger } : {})] };
+    }),
+    { scaleId: pos.scaleId, tonic: pos.tonic, positionId: pos.id, system: pos.system },
+    (i) => (i === 0 ? { ...(opts.chord ? { chord: opts.chord } : {}), text } : undefined),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Liaisons entre positions
+// ---------------------------------------------------------------------------
+
+/** Une note jouée dans une position donnée : le doigté est celui de cette position. */
+interface Step { note: PositionNote; from: Position; pivot?: true }
+
+const byPitch = (p: Position) => {
+  const seen = new Set<number>();
+  return [...p.notes].sort((a, b) => a.midi - b.midi).filter((n) => !seen.has(n.midi) && seen.add(n.midi));
+};
+const stepsOf = (p: Position, notes: readonly PositionNote[]): Step[] => notes.map((note) => ({ note, from: p }));
+const highestShared = (a: Position, b: Position) => Math.max(...sharedNotes(a, b).map((n) => n.midi));
+const lowestShared = (a: Position, b: Position) => Math.min(...sharedNotes(a, b).map((n) => n.midi));
+
+/** Change de position : la note posée juste avant est le pivot, celle qui brille. */
+const markPivot = (steps: Step[]) => { steps[steps.length - 1]!.pivot = true; };
+
+/**
+ * Aller-retour sur deux positions : la grave en montant jusqu'à sa plus haute note commune, le haut de
+ * l'aiguë, puis l'aiguë en descendant jusqu'à sa plus basse note commune, et la fin de la grave.
+ */
+function linkSteps(low: Position, high: Position): Step[] {
+  const [a, b] = [byPitch(low), byPitch(high)];
+  const up = highestShared(low, high);
+  const down = lowestShared(low, high);
+  const steps = stepsOf(low, a.filter((n) => n.midi <= up));
+  markPivot(steps);
+  steps.push(...stepsOf(high, b.filter((n) => n.midi > up)));
+  const peak = steps[steps.length - 1]!.note.midi;
+  steps.push(...stepsOf(high, b.filter((n) => n.midi < peak && n.midi >= down).reverse()));
+  markPivot(steps);
+  steps.push(...stepsOf(low, a.filter((n) => n.midi < down).reverse()));
+  return steps;
+}
+
+/**
+ * Traversée en serpent : chaque position en entier, une en montant, la suivante en descendant, en changeant
+ * sur une note commune. Un seul trait, du bas au haut du manche, sans jamais répéter le pivot.
+ */
+function traverseSteps(chain: readonly Position[]): Step[] {
+  const first = chain[0]!;
+  const steps = stepsOf(first, byPitch(first).filter((n) => n.midi <= highestShared(first, chain[1]!)));
+  for (let i = 1; i < chain.length; i++) {
+    markPivot(steps);
+    const p = chain[i]!;
+    const next = chain[i + 1];
+    const notes = byPitch(p);
+    const entry = steps[steps.length - 1]!.note.midi;
+    if (i % 2 === 1) {
+      // entrée par le haut : ce qui reste au-dessus, puis toute la descente
+      steps.push(...stepsOf(p, notes.filter((n) => n.midi > entry)));
+      const peak = steps[steps.length - 1]!.note.midi;
+      const exit = next ? lowestShared(p, next) : -Infinity;
+      steps.push(...stepsOf(p, notes.filter((n) => n.midi < peak && n.midi >= exit).reverse()));
+    } else {
+      // entrée par le bas : ce qui reste en dessous, puis toute la montée
+      steps.push(...stepsOf(p, notes.filter((n) => n.midi < entry).reverse()));
+      const floor = steps[steps.length - 1]!.note.midi;
+      const exit = next ? highestShared(p, next) : Infinity;
+      steps.push(...stepsOf(p, notes.filter((n) => n.midi > floor && n.midi <= exit)));
+    }
+  }
+  return steps;
+}
+
+/** Liaisons possibles depuis cette position : `extended` est réservée aux boxes (deux notes par corde). */
+export function liaisonsFor(positions: readonly Position[], pos: Position): LiaisonPattern[] {
+  const neck = positionsOnNeck(positions);
+  const out: LiaisonPattern[] = [];
+  if (linkedPair(neck, pos)) out.push('link');
+  if (neck.length > 2 && neck.slice(1).every((p, i) => sharedNotes(neck[i]!, p).length > 0)) out.push('traverse');
+  if (pos.system === 'boxes' && extendedPosition(neck, pos)) out.push('extended');
+  return out;
+}
+
+/** Liaison → tablature : croches, doigtés de chaque position, pivots en évidence. */
+export function liaisonToScore(
+  positions: readonly Position[], pos: Position, tuning: Tuning, pattern: LiaisonPattern, opts: PositionScoreOptions = {},
+): TabScore {
+  const neck = positionsOnNeck(positions);
+  let steps: Step[];
+  if (pattern === 'extended') {
+    const ext = extendedPosition(neck, pos);
+    if (!ext) throw new Error('pas de position suivante à emprunter');
+    const up = byPitch(ext);
+    steps = stepsOf(ext, [...up, ...[...up].reverse().slice(1)]);
+  } else if (pattern === 'link') {
+    const pair = linkedPair(neck, pos);
+    if (!pair) throw new Error('pas de position voisine');
+    steps = linkSteps(pair[0], pair[1]);
+  } else {
+    steps = traverseSteps(neck);
+  }
+  const fingers = new Map<Position, ReturnType<typeof fingeringsForPosition>>();
+  const fingerOf = (s: Step) => {
+    if (!fingers.has(s.from)) fingers.set(s.from, fingeringsForPosition(s.from));
+    return fingers.get(s.from)!.get(noteKey(s.note.string, s.note.fret));
+  };
+  const frets = steps.map((s) => s.note.fret);
+  const text = opts.labelText ?? `${SEQUENCE_LABEL[pattern]} · cases ${Math.min(...frets)}–${Math.max(...frets)}`;
+  return makeScore(
+    'exercise', tuning, opts,
+    steps.map((s) => {
+      const finger = fingerOf(s);
+      const note = tabNoteFromPosition(s.note, new Set(s.pivot ? [s.note.degree] : []), finger !== undefined ? { finger } : {});
+      return { durTick: opts.noteTicks ?? EIGHTH, notes: [note] };
     }),
     { scaleId: pos.scaleId, tonic: pos.tonic, positionId: pos.id, system: pos.system },
     (i) => (i === 0 ? { ...(opts.chord ? { chord: opts.chord } : {}), text } : undefined),

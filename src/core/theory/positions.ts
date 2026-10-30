@@ -371,6 +371,44 @@ export function relabelPosition(pos: Position, scaleId: string, tonic: NoteName)
   return { ...pos, notes, scaleId, tonic, id: `${pos.id}:${scaleId}-${tonic}` };
 }
 
+const place = (n: PositionNote) => `${n.string}:${n.fret}`;
+
+/** Positions dans l'ordre du manche : c'est dans cet ordre qu'elles se relient. */
+export function positionsOnNeck(positions: readonly Position[]): Position[] {
+  return [...positions].sort((a, b) => a.fretMin - b.fretMin);
+}
+
+/** Notes de `a` jouées sur les mêmes cases dans `b` : le pont entre deux positions. */
+export function sharedNotes(a: Position, b: Position): PositionNote[] {
+  const places = new Set(b.notes.map(place));
+  return a.notes.filter((n) => places.has(place(n)));
+}
+
+/** La position et sa voisine, la plus grave d'abord : la suivante sur le manche, la précédente en haut du manche. */
+export function linkedPair(positions: readonly Position[], pos: Position): [Position, Position] | null {
+  const neck = positionsOnNeck(positions);
+  const i = neck.findIndex((p) => p.id === pos.id);
+  if (i < 0 || neck.length < 2) return null;
+  const pair: [Position, Position] = i + 1 < neck.length ? [neck[i]!, neck[i + 1]!] : [neck[i - 1]!, neck[i]!];
+  return sharedNotes(pair[0], pair[1]).length > 0 ? pair : null;
+}
+
+/**
+ * Position étendue : la position, plus les notes de la suivante sur les deux cordes aiguës, là où la main
+ * sort de la box sans la quitter. `null` si la position n'a pas de suivante ou rien à y emprunter.
+ */
+export function extendedPosition(positions: readonly Position[], pos: Position): Position | null {
+  const neck = positionsOnNeck(positions);
+  const next = neck[neck.findIndex((p) => p.id === pos.id) + 1];
+  if (!next) return null;
+  const top = Math.max(...pos.notes.map((n) => n.string));
+  const own = new Set(pos.notes.map(place));
+  const added = next.notes.filter((n) => n.string >= top - 1 && !own.has(place(n)));
+  if (added.length === 0) return null;
+  const notes = [...pos.notes, ...added].sort((a, b) => a.string - b.string || a.fret - b.fret);
+  return { ...pos, notes, fretMax: Math.max(...notes.map((n) => n.fret)), id: `${pos.id}:ext` };
+}
+
 /** Nombre maximal de notes d'une même corde dans la position. */
 export function maxNotesPerString(p: Position): number {
   const c = new Map<number, number>();

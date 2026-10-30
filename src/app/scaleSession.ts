@@ -101,6 +101,15 @@ export function setScaleSelection(patch: Partial<ScaleSelection>): ScaleSelectio
   return next;
 }
 
+/** Demande d'ouvrir les séquences sur les liaisons, lue une seule fois par la page. */
+let liaisonWanted = false;
+export function requestLiaison(): void { liaisonWanted = true; }
+export function takeLiaisonRequest(): boolean {
+  const wanted = liaisonWanted;
+  liaisonWanted = false;
+  return wanted;
+}
+
 function subscribe(l: () => void): () => void {
   listeners.add(l);
   return () => listeners.delete(l);

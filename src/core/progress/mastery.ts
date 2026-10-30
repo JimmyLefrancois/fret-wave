@@ -21,6 +21,7 @@ import {
 } from './journal';
 import { cardsFrom, type Card } from './scheduler';
 import { TUNINGS } from '../theory/tunings';
+import { isLiaison } from '../tab/generators';
 
 export const PASS = 0.8;
 export const EXCELLENT = 0.95;
@@ -183,10 +184,11 @@ export function isStrongSuccess(a: Attempt): boolean {
 /**
  * Preuve de vitesse : un rappel N3 **au micro**, position entière, propre (≥ 95 %), grille **tenue** à un
  * débit d'au moins le tempo cible en croches (`2 × cible` notes par minute) — ou une **séquence** au micro
- * dont le meilleur tempo validé atteint la cible (les séquences sont en croches).
+ * dont le meilleur tempo validé atteint la cible (les séquences sont en croches). Une **liaison** n'en est
+ * pas une : elle prouve le passage entre deux formes, pas la vitesse de celle-ci (D111).
  */
 export function isSpeedProof(a: Attempt, targetBpm = SPEED_TARGET_BPM): boolean {
-  if (a.kind === 'sequence') return a.module !== 'accords' && a.mic === true && isProof(a) && (a.bpmBest ?? 0) >= targetBpm;
+  if (a.kind === 'sequence') return a.module !== 'accords' && !isLiaison(a.pattern) && a.mic === true && isProof(a) && (a.bpmBest ?? 0) >= targetBpm;
   if (!isFormSeries(a) || !isProof(a) || a.mic !== true || a.level < 3 || !isFullPosition(a)) return false;
   if ((scoreOf(a) ?? 0) < SPEED_CLEAN || !a.tempoOk) return false;
   return (a.gridNpm ?? 0) >= 2 * targetBpm;
