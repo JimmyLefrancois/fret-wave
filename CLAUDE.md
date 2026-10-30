@@ -1,7 +1,7 @@
 # Fretwave
 
 Application web d'apprentissage de la guitare : tablature en pixel art, écoute au micro, répétition espacée.
-Interface et textes en français. Projet solo, sans backend.
+Interface et textes en français. Projet solo. L'app fonctionne entièrement sans compte ni réseau ; le site et le compte facultatif sont servis par un Worker Cloudflare (D109).
 
 ## Stack
 Vite + TypeScript + React 19 · Canvas 2D (un seul « pixel logique », échelle entière) · `tonal` (théorie) · Tone.js (sortie audio) · `pitchy` (hauteur au micro) · Vitest · localStorage · routeur par hash (`#/hub`, `#/gammes`, `#/accords`, `#/accordeur`, `#/reglages`).
@@ -12,6 +12,8 @@ Vite + TypeScript + React 19 · Canvas 2D (un seul « pixel logique », échelle
 - `npx vitest run <fichier>` : tests ciblés (ne lance pas toute la suite sans raison)
 - `npm test` : suite complète, à la fin d'une tâche seulement
 - `npm run build` : build de production
+- `npx wrangler dev` : Worker et site en local sur :8787 (après `npm run build`, secrets dans `.dev.vars`)
+- `npm run deploy` : build, migrations D1 distantes et déploiement du Worker depuis le dossier de travail (pas de CI : seule façon de mettre en ligne)
 
 ## Architecture
 - `src/core/theory/` : notes, gammes, accordages, positions, doigtés (logique pure)
@@ -23,6 +25,7 @@ Vite + TypeScript + React 19 · Canvas 2D (un seul « pixel logique », échelle
 - `src/modules/gammes/`, `src/modules/accords/` : modules pédagogiques
 - `src/app/` : pages React, `src/data/` : voicings
 - `tools/*.mjs` : contrôles de mise en page et de micro simulé (Playwright), hors `npm test`
+- `worker/` : API Cloudflare (`/api`, Better Auth), `migrations/` : schéma D1, `wrangler.jsonc` : configuration. Le site est servi uniquement par Cloudflare ; hors du panneau Compte, l'app n'appelle pas encore l'API (D109)
 
 ## Règles
 - Le style pixel art est voulu : garde le thème Synthwave Neon (et son jumeau Aube) et les tokens de `src/core/themes/`. Pas de refonte vers un autre style ; les améliorations se font dans ce monde (voir `DESIGN.md`).

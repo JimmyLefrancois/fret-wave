@@ -5,13 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && vite build",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p worker",
+    "deploy": "npm run build && wrangler d1 migrations apply fretwave --remote && wrangler deploy",
     "test": "vitest run",
     "shots": "node tools/screenshot.mjs",
     "sim:report": "SIM_REPORT=1 vitest run tests/simReport.test.ts"
   },
   "dependencies": {
+    "better-auth": "^1.7.14",
     "pitchy": "^4.1.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -19,6 +21,7 @@
     "tone": "^15.1.22"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261030.1",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -26,6 +29,7 @@
     "playwright": "^1.64.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "wrangler": "^4.156.0"
   }
 }

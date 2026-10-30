@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fretwave",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  // Le site reste statique : seul `/api/*` réveille le Worker.
+  "assets": { "directory": "./dist", "run_worker_first": ["/api/*"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fretwave",
+      "database_id": "dd29e5dd-157b-45ce-929c-93ff02154783",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": { "BETTER_AUTH_URL": "https://fretwave.jimmylefrancois38-e93.workers.dev" }
+}

@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { navigate } from './router';
 import { SCALE_SELECTION_KEY, DEFAULT_SELECTION, setScaleSelection } from './scaleSession';
 import { DEFAULT_SETTINGS, HOLE_RATES, MAX_TEMPO, MIN_TEMPO, setSettings, useSettings, type HoleRate } from './settings';
+import { AccountPanel } from './AccountPanel';
 import { Panel, PixelButton, Segmented, Switch } from './ui';
 import { Mixer, InstrumentPicker } from './AudioControls';
 import { useInputSettings } from '../core/input/settings';
@@ -90,6 +91,8 @@ export function SettingsPage() {
           <p className="t-small t-dim">Mémorisés sur cet appareil</p>
         </div>
       </header>
+
+      <AccountPanel />
 
       <Panel className="span-6" accent="cyan" label="Notation">
         <div className="field">
