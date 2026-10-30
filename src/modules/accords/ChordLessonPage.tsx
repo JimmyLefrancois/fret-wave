@@ -22,7 +22,7 @@
  */
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
-import { setChordSelection, useChordSelection } from '../../app/chordSession';
+import { clearLessonStep, pendingLessonStep, setChordSelection, useChordSelection } from '../../app/chordSession';
 import { useSettings } from '../../app/settings';
 import { ChordBoxView } from '../../app/ChordBoxView';
 import { MicStrip } from '../../app/MicStrip';
@@ -53,7 +53,7 @@ import {
 } from '../../core/progress';
 import { entryOf, palierOfVoicing, whySentence } from './curriculum';
 import {
-  LESSON_STEPS, MAX_TRIES, adviceFor, applyVerdict, arpeggioCheck, checkSummary,
+  LESSON_STEPS, MAX_TRIES, adviceFor, parseLessonStep, applyVerdict, arpeggioCheck, checkSummary,
   judgeString, mutedAdvice, newCheck, type ArpeggioCheck, type LessonStep, type StringOutcome,
 } from './lesson';
 import {
@@ -82,7 +82,11 @@ export function ChordLessonPage() {
   const tuning = TUNINGS[v.tuningId]!;
   const info = useMemo(() => interpretChord(v.chord), [v.chord]);
 
-  const [step, setStep] = useState<LessonStep>('decouvrir');
+  // un lien peut demander une étape (« Changer d'accord » → Enchaîner, D106) : elle ne sert qu'une fois
+  const [step, setStep] = useState<LessonStep>(() => parseLessonStep(pendingLessonStep()));
+  useEffect(() => clearLessonStep(), []);
+  // l'accord pour lequel l'étape a été choisie : au montage, l'effet de remise à zéro ne l'écrase pas
+  const stepVoicing = useRef(v.id);
   const [showBox, setShowBox] = useState(settings.showChordBox);
   const [micOn, setMicOn] = useState(false);
   const [micBusy, setMicBusy] = useState(false);
@@ -221,7 +225,8 @@ export function ChordLessonPage() {
 
   // --- changement d'accord : la leçon repart de zéro (aucun état d'un autre accord ne fuit)
   useEffect(() => {
-    setStep('decouvrir');
+    if (stepVoicing.current !== v.id) setStep('decouvrir');
+    stepVoicing.current = v.id;
     setBuildIndex(0);
     setBuildState(newCheck());
     setCheck(newCheck());

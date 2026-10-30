@@ -35,6 +35,11 @@ export const LESSON_STEPS: readonly { id: LessonStep; num: string; title: string
   { id: 'integrer', num: '07', title: 'Intégrer', short: 'Intégrer', goal: 'Une progression de quatre accords, en mesure' },
 ];
 
+/** Étape demandée par un lien (« Changer d'accord » → Enchaîner) ; tout autre texte ouvre Découvrir. */
+export function parseLessonStep(s: string | null): LessonStep {
+  return LESSON_STEPS.find((x) => x.id === s)?.id ?? 'decouvrir';
+}
+
 /**
  * Ce que le cycle ne prouve pas encore, et qui est dit à l'écran : la **progression** reste déclarée
  * (les quatre strums ne sont pas segmentés dans le temps) et le temps de changement se mesure encore

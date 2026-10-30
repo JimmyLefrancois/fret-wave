@@ -73,3 +73,28 @@ export function resetChordSelectionForTests(): void {
   current = null;
   listeners.clear();
 }
+
+// ---------------------------------------------------------------------------
+// Étape demandée à l'ouverture de la leçon (D106)
+// ---------------------------------------------------------------------------
+
+/**
+ * Un lien peut ouvrir la leçon sur une étape précise (le bloc « Changer d'accord » mène à Enchaîner).
+ * La demande ne sert **qu'une fois** : rouvrir la leçon ensuite repart de Découvrir, comme avant.
+ * Pas persistée : c'est une intention de navigation, pas un réglage.
+ */
+let pendingStep: string | null = null;
+
+export function requestLessonStep(step: string): void {
+  pendingStep = step;
+}
+
+/** Lue à l'initialisation de la page (le mode strict de React appelle l'initialiseur deux fois :
+ *  la lecture ne consomme pas), puis effacée par `clearLessonStep` au montage. */
+export function pendingLessonStep(): string | null {
+  return pendingStep;
+}
+
+export function clearLessonStep(): void {
+  pendingStep = null;
+}

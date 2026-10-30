@@ -2733,3 +2733,7 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 }
 /* doigt pivot (Enchaîner) : la consigne du changement, juste sous la paire */
 .pivot-line { color: var(--text); }
+
+/* « Changer d'accord » (D106) : trois règles lisibles sans rien déplier */
+.change-rules { margin: 0; padding-left: 22px; display: grid; gap: var(--gap-inside); }
+.change-rules li::marker { color: var(--violet); font-weight: 700; }

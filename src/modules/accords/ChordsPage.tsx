@@ -8,7 +8,7 @@
  */
 import { useMemo, useState } from 'react';
 import { navigate } from '../../app/router';
-import { setChordSelection } from '../../app/chordSession';
+import { requestLessonStep, setChordSelection } from '../../app/chordSession';
 import { useSettings } from '../../app/settings';
 import { ChordBoxView } from '../../app/ChordBoxView';
 import { Bar, Chip, Panel, PixelButton } from '../../app/ui';
@@ -23,6 +23,7 @@ import {
 } from './recommend';
 import type { ChordCard } from './recommend';
 import { CYCLE_LIMITS } from './lesson';
+import { CHANGE_MISTAKES, CHANGE_RULES, CHANGE_STEPS, CHANGE_WHOLE_SHAPE } from './changeGuide';
 import * as clock from '../../core/clock';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -31,6 +32,26 @@ const STATUS_LABEL: Record<string, string> = {
   available: 'ouvert',
   locked: 'plus tard',
 };
+
+/** Repli de « Mes premiers accords », retenu d'une visite à l'autre (confort, pas une donnée). */
+const FIRST_FOLD_KEY = 'fretwave.accords.firstFolded';
+
+function readFirstFolded(): boolean | null {
+  try {
+    const v = localStorage.getItem(FIRST_FOLD_KEY);
+    return v === null ? null : v === '1';
+  } catch {
+    return null;
+  }
+}
+
+function writeFirstFolded(folded: boolean): void {
+  try {
+    localStorage.setItem(FIRST_FOLD_KEY, folded ? '1' : '0');
+  } catch {
+    /* stockage interdit : le repli vaut pour la visite */
+  }
+}
 
 function fretsText(frets: readonly (number | null)[]): string {
   return frets.map((f) => (f === null ? 'x' : String(f))).join(' ');
@@ -66,6 +87,16 @@ export function ChordsPage() {
   };
   const chordName = (symbol: string) => fmtChord(symbol, settings.chordNotation);
   const first = firstChordsProgress(learned);
+  // déplié par défaut tant que les huit ne sont pas appris ; ensuite, replié sauf choix contraire
+  const [firstFolded, setFirstFolded] = useState(() => readFirstFolded() ?? first.done === first.total);
+  const toggleFirst = () => setFirstFolded((f) => {
+    writeFirstFolded(!f);
+    return !f;
+  });
+  const practiseChange = () => {
+    requestLessonStep('enchainer');
+    navigate('chord');
+  };
 
   // « Mes premiers accords » (D105) : une tuile par accord, qui ouvre sa leçon habituelle
   const firstTile = (fc: FirstChord) => {
@@ -255,24 +286,68 @@ export function ChordsPage() {
           Les huit accords de la plupart des chansons pop. Les mineurs d’abord, souvent plus faciles ; Do et Sol
           en dernier, ce sont eux qui résistent.
         </p>
-        <div className="first-grid">{FIRST_CHORDS.map(firstTile)}</div>
-        <details className="ex-more chord-more">
-          <summary>Ta semaine, en trois temps</summary>
-          <ol className="first-plan">
-            {FIRST_CHORDS_PLAN.map((line) => <li key={line} className="t-small">{line}</li>)}
-          </ol>
-          <p className="t-small t-dim">
-            Lentement : un changement à la fois, d’abord deux accords, puis trois. La progression « Mineurs en La »
-            (étape Intégrer) enchaîne La mineur, Mi et Ré mineur.
-          </p>
-        </details>
-        <details className="ex-more chord-more">
-          <summary>Pour aller plus loin, toujours sans barré</summary>
-          <div className="first-grid">{FIRST_CHORDS_MORE.map(firstTile)}</div>
-        </details>
+        {!firstFolded && (
+          <>
+            <div className="first-grid">{FIRST_CHORDS.map(firstTile)}</div>
+            <details className="ex-more chord-more">
+              <summary>Ta semaine, en trois temps</summary>
+              <ol className="first-plan">
+                {FIRST_CHORDS_PLAN.map((line) => <li key={line} className="t-small">{line}</li>)}
+              </ol>
+              <p className="t-small t-dim">
+                Lentement : un changement à la fois, d’abord deux accords, puis trois. La progression « Mineurs en La »
+                (étape Intégrer) enchaîne La mineur, Mi et Ré mineur.
+              </p>
+            </details>
+            <details className="ex-more chord-more">
+              <summary>Pour aller plus loin, toujours sans barré</summary>
+              <div className="first-grid">{FIRST_CHORDS_MORE.map(firstTile)}</div>
+            </details>
+          </>
+        )}
+        <div className="row palier-actions">
+          <button type="button" className="palier-toggle" aria-expanded={!firstFolded} onClick={toggleFirst}>
+            {firstFolded ? 'Voir les 8 accords' : 'Replier'}
+          </button>
+        </div>
       </Panel>
 
-      {CURRICULUM.map(palierPanel)}
+      {/* D106 : comment travailler un changement ; l'exercice mesuré reste l'étape Enchaîner de la leçon */}
+      <Panel className="span-12 change-guide" accent="violet" label="Changer d’accord">
+        <ol className="change-rules">
+          {CHANGE_RULES.map((r) => <li key={r} className="t-body">{r}</li>)}
+        </ol>
+        <details className="ex-more chord-more">
+          <summary>La méthode, en six étapes</summary>
+          <ol className="first-plan">
+            {CHANGE_STEPS.map((r) => <li key={r} className="t-small">{r}</li>)}
+          </ol>
+          <p className="t-small t-dim">La main droite ne joue qu’à la dernière étape : avant, c’est la main gauche seule qui apprend.</p>
+        </details>
+        <details className="ex-more chord-more">
+          <summary>Quand aucun doigt ne reste posé</summary>
+          <ul className="module-facts">
+            {CHANGE_WHOLE_SHAPE.map((r) => <li key={r} className="t-small">{r}</li>)}
+          </ul>
+        </details>
+        <details className="ex-more chord-more">
+          <summary>Ce qui ralentit</summary>
+          <ul className="module-facts">
+            {CHANGE_MISTAKES.map((r) => <li key={r} className="t-small">{r}</li>)}
+          </ul>
+        </details>
+        <p className="t-small t-dim">
+          L’étape Enchaîner de la leçon chronomètre 30 secondes de va-et-vient et mesure ton temps de changement au
+          micro. Compte les changements propres, pas les rapides : cinq nets valent mieux que quinze crispés.
+        </p>
+        <div className="row">
+          <PixelButton onClick={practiseChange}>S’entraîner : Enchaîner</PixelButton>
+        </div>
+      </Panel>
+
+      {/* un palier sans accord (Fondations) ne s'affiche pas ici : matériel et posture vivent dans
+          l'accordeur et dans la leçon (D106) */}
+      {CURRICULUM.filter((p) => p.entries.length > 0).map(palierPanel)}
 
       {chordNodes.length > 0 && (
         <Panel className="span-12" accent="green" label="Tes accords, un par un">
