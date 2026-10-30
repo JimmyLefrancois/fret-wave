@@ -2866,12 +2866,12 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 /* la hauteur vient de la place libre, pas du nombre de temps : de 1 à 12, la page ne bouge pas */
 .metro-beats {
   position: relative;
-  flex: 1 1 76px;
+  flex: 1 1 60px;
   display: grid;
   grid-template-columns: repeat(min(var(--metro-beats), 6), minmax(0, 1fr));
   grid-auto-rows: minmax(0, 1fr);
   gap: var(--gap-tight);
-  min-height: 76px;
+  min-height: 60px;
 }
 .metro-beat {
   container-type: size;
@@ -2904,7 +2904,8 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 }
 .metro-meta { display: flex; flex: none; align-items: center; justify-content: space-between; gap: var(--gap-inside); }
 .metro-counters { display: flex; gap: 16px; margin: 0; }
-.metro-counters div { display: grid; }
+.metro-counters div { display: flex; align-items: baseline; gap: var(--gap-tight); }
+.metro-volume { display: grid; flex: none; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--gap-inside); }
 .metro-counters dt { font-size: 12px; color: var(--dim); }
 .metro-counters dd { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.2; color: var(--text); font-variant-numeric: tabular-nums; }
 .metro-flash { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: var(--cyan); opacity: 0; animation: metro-flash 0.14s steps(3, end) both; }

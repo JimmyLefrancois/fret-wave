@@ -6,6 +6,7 @@
  * Une mesure silencieuse éteint aussi les temps lumineux : les laisser allumés donnerait la réponse.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
+import { AudioEngine } from '../core/audio/engine';
 import { CLICK_SOUNDS, type ClickSound } from '../core/audio/metronome';
 import {
   METRO_BEATS_MAX, METRO_BPM_MAX, METRO_BPM_MIN, METRO_COUNT_MAX, loadMetronomeState, saveMetronomeState,
@@ -106,6 +107,12 @@ export function MetronomePage() {
   const [slot, setSlot] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const frame = useRef<HTMLDivElement | null>(null);
+  // même canal que la console de mixage des réglages : la valeur est mémorisée par le moteur
+  const [volume, setVolume] = useState(() => AudioEngine.get().settings.volumes.metronome);
+  const changeVolume = (v: number) => {
+    setVolume(v);
+    AudioEngine.get().setVolume('metronome', v);
+  };
 
   useEffect(() => {
     session.setConfig(config);
@@ -242,6 +249,21 @@ export function MetronomePage() {
                 <div><dt>Mesures</dt><dd data-testid="metro-bars">{beat?.bar ?? 0}</dd></div>
                 <div><dt>Chrono</dt><dd>{formatChrono(beat?.elapsedS ?? 0)}</dd></div>
               </dl>
+            </div>
+            <div className="metro-volume">
+              <span className="metro-label">Volume</span>
+              <input
+                className="metro-slider"
+                style={{ '--metro-fill': `${volume * 100}%` } as CSSProperties}
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={volume}
+                onChange={(e) => changeVolume(Number(e.target.value))}
+                aria-label="Volume du métronome"
+                data-testid="metro-volume"
+              />
               {document.fullscreenEnabled && (
                 <Chip small onClick={toggleFullscreen}>{fullscreen ? 'Quitter' : 'Plein écran'}</Chip>
               )}

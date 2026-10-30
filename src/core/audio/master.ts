@@ -19,7 +19,7 @@ import { sliderToGain, type Channel, type Volumes } from './mixer';
 type ToneModule = typeof import('tone');
 
 /** Compensations de niveau entre sources (dB), réglées par mesure (MUSIC_DESIGN.md §11.4). */
-export const TRIM_DB: Record<Channel, number> = { master: 0, guitar: -2, backing: -3, drone: 0, metronome: 0 };
+export const TRIM_DB: Record<Channel, number> = { master: 0, guitar: -2, backing: -3, drone: 0, metronome: 12 };
 
 /** Plafond dur : début de la saturation (linéaire, −3,1 dBFS) et plafond (linéaire, −1 dBFS). */
 export const CEILING = { knee: 0.7, ceiling: 10 ** (-1 / 20) } as const;
