@@ -61,7 +61,7 @@ import {
   type ColdRun, type ColdVerdict,
 } from './fixer';
 import {
-  CHANGE_CLEAN_MS, CHANGE_FLUENT_MS, changeGrade, changeStats, detectChanges, markersOf, pairScore, shapeOf,
+  CHANGE_CLEAN_MS, CHANGE_FLUENT_MS, changeGrade, changeStats, detectChanges, markersOf, pairScore, pivotSentence, shapeOf,
   transitionCandidates, type ChangeEvent, type ChangeStats,
 } from './transitions';
 import { PROGRESSIONS, progressionById, progressionCandidates, progressionScore } from './progressions';
@@ -533,7 +533,13 @@ export function ChordLessonPage() {
       cents: prev.cents,
     }));
     if (outcome !== 'ok') {
-      setFeedback({ ok: false, text: mutedAdvice(c, { stringLabel: fmtStringLabel(c.stringName, c.string === tuning.strings.length - 1, settings.noteNotation) }).text });
+      // un doigt posé sur la corde juste plus grave est le suspect n° 1 : couché, il déborde sur celle-ci
+      const below = checks.find((x) => x.string === c.string - 1 && x.fret > 0 && x.finger !== null);
+      const label = (x: typeof c) => fmtStringLabel(x.stringName, x.string === tuning.strings.length - 1, settings.noteNotation);
+      setFeedback({
+        ok: false,
+        text: mutedAdvice(c, { stringLabel: label(c) }, below ? { finger: below.finger!, stringLabel: label(below) } : undefined).text,
+      });
     }
     else setFeedback({ ok: true, text: `${c.note} · corde de ${fmtStringLabel(c.stringName, c.string === tuning.strings.length - 1, settings.noteNotation)} — déclarée juste` });
   };
@@ -1033,7 +1039,11 @@ export function ChordLessonPage() {
             <p className="t-body">
               Pose l’accord <strong>sans aide</strong>, puis fais sonner la corde grave. Le chrono s’arrête à la
               première corde juste : c’est le moment où ta main est arrivée. Ensuite, tu vérifies les autres
-              cordes sans chrono — c’est la propreté qui compte.
+              cordes sans chrono : c’est la propreté qui compte.
+            </p>
+            {/* D105 : la main arrive plus vite quand la forme est prête avant de toucher le manche */}
+            <p className="t-small">
+              Forme l’accord <strong>en l’air</strong>, juste au-dessus du manche, puis pose tous les doigts en même temps.
             </p>
             <div className="cold-line">
               <span className={`cold-chrono ${coldRun.current.expired ? 'ko' : ''}`}>
@@ -1136,6 +1146,8 @@ export function ChordLessonPage() {
               {voicingB ? fmtChord(voicingB.chord, settings.chordNotation) : '…'}
               {pair ? <span className="t-small t-dim"> — {pair.reason}</span> : null}
             </p>
+            {/* le doigt pivot nommé (D105) : ce qui reste posé rend le changement court */}
+            {voicingA && voicingB && <p className="t-small pivot-line">{pivotSentence(voicingA, voicingB)}</p>}
             {/* l'action avant la liste : au premier écran d'un téléphone, « Démarrer » doit être atteignable
                 sans faire défiler (revue de la 4a) */}
             <div className="row">

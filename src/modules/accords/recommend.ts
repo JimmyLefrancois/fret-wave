@@ -11,7 +11,7 @@ import { VOICINGS } from '../../data/voicings';
 import { chordIdOfNode, type Attempt } from '../../core/progress/journal';
 import { summarizeNodes } from '../../core/progress/mastery';
 import type { Voicing } from '../../core/theory/voicings';
-import { CURRICULUM, entryOf, mainlineChordIds, palierOfVoicing, type Palier } from './curriculum';
+import { CURRICULUM, FIRST_CHORDS, entryOf, mainlineChordIds, palierOfVoicing, type Palier } from './curriculum';
 
 /** Palier suivant non terminé, dans l'ordre du parcours (hors branche). */
 export function nextPalierIndex(learned: ReadonlySet<string>): number {
@@ -213,4 +213,9 @@ export function reviewDelayText(ms: number): string {
   if (h < 24) return `révision dans ${h} h`;
   const d = Math.round(h / 24);
   return `révision dans ${d} jour${d > 1 ? 's' : ''}`;
+}
+
+/** Progression de la sélection « Mes premiers accords » : les huit essentiels, pas les extras. */
+export function firstChordsProgress(learned: ReadonlySet<string>): { done: number; total: number } {
+  return { done: FIRST_CHORDS.filter((c) => learned.has(c.voicingId)).length, total: FIRST_CHORDS.length };
 }

@@ -260,3 +260,46 @@ export function palierProgress(learned: ReadonlySet<string>): { total: number; d
   const ids = mainlineChordIds();
   return { total: ids.length, done: ids.filter((id) => learned.has(id)).length };
 }
+
+// ---------------------------------------------------------------------------
+// « Mes premiers accords » (D105)
+// ---------------------------------------------------------------------------
+
+/**
+ * Une **sélection**, pas un palier : les huit accords ouverts avec lesquels on joue la plupart des
+ * chansons pop, dans l'ordre d'une méthode « chansons d'abord » (les mineurs, souvent plus faciles,
+ * puis les majeurs par famille, Do et Sol en dernier). Chaque accord reste dans son palier : la
+ * progression par le geste (§4.2) et les compteurs ne changent pas, la sélection ne fait qu'ouvrir
+ * une seconde porte sur les mêmes leçons.
+ */
+export interface FirstChord {
+  voicingId: string;
+  /** Ce qu'en dit un débutant, en quelques mots (affiché sous le nom). */
+  note: string;
+  /** Souvent difficile au début : c'est « l'accord difficile » de la semaine. */
+  hard?: boolean;
+}
+
+export const FIRST_CHORDS: readonly FirstChord[] = [
+  { voicingId: 'Em-022000', note: 'deux doigts, six cordes : le plus facile' },
+  { voicingId: 'Am-x02210', note: 'trois doigts, la corde grave ne se joue pas' },
+  { voicingId: 'Dm-xx0231', note: 'quatre cordes seulement, serré en haut' },
+  { voicingId: 'E-022100', note: 'la forme de La mineur, une corde plus grave' },
+  { voicingId: 'A-x02220', note: 'trois doigts alignés sur la même case' },
+  { voicingId: 'D-xx0232', note: 'un triangle sur les trois cordes aiguës' },
+  { voicingId: 'C-x32010', note: 'trois doigts en escalier, souvent difficile', hard: true },
+  { voicingId: 'G-320003', note: 'les doigts écartés, souvent difficile', hard: true },
+];
+
+/** Pour aller plus loin : un Fa sans barré et une couleur suspendue, toujours sans barré. */
+export const FIRST_CHORDS_MORE: readonly FirstChord[] = [
+  { voicingId: 'Fmaj7-xx3210', note: 'le Fa sans barré : quatre cordes', hard: true },
+  { voicingId: 'Dsus4-xx0233', note: 'Ré avec l’auriculaire : la quarte remplace la tierce' },
+];
+
+/** Le plan d'une semaine, en trois temps (affiché tel quel). */
+export const FIRST_CHORDS_PLAN: readonly string[] = [
+  'Essaie les huit accords, et repère ceux qui sonnent vite et ceux qui résistent.',
+  'Pendant une semaine, travaille trois ou quatre accords faciles, deux enchaînements et un seul accord difficile, trois à cinq minutes par jour, lentement.',
+  'La semaine suivante, change d’accords, et rejoue un peu ceux d’avant.',
+];

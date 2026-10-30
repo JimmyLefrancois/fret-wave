@@ -23,6 +23,7 @@ import { TUNINGS } from '../../core/theory/tunings';
 import { fretToMidi } from '../../core/theory/fretboard';
 import { VOICINGS } from '../../data/voicings';
 import { arpeggioCheck } from './lesson';
+import { FINGER_NAME } from '../../core/theory/chordFingers';
 import { medianOf } from '../../core/progress/mastery';
 
 /** Un changement d'accord « propre » : deux secondes. Au-delà, la musique s'arrête d'attendre. */
@@ -54,6 +55,57 @@ export function sharedPositions(a: Voicing, b: Voicing): number {
     if (fa === fb) n++;
   }
   return n;
+}
+
+/**
+ * Doigts pivots d'un changement : même doigt, même corde, même case dans les deux formes. Ils restent
+ * posés ; les autres se lèvent et se reposent. Plus exigeant que `sharedPositions` : Em → Am partage la
+ * case 2 de la corde de Ré, mais avec l'annulaire puis le majeur (doigtés de la base), donc rien ne
+ * reste posé.
+ */
+export function pivotFingers(a: Voicing, b: Voicing): number[] {
+  const out: number[] = [];
+  for (let s = 0; s < Math.min(a.frets.length, b.frets.length); s++) {
+    const fa = a.frets[s];
+    const fing = a.fingers?.[s];
+    if (fa === null || fa === undefined || fa === 0 || typeof fing !== 'number') continue;
+    if (b.frets[s] === fa && b.fingers?.[s] === fing && !out.includes(fing)) out.push(fing);
+  }
+  return out.sort((x, y) => x - y);
+}
+
+function fingerList(fingers: readonly number[]): string {
+  // « l'index », « l'annulaire », « l'auriculaire », mais « le majeur »
+  const names = fingers.map((f) => {
+    const n = FINGER_NAME[String(f)] ?? `doigt ${f}`;
+    return /^[aeiouéè]/.test(n) ? `l’${n}` : `le ${n}`;
+  });
+  return names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}`;
+}
+
+/**
+ * Le conseil du changement, en une phrase : quels doigts restent posés et lesquels bougent. Le doigt
+ * pivot est ce qui rend un changement court (Do → La mineur : l'index et le majeur ne bougent pas).
+ */
+export function pivotSentence(a: Voicing, b: Voicing): string {
+  const pivots = pivotFingers(a, b);
+  const used = (v: Voicing) => [...new Set((v.fingers ?? []).flatMap((f) => (typeof f === 'number' ? [f] : [])))];
+  const inA = used(a);
+  const others = used(b).filter((f) => !pivots.includes(f)).sort((x, y) => x - y);
+  // un doigt déjà posé dans A qui change de place « bouge » ; un doigt absent de A « se pose »
+  const moved = others.filter((f) => inA.includes(f));
+  const added = others.filter((f) => !inA.includes(f));
+  if (pivots.length === 0) {
+    return 'Aucun doigt ne reste posé : forme l’accord en l’air, puis pose tous les doigts ensemble.';
+  }
+  const stay = fingerList(pivots);
+  const stays = pivots.length > 1 ? 'restent posés' : 'reste posé';
+  const cap = stay.charAt(0).toUpperCase() + stay.slice(1);
+  if (others.length === 0) return `${cap} ${stays} : il suffit de lever les autres doigts.`;
+  const parts: string[] = [];
+  if (moved.length) parts.push(moved.length === 1 && !added.length ? `seul ${fingerList(moved)} bouge` : `${fingerList(moved)} ${moved.length > 1 ? 'bougent' : 'bouge'}`);
+  if (added.length) parts.push(`${parts.length ? '' : 'il suffit de '}${parts.length ? `${fingerList(added)} ${added.length > 1 ? 'se posent' : 'se pose'}` : `poser ${fingerList(added)}`}`);
+  return `${cap} ${stays} : ${parts.join(', et ')}.`;
 }
 
 /**

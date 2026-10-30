@@ -38,7 +38,7 @@ export interface Progression {
 }
 
 /**
- * Huit progressions, des plus accessibles aux plus complètes. Elles sont ordonnées par ce qu'elles
+ * Neuf progressions, des plus accessibles aux plus complètes. Elles sont ordonnées par ce qu'elles
  * demandent, pas par style : c'est le nombre d'accords inconnus qui décide de ce qu'on propose.
  */
 export const PROGRESSIONS: readonly Progression[] = [
@@ -61,6 +61,16 @@ export const PROGRESSIONS: readonly Progression[] = [
     pattern: 'quarters',
     tempo: 80,
     why: 'La même grille, avec les septièmes : c’est le son du blues. Un doigt bouge par rapport aux accords majeurs.',
+  },
+  {
+    id: 'minor-Am',
+    title: 'Mineurs en La (i–V–iv–i)',
+    key: 'La mineur',
+    voicingIds: ['Am-x02210', 'E-022100', 'Dm-xx0231', 'Am-x02210'],
+    romans: ['i', 'V', 'iv', 'i'],
+    pattern: 'quarters',
+    tempo: 60,
+    why: 'Trois accords de « Mes premiers accords », dont deux mineurs : La mineur et Mi sont la même forme, une corde plus bas. Lentement, d’abord deux accords, puis les trois.',
   },
   {
     id: 'pop-Em',

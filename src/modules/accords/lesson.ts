@@ -20,6 +20,7 @@ import { interpretChord } from '../../core/theory/chords';
 import { TUNINGS, type Tuning } from '../../core/theory/tunings';
 import type { DegreeLabel, NoteName } from '../../core/theory/types';
 import type { Voicing } from '../../core/theory/voicings';
+import { FINGER_NAME } from '../../core/theory/chordFingers';
 
 /** Étapes de la leçon : les sept du cycle du brief, toutes livrées depuis la 4b. */
 export type LessonStep = 'decouvrir' | 'construire' | 'verifier' | 'plaquer' | 'fixer' | 'enchainer' | 'integrer';
@@ -288,12 +289,26 @@ export function adviceFor(verdict: StringVerdict, check: ArpeggioCheck, ctx: Not
   };
 }
 
-/** Marque une corde comme étouffée (l'élève n'entend rien) : diagnostic explicite, pas une erreur muette. */
-export function mutedAdvice(check: ArpeggioCheck, naming: AdviceNaming = {}): Advice {
+/**
+ * Marque une corde comme étouffée (l'élève n'entend rien) : diagnostic explicite, pas une erreur muette.
+ * La cause la plus fréquente est un doigt **couché** sur la corde juste plus grave, qui déborde sur
+ * celle-ci : quand on la connaît, on la nomme (D105). Sinon, la consigne de posture : le bout du doigt,
+ * perpendiculaire au manche, le poignet un peu plus sous le manche.
+ */
+export function mutedAdvice(
+  check: ArpeggioCheck,
+  naming: AdviceNaming = {},
+  neighbour?: { finger: number; stringLabel: string },
+): Advice {
   const name = naming.stringLabel ?? check.stringName;
+  const cause = neighbour
+    ? ` Le ${FINGER_NAME[String(neighbour.finger)]} posé sur la corde de ${neighbour.stringLabel} la touche sans doute : cambre-le pour appuyer du bout, bien perpendiculaire au manche.`
+    : check.fret > 0
+      ? ' Appuie du bout du doigt, perpendiculaire au manche, juste derrière la frette.'
+      : ' Un doigt couché la touche peut-être, ou tu ne l’as pas pincée.';
   return {
     code: 'muted',
-    text: `Rien n’a sonné sur la corde de ${name} : elle est probablement étouffée par un doigt voisin, ou tu ne l’as pas pincée. Rejoue-la seule.`,
+    text: `Rien n’a sonné sur la corde de ${name}.${cause} Si ça persiste, passe le poignet un peu plus sous le manche. Rejoue-la seule.`,
   };
 }
 

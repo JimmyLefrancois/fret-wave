@@ -2704,3 +2704,32 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 
 /* verdict du QCM : zone annoncée (role=status), toujours présente pour que le lecteur d’écran la suive */
 .quiz-verdict { display: grid; gap: var(--gap-inside); }
+
+/* « Mes premiers accords » (D105) : une tuile par accord, la boîte au-dessus du nom */
+.first-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: var(--gap-inside); }
+@media (min-width: 900px) { .first-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.first-tile {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--gap-tight);
+  padding: 10px 8px;
+  font: inherit;
+  color: var(--text);
+  text-align: center;
+  background: var(--surface-hi);
+  border: var(--bw) solid var(--line-soft);
+  cursor: pointer;
+}
+.first-tile:hover { border-color: var(--magenta); }
+.first-tile.learned { border-color: var(--green); }
+.first-name { font-family: var(--font-body); font-size: 18px; font-weight: 700; line-height: 1.25; }
+.first-note { font-size: 13.5px; line-height: 1.35; color: var(--muted); text-wrap: balance; }
+.first-plan { margin: 4px 0 0; padding-left: 20px; display: grid; gap: var(--gap-tight); }
+/* téléphone : la phrase de chaque tuile reste dans son nom accessible ; affichée, elle doublait la
+   hauteur du panneau (huit tuiles sur quatre rangées) */
+@media (max-width: 519px) {
+  .first-note { display: none; }
+}
+/* doigt pivot (Enchaîner) : la consigne du changement, juste sous la paire */
+.pivot-line { color: var(--text); }

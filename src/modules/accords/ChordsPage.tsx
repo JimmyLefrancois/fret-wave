@@ -16,9 +16,11 @@ import { fmtChord, fmtNote } from '../../core/theory';
 import { interpretChord } from '../../core/theory/chords';
 import { loadJournal, progressStore, summarizeNodes } from '../../core/progress';
 import { voicingById } from '../../data/voicings';
-import { CURRICULUM, whySentence } from './curriculum';
-import type { Palier } from './curriculum';
-import { chordCards, chordProgress, learnedChordIds, startedChordIds, palierStates, nextChord, reviewDelayText } from './recommend';
+import { CURRICULUM, FIRST_CHORDS, FIRST_CHORDS_MORE, FIRST_CHORDS_PLAN, whySentence } from './curriculum';
+import type { FirstChord, Palier } from './curriculum';
+import {
+  chordCards, chordProgress, firstChordsProgress, learnedChordIds, startedChordIds, palierStates, nextChord, reviewDelayText,
+} from './recommend';
 import type { ChordCard } from './recommend';
 import { CYCLE_LIMITS } from './lesson';
 import * as clock from '../../core/clock';
@@ -63,6 +65,33 @@ export function ChordsPage() {
     navigate('chord');
   };
   const chordName = (symbol: string) => fmtChord(symbol, settings.chordNotation);
+  const first = firstChordsProgress(learned);
+
+  // « Mes premiers accords » (D105) : une tuile par accord, qui ouvre sa leçon habituelle
+  const firstTile = (fc: FirstChord) => {
+    const fv = voicingById(fc.voicingId);
+    if (!fv) return null;
+    const name = chordName(fv.chord);
+    const isLearned = learned.has(fc.voicingId);
+    const isStarted = started.has(fc.voicingId);
+    return (
+      <button
+        key={fc.voicingId}
+        type="button"
+        className={`first-tile ${isLearned ? 'learned' : ''}`}
+        onClick={() => open(fc.voicingId)}
+        aria-label={`${isLearned ? 'Revoir' : 'Apprendre'} ${name} : ${fc.note}`}
+      >
+        <ChordBoxView voicing={fv} maxScale={2} />
+        <span className="first-name">{name}</span>
+        <span className="first-note">{fc.note}</span>
+        {/* pas d'étiquette pour un accord neuf : seuls l'état et la difficulté méritent d'être lus */}
+        {(isLearned || isStarted || fc.hard) && (
+          <span className={`tag ${isLearned ? 'tag-on' : ''}`}>{isLearned ? 'appris' : isStarted ? 'commencé' : 'difficile'}</span>
+        )}
+      </button>
+    );
+  };
 
   const row = (card: ChordCard) => {
     const info = interpretChord(card.voicing.chord);
@@ -213,6 +242,34 @@ export function ChordsPage() {
         <div className="row">
           <PixelButton onClick={() => navigate('chordquiz')}>QCM sans matériel</PixelButton>
         </div>
+      </Panel>
+
+      {/* une seconde porte, « chansons d'abord », sur les mêmes leçons : chaque accord garde son palier */}
+      <Panel
+        className="span-12 first-chords"
+        accent="magenta"
+        label="Mes premiers accords"
+        right={<span className={`tag ${first.done === first.total ? 'tag-on' : ''}`}>{first.done} / {first.total}</span>}
+      >
+        <p className="t-small">
+          Les huit accords de la plupart des chansons pop. Les mineurs d’abord, souvent plus faciles ; Do et Sol
+          en dernier, ce sont eux qui résistent.
+        </p>
+        <div className="first-grid">{FIRST_CHORDS.map(firstTile)}</div>
+        <details className="ex-more chord-more">
+          <summary>Ta semaine, en trois temps</summary>
+          <ol className="first-plan">
+            {FIRST_CHORDS_PLAN.map((line) => <li key={line} className="t-small">{line}</li>)}
+          </ol>
+          <p className="t-small t-dim">
+            Lentement : un changement à la fois, d’abord deux accords, puis trois. La progression « Mineurs en La »
+            (étape Intégrer) enchaîne La mineur, Mi et Ré mineur.
+          </p>
+        </details>
+        <details className="ex-more chord-more">
+          <summary>Pour aller plus loin, toujours sans barré</summary>
+          <div className="first-grid">{FIRST_CHORDS_MORE.map(firstTile)}</div>
+        </details>
       </Panel>
 
       {CURRICULUM.map(palierPanel)}
