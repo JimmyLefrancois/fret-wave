@@ -17,7 +17,7 @@ const notesOf = (pattern: SequencePattern, pos = box) =>
   sequenceToScore(pos, std, pattern).measures.flatMap((m) => m.events).filter((e) => e.kind === 'notes').map((e) => e.notes[0]!);
 
 describe('séquences : générateur', () => {
-  it('quatre motifs, sur une box et une position 3NPS : partitions valides, en croches, mesures pleines', () => {
+  it('tous les motifs, sur une box et une position 3NPS : partitions valides, en croches, mesures pleines', () => {
     for (const pos of [box, nps]) {
       for (const p of SEQUENCE_PATTERNS) {
         const s = sequenceToScore(pos, std, p);
@@ -57,6 +57,31 @@ describe('séquences : générateur', () => {
       const m = notesOf(p).map((x) => x.midi);
       for (let i = 1; i < m.length; i++) expect(m[i]).not.toBe(m[i - 1]);
     }
+  });
+
+  it('saut de corde : chaque corde puis celle d’après la suivante, retour en miroir', () => {
+    const notes = notesOf('skip');
+    const low = [...box.notes].sort((a, b) => a.midi - b.midi);
+    const strings = [...new Set(low.map((n) => n.string))];
+    expect(strings).toHaveLength(6);
+    expect(notes.slice(0, 16).map((n) => n.string)).toEqual([0, 2, 1, 3, 2, 4, 3, 5].flatMap((i) => [strings[i], strings[i]]));
+    expect(notes.length).toBe(31);
+    expect(notes.map((n) => n.midi)).toEqual([...notes].reverse().map((n) => n.midi));
+  });
+
+  it('tour : part du degré choisi, passe par les deux extrémités, revient au départ', () => {
+    const sorted = [...box.notes].sort((a, b) => a.midi - b.midi);
+    const seq = sequenceToScore(box, std, 'cycle', { startDegree: 'b3' }).measures.flatMap((m) => m.events)
+      .filter((e) => e.kind === 'notes').map((e) => e.notes[0]!);
+    const first = sorted.find((n) => n.degree === 'b3')!;
+    expect(seq[0]!.midi).toBe(first.midi);
+    expect(seq[seq.length - 1]!.midi).toBe(first.midi);
+    expect(seq.length).toBe(2 * sorted.length - 1);
+    expect(Math.max(...seq.map((n) => n.midi))).toBe(sorted[sorted.length - 1]!.midi);
+    expect(Math.min(...seq.map((n) => n.midi))).toBe(sorted[0]!.midi);
+    for (let i = 1; i < seq.length; i++) expect(seq[i]!.midi).not.toBe(seq[i - 1]!.midi);
+    // sans degré, ou degré absent de la position : on part d'en bas plutôt que d'échouer
+    expect(notesOf('cycle')[0]!.midi).toBe(sorted[0]!.midi);
   });
 
   it('doigtés de la position présents sur chaque note (box : 1-3 / 1-4)', () => {

@@ -8,7 +8,7 @@
  */
 import { Interval, Note } from 'tonal';
 import { fmtNote } from './notation';
-import { degreeLabel, getScale, pitchClassOf, scaleNotes, type ScaleDef } from './scales';
+import { degreeIndexOf, degreeLabel, getScale, pitchClassOf, scaleNotes, type ScaleDef } from './scales';
 import { systemsFor, type PositionSystem, type SystemAvailability } from './systems';
 import { MAX_FRET_DEFAULT, pitchToMidi } from './fretboard';
 import type { Tuning } from './tunings';
@@ -355,6 +355,20 @@ export function filterPosition(pos: Position, keep: (n: PositionNote) => boolean
   if (notes.length === 0) return { ...pos, notes: [], fretMin: 0, fretMax: 0 };
   const frets = notes.map((n) => n.fret);
   return { ...pos, notes, fretMin: Math.min(...frets), fretMax: Math.max(...frets), id: `${pos.id}:sub` };
+}
+
+/**
+ * La même position lue depuis une autre gamme aux mêmes notes (relative, majeure parente) : les cordes,
+ * les cases et les noms ne bougent pas, seuls les degrés sont recalculés depuis la nouvelle tonique.
+ */
+export function relabelPosition(pos: Position, scaleId: string, tonic: NoteName): Position {
+  const def = getScale(scaleId);
+  const notes = pos.notes.map((n) => {
+    const degreeIndex = degreeIndexOf(def, tonic, ((n.midi % 12) + 12) % 12);
+    if (degreeIndex === null) throw new Error(`${n.note} n'est pas dans ${scaleId} sur ${tonic}`);
+    return { ...n, degree: degreeLabel(def.intervals[degreeIndex]!), degreeIndex };
+  });
+  return { ...pos, notes, scaleId, tonic, id: `${pos.id}:${scaleId}-${tonic}` };
 }
 
 /** Nombre maximal de notes d'une même corde dans la position. */

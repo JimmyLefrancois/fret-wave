@@ -225,6 +225,47 @@ export function parentMajorTonic(def: ScaleDef, tonic: NoteName): NoteName | nul
   return parent || null;
 }
 
+/** Demi-tons de chaque note depuis la tonique, dans l'ordre de la formule (0 = tonique). */
+export function semitonesOf(def: ScaleDef): number[] {
+  return def.intervals.map((iv) => Interval.semitones(iv) ?? 0);
+}
+
+/**
+ * Écarts successifs en demi-tons, jusqu'à l'octave : la formule qui reconstruit la gamme depuis n'importe
+ * quelle tonique, et aussi le nombre de cases à franchir sur une corde. Majeure : 2-2-1-2-2-2-1.
+ */
+export function stepFormula(def: ScaleDef): number[] {
+  const s = semitonesOf(def);
+  return s.map((v, i) => (s[i + 1] ?? 12) - v);
+}
+
+/** Rang dans la formule d'une classe de hauteur, `null` si la note n'est pas dans la gamme. */
+export function degreeIndexOf(def: ScaleDef, tonic: NoteName, pc: PitchClass): number | null {
+  const offset = ((pc - pitchClassOf(tonic)) % 12 + 12) % 12;
+  const index = semitonesOf(def).indexOf(offset);
+  return index < 0 ? null : index;
+}
+
+/** Relative mineure / majeure d'une gamme de cinq ou six notes (mêmes notes, autre tonique). */
+const RELATIVE: Readonly<Record<string, { scaleId: string; interval: IntervalName }>> = {
+  ionian: { scaleId: 'aeolian', interval: '6M' },
+  'pentatonic-major': { scaleId: 'pentatonic-minor', interval: '6M' },
+  'pentatonic-minor': { scaleId: 'pentatonic-major', interval: '3m' },
+  'blues-major': { scaleId: 'blues-minor', interval: '6M' },
+  'blues-minor': { scaleId: 'blues-major', interval: '3m' },
+};
+
+/**
+ * La gamme aux mêmes notes, tonique déplacée : la relative (Do majeur ↔ La mineure naturelle), ou la majeure
+ * parente pour un mode (Ré dorien → Do majeur). `null` si elle n'existe pas ou n'a pas d'orthographe jouable.
+ */
+export function relativeScale(def: ScaleDef, tonic: NoteName): { scaleId: string; tonic: NoteName } | null {
+  const rel = RELATIVE[def.id];
+  if (rel) return { scaleId: rel.scaleId, tonic: transpose(tonic, rel.interval) };
+  const parent = parentMajorTonic(def, tonic);
+  return parent ? { scaleId: 'ionian', tonic: parent } : null;
+}
+
 // ---------------------------------------------------------------------------
 // Symétries et identité de révision
 // ---------------------------------------------------------------------------

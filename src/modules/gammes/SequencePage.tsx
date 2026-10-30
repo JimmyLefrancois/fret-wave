@@ -1,8 +1,8 @@
 /**
  * Module Gammes — **séquences avec palier de tempo** (lot « mémoire et vitesse », MUSIC_DESIGN §3.5).
  *
- * Exercice de technique : la tablature reste **visible** (par 3, par 4, tierces, quartes sur la position
- * choisie). Au micro, chaque passe est précédée d'une mesure de décompte, jouée sur le métronome et jugée
+ * Exercice de technique : la tablature reste **visible** (par 3, par 4, tierces, quartes, saut de corde ou
+ * tour depuis un degré, sur la position choisie). Au micro, chaque passe est précédée d'une mesure de décompte, jouée sur le métronome et jugée
  * note à note (justesse et mise en place) ; le tempo monte de 4 BPM après deux passes propres et en place,
  * redescend de 5 après deux échecs, jamais sous le départ (`sequence.ts`). Sans micro : tempo manuel,
  * rien n'est vérifié, ni palier ni XP.
@@ -30,7 +30,7 @@ import {
 } from '../../core/progress';
 import { blindGrid, scoreBlind, type BlindGrid, type HeardNote } from './blind';
 import { clickMasked } from './exercise';
-import { positionLabelPlain, resolveScale } from './resolve';
+import { degreesOf, fmtDegree, positionLabelPlain, resolveScale } from './resolve';
 import {
   LADDER_MAX, LADDER_MIN, judgePass, ladderStart, ladderStep, pauseDue, startTempo,
   type LadderState, type PassResult,
@@ -60,6 +60,7 @@ export function SequencePage() {
   const input = useInputSettings();
 
   const [pattern, setPattern] = useState<SequencePattern>('g3');
+  const [startDegree, setStartDegree] = useState('1');
   const [phase, setPhase] = useState<Phase>('idle');
   const [ladder, setLadder] = useState<LadderState | null>(null);
   const [lastPass, setLastPass] = useState<PassResult | null>(null);
@@ -94,15 +95,21 @@ export function SequencePage() {
   ladderRef.current = ladder;
 
   const form = r.position ? { scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index } : null;
+  // départs proposés : les degrés de la gamme présents sur la position (un choix d'une autre gamme retombe sur le premier)
+  const startDegrees = useMemo(
+    () => degreesOf(r.def).filter((d) => r.position?.notes.some((n) => n.degree === d)),
+    [r.def, r.position],
+  );
+  const start = (startDegrees.includes(startDegree) ? startDegree : startDegrees[0]) ?? '1';
   const score = useMemo(() => {
     if (!r.position) return null;
     try {
       // étiquette courte (« tierces · cases 5–8 ») : la position est déjà dans l'en-tête, et 390 px ne la tiennent pas deux fois
-      return sequenceToScore(r.position, r.tuning, pattern);
+      return sequenceToScore(r.position, r.tuning, pattern, { startDegree: start });
     } catch {
       return null;
     }
-  }, [r.position, r.tuning, pattern]);
+  }, [r.position, r.tuning, pattern, start]);
   const targets = useMemo(() => (score ? targetsOf(score) : []), [score]);
   const bpm = ladder ? ladder.bpm : manualBpm;
   const running = phase === 'countin' || phase === 'pass';
@@ -364,7 +371,7 @@ export function SequencePage() {
         <button type="button" className="back" onClick={() => navigate('training')} aria-label="Retour à l’entraînement">‹</button>
         <div>
           <h1 className="page-title">{r.title}</h1>
-          <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · séquence {SEQUENCE_LABEL[pattern]}</p>
+          <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · séquence {SEQUENCE_LABEL[pattern]}{pattern === 'cycle' ? ` depuis la ${fmtDegree(start)}` : ''}</p>
         </div>
         <span className="tag tag-on">{ladder ? `♪ ${bpm}` : 'Séquences'}</span>
       </header>
@@ -428,6 +435,19 @@ export function SequencePage() {
             options={SEQUENCE_PATTERNS.map((p) => ({ value: p, label: SEQUENCE_LABEL[p] }))}
           />
         </div>
+        {pattern === 'cycle' && (
+          <div className="field">
+            <span className="t-label">Départ</span>
+            <Segmented
+              size="sm"
+              label="Degré de départ"
+              value={start}
+              onChange={(v) => { if (!ladder) setStartDegree(v); }}
+              options={startDegrees.map((d) => ({ value: d, label: fmtDegree(d) }))}
+            />
+            <p className="t-small t-dim">Monte depuis ce degré, descends jusqu’en bas de la position, reviens-y : sortir de l’habitude de partir de la fondamentale.</p>
+          </div>
+        )}
         <div className={`mic-line ${listening ? 'on' : ''}`}>
           <div className="mic-line-body">
             <span className="mic-line-title">{listening ? 'Micro ouvert : chaque passe est jugée' : 'Sans micro : tempo manuel, rien n’est vérifié'}</span>

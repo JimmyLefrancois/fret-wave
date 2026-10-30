@@ -701,6 +701,41 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 .legend-name { font-size: 15px; color: var(--text); }
 .legend-item .tag { margin-left: 2px; }
 
+/* la gamme sur une corde : treize cases, le fil de la corde passe sous les pastilles */
+.ruler {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  max-inline-size: 466px;
+  gap: 2px;
+  align-items: center;
+  margin-block-end: var(--gap-inside);
+}
+.ruler::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc(50% - 1px);
+  block-size: 2px;
+  background: var(--line);
+}
+.ruler-pill {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-label);
+  font-size: 11px;
+}
+.ruler-tick {
+  position: relative;
+  justify-self: center;
+  inline-size: 2px;
+  block-size: 10px;
+  background: var(--line);
+}
+.structure-sub { margin-block-start: var(--gap-inside); }
+
 /* --- réglages --------------------------------------------------------------- */
 
 .theme-list { display: grid; gap: 6px; }

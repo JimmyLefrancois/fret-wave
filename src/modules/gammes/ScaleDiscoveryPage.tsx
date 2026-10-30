@@ -17,7 +17,7 @@ import { TabView, type TabPick } from '../../app/TabView';
 import { NeckView } from '../../app/NeckView';
 import { InstrumentPicker } from '../../app/AudioControls';
 import { Panel, PixelButton, PixelIcon, Segmented, Switch } from '../../app/ui';
-import { filterPosition, fmtNote } from '../../core/theory';
+import { filterPosition, fmtNote, relabelPosition, stepFormula } from '../../core/theory';
 import { type AnnotationKind, type Direction, defaultChordForScale, neckNotes, positionToScore } from '../../core/tab';
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
 import { AudioEngine } from '../../core/audio/engine';
@@ -26,11 +26,12 @@ import { useInputSettings } from '../../core/input/settings';
 import { ensureInputEngine, windowFor } from '../../app/inputSession';
 import { locateInScore, scoreNotes } from '../../core/impro/locate';
 import { appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts } from '../../core/progress';
-import { degreeName, fmtDegree, legendFor, positionLabelPlain, resolveScale } from './resolve';
+import { degreeName, fmtDegree, legendFor, positionLabelPlain, resolveScale, scaleTitle } from './resolve';
+import { ScaleRuler } from './ScaleRuler';
 import { TabLegend } from './TabLegend';
 import { LevelsNav } from './LevelsNav';
 import {
-  COMPARISON_LABEL, counterpartPosition, differingDegrees, markDegrees, neighbourDef, neighbourMode, neighbourPositions,
+  compareChoices, counterpartPosition, differingDegrees, markDegrees, neighbourPositions, relativeDegrees, samePlaceIndex,
 } from './compare';
 import * as clock from '../../core/clock';
 
@@ -76,6 +77,7 @@ export function ScaleDiscoveryPage() {
   const [stringLimit, setStringLimit] = useState<StringLimit>(0);
   const [showRhythm, setShowRhythm] = useState(false);
   const [compare, setCompare] = useState(false);
+  const [compareId, setCompareId] = useState('');
   const [transport, setTransport] = useState<'stopped' | 'playing' | 'paused'>('stopped');
   const [status, setStatus] = useState('');
   const playing = transport === 'playing';
@@ -132,30 +134,44 @@ export function ScaleDiscoveryPage() {
     }
   }, [shownPos, r.tuning, direction, tempo, r.chord, settings.noteNotation]);
 
-  // --- comparaison avec le mode voisin (même tonique, même système, même forme)
-  const neighbourId = neighbourMode(r.def.id);
-  const neighbour = neighbourId ? neighbourDef(neighbourId) : null;
+  // --- comparaison : une gamme voisine (même tonique, même forme) ou les mêmes notes lues depuis une autre tonique
+  const choices = useMemo(
+    () => compareChoices(r.def, r.tonic, r.selection.system),
+    [r.def, r.tonic, r.selection.system],
+  );
+  const choice = choices.find((c) => c.id === compareId) ?? choices[0] ?? null;
   const comparison = useMemo(() => {
-    if (!compare || !neighbourId || !neighbour || !r.position) return null;
+    if (!compare || !choice || !r.position) return null;
     try {
-      const positions = neighbourPositions(neighbourId, r.tonic, r.tuning, r.selection.system);
-      const pos = counterpartPosition(positions, r.position);
+      const base = shownPos ?? r.position;
+      const relative = choice.kind === 'relative';
+      const pos = relative
+        ? relabelPosition(base, choice.def.id, choice.tonic)
+        : counterpartPosition(neighbourPositions(choice.def.id, r.tonic, r.tuning, r.selection.system), r.position);
       if (!pos) return null;
-      const diff = differingDegrees(r.def, neighbour);
-      const otherChord = defaultChordForScale(neighbourId, r.tonic);
+      const diff = relative ? relativeDegrees(r.def, r.tonic, choice.def, choice.tonic) : differingDegrees(r.def, choice.def);
+      const otherChord = defaultChordForScale(choice.def.id, choice.tonic);
       const other = positionToScore(pos, r.tuning, {
         direction, tempo, fingers: true,
         ...(otherChord ? { chord: otherChord } : {}),
       });
-      const mine = positionToScore(shownPos ?? r.position, r.tuning, {
+      const mine = positionToScore(base, r.tuning, {
         direction, tempo, fingers: true,
         ...(r.chord ? { chord: r.chord } : {}),
       });
-      return { def: neighbour, pos, diff, score: markDegrees(other, diff.onlyB), mine: markDegrees(mine, diff.onlyA) };
+      return { diff, score: markDegrees(other, diff.onlyB), mine: markDegrees(mine, diff.onlyA) };
     } catch {
       return null;
     }
-  }, [compare, neighbourId, neighbour, r.position, r.tonic, r.tuning, r.selection.system, r.def, r.chord, direction, tempo, shownPos]);
+  }, [compare, choice, r.position, r.tonic, r.tuning, r.selection.system, r.def, r.chord, direction, tempo, shownPos]);
+  const otherTitle = choice ? scaleTitle(choice.def, choice.tonic, settings.noteNotation) : '';
+
+  const openRelative = () => {
+    if (!choice || !r.position) return;
+    const positions = neighbourPositions(choice.def.id, choice.tonic, r.tuning, r.selection.system);
+    setScaleSelection({ scaleId: choice.def.id, tonic: choice.tonic, positionIndex: samePlaceIndex(positions, r.position) });
+    window.scrollTo({ top: 0 });
+  };
 
   // --- lecture audio
   const player = useRef<TabPlayer | null>(null);
@@ -554,7 +570,7 @@ export function ScaleDiscoveryPage() {
           <PixelButton onClick={() => navigate('impro')} title="Improviser sur cette position, avec un accompagnement" ariaLabel="Improviser sur cette position, avec un accompagnement">
             Improviser
           </PixelButton>
-          <PixelButton variant="quiet" onClick={() => navigate('sequences')} title="Séquences au métronome : par 3, par 4, tierces, quartes" ariaLabel="Séquences au métronome : par 3, par 4, tierces, quartes">
+          <PixelButton variant="quiet" onClick={() => navigate('sequences')} title="Séquences au métronome : par 3, par 4, tierces, quartes, saut de corde, tour depuis un degré" ariaLabel="Séquences au métronome">
             Séquences
           </PixelButton>
         </div>
@@ -565,20 +581,56 @@ export function ScaleDiscoveryPage() {
         </p>
       </div>
 
-      {neighbourId && neighbour && (
-        <Panel className="span-12" label={`Comparer à ${neighbour.nameFr.toLowerCase()}`}>
+      {/* la règle et les couleurs d'abord : la comparaison s'y appuie */}
+      <Panel className="span-12" label="Structure" right={<span className="badge">{stepFormula(r.def).join('-')}</span>}>
+        <ScaleRuler def={r.def} />
+        <p className="t-small t-dim">
+          Sur une corde, chaque chiffre compte les cases jusqu’à la note suivante : 12 cases de la fondamentale à l’octave.
+          Cette suite reconstruit la gamme depuis n’importe quelle case.
+        </p>
+        <p className="t-label structure-sub">Une couleur par rôle</p>
+        <div className="legend">
+          {legend.map((it) => (
+            <div key={it.fn} className="legend-item">
+              <span className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
+              <span className="legend-name">{it.name}</span>
+              {it.characteristic && <span className="tag tag-on">caractéristique</span>}
+            </div>
+          ))}
+        </div>
+        <p className="t-small t-dim">
+          Chaque couleur marque le <strong>rôle</strong> de la note dans la gamme, pas sa place sur le manche : ♯4 et ♭5 sont sur la même case, mais gardent chacune leur couleur.
+          {characteristic.length > 0 ? ` Note${characteristic.length > 1 ? 's' : ''} caractéristique${characteristic.length > 1 ? 's' : ''} : ${characteristic.join(', ')} (anneau qui pulse).` : ''}
+        </p>
+      </Panel>
+
+      {choice && (
+        <Panel className="span-12" label="Comparer">
+          {choices.length > 1 && (
+            <div className="field">
+              <span className="t-label">Avec</span>
+              <Segmented
+                size="sm"
+                label="Gamme à comparer"
+                value={choice.id}
+                onChange={setCompareId}
+                options={choices.map((c) => ({ value: c.id, label: c.short, note: c.difference }))}
+              />
+            </div>
+          )}
           <Switch
             checked={compare}
             onChange={setCompare}
-            label="Deux modes côte à côte"
-            hint={COMPARISON_LABEL[neighbourId] ? `la différence : ${COMPARISON_LABEL[neighbourId]}` : 'une seule note change'}
+            label="Côte à côte"
+            hint={`${otherTitle} : ${choice.difference}`}
           />
           {compare && comparison && (
             <>
               <p className="t-small">
-                {r.title} et {fmtNote(r.tonic, settings.noteNotation)} {comparison.def.nameFr.toLowerCase()}, <strong>même forme au même endroit</strong>.
-                {comparison.diff.onlyA.length > 0 && (
-                  <> Ce qui change : {comparison.diff.onlyA.join(' / ')} d’un côté, {comparison.diff.onlyB.join(' / ')} de l’autre (glow).</>
+                {choice.kind === 'relative' ? (
+                  <><strong>Mêmes notes, mêmes cases</strong> : seule la tonique change. La note qui brille est la fondamentale de l’autre gamme.</>
+                ) : (
+                  <><strong>Même forme au même endroit</strong> : {choice.difference} (la note qui brille).</>
                 )}
               </p>
               <p className="t-label comp-label">{r.title} · {comparison.diff.onlyA.join(' ') || '—'}</p>
@@ -594,7 +646,7 @@ export function ScaleDiscoveryPage() {
                 transport="stopped"
                 hideRhythm
               />
-              <p className="t-label comp-label">{fmtNote(r.tonic, settings.noteNotation)} {comparison.def.nameFr.toLowerCase()} · {comparison.diff.onlyB.join(' ') || '—'}</p>
+              <p className="t-label comp-label">{otherTitle} · {comparison.diff.onlyB.join(' ') || '—'}</p>
               <TabView
                 score={comparison.score}
                 notes={settings.noteNotation}
@@ -607,33 +659,14 @@ export function ScaleDiscoveryPage() {
                 transport="stopped"
                 hideRhythm
               />
+              {choice.kind === 'relative' && (
+                <PixelButton variant="quiet" onClick={openRelative}>Ouvrir {otherTitle} ›</PixelButton>
+              )}
             </>
           )}
           {compare && !comparison && <p className="t-small t-dim">Pas de position équivalente pour cette comparaison.</p>}
-          {!compare && (
-            <p className="t-small t-dim">
-              Active l’interrupteur : les deux gammes s’affichent l’une sous l’autre sur la <strong>même forme</strong>, et la note
-              qui les sépare clignote des deux côtés.
-            </p>
-          )}
         </Panel>
       )}
-
-      <Panel className="span-12" label="Une couleur par rôle">
-        <div className="legend">
-          {legend.map((it) => (
-            <div key={it.fn} className="legend-item">
-              <span className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
-              <span className="legend-name">{it.name}</span>
-              {it.characteristic && <span className="tag tag-on">caractéristique</span>}
-            </div>
-          ))}
-        </div>
-        <p className="t-small t-dim">
-          Chaque couleur marque le <strong>rôle</strong> de la note dans la gamme, pas sa place sur le manche : ♯4 et ♭5 sont sur la même case, mais gardent chacune leur couleur.
-          {characteristic.length > 0 ? ` Note${characteristic.length > 1 ? 's' : ''} caractéristique${characteristic.length > 1 ? 's' : ''} : ${characteristic.join(', ')} (anneau qui pulse).` : ''}
-        </p>
-      </Panel>
 
       {r.hint && (
         <Panel className="span-12" label="Ce que tu écoutes">

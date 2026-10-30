@@ -5,8 +5,8 @@
  */
 import {
   TUNINGS, defaultSystem, degreeLabels, distinctTranspositions, fmtNote, fmtPositionLabel,
-  generatePositions, getScale, parentMajorTonic, pitchClassOf, positionSupport, simpleSpellings, tonicSpellings,
-  MAJOR_KEYS,
+  generatePositions, getScale, parentMajorTonic, pitchClassOf, positionSupport, semitonesOf, simpleSpellings,
+  tonicSpellings, MAJOR_KEYS,
   type DegreeLabel, type NoteName, type NoteNotation, type Position, type PositionSystem, type ScaleDef,
   type SystemAvailability, type Tuning,
 } from '../../core/theory';
@@ -63,6 +63,15 @@ export function legendFor(def: ScaleDef): LegendItem[] {
     const st = intervalStyle(raw);
     return { fn, name: degreeName(fn), fill: st.fill, digit: st.digit, root: st.root, characteristic: chars.has(fn) };
   });
+}
+
+/** Une corde, de la fondamentale à l'octave : 13 cases, la pastille de la note ou `null`. */
+export function rulerSlots(def: ScaleDef): (LegendItem | null)[] {
+  const legend = legendFor(def);
+  const slots = new Array<LegendItem | null>(13).fill(null);
+  semitonesOf(def).forEach((s, i) => { slots[s] = legend[i]!; });
+  slots[12] = legend[0]!;
+  return slots;
 }
 
 export interface ResolvedScale {
