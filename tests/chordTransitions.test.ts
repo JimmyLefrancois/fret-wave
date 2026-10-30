@@ -95,6 +95,17 @@ describe('Enchaîner — les paires du parcours', () => {
   });
 });
 
+describe('Enchaîner — écriture alternée', () => {
+  it('deux mesures valides, un accord différent à chaque temps', () => {
+    const score = pairScore(Em, Am, { mode: 'alternate' });
+    expect(() => validateScore(score)).not.toThrow();
+    expect(score.measures).toHaveLength(2);
+    const chords = score.measures.flatMap((m) => m.events.filter((e) => e.kind === 'notes').map((e) => e.chord));
+    expect(chords).toEqual(['Em', 'Am', 'Em', 'Am', 'Em', 'Am', 'Em', 'Am']);
+    expect(score.id).not.toBe(pairScore(Em, Am).id);
+  });
+});
+
 describe('Enchaîner — mesure entre deux basses', () => {
   const opts = { bassA: 40, bassB: 45, centsTolerance: 35 };
 

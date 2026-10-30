@@ -16,7 +16,7 @@
  * de l'accord, celle qu'on entend en premier dans un arpège, celle qui porte le nom).
  */
 import { CURRICULUM, FIRST_CHORDS, allChordIds, palierOfVoicing, type Palier } from './curriculum';
-import { progressionToScore } from '../../core/tab/generators';
+import { alternatingToScore, progressionToScore } from '../../core/tab/generators';
 import type { TabScore } from '../../core/tab/model';
 import type { Voicing } from '../../core/theory/voicings';
 import { TUNINGS } from '../../core/theory/tunings';
@@ -283,8 +283,14 @@ export function markersOf(a: Voicing, b: Voicing): { a: Marker; b: Marker } | nu
   return null;
 }
 
-/** Le même accord, en deux mesures (une par accord) : la tablature de l'exercice. */
-export function pairScore(a: Voicing, b: Voicing, opts: { tempo?: number; pattern?: 'quarters' | 'eighths' | 'universal' } = {}): TabScore {
+/** Écriture de l'exercice : quatre coups par accord, ou un accord différent à chaque coup. */
+export type PairMode = 'blocks' | 'alternate';
+
+/** Les deux accords en deux mesures : une par accord, ou alternés à chaque temps. */
+export function pairScore(a: Voicing, b: Voicing, opts: { tempo?: number; pattern?: 'quarters' | 'eighths' | 'universal'; mode?: PairMode } = {}): TabScore {
+  if (opts.mode === 'alternate') {
+    return alternatingToScore(a, b, { tempo: opts.tempo ?? 60, id: `transition:${a.id}>${b.id}:alterne` });
+  }
   return progressionToScore([a, b], { tempo: opts.tempo ?? 60, pattern: opts.pattern ?? 'quarters', id: `transition:${a.id}>${b.id}` });
 }
 

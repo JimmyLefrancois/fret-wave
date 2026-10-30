@@ -565,6 +565,19 @@ export interface ProgressionScoreOptions extends BaseOptions {
 }
 
 /** Suite d'accords (une mesure par accord, motif de strum au choix). */
+/** Deux accords en alternance, un coup par temps : A B A B | A B A B (le nom suit chaque changement). */
+export function alternatingToScore(a: Voicing, b: Voicing, opts: ProgressionScoreOptions = {}): TabScore {
+  const tuning = TUNINGS[a.tuningId]!;
+  if (b.tuningId !== a.tuningId) throw new Error('accordages différents dans la progression');
+  const hit = STRUM_PATTERNS.quarters.slice(0, 1);
+  const slots = Array.from({ length: 8 }, (_, i) => strumSlots(i % 2 === 0 ? a : b, tuning, hit)[0]!);
+  return makeScore(
+    'progression', tuning, { ...opts, timeSig: [4, 4] }, slots,
+    { chord: `${a.chord} ${b.chord}` },
+    () => ({ chord: a.chord }),
+  );
+}
+
 export function progressionToScore(voicings: readonly Voicing[], opts: ProgressionScoreOptions = {}): TabScore {
   if (voicings.length === 0) throw new Error('progression vide');
   const tuning = TUNINGS[voicings[0]!.tuningId]!;

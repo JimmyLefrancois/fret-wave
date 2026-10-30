@@ -62,7 +62,7 @@ import {
 } from './fixer';
 import {
   CHANGE_CLEAN_MS, CHANGE_FLUENT_MS, changeGrade, changeStats, detectChanges, markersOf, pairScore, pivotSentence, shapeOf,
-  targetOptions, transitionTo, type ChangeEvent, type ChangeStats,
+  targetOptions, transitionTo, type ChangeEvent, type ChangeStats, type PairMode,
 } from './transitions';
 import { PROGRESSIONS, progressionById, progressionCandidates, progressionScore } from './progressions';
 import { learnedChordIds, masteredChordIds, nextChord, startedChordIds } from './recommend';
@@ -116,6 +116,7 @@ export function ChordLessonPage() {
   const [drillSaved, setDrillSaved] = useState(false);
   // accord cible d'Enchaîner, choisi par l'élève (D107) ; vide = le premier proposé
   const [targetId, setTargetId] = useState('');
+  const [pairMode, setPairMode] = useState<PairMode>('blocks');
   const [progId, setProgId] = useState('rock-A');
   const [progTempo, setProgTempo] = useState(70);
   const [progPattern, setProgPattern] = useState<StrumPatternId>('quarters');
@@ -192,11 +193,11 @@ export function ChordLessonPage() {
   const scorePair = useMemo<TabScore | null>(() => {
     if (!voicingA || !voicingB) return null;
     try {
-      return pairScore(voicingA, voicingB);
+      return pairScore(voicingA, voicingB, { mode: pairMode });
     } catch {
       return null;
     }
-  }, [voicingA, voicingB]);
+  }, [voicingA, voicingB, pairMode]);
   const scoreProg = useMemo<TabScore | null>(() => {
     try {
       return progressionScore(prog, { tempo: progTempo, pattern: progPattern });
@@ -1263,6 +1264,13 @@ export function ChordLessonPage() {
           </Panel>
           {scorePair && (
             <Panel className="span-12" label="Les deux accords en tablature">
+              <Segmented<PairMode>
+                label="Façon de jouer les deux accords"
+                size="sm"
+                value={pairMode}
+                onChange={(m) => { player.current?.stop(); setTransport('stopped'); setPairMode(m); }}
+                options={[{ value: 'blocks', label: '4 + 4' }, { value: 'alternate', label: 'Alterné' }]}
+              />
               <TabView
                 score={scorePair}
                 notes={settings.noteNotation}
