@@ -4,38 +4,35 @@
  * Trois choses, dans l'ordre où un élève en a besoin :
  *  1. **Entrée** : ouvrir le micro, choisir le périphérique, voir le niveau, régler le seuil.
  *     Le seuil se suggère à partir du **bruit de la pièce mesuré au silence** (médiane, pas moyenne).
- *  2. **Latence** : l'app joue cinq clics et écoute quand ils reviennent. La valeur n'est pas une
+ *  2. **Latence** : l'app joue dix clics et écoute quand ils reviennent. La valeur n'est pas une
  *     estimation du navigateur : c'est le temps mesuré sortie → air/câble → entrée, retranché du
  *     chronomètre quand on joue sur la grille.
  *  3. **Accordeur** : les cordes de l'accordage courant, la corde entendue allumée, l'écart en cents.
  *     Sans lui, un exercice au micro devient injuste : une guitare à −20 cents ferait échouer des
  *     notes justes (MUSIC_DESIGN §6).
  */
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AudioEngine } from '../core/audio/engine';
 import { describeInputError, type InputEngine } from '../core/input/engine';
-import { estimateLatency, noiseFloorDb, suggestThreshold, type LatencyPair, type LatencyResult } from '../core/input/calibration';
+import { estimateLatency, noiseFloorDb, suggestThreshold, type LatencyPair } from '../core/input/calibration';
 import { nearestOpenString, noteNameOf, tuneStatus } from '../core/input/match';
-import {
-  GUIDE_HOLD_MS, IN_TUNE_CENTS, STATUS_TEXT, guideSteps, guideTick, newGuide, readTuningRecord, tuningFreshness,
-  writeTuningRecord, type GuideState, type GuideStatus,
-} from '../core/input/tuningGuide';
+import { newSweep, readTuningRecord, sweepTick, tuningFreshness, writeTuningRecord } from '../core/input/tuningGuide';
 import { progressStore } from '../core/progress';
-import { Bar } from './ui';
+import * as clock from '../core/clock';
 import {
   A4_MAX, A4_MIN, CENTS_MAX, CENTS_MIN, INPUT_SOURCES, THRESHOLD_MAX, THRESHOLD_MIN,
   setInputSettings, useInputSettings, type InputSource,
 } from '../core/input/settings';
-import { fmtNote, openStringMidi, midiToFreq, TUNINGS, type NoteNotation, type NoteName, type Tuning } from '../core/theory';
+import { fmtNote, openStringMidi, midiToFreq, TUNINGS, type NoteNotation, type Tuning } from '../core/theory';
 import { ensureInputEngine, inputEngineIfAny, windowFor } from './inputSession';
 import { useScaleSelection } from './scaleSession';
 import { useSettings } from './settings';
-import { MicStrip } from './MicStrip';
-import { navigate } from './router';
 import { Panel, PixelButton, Segmented } from './ui';
-import * as clock from '../core/clock';
 
 type Phase = 'idle' | 'running' | 'done';
+
+const LATENCY_CLICKS = 10;
+const LATENCY_GAP_S = 0.7;
 
 const STATUS_LABEL: Record<string, string> = { in: 'juste', low: 'trop bas', high: 'trop haut', far: 'très loin' };
 
@@ -50,12 +47,10 @@ export function TunerPage() {
   const [busy, setBusy] = useState(false);
   const [noise, setNoise] = useState<{ floor: number; suggested: number; samples: number } | null>(null);
   const [noisePhase, setNoisePhase] = useState<Phase>('idle');
-  const [latency, setLatency] = useState<LatencyResult | null>(null);
   const [latencyPhase, setLatencyPhase] = useState<Phase>('idle');
   const [msg, setMsg] = useState<string | null>(null);
-  const [guideSaved, setGuideSaved] = useState(false);
-  const [fresh, setFresh] = useState(() => tuningFreshness(readTuningRecord(progressStore()), clock.nowDate()));
   const timers = useRef<number[]>([]);
+  const settingsDialog = useRef<HTMLDialogElement | null>(null);
 
   const thresholdDb = input.thresholds[input.source];
   const listening = engine?.state === 'listening';
@@ -135,10 +130,10 @@ export function TunerPage() {
       return;
     }
     setLatencyPhase('running');
-    setMsg('cinq clics… laisse-les sonner, ne gratte pas pendant la mesure.');
+    setMsg('dix clics… laisse-les sonner, ne gratte pas pendant la mesure.');
     const clicks: number[] = [];
-    for (let k = 0; k < 5; k++) {
-      const at = e.now + 0.6 + k * 0.7;
+    for (let k = 0; k < LATENCY_CLICKS; k++) {
+      const at = e.now + 0.6 + k * LATENCY_GAP_S;
       clicks.push(at);
       e.clickAt(at);
     }
@@ -153,7 +148,6 @@ export function TunerPage() {
       for (const t of timers.current) window.clearTimeout(t);
       timers.current = [];
       const r = estimateLatency(pairs);
-      setLatency(r);
       setLatencyPhase('done');
       if (r.used < 3) {
         // une ou deux attaques peuvent être un clic du métronome resté en mémoire ou une chaise :
@@ -176,7 +170,7 @@ export function TunerPage() {
         if (pairs.length === clicks.length) finish();
       }
     });
-    const guard = window.setTimeout(finish, 6000);
+    const guard = window.setTimeout(finish, 1600 + LATENCY_CLICKS * LATENCY_GAP_S * 1000);
     timers.current.push(guard);
   };
 
@@ -185,48 +179,47 @@ export function TunerPage() {
 
   return (
     <main className="shell">
-      <header className="page-head">
-        <button type="button" className="back" onClick={() => navigate('hub')} aria-label="Retour au hub">‹</button>
-        <div>
-          <h1 className="page-title">Accordeur</h1>
-          <p className="t-small t-dim">
-            {tuning.nameFr} · entrée {input.source === 'mic' ? 'micro' : 'interface USB'} · seuil {thresholdDb} dBFS
-            {latencyMs > 0 ? ` · latence ${latencyMs} ms` : ' · latence non mesurée'}
-          </p>
-        </div>
-        <span className={`tag ${listening ? 'tag-on' : ''}`}>{listening ? 'micro ouvert' : 'micro fermé'}</span>
-      </header>
-
-      <Panel className="span-12" accent="cyan" label="Entrée" right={<span className="badge">{input.a4} Hz</span>}>
-        <MicStrip
-          engine={engine}
-          notation={settings.noteNotation}
-          thresholdDb={thresholdDb}
-          tolerance={input.centsTolerance}
-          tuning={tuning}
-          a4={input.a4}
-          big
-        />
-        <div className="row">
-          {!listening ? (
-            <PixelButton variant="primary" onClick={() => void start()} disabled={busy}>
-              {busy ? 'ouverture…' : 'Activer l’écoute'}
-            </PixelButton>
-          ) : (
-            <PixelButton variant="ghost" onClick={stop}>Arrêter l’écoute</PixelButton>
-          )}
-          <PixelButton onClick={measureNoise} disabled={!listening || noisePhase === 'running'}>
-            {noisePhase === 'running' ? 'mesure du silence…' : 'Mesurer le silence (2 s)'}
-          </PixelButton>
-        </div>
-        {info && engine && engine.state !== 'idle' && engine.state !== 'listening' && (
-          <p className="t-small calib-warn"><strong>{info.message}</strong> — {info.hint}</p>
-        )}
-        {engine?.warning && <p className="t-small calib-warn">{engine.warning}</p>}
-
-        <details className="adv-settings">
-          <summary className="t-label">Réglages d’entrée</summary>
-        <div className="field">
+      <h1 className="page-title tuner-title span-12">Accordeur</h1>
+      <Panel className="span-12" accent="yellow" label={`${tuning.nameFr} · ${input.a4} Hz`}>
+        <div className="tuner-card">
+          <div>
+            <TunerList engine={engine} tuning={tuning} notation={settings.noteNotation} a4={input.a4} />
+          </div>
+          <div className="tuner-side">
+            <div className="tuner-actions">
+              {!listening ? (
+                <PixelButton variant="primary" onClick={() => void start()} disabled={busy}>
+                  {busy ? 'ouverture…' : 'Activer le micro'}
+                </PixelButton>
+              ) : (
+                <PixelButton onClick={stop}>Couper le micro</PixelButton>
+              )}
+              <PixelButton onClick={() => void measureLatency()} disabled={latencyPhase === 'running' || busy}>
+                {latencyPhase === 'running' ? 'mesure en cours…' : `Mesurer la latence (${LATENCY_CLICKS} clics)`}
+              </PixelButton>
+            </div>
+            <p className="t-small t-dim">
+              Latence : {latencyMs > 0 ? `${latencyMs} ms` : 'non mesurée'}. C’est le décalage entre le son joué et le son entendu, corrigé sur la grille.
+            </p>
+            {info && engine && engine.state !== 'idle' && engine.state !== 'listening' && (
+              <p className="t-small calib-warn"><strong>{info.message}</strong> — {info.hint}</p>
+            )}
+            {engine?.warning && <p className="t-small calib-warn">{engine.warning}</p>}
+            {msg && <p className="t-small calib-msg" role="status">{msg}</p>}
+            <PixelButton className="tuner-settings-btn" onClick={() => settingsDialog.current?.showModal()}>Réglages d’entrée</PixelButton>
+            <dialog
+              ref={settingsDialog}
+              className="tuner-dialog"
+              aria-label="Réglages d’entrée"
+              // un clic sur le fond (hors du contenu) referme
+              onClick={(e) => { if (e.target === e.currentTarget) e.currentTarget.close(); }}
+            >
+              <div className="tuner-dialog-body">
+              <header className="tuner-dialog-head">
+                <h2 className="t-label">Réglages d’entrée</h2>
+                <PixelButton variant="quiet" onClick={() => settingsDialog.current?.close()}>Fermer</PixelButton>
+              </header>
+                  <div className="field">
           <span className="t-label">Source</span>
           <Segmented<InputSource>
             value={input.source}
@@ -240,6 +233,11 @@ export function TunerPage() {
           </p>
         </div>
 
+        <div className="row">
+          <PixelButton onClick={measureNoise} disabled={!listening || noisePhase === 'running'}>
+            {noisePhase === 'running' ? 'mesure du silence…' : 'Mesurer le silence (2 s)'}
+          </PixelButton>
+        </div>
         <div className="field">
           <span className="t-label">Périphérique</span>
           <select
@@ -337,189 +335,13 @@ export function TunerPage() {
           </div>
         </div>
 
-        </details>
-
         {msg && <p className="t-small calib-msg" role="status">{msg}</p>}
-      </Panel>
-
-      <Panel className="span-6" accent="yellow" label="Accordeur">
-        <TunerList engine={engine} tuning={tuning} notation={settings.noteNotation} a4={input.a4} />
-      </Panel>
-
-      <Panel className="span-6" accent="violet" label="Latence" right={<span className="badge">{latencyMs > 0 ? `${latencyMs} ms` : '—'}</span>}>
-        <p className="t-body">
-          Le temps entre le moment où l’app joue un clic et celui où elle l’entend revenir. C’est cette valeur qui est
-          retranchée du chronomètre quand tu joues sur la grille.
-        </p>
-        <div className="row">
-          <PixelButton variant="primary" onClick={() => void measureLatency()} disabled={latencyPhase === 'running' || busy}>
-            {latencyPhase === 'running' ? 'mesure en cours…' : 'Mesurer (5 clics)'}
-          </PixelButton>
+              </div>
+            </dialog>
+          </div>
         </div>
-        {latency && latency.used > 0 && (
-          <p className="t-small">
-            <strong>{latency.ms} ms</strong> · {latency.used} mesure{latency.used > 1 ? 's' : ''} retenue
-            {latency.used > 1 ? 's' : ''}
-            {latency.rejected > 0 ? ` · ${latency.rejected} écartée${latency.rejected > 1 ? 's' : ''}` : ''} · brut :{' '}
-            {latency.raw.map((v) => `${v.toFixed(0)}`).join(' / ')} ms
-          </p>
-        )}
-        <p className="t-small t-dim">
-          Au casque, la valeur est celle de la chaîne audio. Aux haut-parleurs, elle inclut le trajet dans l’air — et
-          dépend donc de ta distance : mesure casque en place si tu joues au casque.
-        </p>
-        <p className="t-small t-dim">
-          Une latence au-dessus de 40 ms rend le jeu en mesure difficile : c’est un casque filaire et une interface USB,
-          pas du Bluetooth (le profil mains-libres dégrade aussi le micro).
-        </p>
-        <p className="t-small t-dim">La valeur est mémorisée par source. Non mesurée, elle vaut 0 : rien n’est retranché.</p>
-
-        <h3 className="t-label">Ordre des gestes</h3>
-        <ol className="calib-steps">
-          <li>Accorde-toi (l’accordeur ci-contre) : une guitare à −20 cents fait échouer des notes justes.</li>
-          <li>Mesure le silence deux secondes, applique le seuil suggéré.</li>
-          <li>Mesure la latence, puis joue sur la grille : le chronomètre est corrigé.</li>
-          <li>Dans l’exercice, ouvre le micro : la case se remplit à la note jouée.</li>
-        </ol>
-      </Panel>
-
-      <Panel className="span-6" accent="green" label="Accordage guidé" right={<span className="badge">{tuning.strings.length} cordes</span>}>
-        <p className="t-body">
-          Les cordes dans l’ordre, une par une, sans réfléchir : la 6 (la plus grave) d’abord, puis on monte.
-          La corde passe quand elle est juste à ±{IN_TUNE_CENTS} cents pendant {(GUIDE_HOLD_MS / 1000).toFixed(1).replace('.', ',')} s.
-        </p>
-        <p className={`t-small ${fresh.stale ? 'ko' : 't-dim'}`}>
-          {fresh.text}
-          {fresh.stale ? ' — un accordage de plus de trois jours n’est plus une information fiable.' : '.'}
-        </p>
-        <GuidedTuning
-          engine={engine}
-          tuning={tuning}
-          a4={input.a4}
-          notation={settings.noteNotation}
-          onDone={() => {
-            writeTuningRecord(progressStore(), { at: clock.now(), tuningId: tuning.id, strings: tuning.strings.length });
-            setGuideSaved(true);
-            setFresh(tuningFreshness(readTuningRecord(progressStore()), clock.nowDate()));
-          }}
-        />
-        {guideSaved && <p className="t-small ok">Accordage enregistré : les exercices au micro ne seront plus faussés par un instrument bas.</p>}
-        {!listening && <p className="t-small t-dim">Active l’écoute (panneau « Entrée ») avant de commencer l’accordage guidé.</p>}
-      </Panel>
-
-      
-
-      <Panel className="span-6" accent="orange" label="Ce que le micro ne sait pas faire">
-        <p className="t-body">
-          Il donne une <strong>hauteur</strong>, jamais une <strong>corde</strong>. La même note existe à plusieurs
-          endroits du manche (La3 : quatre cases différentes) : l’app ne peut pas dire sur quelle corde tu as joué, et
-          elle ne l’affirme pas. L’exercice valide donc la <strong>case attendue</strong>.
-        </p>
-        <p className="t-small t-dim">
-          Sur un micro de téléphone, les deux cordes graves manquent d’énergie sous 100 Hz : une octave fausse est
-          possible. L’app la reconnaît (<em>octave douteuse</em>) et ne compte alors aucune erreur — c’est le détecteur
-          qui se trompe, pas l’élève.
-        </p>
-        <p className="t-small t-dim">
-          Une guitare à −20 cents fait passer des notes justes pour fausses : accorde-toi ici avant un exercice au micro.
-          Et si l’app joue du son pendant que tu joues, mets un casque, sinon le micro le reprend.
-        </p>
-        <p className="t-small t-dim">
-          Le métronome de l’app est masqué ±90 ms autour de chaque clic : sans cela, il remplirait des cases tout seul.
-        </p>
       </Panel>
     </main>
-  );
-}
-
-/**
- * Accordage guidé : une corde à la fois, de la plus grave à la plus aiguë. Le composant s'abonne lui-même
- * au moteur d'entrée (comme la liste des cordes) pour que la page des réglages ne se re-rende pas 47 fois
- * par seconde.
- */
-function GuidedTuning(props: { engine: InputEngine | null; tuning: Tuning; a4: number; notation: NoteNotation; onDone: () => void }) {
-  const { engine, tuning, a4, notation, onDone } = props;
-  const steps = useMemo(() => guideSteps(tuning, a4), [tuning, a4]);
-  const [state, setState] = useState<GuideState | null>(null);
-  const [status, setStatus] = useState<GuideStatus>('silent');
-  const [cents, setCents] = useState<number | null>(null);
-  const stateRef = useRef<GuideState | null>(null);
-  const doneRef = useRef(false);
-
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
-
-  // la mesure avance sur une horloge courte : guideTick est pure, elle reçoit l'instant
-  useEffect(() => {
-    if (!state || state.done) return;
-    const id = window.setInterval(() => {
-      const cur = stateRef.current;
-      if (!cur || cur.done) return;
-      const heard = engine?.last?.stable ?? null;
-      const tick = guideTick(cur, steps[cur.index], heard ? { midi: heard.midi, cents: heard.cents } : null, performance.now(), steps.length);
-      setStatus(tick.status);
-      setCents(tick.cents);
-      if (tick.state !== cur) {
-        stateRef.current = tick.state;
-        setState(tick.state);
-      }
-      if (tick.state.done && !doneRef.current) {
-        doneRef.current = true;
-        onDone();
-      }
-    }, 100);
-    return () => window.clearInterval(id);
-  }, [state, steps, engine, onDone]);
-
-  const step = state && !state.done ? steps[state.index] : null;
-
-  return (
-    <div className="guide">
-      <div className="row">
-        {!state ? (
-          <PixelButton variant="primary" onClick={() => { doneRef.current = false; const s = newGuide(); stateRef.current = s; setState(s); }}>
-            Commencer par la corde {steps[0]?.number ?? 6}
-          </PixelButton>
-        ) : (
-          <PixelButton
-            onClick={() => {
-              stateRef.current = null;
-              setState(null);
-              setStatus('silent');
-              setCents(null);
-            }}
-          >
-            {state.done ? 'Recommencer' : 'Arrêter'}
-          </PixelButton>
-        )}
-      </div>
-
-      {state && !state.done && step && (
-        <>
-          <p className="guide-target">
-            <span className="guide-number">{step.number}</span>
-            <span className="guide-note">{fmtNote(step.name.replace(/\d+$/, '') as NoteName, notation)}</span>
-            <span className="guide-hz">{step.hz.toFixed(1)} Hz</span>
-          </p>
-          <p className={`t-small ${status === 'in-tune' ? 'ok' : cents !== null && Math.abs(cents) > 30 ? 'ko' : ''}`}>
-            {STATUS_TEXT[status]}
-            {cents !== null ? ` · ${cents > 0 ? '+' : ''}${cents.toFixed(0)} ¢` : ''}
-          </p>
-          <Bar value={state.validated} max={steps.length} accent="green" />
-          <p className="t-small t-dim">
-            Cordes validées : {state.validated} / {steps.length}
-            {status === 'in-tune' ? ' — tiens la note jusqu’à ce qu’elle passe.' : ''}
-          </p>
-        </>
-      )}
-
-      {state?.done && (
-        <p className="t-small ok">
-          Les {steps.length} cordes sont passées : la guitare est accordée, et l’app s’en souvient.
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -531,12 +353,25 @@ function TunerList(props: { engine: InputEngine | null; tuning: Tuning; notation
   const { engine, tuning, notation, a4 } = props;
   const subscribe = useCallback((cb: () => void) => (engine ? engine.subscribe(cb) : () => {}), [engine]);
   const version = useSyncExternalStore(subscribe, () => engine?.version ?? 0, () => 0);
-  void version;
 
   const heard = engine?.last?.stable ?? null;
   // 0,75 demi-ton : la corde « visée » est celle qu'on accorde, pas la plus proche du manche
   const nearest = heard ? nearestOpenString(tuning, heard.midi + heard.cents / 100, a4, 0.75) : null;
   const status = nearest ? tuneStatus(nearest.cents) : null;
+
+  // Chaque corde tenue juste est retenue ; les six passées, l'accordage est mémorisé, sans mode à lancer.
+  const [sweep, setSweep] = useState(newSweep);
+  const [fresh, setFresh] = useState(() => tuningFreshness(readTuningRecord(progressStore()), clock.nowDate()));
+  const total = tuning.strings.length;
+  useEffect(() => {
+    const next = sweepTick(sweep, nearest ? { string: nearest.string, cents: nearest.cents } : null, performance.now());
+    if (next === sweep) return;
+    setSweep(next);
+    if (next.done.length === total && sweep.done.length < total) {
+      writeTuningRecord(progressStore(), { at: clock.now(), tuningId: tuning.id, strings: total });
+      setFresh(tuningFreshness(readTuningRecord(progressStore()), clock.nowDate()));
+    }
+  }, [version]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -557,22 +392,23 @@ function TunerList(props: { engine: InputEngine | null; tuning: Tuning; notation
                 {fmtNote(pitch, notation)} · {hz.toFixed(1)} Hz
               </span>
               <span className="tuner-cents">{active ? `${nearest!.cents > 0 ? '+' : ''}${nearest!.cents.toFixed(0)} ¢` : '—'}</span>
-              <span className={`tuner-status ${rowStatus ?? ''}`}>{rowStatus ? STATUS_LABEL[rowStatus] : ''}</span>
+              <span className={`tuner-status ${rowStatus ?? ''}`}>{rowStatus ? STATUS_LABEL[rowStatus] : sweep.done.includes(s) ? '✓' : ''}</span>
             </div>
           );
         })}
+      </div>
+      <div className="tuner-summary t-small">
+        <strong>Cordes justes : {sweep.done.length} / {total} · {heard
+          ? `entendu ${fmtNote(noteNameOf(heard.midi), notation)}${Math.floor(heard.midi / 12) - 1} · ${
+            nearest ? `corde de ${fmtNote(tuning.strings[nearest.string]!, notation)} — ${STATUS_LABEL[status!]}` : 'aucune corde à moins d’un demi-ton (ce n’est pas une corde à vide)'
+          }`
+          : 'joue une corde à vide pour commencer.'}</strong>
+        <strong className={fresh.stale ? 'ko' : ''}>{fresh.text}</strong>
       </div>
       <div className="tuner-needle" aria-hidden="true">
         <span className="tuner-needle-zero" />
         {nearest && <b className={status ?? ''} style={{ left: `${50 + Math.max(-48, Math.min(48, nearest.cents / 2))}%` }} />}
       </div>
-      <p className="t-small">
-        {heard
-          ? `entendu ${fmtNote(noteNameOf(heard.midi), notation)}${Math.floor(heard.midi / 12) - 1} · ${
-            nearest ? `corde de ${fmtNote(tuning.strings[nearest.string]!, notation)} — ${STATUS_LABEL[status!]}` : 'aucune corde à moins d’un demi-ton (ce n’est pas une corde à vide)'
-          }`
-          : 'joue une corde à vide pour commencer.'}
-      </p>
     </>
   );
 }

@@ -735,7 +735,7 @@ export function ChordLessonPage() {
                   {tuningFresh.text}
                   {tuningFresh.stale ? ' — ' : ' · '}
                   <button type="button" className="linklike" onClick={() => navigate('tuner')}>
-                    {tuningFresh.stale ? 'accorder (guidé, corde par corde)' : 'accordeur'}
+                    {tuningFresh.stale ? 'accorder' : 'accordeur'}
                   </button>
                   {tuningFresh.stale ? ' : une guitare à −20 cents fait échouer des notes justes.' : ''}
                 </p>

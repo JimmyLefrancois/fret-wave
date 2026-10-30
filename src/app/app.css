@@ -1347,7 +1347,7 @@ table.kv td:first-child { color: var(--muted); }
 .tuner-row.on.in .tuner-status, .tuner-row.on.in .tuner-cents { color: var(--ok); }
 .tuner-row.on.far .tuner-status, .tuner-row.on.far .tuner-cents { color: var(--orange); }
 
-.tuner-needle { position: relative; height: 14px; margin: 10px 0 6px; background: var(--surface-hi); border: 2px solid var(--line); }
+.tuner-needle { position: relative; height: 40px; margin: 10px 0 6px; background: var(--surface-hi); border: 2px solid var(--line); }
 .tuner-needle-zero { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--muted); }
 .tuner-needle b { position: absolute; top: 0; bottom: 0; width: 4px; background: var(--orange); transform: translateX(-2px); }
 .tuner-needle b.in { background: var(--ok); }
@@ -1356,8 +1356,6 @@ table.kv td:first-child { color: var(--muted); }
 /* --- réglages d'entrée --- */
 .range { width: 100%; min-height: 44px; accent-color: var(--magenta); }
 .calib-warn { margin-top: 6px; color: var(--yellow); }
-.calib-steps { margin: 6px 0 0; padding-left: 1.1em; display: grid; gap: 5px; }
-.calib-steps li { font-size: 13.5px; line-height: 1.45; color: var(--muted); }
 .calib-msg { margin-top: 8px; color: var(--text); }
 
 @media (max-width: 520px) {
@@ -1723,16 +1721,6 @@ table.kv td:first-child { color: var(--muted); }
 .quiz-label { min-width: 0; }
 
 /* accordage guidé : la corde en cours se lit de loin */
-.guide { display: grid; gap: 6px; margin-top: 6px; }
-.guide-target { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.guide-number {
-  font-family: var(--font-label);
-  font-size: 30px;
-  line-height: 1;
-  color: var(--ok);
-}
-.guide-note { font-size: 22px; color: var(--text); }
-.guide-hz { font-size: 13px; color: var(--dim); }
 
 /* --- la tablature prend la largeur de son panneau, padding compris (téléphone) --------------------- */
 @media (max-width: 899px) {
@@ -2973,3 +2961,40 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .metro:not(:fullscreen) .metro-settings { grid-column: 2; grid-row: 1 / span 2; align-content: start; padding-top: 0; padding-left: 24px; border-top: 0; border-left: var(--bw) solid var(--line-soft); }
   .metro-go-row { grid-column: 1; }
 }
+
+/* ---- accordeur : une seule carte, les cordes à gauche, le micro et ses réglages à droite ---------------- */
+.tuner-card { display: grid; gap: var(--gap-block); }
+.tuner-side { display: flex; flex-direction: column; gap: var(--gap-inside); min-width: 0; }
+.tuner-settings-btn { width: 100%; margin-top: auto; }
+.tuner-side .t-small { margin: 0; }
+.tuner-actions { display: grid; gap: var(--gap-inside); }
+.tuner-actions .btn { width: 100%; }
+@media (min-width: 900px) {
+  .tuner-card { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 24px; }
+  .tuner-side { padding-left: 24px; border-left: var(--bw) solid var(--line-soft); }
+}
+.tuner-dialog { width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; color: var(--text); background: var(--surface); border: var(--bw) solid var(--yellow); box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
+.tuner-dialog::backdrop { background: var(--bg-deep); opacity: 0.8; }
+.tuner-dialog-body { display: grid; gap: var(--gap-inside); padding: 14px; }
+.tuner-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-inside); }
+/* bureau : plus large, et deux colonnes de réglages plutôt qu'une longue liste à faire défiler */
+@media (min-width: 900px) {
+  .tuner-dialog { width: min(800px, calc(100vw - 64px)); }
+  .tuner-dialog-body { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-block) 24px; align-items: start; padding: 20px; }
+  .tuner-dialog-head, .tuner-dialog .calib-msg { grid-column: 1 / -1; }
+}
+/* un filet entre chaque ligne de réglages : sous la première au téléphone, sous les deux premières au bureau */
+.tuner-dialog-body > .field, .tuner-dialog-body > .row { margin: 0; padding-top: var(--gap-block); border-top: var(--bw) solid var(--line-soft); }
+.tuner-dialog-head + .field { padding-top: 0; border-top: 0; }
+@media (min-width: 900px) {
+  .tuner-dialog-head + .field + .row { padding-top: 0; border-top: 0; }
+  .tuner-dialog-body > .row { align-self: stretch; align-items: flex-start; }
+}
+.tuner-dialog-head { padding-bottom: var(--gap-inside); border-bottom: var(--bw) solid var(--yellow); }
+.tuner-dialog-head .t-label { margin: 0; font-size: 16px; color: var(--yellow); }
+.tuner-title { margin: 0; font-size: 30px; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; }
+.tuner-summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--gap-tight) var(--gap-block); }
+.tuner-summary { margin-block: 16px 8px; }
+.panel:has(.tuner-card) .panel-head .t-label { font-size: 14px; }
+.tuner-summary strong:last-child:not(.ko) { color: var(--cyan); }
+.tuner-summary strong:last-child { padding: 2px 8px; }

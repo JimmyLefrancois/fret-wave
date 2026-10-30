@@ -177,3 +177,21 @@ export function tuningFreshness(rec: TuningRecord | null, now: Date): TuningFres
   if (days === 1) return { days, stale: false, text: 'Dernier accordage : hier' };
   return { days, stale: days > TUNING_STALE_DAYS, text: `Dernier accordage : il y a ${days} jours` };
 }
+
+/** Accordage libre : les cordes passent dans n'importe quel ordre, chacune tenue juste assez longtemps. */
+export interface TuningSweep {
+  /** Corde tenue juste en ce moment, et depuis quand (ms). */
+  string: number | null;
+  since: number;
+  /** Cordes validées. */
+  done: readonly number[];
+}
+
+export const newSweep = (): TuningSweep => ({ string: null, since: 0, done: [] });
+
+export function sweepTick(sweep: TuningSweep, heard: { string: number; cents: number } | null, nowMs: number): TuningSweep {
+  if (!heard || Math.abs(heard.cents) > IN_TUNE_CENTS) return sweep.string === null ? sweep : { ...sweep, string: null };
+  if (heard.string !== sweep.string) return { ...sweep, string: heard.string, since: nowMs };
+  if (nowMs - sweep.since < GUIDE_HOLD_MS || sweep.done.includes(heard.string)) return sweep;
+  return { ...sweep, done: [...sweep.done, heard.string] };
+}
