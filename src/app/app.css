@@ -162,7 +162,7 @@ a { color: var(--cyan); }
 .t-label {
   font-family: var(--font-label);
   font-weight: 700;
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
@@ -1785,7 +1785,6 @@ table.kv td:first-child { color: var(--muted); }
   text-wrap: balance;
   color: var(--cyan);
 }
-.home-go .panel-head .t-label { font-size: var(--label-lg); }
 .home-hero-title {
   margin: 0;
   font-family: var(--font-display);
@@ -1906,7 +1905,7 @@ table.kv td:first-child { color: var(--muted); }
   cursor: pointer;
 }
 .path-row:hover { border-color: var(--cyan); }
-.path-name.t-label { font-size: var(--label-lg); color: var(--cyan); }
+.path-name.t-label { color: var(--cyan); }
 .path-what { display: flex; flex-direction: column; gap: 2px; font-weight: 600; }
 .path-count { font-size: 15px; font-weight: 400; color: var(--muted); }
 /* barre pixel : cadre au trait, remplissage en aplat vert, pas de coin arrondi */
@@ -1932,6 +1931,10 @@ table.kv td:first-child { color: var(--muted); }
 
 .chosen-line { margin: 10px 0 2px; font-size: 14px; }
 .tonics-label { margin: 12px 0 0; color: var(--cyan); }
+.tonics-label + .tonics { padding-block-end: var(--gap-block); border-block-end: var(--bw) solid var(--line); }
+/* toniques et familles de gammes occupent toute la largeur du panneau, celle du séparateur */
+.tonics-label + .tonics .chip,
+.tonics + .segmented .seg { flex: 1 1 auto; }
 
 /* liste des positions : une ligne = une forme, deux gestes */
 .pos-list { list-style: none; margin: 10px 0 0; padding: 0; }
@@ -2995,6 +2998,5 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .tuner-title { margin: 0; font-size: 30px; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; }
 .tuner-summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--gap-tight) var(--gap-block); }
 .tuner-summary { margin-block: 16px 8px; }
-.panel:has(.tuner-card) .panel-head .t-label { font-size: 14px; }
 .tuner-summary strong:last-child:not(.ko) { color: var(--cyan); }
 .tuner-summary strong:last-child { padding: 2px 8px; }

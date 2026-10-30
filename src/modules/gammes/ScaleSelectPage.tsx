@@ -5,7 +5,7 @@
  * deux boutons en bas : il fallait comprendre « système de positions » et « CAGED / 3NPS » avant de
  * pouvoir jouer une seule note, et le choix de la position était séparé de l'action.
  *
- * Maintenant : deux rangées de pastilles (la gamme, la tonique), puis **la liste des positions**, chaque
+ * Maintenant : deux rangées de pastilles (la tonique, la gamme), puis **la liste des positions**, chaque
  * ligne portant ses deux gestes — « Découvrir » (niveau 1 : la tablature s'affiche et s'écoute) et
  * « S'exercer » (le micro vérifie chaque note). L'accordage et le système de positions passent dans un
  * repli : ce sont des réglages, pas des étapes.
@@ -55,6 +55,21 @@ export function ScaleSelectPage() {
       </header>
 
       <Panel className="span-5 panel-fill" accent="magenta" label="1 · La gamme">
+        <p className="t-label tonics-label">Tonique</p>
+        <div className="tonics">
+          {Array.from({ length: 12 }, (_, pc) => tonicSpellings(r.def, pc)).map((names) =>
+            names.map((n) => (
+              <Chip
+                key={n}
+                selected={r.selection.tonic === n}
+                onClick={() => set({ tonic: n, ...resetPosition })}
+                title={names.length > 1 ? `${names.map((x) => fmtNote(x, settings.noteNotation)).join(' ou ')} : même son, deux orthographes` : undefined}
+              >
+                {fmtNote(n, settings.noteNotation)}
+              </Chip>
+            )),
+          )}
+        </div>
         <Segmented
           size="sm"
           label="Famille de gammes"
@@ -82,21 +97,6 @@ export function ScaleSelectPage() {
               </button>
             );
           })}
-        </div>
-        <p className="t-label tonics-label">Tonique</p>
-        <div className="tonics">
-          {Array.from({ length: 12 }, (_, pc) => tonicSpellings(r.def, pc)).map((names) =>
-            names.map((n) => (
-              <Chip
-                key={n}
-                selected={r.selection.tonic === n}
-                onClick={() => set({ tonic: n, ...resetPosition })}
-                title={names.length > 1 ? `${names.map((x) => fmtNote(x, settings.noteNotation)).join(' ou ')} : même son, deux orthographes` : undefined}
-              >
-                {fmtNote(n, settings.noteNotation)}
-              </Chip>
-            )),
-          )}
         </div>
         <p className="chosen-line">
           <strong>{scaleTitle(r.def, r.tonic, settings.noteNotation)}</strong>
