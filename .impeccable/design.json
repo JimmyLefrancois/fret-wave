@@ -1,0 +1,925 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-29T23:44:46.987Z",
+  "title": "Design System: Fretwave",
+  "extensions": {
+    "colorMeta": {
+      "night-void": {
+        "role": "neutral",
+        "displayName": "Vide nocturne",
+        "canonical": "#06000F",
+        "oklch": "oklch(9.7% 0.050 305.8)",
+        "tonalRamp": [
+          "#0C0A0E",
+          "#28222E",
+          "#473D53",
+          "#685A78",
+          "#8A7B9B",
+          "#AB9FB9",
+          "#CDC6D6",
+          "#F0EDF3"
+        ]
+      },
+      "night-bg": {
+        "role": "neutral",
+        "displayName": "Nuit",
+        "canonical": "#0D0221",
+        "oklch": "oklch(14.2% 0.066 295.8)",
+        "tonalRamp": [
+          "#0B0A0F",
+          "#262233",
+          "#443C5B",
+          "#645A83",
+          "#857BA6",
+          "#A79FC3",
+          "#CAC5DC",
+          "#EFEDF5"
+        ]
+      },
+      "night-surface": {
+        "role": "neutral",
+        "displayName": "Surface de nuit",
+        "canonical": "#150A33",
+        "oklch": "oklch(19.1% 0.076 289.5)",
+        "tonalRamp": [
+          "#0B0A10",
+          "#252235",
+          "#413C60",
+          "#605A8A",
+          "#817BAD",
+          "#A49FC9",
+          "#C8C6E0",
+          "#EEEDF6"
+        ]
+      },
+      "night-surface-hi": {
+        "role": "neutral",
+        "displayName": "Surface haute de nuit",
+        "canonical": "#201048",
+        "oklch": "oklch(23.6% 0.098 289.9)",
+        "tonalRamp": [
+          "#0B0A11",
+          "#25213A",
+          "#423A68",
+          "#615795",
+          "#8178B9",
+          "#A49DD3",
+          "#C8C5E6",
+          "#EEEDF8"
+        ]
+      },
+      "night-line": {
+        "role": "neutral",
+        "displayName": "Trait de nuit",
+        "canonical": "#3A1C71",
+        "oklch": "oklch(32.4% 0.137 293.4)",
+        "tonalRamp": [
+          "#0B0913",
+          "#271E41",
+          "#463375",
+          "#664EA6",
+          "#8770CC",
+          "#A898E3",
+          "#CAC2F0",
+          "#EFECFB"
+        ]
+      },
+      "night-line-soft": {
+        "role": "neutral",
+        "displayName": "Trait doux de nuit",
+        "canonical": "#28124F",
+        "oklch": "oklch(25.6% 0.105 294.2)",
+        "tonalRamp": [
+          "#0B0A11",
+          "#27203A",
+          "#45386A",
+          "#655496",
+          "#8675BB",
+          "#A89BD5",
+          "#CAC4E7",
+          "#EFEDF8"
+        ]
+      },
+      "night-text": {
+        "role": "neutral",
+        "displayName": "Texte de nuit",
+        "canonical": "#F6EEFF",
+        "oklch": "oklch(96.0% 0.024 307.0)",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#262429",
+          "#453F4A",
+          "#655E6C",
+          "#867F8E",
+          "#A8A2AF",
+          "#CBC7CF",
+          "#EFEEF0"
+        ]
+      },
+      "night-muted": {
+        "role": "neutral",
+        "displayName": "Atténué de nuit",
+        "canonical": "#C4B6E4",
+        "oklch": "oklch(80.3% 0.066 298.8)",
+        "tonalRamp": [
+          "#0C0A0F",
+          "#272232",
+          "#463C5A",
+          "#665982",
+          "#877AA5",
+          "#A99EC2",
+          "#CBC5DB",
+          "#EFEDF4"
+        ]
+      },
+      "night-dim": {
+        "role": "neutral",
+        "displayName": "Discret de nuit",
+        "canonical": "#A99BCF",
+        "oklch": "oklch(72.0% 0.076 296.8)",
+        "tonalRamp": [
+          "#0C0A0F",
+          "#272134",
+          "#453B5E",
+          "#665887",
+          "#8779AB",
+          "#A89EC7",
+          "#CBC5DE",
+          "#EFEDF5"
+        ]
+      },
+      "neon-magenta": {
+        "role": "primary",
+        "displayName": "Néon magenta",
+        "canonical": "#FF2A6D",
+        "oklch": "oklch(65.3% 0.242 10.2)",
+        "tonalRamp": [
+          "#170508",
+          "#4D0018",
+          "#8B0029",
+          "#C30040",
+          "#EE0460",
+          "#FF6789",
+          "#FFAAB8",
+          "#FFE5E9"
+        ]
+      },
+      "neon-cyan": {
+        "role": "secondary",
+        "displayName": "Néon cyan",
+        "canonical": "#05D9E8",
+        "oklch": "oklch(80.7% 0.137 203.7)",
+        "tonalRamp": [
+          "#020E0F",
+          "#002D33",
+          "#00515C",
+          "#007584",
+          "#0098A7",
+          "#38B9C4",
+          "#97D6DC",
+          "#DFF3F5"
+        ]
+      },
+      "neon-orange": {
+        "role": "tertiary",
+        "displayName": "Néon orange",
+        "canonical": "#FF9E3D",
+        "oklch": "oklch(78.3% 0.157 61.3)",
+        "tonalRamp": [
+          "#120903",
+          "#3D1A00",
+          "#6E2C00",
+          "#9D4400",
+          "#C36700",
+          "#DD914C",
+          "#EDBF98",
+          "#FBEBDF"
+        ]
+      },
+      "neon-yellow": {
+        "role": "tertiary",
+        "displayName": "Néon jaune",
+        "canonical": "#FFD23F",
+        "oklch": "oklch(87.9% 0.162 90.9)",
+        "tonalRamp": [
+          "#0F0B02",
+          "#332200",
+          "#5B3C00",
+          "#835900",
+          "#A77C00",
+          "#C3A135",
+          "#DCC890",
+          "#F4EEDD"
+        ]
+      },
+      "neon-violet": {
+        "role": "tertiary",
+        "displayName": "Néon violet",
+        "canonical": "#A86BFF",
+        "oklch": "oklch(66.2% 0.212 299.6)",
+        "tonalRamp": [
+          "#0D0817",
+          "#2D144D",
+          "#521D8C",
+          "#7632C5",
+          "#9859EC",
+          "#B589FE",
+          "#D2BBFF",
+          "#F1EAFF"
+        ]
+      },
+      "neon-green": {
+        "role": "tertiary",
+        "displayName": "Néon vert",
+        "canonical": "#7CFF6B",
+        "oklch": "oklch(89.5% 0.221 141.4)",
+        "tonalRamp": [
+          "#040F03",
+          "#003000",
+          "#005500",
+          "#007B00",
+          "#009F00",
+          "#5DBF50",
+          "#A3DB9B",
+          "#E3F5E0"
+        ]
+      },
+      "night-danger": {
+        "role": "tertiary",
+        "displayName": "Danger de nuit",
+        "canonical": "#FF5C7A",
+        "oklch": "oklch(69.7% 0.198 12.9)",
+        "tonalRamp": [
+          "#160608",
+          "#480818",
+          "#800029",
+          "#B50040",
+          "#DE3C60",
+          "#F77689",
+          "#FFB0B8",
+          "#FFE7E9"
+        ]
+      },
+      "night-ok": {
+        "role": "tertiary",
+        "displayName": "Réussite de nuit",
+        "canonical": "#4CFF9A",
+        "oklch": "oklch(88.7% 0.200 153.8)",
+        "tonalRamp": [
+          "#020F06",
+          "#00310C",
+          "#00570F",
+          "#007E1F",
+          "#00A243",
+          "#3CC175",
+          "#98DCAD",
+          "#E0F5E5"
+        ]
+      },
+      "night-on-accent": {
+        "role": "neutral",
+        "displayName": "Encre sur accent (nuit)",
+        "canonical": "#12021F",
+        "oklch": "oklch(14.8% 0.065 307.4)",
+        "tonalRamp": [
+          "#0C0A0E",
+          "#292131",
+          "#493B57",
+          "#6B577E",
+          "#8D78A1",
+          "#AE9DBF",
+          "#CEC4D9",
+          "#F0EDF4"
+        ]
+      },
+      "dawn-sky": {
+        "role": "neutral",
+        "displayName": "Ciel d’aube",
+        "canonical": "#FFDCC7",
+        "oklch": "oklch(91.8% 0.048 52.9)",
+        "tonalRamp": [
+          "#0E0A08",
+          "#2E221B",
+          "#533C2F",
+          "#785A48",
+          "#9A7B68",
+          "#B99F8F",
+          "#D6C6BC",
+          "#F3EDEA"
+        ]
+      },
+      "dawn-bg": {
+        "role": "neutral",
+        "displayName": "Fond d’aube",
+        "canonical": "#FFF3E8",
+        "oklch": "oklch(97.1% 0.020 65.1)",
+        "tonalRamp": [
+          "#0C0B0A",
+          "#282420",
+          "#484039",
+          "#695F56",
+          "#8B8076",
+          "#ACA39B",
+          "#CDC8C3",
+          "#F0EEEC"
+        ]
+      },
+      "dawn-paper": {
+        "role": "neutral",
+        "displayName": "Papier",
+        "canonical": "#FFFBF5",
+        "oklch": "oklch(99.0% 0.009 78.3)",
+        "tonalRamp": [
+          "#0B0B0A",
+          "#262523",
+          "#44423E",
+          "#64615C",
+          "#85827C",
+          "#A7A4A0",
+          "#CBC9C6",
+          "#EFEEED"
+        ]
+      },
+      "dawn-surface-hi": {
+        "role": "neutral",
+        "displayName": "Papier chaud",
+        "canonical": "#FFE7D6",
+        "oklch": "oklch(94.3% 0.035 57.6)",
+        "tonalRamp": [
+          "#0D0B09",
+          "#2B231D",
+          "#4E3F34",
+          "#715D4E",
+          "#937E6E",
+          "#B3A195",
+          "#D2C7BF",
+          "#F1EEEB"
+        ]
+      },
+      "dawn-line": {
+        "role": "neutral",
+        "displayName": "Trait d’aube",
+        "canonical": "#B23A6B",
+        "oklch": "oklch(53.5% 0.161 359.0)",
+        "tonalRamp": [
+          "#13070B",
+          "#401124",
+          "#731940",
+          "#A42C5F",
+          "#CB5180",
+          "#E581A3",
+          "#F3B5C8",
+          "#FDE8EE"
+        ]
+      },
+      "dawn-line-soft": {
+        "role": "neutral",
+        "displayName": "Trait doux d’aube",
+        "canonical": "#F3C3D3",
+        "oklch": "oklch(86.4% 0.058 356.5)",
+        "tonalRamp": [
+          "#0E0A0B",
+          "#302025",
+          "#563843",
+          "#7C5362",
+          "#A07483",
+          "#BE99A6",
+          "#D9C2C9",
+          "#F4ECEE"
+        ]
+      },
+      "dawn-ink": {
+        "role": "neutral",
+        "displayName": "Encre prune",
+        "canonical": "#2B0B2E",
+        "oklch": "oklch(22.1% 0.075 324.2)",
+        "tonalRamp": [
+          "#0E0A0E",
+          "#2E1F2F",
+          "#523754",
+          "#775279",
+          "#99739C",
+          "#B899BA",
+          "#D5C2D6",
+          "#F2ECF3"
+        ]
+      },
+      "dawn-muted": {
+        "role": "neutral",
+        "displayName": "Atténué d’aube",
+        "canonical": "#5E2C52",
+        "oklch": "oklch(37.5% 0.090 337.1)",
+        "tonalRamp": [
+          "#0F090D",
+          "#321D2C",
+          "#5A3250",
+          "#814C74",
+          "#A56D96",
+          "#C394B5",
+          "#DCBFD3",
+          "#F5EBF2"
+        ]
+      },
+      "dawn-dim": {
+        "role": "neutral",
+        "displayName": "Discret d’aube",
+        "canonical": "#6E4462",
+        "oklch": "oklch(44.6% 0.072 338.0)",
+        "tonalRamp": [
+          "#0E090D",
+          "#301F2B",
+          "#56364D",
+          "#7C516F",
+          "#9F7291",
+          "#BE98B2",
+          "#D9C1D1",
+          "#F4ECF1"
+        ]
+      },
+      "dawn-magenta": {
+        "role": "primary",
+        "displayName": "Magenta d’aube",
+        "canonical": "#C2185B",
+        "oklch": "oklch(53.1% 0.202 5.6)",
+        "tonalRamp": [
+          "#160609",
+          "#47071E",
+          "#7F0035",
+          "#B40050",
+          "#DD3A71",
+          "#F67596",
+          "#FFB0C0",
+          "#FFE7EB"
+        ]
+      },
+      "dawn-cyan": {
+        "role": "secondary",
+        "displayName": "Cyan d’aube",
+        "canonical": "#0B6E7A",
+        "oklch": "oklch(49.3% 0.082 208.4)",
+        "tonalRamp": [
+          "#060D0E",
+          "#092A2F",
+          "#004B54",
+          "#0B6E7A",
+          "#3C909C",
+          "#73B1BB",
+          "#ADD1D6",
+          "#E6F1F3"
+        ]
+      },
+      "dawn-orange": {
+        "role": "tertiary",
+        "displayName": "Orange d’aube",
+        "canonical": "#B4530A",
+        "oklch": "oklch(55.5% 0.145 48.9)",
+        "tonalRamp": [
+          "#130804",
+          "#3E1902",
+          "#702900",
+          "#9F4000",
+          "#C56324",
+          "#DF8E62",
+          "#EFBDA3",
+          "#FCEBE2"
+        ]
+      },
+      "dawn-yellow": {
+        "role": "tertiary",
+        "displayName": "Jaune d’aube (assombri, 4,98:1)",
+        "canonical": "#7D6000",
+        "oklch": "oklch(50.4% 0.103 88.0)",
+        "tonalRamp": [
+          "#0E0B05",
+          "#2F2305",
+          "#543F00",
+          "#7A5D00",
+          "#9C7E2F",
+          "#BBA268",
+          "#D6C8A6",
+          "#F3EEE3"
+        ]
+      },
+      "dawn-violet": {
+        "role": "tertiary",
+        "displayName": "Violet d’aube",
+        "canonical": "#5B2A9E",
+        "oklch": "oklch(42.0% 0.176 297.5)",
+        "tonalRamp": [
+          "#0C0915",
+          "#2A1947",
+          "#4C2A81",
+          "#6F42B6",
+          "#9065DC",
+          "#AF91F1",
+          "#CFBEF9",
+          "#F0EBFF"
+        ]
+      },
+      "dawn-green": {
+        "role": "tertiary",
+        "displayName": "Vert d’aube",
+        "canonical": "#1C6B36",
+        "oklch": "oklch(46.7% 0.113 150.1)",
+        "tonalRamp": [
+          "#060D08",
+          "#0F2C17",
+          "#144F27",
+          "#25733D",
+          "#4A955D",
+          "#7BB587",
+          "#B1D3B7",
+          "#E7F2E9"
+        ]
+      },
+      "dawn-danger": {
+        "role": "tertiary",
+        "displayName": "Danger d’aube",
+        "canonical": "#B3122F",
+        "oklch": "oklch(49.1% 0.189 20.5)",
+        "tonalRamp": [
+          "#150606",
+          "#470B12",
+          "#7F031D",
+          "#B4132F",
+          "#DC4450",
+          "#F57A7C",
+          "#FEB2B1",
+          "#FFE7E6"
+        ]
+      },
+      "dawn-ok": {
+        "role": "tertiary",
+        "displayName": "Réussite d’aube",
+        "canonical": "#14683A",
+        "oklch": "oklch(45.7% 0.107 153.7)",
+        "tonalRamp": [
+          "#060D08",
+          "#0E2C19",
+          "#114F2C",
+          "#227244",
+          "#489564",
+          "#7AB58C",
+          "#B1D3BA",
+          "#E7F2EA"
+        ]
+      },
+      "dawn-on-accent": {
+        "role": "neutral",
+        "displayName": "Encre sur accent (aube)",
+        "canonical": "#FFF8F2",
+        "oklch": "oklch(98.3% 0.011 63.4)",
+        "tonalRamp": [
+          "#0C0B0A",
+          "#272522",
+          "#45413D",
+          "#66605B",
+          "#87817C",
+          "#A9A49F",
+          "#CCC8C6",
+          "#EFEEED"
+        ]
+      },
+      "interval-root": {
+        "role": "tertiary",
+        "displayName": "Intervalle : fondamentale",
+        "canonical": "#FFD23F",
+        "oklch": "oklch(87.9% 0.162 90.9)",
+        "tonalRamp": [
+          "#0F0B02",
+          "#332200",
+          "#5B3C00",
+          "#835900",
+          "#A77C00",
+          "#C3A135",
+          "#DCC890",
+          "#F4EEDD"
+        ]
+      },
+      "interval-2": {
+        "role": "tertiary",
+        "displayName": "Intervalle : seconde",
+        "canonical": "#FF8A3D",
+        "oklch": "oklch(75.0% 0.167 50.5)",
+        "tonalRamp": [
+          "#140803",
+          "#411600",
+          "#752300",
+          "#A63800",
+          "#CD5D00",
+          "#E68A53",
+          "#F4BB9B",
+          "#FDEAE0"
+        ]
+      },
+      "interval-3": {
+        "role": "tertiary",
+        "displayName": "Intervalle : tierce",
+        "canonical": "#FF3CAC",
+        "oklch": "oklch(68.3% 0.246 350.8)",
+        "tonalRamp": [
+          "#16050D",
+          "#49002C",
+          "#83004F",
+          "#BA0072",
+          "#E31295",
+          "#FB68B4",
+          "#FFAAD3",
+          "#FFE5F2"
+        ]
+      },
+      "interval-4": {
+        "role": "tertiary",
+        "displayName": "Intervalle : quarte",
+        "canonical": "#7CFF6B",
+        "oklch": "oklch(89.5% 0.221 141.4)",
+        "tonalRamp": [
+          "#040F03",
+          "#003000",
+          "#005500",
+          "#007B00",
+          "#009F00",
+          "#5DBF50",
+          "#A3DB9B",
+          "#E3F5E0"
+        ]
+      },
+      "interval-5": {
+        "role": "tertiary",
+        "displayName": "Intervalle : quinte",
+        "canonical": "#3CE6FF",
+        "oklch": "oklch(85.2% 0.136 209.9)",
+        "tonalRamp": [
+          "#020D10",
+          "#002D36",
+          "#004F61",
+          "#00738B",
+          "#0097AF",
+          "#3DB7CA",
+          "#98D5E0",
+          "#E0F3F6"
+        ]
+      },
+      "interval-6": {
+        "role": "tertiary",
+        "displayName": "Intervalle : sixte",
+        "canonical": "#A86BFF",
+        "oklch": "oklch(66.2% 0.212 299.6)",
+        "tonalRamp": [
+          "#0D0817",
+          "#2D144D",
+          "#521D8C",
+          "#7632C5",
+          "#9859EC",
+          "#B589FE",
+          "#D2BBFF",
+          "#F1EAFF"
+        ]
+      },
+      "interval-7": {
+        "role": "tertiary",
+        "displayName": "Intervalle : septième",
+        "canonical": "#FF5C5C",
+        "oklch": "oklch(69.1% 0.199 23.9)",
+        "tonalRamp": [
+          "#160606",
+          "#48090C",
+          "#820011",
+          "#B70121",
+          "#E13E43",
+          "#F87873",
+          "#FFB2AC",
+          "#FFE7E5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Marque et mot-symbole (Press Start 2P), titre de page `main.wide h1` ; sans minuscules, jamais pour du texte lu."
+      },
+      "title": {
+        "displayName": "Titre",
+        "purpose": "Titre de carte et titre d’élément dans une liste (sans-serif système, 650)."
+      },
+      "body": {
+        "displayName": "Corps",
+        "purpose": "Explications et consignes, tout ce qui se lit ; `.t-small` à 14,5 px en atténué."
+      },
+      "label": {
+        "displayName": "Étiquette",
+        "purpose": "Étiquettes de panneau, tags, badges (Silkscreen 11 px, capitales)."
+      },
+      "hero-title": {
+        "displayName": "Titre de la tâche",
+        "purpose": "La gamme ou l’accord du héros de l’accueil : le plus grand mot de l’accueil (30 px, 36 px au bureau)."
+      },
+      "label-lg": {
+        "displayName": "Étiquette large",
+        "purpose": "Étiquettes lues à un mètre : héros de l’accueil et accroche de l’affiche (13 px)."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel",
+        "value": "var(--shadow) var(--shadow) 0 var(--shadow-ink)",
+        "purpose": "Repos des panneaux (--shadow = 4 px ; encre noire à 45 % la nuit, magenta à 28 % à l’aube)."
+      },
+      {
+        "name": "button",
+        "value": "3px 3px 0 var(--shadow-ink)",
+        "purpose": "Repos des boutons."
+      },
+      {
+        "name": "button-pressed",
+        "value": "1px 1px 0 var(--shadow-ink)",
+        "purpose": "Bouton enfoncé (avec translate(2px, 2px))."
+      },
+      {
+        "name": "neon-primary",
+        "value": "0 0 0 2px var(--bg-deep), 0 0 20px -4px var(--magenta), 3px 3px 0 var(--shadow-ink)",
+        "purpose": "Action principale : liseré nuit, halo magenta, ombre dure."
+      },
+      {
+        "name": "neon-panel",
+        "value": "0 0 16px -6px var(--accent), var(--shadow) var(--shadow) 0 var(--shadow-ink)",
+        "purpose": "Panneau mis en avant (bordure à l’accent du module)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "press",
+        "value": "60ms steps(1)",
+        "purpose": "Enfoncement d’un bouton (transform et ombre), sans interpolation."
+      },
+      {
+        "name": "pulse",
+        "value": "1.6s steps(2, end) infinite",
+        "purpose": "Témoin du micro allumé, clignotement pixel."
+      },
+      {
+        "name": "celebrate-in",
+        "value": "0.18s ease-out",
+        "purpose": "Entrée de l’écran de célébration."
+      },
+      {
+        "name": "reduced",
+        "value": "none",
+        "purpose": "prefers-reduced-motion / réglage « Réduire les animations » : transitions d’appui et décor figés."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "380px"
+      },
+      {
+        "name": "phone",
+        "value": "520px"
+      },
+      {
+        "name": "desktop",
+        "value": "900px"
+      },
+      {
+        "name": "desktop-wide",
+        "value": "1024px"
+      },
+      {
+        "name": "wide",
+        "value": "1500px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Bouton",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Bouton par défaut : surface haute, capitales, ombre dure qui s’enfonce à l’appui.",
+      "html": "<button class=\"ds-btn\">Improviser</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 14px;font-family:var(--font-body);font-weight:650;font-size:13.5px;letter-spacing:.04em;text-transform:uppercase;background:var(--surface-hi);color:var(--text);border:var(--bw) solid var(--line);box-shadow:3px 3px 0 var(--shadow-ink);cursor:pointer;transition:transform 60ms steps(1),box-shadow 60ms steps(1)}.ds-btn:hover{border-color:var(--cyan)}.ds-btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}.ds-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow-ink)}.ds-btn:disabled{opacity:.4;cursor:default;transform:none}"
+    },
+    {
+      "name": "Bouton principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "L’action principale de l’écran : aplat magenta, liseré nuit et halo néon. Rare par écran.",
+      "html": "<button class=\"ds-btn-primary\">▶ Écouter</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 14px;font-family:var(--font-body);font-weight:700;font-size:13.5px;letter-spacing:.04em;text-transform:uppercase;background:var(--magenta);color:var(--on-accent);border:var(--bw) solid var(--magenta);box-shadow:0 0 0 2px var(--bg-deep),0 0 20px -4px var(--magenta),3px 3px 0 var(--shadow-ink);cursor:pointer;transition:transform 60ms steps(1),box-shadow 60ms steps(1)}.ds-btn-primary:hover{border-color:var(--yellow);color:var(--on-accent)}.ds-btn-primary:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}.ds-btn-primary:active{transform:translate(2px,2px);box-shadow:0 0 0 2px var(--bg-deep),1px 1px 0 var(--shadow-ink)}"
+    },
+    {
+      "name": "Bouton du héros",
+      "kind": "button",
+      "refersTo": "button-hero",
+      "description": "Le seul bouton primaire de l’accueil, lu depuis le tabouret : 56 px, 17 px ; touche « Espace » au clavier seulement.",
+      "html": "<button class=\"ds-btn-hero\">▶ Réviser (4 formes)<span class=\"ds-key\">Espace</span></button>",
+      "css": ".ds-btn-hero{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--hero-btn-h,56px);min-width:20rem;padding:0 14px;font-family:var(--font-body);font-weight:700;font-size:var(--hero-btn-size,17px);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;background:var(--magenta);color:var(--on-accent);border:var(--bw) solid var(--magenta);box-shadow:0 0 0 2px var(--bg-deep),0 0 20px -4px var(--magenta),3px 3px 0 var(--shadow-ink);cursor:pointer}.ds-btn-hero:hover{border-color:var(--yellow)}.ds-btn-hero:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}.ds-key{margin-inline-start:10px;padding:1px 5px;font-family:var(--font-label);font-size:11px;font-weight:700;letter-spacing:.04em;color:inherit;border:1px solid currentColor}"
+    },
+    {
+      "name": "Pastille",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Un choix dans un groupe (tonique, style) ; sélectionnée en aplat cyan, encre sur accent.",
+      "html": "<button class=\"ds-chip\">La</button> <button class=\"ds-chip ds-on\">Mi</button> <button class=\"ds-chip\">Ré</button>",
+      "css": ".ds-chip{min-height:38px;padding:0 10px;font-family:var(--font-body);font-weight:500;font-size:13.5px;border:var(--bw) solid var(--line);background:var(--surface-hi);color:var(--muted);cursor:pointer;white-space:nowrap}.ds-chip:hover{border-color:var(--cyan);color:var(--text)}.ds-chip:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}.ds-chip.ds-on{background:var(--cyan);border-color:var(--cyan);color:var(--on-accent);font-weight:700}"
+    },
+    {
+      "name": "Segments",
+      "kind": "custom",
+      "description": "Choix exclusif sur une ligne (famille de gammes, sens, annotation) ; actif en aplat magenta.",
+      "html": "<div class=\"ds-segmented\"><button class=\"ds-seg\">Montée</button><button class=\"ds-seg\">Descente</button><button class=\"ds-seg ds-on\">Aller-retour</button></div>",
+      "css": ".ds-segmented{display:flex;flex-wrap:wrap;gap:6px}.ds-seg{flex:none;min-height:40px;padding:0 9px;font-family:var(--font-body);font-weight:600;font-size:12.5px;border:var(--bw) solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer;white-space:nowrap}.ds-seg:hover{border-color:var(--cyan);color:var(--text)}.ds-seg:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}.ds-seg.ds-on{background:var(--magenta);border-color:var(--magenta);color:var(--on-accent);font-weight:700}"
+    },
+    {
+      "name": "Commutateur",
+      "kind": "custom",
+      "description": "Réglage oui/non avec sa conséquence en clair dessous ; case pixel pleine quand il est actif.",
+      "html": "<button class=\"ds-switch ds-on\" role=\"switch\" aria-checked=\"true\"><span class=\"ds-switch-box\"></span><span class=\"ds-switch-label\">Micro</span><span class=\"ds-switch-hint\">tes notes s’inscrivent sur la tablature</span></button>",
+      "css": ".ds-switch{display:grid;grid-template-columns:22px 1fr;align-items:center;gap:10px;width:100%;min-height:44px;padding:6px 10px;text-align:left;background:rgba(var(--veil-rgb),.55);border:var(--bw) solid var(--line-soft);color:var(--text);cursor:pointer}.ds-switch:hover{border-color:var(--cyan)}.ds-switch:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}.ds-switch-box{width:20px;height:20px;border:var(--bw) solid var(--line);background:var(--bg);position:relative}.ds-switch.ds-on .ds-switch-box{background:var(--cyan);border-color:var(--cyan)}.ds-switch.ds-on .ds-switch-box::after{content:'';position:absolute;inset:4px;background:var(--bg-deep)}.ds-switch-label{font-family:var(--font-body);font-weight:600;font-size:13.5px}.ds-switch-hint{grid-column:2;font-family:var(--font-body);font-size:13.5px;color:var(--dim);margin-top:-2px}"
+    },
+    {
+      "name": "Panneau",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Conteneur principal : surface, trait 2 px, ombre dure et équerres de coin ; 8 px entre deux sous-blocs, 4 px sous une étiquette.",
+      "html": "<section class=\"ds-panel\"><h2 class=\"ds-panel-label\">Accompagnement</h2><p class=\"ds-small\">La boucle mineure la plus jouée du genre : elle laisse la pentatonique mineure sonner sur les quatre mesures.</p><p class=\"ds-small\">Notes de l’accord : La · Do · Mi</p></section>",
+      "css": ".ds-panel{position:relative;padding:14px;background:var(--surface);color:var(--text);border:var(--bw) solid var(--line);box-shadow:var(--shadow,4px) var(--shadow,4px) 0 var(--shadow-ink)}.ds-panel::before,.ds-panel::after{content:'';position:absolute;width:9px;height:9px;border:2px solid var(--line);opacity:.9;pointer-events:none}.ds-panel::before{top:-2px;left:-2px;border-right:0;border-bottom:0}.ds-panel::after{bottom:-2px;right:-2px;border-left:0;border-top:0}.ds-panel>*{margin:0}.ds-panel>*+*{margin-block-start:var(--gap-inside,8px)}.ds-panel>.ds-panel-label+*{margin-block-start:var(--gap-tight,4px)}.ds-panel-label{font-family:var(--font-label);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.ds-small{font-family:var(--font-body);font-size:14.5px;line-height:1.55;color:var(--muted)}"
+    },
+    {
+      "name": "Étiquettes",
+      "kind": "chip",
+      "refersTo": "label",
+      "description": "Tag discret en capitales, tag « acquis » en aplat vert, badge de compte en chiffres tabulaires.",
+      "html": "<span class=\"ds-tag\">À faire</span> <span class=\"ds-tag ds-tag-on\">Appris</span> <span class=\"ds-badge\">0 / 35</span>",
+      "css": ".ds-tag{font-family:var(--font-label);font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:3px 6px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}.ds-tag-on{color:var(--bg-deep);background:var(--green);border-color:var(--green)}.ds-badge{font-family:var(--font-label);font-weight:700;font-size:12px;letter-spacing:.03em;padding:3px 7px;border:1px solid var(--line);background:var(--bg);color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "description": "Barre opaque du bas au téléphone : icône pixel au-dessus d’un libellé sans-serif ; actif en magenta, sans halo.",
+      "html": "<nav class=\"ds-nav\"><button class=\"ds-navbtn\"><svg viewBox=\"0 0 10 10\" width=\"20\" height=\"20\" shape-rendering=\"crispEdges\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M4 0h1v1h-1zM5 0h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1zM5 1h1v1h-1zM6 1h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM6 2h1v1h-1zM7 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM7 3h1v1h-1zM8 3h1v1h-1zM0 4h1v1h-1zM1 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM6 4h1v1h-1zM7 4h1v1h-1zM8 4h1v1h-1zM9 4h1v1h-1zM1 5h1v1h-1zM8 5h1v1h-1zM1 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM8 6h1v1h-1zM1 7h1v1h-1zM4 7h1v1h-1zM5 7h1v1h-1zM8 7h1v1h-1zM1 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM8 8h1v1h-1zM1 9h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM6 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1z\"/></svg><span>Accueil</span></button><button class=\"ds-navbtn ds-on\"><svg viewBox=\"0 0 10 10\" width=\"20\" height=\"20\" shape-rendering=\"crispEdges\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M8 1h1v1h-1zM9 1h1v1h-1zM8 2h1v1h-1zM9 2h1v1h-1zM6 3h1v1h-1zM7 3h1v1h-1zM8 3h1v1h-1zM9 3h1v1h-1zM6 4h1v1h-1zM7 4h1v1h-1zM8 4h1v1h-1zM9 4h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM7 5h1v1h-1zM8 5h1v1h-1zM9 5h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM7 6h1v1h-1zM8 6h1v1h-1zM9 6h1v1h-1zM2 7h1v1h-1zM3 7h1v1h-1zM4 7h1v1h-1zM5 7h1v1h-1zM6 7h1v1h-1zM7 7h1v1h-1zM8 7h1v1h-1zM9 7h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM9 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM6 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1zM9 9h1v1h-1z\"/></svg><span>Gammes</span></button><button class=\"ds-navbtn\"><svg viewBox=\"0 0 10 10\" width=\"20\" height=\"20\" shape-rendering=\"crispEdges\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM7 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM0 1h1v1h-1zM3 1h1v1h-1zM6 1h1v1h-1zM9 1h1v1h-1zM0 2h1v1h-1zM3 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM0 3h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM5 3h1v1h-1zM6 3h1v1h-1zM7 3h1v1h-1zM8 3h1v1h-1zM9 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM6 4h1v1h-1zM9 4h1v1h-1zM0 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM7 6h1v1h-1zM8 6h1v1h-1zM9 6h1v1h-1zM0 7h1v1h-1zM3 7h1v1h-1zM6 7h1v1h-1zM8 7h1v1h-1zM9 7h1v1h-1zM0 8h1v1h-1zM3 8h1v1h-1zM6 8h1v1h-1zM8 8h1v1h-1zM9 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM6 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1zM9 9h1v1h-1z\"/></svg><span>Accords</span></button><button class=\"ds-navbtn\"><svg viewBox=\"0 0 10 10\" width=\"20\" height=\"20\" shape-rendering=\"crispEdges\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M1 0h1v1h-1zM2 0h1v1h-1zM7 0h1v1h-1zM8 0h1v1h-1zM1 1h1v1h-1zM2 1h1v1h-1zM7 1h1v1h-1zM8 1h1v1h-1zM1 2h1v1h-1zM2 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM1 3h1v1h-1zM2 3h1v1h-1zM7 3h1v1h-1zM8 3h1v1h-1zM1 4h1v1h-1zM2 4h1v1h-1zM7 4h1v1h-1zM8 4h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM6 5h1v1h-1zM7 5h1v1h-1zM8 5h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM7 6h1v1h-1zM4 7h1v1h-1zM5 7h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM6 9h1v1h-1z\"/></svg><span>Accordeur</span></button><button class=\"ds-navbtn\"><svg viewBox=\"0 0 10 10\" width=\"20\" height=\"20\" shape-rendering=\"crispEdges\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M3 0h1v1h-1zM4 0h1v1h-1zM0 1h1v1h-1zM1 1h1v1h-1zM2 1h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1zM5 1h1v1h-1zM6 1h1v1h-1zM7 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 4h1v1h-1zM7 4h1v1h-1zM0 5h1v1h-1zM1 5h1v1h-1zM2 5h1v1h-1zM3 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM7 5h1v1h-1zM8 5h1v1h-1zM9 5h1v1h-1zM6 6h1v1h-1zM7 6h1v1h-1zM1 8h1v1h-1zM2 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM6 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1zM9 9h1v1h-1z\"/></svg><span>Réglages</span></button></nav>",
+      "css": ".ds-nav{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);background:var(--bg-deep);border-top:var(--bw) solid var(--line)}.ds-navbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;height:56px;padding:0 2px;background:transparent;border:0;color:var(--dim);font-family:var(--font-body);font-weight:600;font-size:11.5px;cursor:pointer}.ds-navbtn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.ds-navbtn:hover{color:var(--text)}.ds-navbtn.ds-on{color:var(--magenta)}.ds-navbtn:focus-visible{outline:2px solid var(--cyan);outline-offset:-4px}"
+    },
+    {
+      "name": "Étapes de la session",
+      "kind": "custom",
+      "description": "Liste numérotée du héros : pastilles pixel de 28 px, étape en cours en aplat magenta, étape franchie en ✓ vert estompée.",
+      "html": "<ol class=\"ds-steps\"><li class=\"ds-done\"><span class=\"ds-step-n\">✓</span><span class=\"ds-step-text\">2 formes rafraîchies</span></li><li class=\"ds-current\"><span class=\"ds-step-n\">2</span><span class=\"ds-step-text\">Avancer : Position 4, exercice à trous<span class=\"ds-step-why\">il manque encore une réussite (≥ 80 %)</span></span></li></ol>",
+      "css": ".ds-steps{list-style:none;display:grid;gap:var(--gap-inside,8px);padding:0;margin:0}.ds-steps>li{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:var(--gap-inside,8px)}.ds-step-n{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;font-family:var(--font-label);font-weight:700;color:var(--magenta);border:var(--bw) solid var(--magenta)}.ds-current .ds-step-n{color:var(--on-accent);background:var(--magenta)}.ds-done .ds-step-n{color:var(--green);border-color:var(--green)}.ds-step-text{font-family:var(--font-body);font-size:16px;font-weight:600;color:var(--text)}.ds-done .ds-step-text{color:var(--muted);font-weight:400}.ds-step-why{display:block;font-size:14.5px;font-weight:400;line-height:1.45;color:var(--muted)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "La salle de répétition au néon",
+    "overview": "Une cabine d'enregistrement vue à travers un moniteur CRT : un ciel dégradé, un soleil rayé, des montagnes en silhouette et une grille en perspective servent de décor, et la tablature est l'instrument posé devant. Tout le chrome est en pixels francs : traits de 2 px, ombres dures décalées, coins à 2 px, jamais de flou ni de dégradé décoratif sur les panneaux. Le thème « Aube » est le même monde sous la lumière du jour, pas une variante : même décor, même forme, encre prune sur papier chaud.\n\nL'interface est un outil d'entraînement, regardé à distance, les mains sur le manche. Le décor ambiance ; le contenu pédagogique (tablature, note à jouer, verdict) prend toujours le premier plan. L'identité pixel art vit dans les bordures, les ombres, les étiquettes et la tablature, pas dans le texte qu'on lit.",
+    "keyCharacteristics": [
+      "Pixel logique unique à échelle entière pour le canvas ; traits DOM de 2 px, jamais 1.",
+      "Ombres dures, décalées de 3-4 px, sans flou. Les halos néon ne servent qu'à désigner l'action principale ou l'état actif.",
+      "Deux thèmes entièrement jetonnés (`ThemeTokens`) ; aucun hex dans `app.css`.",
+      "Couleurs d'intervalle globales, identiques dans les deux thèmes.",
+      "Texte courant en sans-serif système ; polices pixel réservées aux étiquettes et à la marque."
+    ],
+    "rules": [
+      {
+        "name": "The Ink-On-Accent Rule",
+        "body": "Le texte posé sur un aplat d'accent utilise `--on-accent`, jamais un noir ou un blanc codé en dur : un seul jeton garantit la lisibilité dans les deux thèmes.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed-Interval Rule",
+        "body": "Aucune couleur d'intervalle n'est lue depuis le thème. Un thème peut changer le panneau de la tablature, pas le sens d'une couleur de note.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Hex Rule",
+        "body": "`app.css` ne contient aucun hex ; tout passe par les variables issues des tokens.",
+        "section": "colors"
+      },
+      {
+        "name": "The Reading-Text Rule",
+        "body": "Tout texte que l'élève doit lire (navigation, consignes, valeurs) est en sans-serif. Silkscreen en capitales tronquait « ACCORDEUR » et perdait les accents : il reste réservé aux étiquettes.",
+        "section": "typography"
+      },
+      {
+        "name": "The Hard-Shadow Rule",
+        "body": "Aucune ombre floue pour la profondeur. Le seul flou autorisé est le halo néon, et il signale l'action ou l'état actif.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** passer par les jetons de thème (`var(--magenta)`, `var(--on-accent)`, `var(--shadow-ink)`) pour toute couleur de l'UI DOM.",
+      "**Do** donner un fond à tout ce qui se clique (chip, segment, bouton quiet) pour qu'il lise comme un bouton.",
+      "**Do** garder des cibles tactiles d'au moins 38 px et vérifier l'absence de débordement horizontal à 390 px.",
+      "**Do** tenir le contraste AA sur le texte courant dans les deux thèmes (≥ 4,5:1 ; l'encre aube vise ≥ 7:1).",
+      "**Do** respecter `prefers-reduced-motion` : suppression des transitions d'appui et des animations du décor."
+    ],
+    "donts": [
+      "**Don't** coder un hex dans `app.css` ni en dur dans un composant React.",
+      "**Don't** utiliser une police pixel pour du texte courant, de la navigation ou une consigne.",
+      "**Don't** ajouter d'ombre floue de profondeur ni d'arrondi supérieur à 2 px.",
+      "**Don't** laisser une couleur d'intervalle dépendre du thème ni la rendre seule porteuse du sens (le chiffre est toujours écrit).",
+      "**Don't** poser des scanlines ou une traînée lumineuse sur un ciel clair, ni sur les chiffres de la tablature.",
+      "**Don't** étendre un halo néon aux contrôles secondaires."
+    ]
+  }
+}
