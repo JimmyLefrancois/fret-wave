@@ -200,3 +200,17 @@ export function chordProgress(learned: ReadonlySet<string>): { done: number; tot
 export function palierOf(voicingId: string): Palier | null {
   return palierOfVoicing(voicingId) ?? entryOf(voicingId)?.palier ?? null;
 }
+
+/**
+ * Délai avant la prochaine révision, en mots. Les intervalles de Leitner vont d'heures à semaines :
+ * « révision dans 4320 min » ne se lisait pas.
+ */
+export function reviewDelayText(ms: number): string {
+  if (ms <= 0) return 'à réviser maintenant';
+  const min = Math.max(1, Math.round(ms / 60_000));
+  if (min < 60) return `révision dans ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `révision dans ${h} h`;
+  const d = Math.round(h / 24);
+  return `révision dans ${d} jour${d > 1 ? 's' : ''}`;
+}

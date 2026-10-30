@@ -197,10 +197,9 @@ a { color: var(--cyan); }
 }
 .panel::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
 .panel::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
-.panel-accent {
-  border-color: var(--accent);
-  box-shadow: 0 0 16px -6px var(--accent), var(--shadow) var(--shadow) 0 var(--shadow-ink);
-}
+.panel-accent { border-color: var(--accent); }
+/* le halo désigne l'état actif (D104) : un seul panneau par écran, celui où l'on agit */
+.panel-active { box-shadow: 0 0 16px -6px var(--accent, var(--line)), var(--shadow) var(--shadow) 0 var(--shadow-ink); }
 .panel-head {
   display: flex;
   align-items: center;
@@ -900,6 +899,7 @@ table.kv td:first-child { color: var(--muted); }
   .shell > .foot-note,
   .shell > .levels,
   .shell > .step-nav,
+  .shell > .step-nav-compact,
   .shell > .step-goal { grid-column: 1 / -1; }
 
   /* largeurs : 3 crans seulement, pour que les rangées s'alignent toujours */
@@ -1326,10 +1326,14 @@ table.kv td:first-child { color: var(--muted); }
    =========================================================================== */
 
 .chord-list { display: grid; gap: 8px; margin-top: 10px; }
+/* au bureau, deux accords par rangée : 11 lignes de « Septièmes » tenaient toute une page */
+@media (min-width: 900px) {
+  .chord-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .chord-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 10px 12px;
   align-items: flex-start;
   justify-content: space-between;
   padding: 8px 11px;
@@ -1337,20 +1341,21 @@ table.kv td:first-child { color: var(--muted); }
   border: 2px solid var(--line-soft);
 }
 .chord-row.learned { border-color: var(--green); }
-.chord-row.locked { opacity: 0.82; }
+.chord-row > .chordbox { flex: none; }
+/* « plus tard » : trait pointillé plutôt qu'une opacité de 0,82 qu'on ne distinguait pas d'une ligne ouverte */
+.chord-row.locked { border-style: dashed; }
 .chord-main { min-width: 0; flex: 1 1 220px; display: grid; gap: 1px; }
 /* le nom et ses notes vont ensemble ; la phrase de prof qui suit est un autre bloc */
 .chord-main > p + p { margin-block-start: var(--gap-tight); }
+/* le nom d'accord est du texte qu'on lit, et sa casse porte le sens : en Silkscreen capitales,
+   Em et E, Am et A ne différaient plus que par un « M » qu'on lisait « majeur » */
 .chord-name {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-family: var(--font-label);
-  font-size: 15px;
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
   color: var(--text);
   margin: 0;
-  letter-spacing: 0.04em;
 }
 .chord-frets {
   font-family: var(--font-body);
@@ -1363,16 +1368,47 @@ table.kv td:first-child { color: var(--muted); }
 .prof-note > summary {
   display: flex;
   align-items: center;
-  min-height: 28px;
+  min-height: 38px;
   color: var(--cyan);
   cursor: pointer;
+  list-style: none;
 }
+.prof-note > summary::-webkit-details-marker { display: none; }
+.prof-note > summary::before { content: '▸ '; color: var(--magenta); white-space: pre; }
+.prof-note[open] > summary::before { content: '▾ '; }
 .prof-note > p { margin-top: 2px; }
 .chord-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .chord-side .tag { white-space: nowrap; }
 
 .chordbox { display: block; line-height: 0; }
 .chordbox canvas { display: block; image-rendering: pixelated; }
+
+/* héros de l'index : la forme dessinée à côté de son nom */
+.chord-hero { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-block) 16px; }
+.chord-hero-text { flex: 1 1 140px; min-width: 0; display: grid; gap: var(--gap-tight); }
+.chord-hero-text .home-title { margin: 0; }
+.chord-hero-text .t-body { margin: 0; color: var(--muted); }
+.chord-progress { display: grid; gap: var(--gap-tight); margin-top: var(--gap-inside); }
+
+/* palier replié : une ligne d'objectif et un bouton pour déplier */
+.palier-actions { margin-top: var(--gap-inside); }
+.row.palier-actions { align-items: center; }
+.palier-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--cyan);
+  background: var(--bg);
+  border: var(--bw) solid var(--line-soft);
+  cursor: pointer;
+}
+.palier-toggle:hover { border-color: var(--cyan); }
+.palier-toggle::before { content: '▸ '; color: var(--magenta); white-space: pre; }
+.palier-toggle[aria-expanded='true']::before { content: '▴ '; }
 .chord-box-wrap { display: grid; gap: 6px; justify-items: start; }
 
 .finger-steps { list-style: none; display: grid; gap: 8px; }
@@ -1442,7 +1478,7 @@ table.kv td:first-child { color: var(--muted); }
   background: none;
   border: 0;
   padding: 0;
-  min-height: 24px;
+  min-height: 38px;
   cursor: pointer;
   /* fond opaque gardé (D75) : seul le libellé en minuscules le distingue des actions */
 }
@@ -1513,20 +1549,13 @@ table.kv td:first-child { color: var(--muted); }
   border: 2px solid var(--line-soft);
 }
 .step-goal-text { margin: 0; flex: 1 1 0; min-width: 0; }
+/* micro et boîte d'accord : deux réglages de toute la leçon, côte à côte, à droite de l'objectif */
+.step-toggles { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 100%; }
+.step-toggles .switch { width: auto; flex: 1 1 140px; margin: 0; min-height: 40px; padding: 4px 10px; }
 @media (min-width: 520px) {
-  .step-box-toggle { margin-left: auto; }
+  .step-toggles { flex: 0 0 auto; margin-left: auto; }
+  .step-toggles .switch { flex: 0 0 auto; }
 }
-.step-box-toggle {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 28px;
-  font-size: 12.5px;
-  color: var(--cyan);
-  cursor: pointer;
-}
-.step-box-toggle input { width: 16px; height: 16px; accent-color: var(--cyan); }
 
 .chord-intro { display: grid; gap: 10px; margin-bottom: 8px; }
 .chord-facts { display: grid; gap: 8px; align-content: start; }
@@ -1538,6 +1567,46 @@ table.kv td:first-child { color: var(--muted); }
 
 /* sept étapes : la grille de 4 place les trois dernières sur une seconde rangée */
 .step-nav-7 { row-gap: 6px; }
+
+/* téléphone : la grille de sept cède la place à une ligne « ‹ 02/07 Construire › » */
+.step-nav-compact { display: none; }
+@media (max-width: 519px) {
+  .step-nav-7 { display: none; }
+  .step-nav-compact {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0 2px;
+  }
+}
+.step-arrow {
+  min-height: 44px;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cyan);
+  background: var(--surface-hi);
+  border: var(--bw) solid var(--line-soft);
+  cursor: pointer;
+}
+.step-arrow:hover { border-color: var(--cyan); }
+.step-arrow:disabled { opacity: 0.4; cursor: default; }
+.step-compact-label {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 8px;
+  background: var(--surface);
+  border: var(--bw) solid var(--cyan);
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text);
+}
+.step-compact-label .step-num { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--cyan); }
 
 /* pose à froid : le chrono est la seule chose qu'on regarde */
 .cold-line {
@@ -1570,13 +1639,8 @@ table.kv td:first-child { color: var(--muted); }
 }
 
 /* QCM sans matériel : une réponse = une grande cible tactile, lisible seule */
-.quiz-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+/* relancer la série : en bas du panneau, loin des réponses, avec une seconde touche en cours de série */
+.row.quiz-reset { align-items: center; margin-top: var(--gap-inside); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
 .quiz-tab { margin: 8px 0; }
 .quiz-options { display: grid; gap: 8px; margin: 10px 0; }
 .quiz-option {
@@ -2283,6 +2347,7 @@ table.kv td:first-child { color: var(--muted); }
 .positions,
 .cta-block,
 .step-nav,
+.step-nav-compact,
 .hero,
 .quiz-strip { margin-block: 0; }
 
@@ -2633,3 +2698,9 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
    l'échelle 2, il défile dans son panneau plutôt que de rapetisser ses pastilles. */
 .neck { line-height: 0; overflow-x: auto; overflow-y: hidden; }
 .neck canvas { display: block; margin-inline: auto; image-rendering: pixelated; }
+
+/* replis de l'index des accords : la ligne entière est une cible tactile, pas seulement ses 22 px de texte */
+.chord-more > summary { display: flex; align-items: center; min-height: 38px; }
+
+/* verdict du QCM : zone annoncée (role=status), toujours présente pour que le lecteur d’écran la suive */
+.quiz-verdict { display: grid; gap: var(--gap-inside); }

@@ -5,6 +5,7 @@ import {
 import { VOICINGS, voicingById } from '../src/data/voicings';
 import { interpretChord } from '../src/core/theory/chords';
 import { mainlineChordIds } from '../src/modules/accords/curriculum';
+import { layoutScore } from '../src/core/tab';
 
 const noteSet = (ns: readonly string[]) => [...ns].sort().join(',');
 
@@ -17,6 +18,17 @@ describe('QCM — questions', () => {
     expect(q.options).toHaveLength(4);
     expect(q.answer).toBeGreaterThanOrEqual(0);
     expect(q.options[q.answer]).toEqual({ kind: 'chord', symbol: 'Em' });
+  });
+
+  it('la tablature anonyme dessinée ne porte aucun nom d’accord, sur tout le parcours', () => {
+    const ids = mainlineChordIds();
+    expect(ids.length).toBeGreaterThan(0);
+    for (const id of ids) {
+      const v = voicingById(id)!;
+      const chordTexts = layoutScore(anonymousScore(v)).systems.flatMap((s) => s.texts.filter((t) => t.role === 'chord'));
+      expect(chordTexts, v.id).toEqual([]);
+      expect(anonymousScore(v).measures.every((m) => m.events.every((ev) => !ev.chord)), v.id).toBe(true);
+    }
   });
 
   it('les distracteurs sont les confusions réelles, pas des accords au hasard', () => {

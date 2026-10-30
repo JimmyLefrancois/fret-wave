@@ -31,6 +31,9 @@ import { Chip, Panel, PixelButton, Segmented, Switch } from '../../app/ui';
 import { AudioEngine } from '../../core/audio/engine';
 import { TabPlayer } from '../../core/audio/tabPlayer';
 import { describeInputError, type InputEngine, type InputFrame } from '../../core/input/engine';
+
+/** Ce qui reste sans micro dans une leçon d'accord : déclarer, sans valeur de preuve. */
+const CHORD_FALLBACK = 'Sans micro, chaque étape reste faisable en déclarant, mais rien n’est compté comme vérifié.';
 import { noteNameOf } from '../../core/input/match';
 import { analyzeChord, type ChordAnalysis } from '../../core/input/poly';
 import { useInputSettings } from '../../core/input/settings';
@@ -131,7 +134,9 @@ export function ChordLessonPage() {
   );
   const learned = useMemo(() => learnedChordIds(journal), [journal]);
   const started = useMemo(() => startedChordIds(journal), [journal]);
-  const next = useMemo(() => nextChord(learned), [learned]);
+  // « Et après ? » regarde au-delà de l'accord en cours : sans lui, la fin de la leçon d'Em
+  // recommandait… Em
+  const next = useMemo(() => nextChord(new Set([...learned, v.id])), [learned, v.id]);
 
   // --- transitions : la paire choisie, ou la plus utile du moment
   const candidates = useMemo(() => transitionCandidates(learned, started), [learned, started]);
@@ -259,7 +264,7 @@ export function ChordLessonPage() {
           return;
         }
         if (e.state !== 'listening') {
-          const d = describeInputError(e.state, e.error);
+          const d = describeInputError(e.state, e.error, CHORD_FALLBACK);
           setFeedback({ ok: false, text: `${d.message} — ${d.hint}` });
           setMicOn(false);
         }
@@ -599,7 +604,6 @@ export function ChordLessonPage() {
 
   const pendingStrings = step === 'construire' ? buildChecks.slice(buildIndex + 1).map((c) => c.string) : [];
   const highlight = step === 'construire' ? buildChecks[buildIndex]?.string ?? null : null;
-  const palier = palierOfVoicing(v.id);
   const entry = entryOf(v.id)?.entry ?? null;
   const coldSecondsNow = coldSeconds(coldRun.current);
 
@@ -610,7 +614,7 @@ export function ChordLessonPage() {
         <div>
           <h1 className="page-title">{fmtChord(v.chord, settings.chordNotation)}</h1>
           <p className="t-small t-dim">
-            {palier ? `${palier.id} · ` : ''}
+            {/* le code du palier (« P1 ») est interne : l'élève lit la qualité et les notes */}
             {info.quality.nameFr} · {info.notes.map((n) => fmtNote(n, settings.noteNotation)).join(' – ')}
           </p>
         </div>
@@ -621,6 +625,28 @@ export function ChordLessonPage() {
 
       {/* Sept étapes, deux rangées : sur 390 px, quatre boutons tiennent par ligne ; sept d'un coup
           donneraient des libellés d'une syllabe. */}
+      {/* téléphone : une seule ligne « ‹ 02/07 Construire › » ; la grille de sept boutons prenait
+          deux rangées (130 px) au-dessus de la boîte qu'on doit lire à bout de bras */}
+      {(() => {
+        const i = LESSON_STEPS.findIndex((s) => s.id === step);
+        const go = (j: number) => {
+          const s = LESSON_STEPS[j];
+          if (!s) return;
+          setStep(s.id);
+          setFeedback(null);
+          if (s.id === 'verifier' && verifyStart.current === 0) verifyStart.current = performance.now();
+        };
+        const cur = LESSON_STEPS[i]!;
+        return (
+          <nav className="step-nav-compact" aria-label="Étape de la leçon">
+            <button type="button" className="step-arrow" onClick={() => go(i - 1)} disabled={i <= 0} aria-label="Étape précédente">‹</button>
+            <p className="step-compact-label" aria-live="polite">
+              <span className="step-num">{cur.num}/{String(LESSON_STEPS.length).padStart(2, '0')}</span> {cur.title}
+            </p>
+            <button type="button" className="step-arrow" onClick={() => go(i + 1)} disabled={i >= LESSON_STEPS.length - 1} aria-label="Étape suivante">›</button>
+          </nav>
+        );
+      })()}
       <nav className="step-nav step-nav-7" aria-label="Étape de la leçon">
         {LESSON_STEPS.map((s) => (
           <button
@@ -644,19 +670,21 @@ export function ChordLessonPage() {
           ils ne s'écrivent plus dans la même phrase. */}
       <div className="step-goal">
         <p className="t-small step-goal-text">{LESSON_STEPS.find((s) => s.id === step)?.goal}</p>
-        <label className="step-box-toggle">
-          <input type="checkbox" checked={showBox} onChange={(e) => setShowBox(e.target.checked)} />
-          boîte d’accord
-        </label>
+        {/* le micro est la preuve de toute la leçon : un seul interrupteur, toujours visible, au lieu
+            d'un par étape qu'il fallait retrouver (D104). Proposé, jamais imposé. */}
+        <div className="step-toggles">
+          <Switch checked={micOn} onChange={setMicOn} label="Micro" hint={micBusy ? 'ouverture…' : micOn ? 'j’écoute' : 'coupé'} inline />
+          <Switch checked={showBox} onChange={setShowBox} label="Boîte d’accord" inline />
+        </div>
       </div>
 
       {step === 'decouvrir' && (
         <>
-          <Panel className="span-12" accent="cyan" label="L’accord">
+          <Panel className="span-12" accent="cyan" active label="L’accord">
             <div className="chord-intro">
-              {/* S = 2 : les chiffres de doigt font 14 px CSS, comme dans la tablature — au-delà, la
-                  boîte prend la moitié de l'écran d'un téléphone pour la même information */}
-              {showBox && <ChordBoxView voicing={v} maxScale={2} />}
+              {/* S = 3 : à 2, la boîte faisait 140 px de large, illisible depuis le tabouret, guitare en
+                  main ; la navigation d'étapes compacte libère la hauteur qu'elle prend en plus */}
+              {showBox && <ChordBoxView voicing={v} maxScale={3} />}
               <div className="chord-facts">
                 <p className="t-body">
                   <strong>{fmtChord(v.chord, settings.chordNotation)}</strong> ={' '}
@@ -696,7 +724,7 @@ export function ChordLessonPage() {
             {status && <p className="t-small t-dim">{status}</p>}
           </Panel>
           {scoreStrum && (
-            <Panel className="span-12" accent="magenta" label="Tablature plaquée">
+            <Panel className="span-12" label="Tablature plaquée">
               <TabView
                 score={scoreStrum}
                 notes={settings.noteNotation}
@@ -721,7 +749,7 @@ export function ChordLessonPage() {
 
       {step === 'construire' && (
         <>
-          <Panel className="span-5" accent="cyan" label="Doigt par doigt">
+          <Panel className="span-5" accent="cyan" active label="Doigt par doigt">
             {showBox ? (
               <ChordBoxView voicing={v} highlight={highlight} pending={pendingStrings} />
             ) : (
@@ -730,32 +758,33 @@ export function ChordLessonPage() {
             <p className="t-small">
               {buildDone
                 ? 'Tous les doigts sont posés. Vérifie maintenant corde par corde : c’est là que se joue la propreté.'
-                : `Pose ${FINGER_NAME[String(steps[buildIndex]?.finger ?? 1)]} sur la corde de ${
+                : `Pose le ${FINGER_NAME[String(steps[buildIndex]?.finger ?? 1)]} (doigt ${steps[buildIndex]?.finger ?? 1}) sur la corde de ${
                     buildChecks[buildIndex]
                       ? fmtStringLabel(buildChecks[buildIndex]!.stringName, buildChecks[buildIndex]!.string === tuning.strings.length - 1, settings.noteNotation)
                       : ''
                   }, case ${steps[buildIndex]?.fret ?? ''}.`}
             </p>
-            <div className="row">
-              <Switch checked={micOn} onChange={setMicOn} label="Micro (valider chaque doigt)" />
-            </div>
             {micOn && <MicStrip engine={engine} notation={settings.noteNotation} thresholdDb={input.thresholds[input.source]} tolerance={input.centsTolerance} tuning={tuning} a4={input.a4} />}
-            {micBusy && <p className="t-small t-dim">ouverture du micro…</p>}
             {heard && <p className="t-small t-dim">entendu : {heard.note} ({heard.cents > 0 ? '+' : ''}{heard.cents.toFixed(0)} ¢ · {heard.db.toFixed(0)} dBFS)</p>}
             <div className="row">
-              <PixelButton
-                onClick={() => {
-                  setBuildIndex((i) => Math.min(buildChecks.length, i + 1));
-                  setFeedback(null);
-                }}
-                disabled={buildDone}
-              >
-                Doigt posé
-              </PixelButton>
+              {/* un seul primaire : « Doigt posé » tant qu'il reste un doigt, puis « Vérifier ». Micro
+                  ouvert, c'est lui qui valide : le bouton devient un secours */}
+              {!buildDone ? (
+                <PixelButton
+                  variant={micOn ? 'ghost' : 'primary'}
+                  onClick={() => {
+                    setBuildIndex((i) => Math.min(buildChecks.length, i + 1));
+                    setFeedback(null);
+                  }}
+                >
+                  Doigt posé
+                </PixelButton>
+              ) : (
+                <PixelButton variant="primary" onClick={() => { setStep('verifier'); verifyStart.current = performance.now(); }}>
+                  Vérifier →
+                </PixelButton>
+              )}
               <PixelButton variant="quiet" onClick={() => { setBuildIndex(0); setBuildState(newCheck()); }}>Recommencer</PixelButton>
-              <PixelButton variant="primary" onClick={() => { setStep('verifier'); verifyStart.current = performance.now(); }} disabled={steps.length > 0 && !buildDone}>
-                Vérifier →
-              </PixelButton>
             </div>
             {feedback && <p className={`t-small ${feedback.ok ? 'ok' : 'ko'}`}>{feedback.text}</p>}
           </Panel>
@@ -791,14 +820,14 @@ export function ChordLessonPage() {
 
       {step === 'verifier' && (
         <>
-          <Panel className="span-7" accent="cyan" label="Corde par corde">
+          <Panel className="span-7" accent="cyan" active label="Corde par corde">
             <p className="t-small">
               {micOn
                 ? 'Joue les cordes dans cet ordre, une par une, sans étouffer la voisine. Chaque note juste valide sa corde.'
                 : 'Sans micro, l’app ne peut pas entendre : tu déclares. Le résultat est enregistré comme non vérifié — il ne rend pas l’accord « appris ».'}
             </p>
             <div className="row">
-              <Switch checked={micOn} onChange={setMicOn} label="Micro" />
+              {!micOn && <PixelButton variant="primary" onClick={() => setMicOn(true)}>Ouvrir le micro</PixelButton>}
               <Chip small onClick={() => { setCheck(newCheck()); verifyStart.current = performance.now(); setFeedback(null); }}>Recommencer</Chip>
             </div>
             {micOn && <MicStrip engine={engine} notation={settings.noteNotation} thresholdDb={input.thresholds[input.source]} tolerance={input.centsTolerance} tuning={tuning} a4={input.a4} />}
@@ -835,7 +864,7 @@ export function ChordLessonPage() {
               /* collant sous la barre de navigation sur téléphone : la liste des six cordes fait plus
                  qu'un écran, et la réponse doit rester sous le pouce */
               <div className="row check-actions">
-                <PixelButton variant="primary" onClick={() => declare('ok')}>Elle sonne</PixelButton>
+                <PixelButton onClick={() => declare('ok')}>Elle sonne</PixelButton>
                 <PixelButton onClick={() => declare('wrong')}>Elle ne sonne pas</PixelButton>
               </div>
             )}
@@ -878,7 +907,7 @@ export function ChordLessonPage() {
 
       {step === 'plaquer' && (
         <>
-          <Panel className="span-7" accent="cyan" label="Le geste complet">
+          <Panel className="span-7" accent="cyan" active label="Le geste complet">
             <p className="t-body">
               Un accord plaqué, c’est six cordes qui sonnent ensemble.{' '}
               {micOn
@@ -886,7 +915,8 @@ export function ChordLessonPage() {
                 : 'Ouvre le micro et elle t’entend vraiment ; sans micro, il ne reste que ta parole.'}
             </p>
             <div className="row">
-              <PixelButton variant="primary" onClick={() => void play(scoreStrum)}>▶ Écouter plaqué</PixelButton>
+              {/* le primaire de l'étape est l'action du micro, plus bas : l'écoute est secondaire */}
+              <PixelButton onClick={() => void play(scoreStrum)}>▶ Écouter plaqué</PixelButton>
               <PixelButton onClick={() => void play(scoreBoth)}>▶ Écouter arpégé</PixelButton>
             </div>
             <div className="row">
@@ -899,7 +929,7 @@ export function ChordLessonPage() {
                   {pluckPhase === 'armed' ? '● À toi — plaque l’accord' : pluckPhase === 'listening' ? '● J’écoute…' : '▶ Écouter mon accord'}
                 </PixelButton>
               ) : (
-                <PixelButton onClick={() => setMicOn(true)}>Ouvrir le micro</PixelButton>
+                <PixelButton variant="primary" onClick={() => setMicOn(true)}>Ouvrir le micro</PixelButton>
               )}
               <PixelButton
                 variant="quiet"
@@ -955,11 +985,11 @@ export function ChordLessonPage() {
               </p>
             )}
           </Panel>
-          <Panel className="span-5" accent="green" label="Et après ?">
+          <Panel className="span-5" accent="violet" label="Et après ?">
             {next ? (
               <>
                 <p className="t-small">
-                  Prochain accord recommandé : <strong>{fmtChord(next.chord, settings.chordNotation)}</strong> — {next.reason}.
+                  Après celui-ci : <strong>{fmtChord(next.chord, settings.chordNotation)}</strong>, {next.reason}.
                 </p>
                 <div className="row">
                   <PixelButton
@@ -980,7 +1010,7 @@ export function ChordLessonPage() {
             </p>
           </Panel>
           {scoreStrum && (
-            <Panel className="span-12" accent="magenta" label="Tablature plaquée">
+            <Panel className="span-12" label="Tablature plaquée">
               <TabView
                 score={scoreStrum}
                 notes={settings.noteNotation}
@@ -999,7 +1029,7 @@ export function ChordLessonPage() {
 
       {step === 'fixer' && (
         <>
-          <Panel className="span-7" accent="orange" label="Pose à froid, chronométrée">
+          <Panel className="span-7" accent="cyan" active label="Pose à froid, chronométrée">
             <p className="t-body">
               Pose l’accord <strong>sans aide</strong>, puis fais sonner la corde grave. Le chrono s’arrête à la
               première corde juste : c’est le moment où ta main est arrivée. Ensuite, tu vérifies les autres
@@ -1014,14 +1044,18 @@ export function ChordLessonPage() {
               </span>
             </div>
             <div className="row">
-              <Switch checked={micOn} onChange={setMicOn} label="Micro" />
-              <PixelButton
-                variant="primary"
-                onClick={beginCold}
-                disabled={!micOn || coldRun.current.phase === 'running'}
-              >
-                {coldRun.current.phase === 'running' ? 'chrono en cours…' : `Démarrer · ${limit} s`}
-              </PixelButton>
+              {/* sans micro, le primaire ouvre le micro : un « Démarrer » grisé ne disait pas quoi faire */}
+              {micOn ? (
+                <PixelButton
+                  variant="primary"
+                  onClick={beginCold}
+                  disabled={coldRun.current.phase === 'running'}
+                >
+                  {coldRun.current.phase === 'running' ? 'chrono en cours…' : `Démarrer · ${limit} s`}
+                </PixelButton>
+              ) : (
+                <PixelButton variant="primary" onClick={() => setMicOn(true)}>Ouvrir le micro</PixelButton>
+              )}
               {coldRun.current.phase === 'running' && (
                 <PixelButton onClick={judgeCold}>Arrêter et juger</PixelButton>
               )}
@@ -1090,7 +1124,7 @@ export function ChordLessonPage() {
 
       {step === 'enchainer' && (
         <>
-          <Panel className="span-7" accent="magenta" label="Changement mesuré">
+          <Panel className="span-7" accent="cyan" active label="Changement mesuré">
             <p className="t-body">
               Deux accords en alternance. {DRILL_SECONDS} secondes pendant lesquelles l’app horodate une
               <strong> note repère </strong> par accord — sa basse, ou la première corde qui change quand les deux
@@ -1105,10 +1139,13 @@ export function ChordLessonPage() {
             {/* l'action avant la liste : au premier écran d'un téléphone, « Démarrer » doit être atteignable
                 sans faire défiler (revue de la 4a) */}
             <div className="row">
-              <Switch checked={micOn} onChange={setMicOn} label="Micro" />
-              <PixelButton variant="primary" onClick={startDrill} disabled={!micOn || drill.active || !pair}>
-                {drill.active ? 'chrono en cours…' : `Démarrer · ${DRILL_SECONDS} s`}
-              </PixelButton>
+              {micOn ? (
+                <PixelButton variant="primary" onClick={startDrill} disabled={drill.active || !pair}>
+                  {drill.active ? 'chrono en cours…' : `Démarrer · ${DRILL_SECONDS} s`}
+                </PixelButton>
+              ) : (
+                <PixelButton variant="primary" onClick={() => setMicOn(true)}>Ouvrir le micro</PixelButton>
+              )}
               {drill.active && <PixelButton onClick={stopDrill}>Arrêter</PixelButton>}
             </div>
             <div className="field">
@@ -1176,7 +1213,7 @@ export function ChordLessonPage() {
               </p>
             )}
           </Panel>
-          <Panel className="span-5" accent="cyan" label="Ce que la mesure veut dire">
+          <Panel className="span-5" accent="violet" label="Ce que la mesure veut dire">
             <p className="t-small">
               Le temps affiché est mesuré entre <strong>deux notes repères</strong>, avec la même horloge : la latence
               du micro s’annule dans la différence, il n’y a donc rien à corriger.
@@ -1192,7 +1229,7 @@ export function ChordLessonPage() {
             </p>
           </Panel>
           {scorePair && (
-            <Panel className="span-12" accent="violet" label="Les deux accords en tablature">
+            <Panel className="span-12" label="Les deux accords en tablature">
               <TabView
                 score={scorePair}
                 notes={settings.noteNotation}
@@ -1214,7 +1251,7 @@ export function ChordLessonPage() {
 
       {step === 'integrer' && (
         <>
-          <Panel className="span-7" accent="green" label="Une progression, en mesure">
+          <Panel className="span-7" accent="cyan" active label="Une progression, en mesure">
             <p className="t-body">
               Un accord seul n’est pas de la musique. Choisis une progression jouable avec tes accords, mets le
               métronome et joue une mesure par accord. L’app ne t’écoute pas encore en plaqué : tu déclares.
@@ -1286,7 +1323,7 @@ export function ChordLessonPage() {
               </p>
             )}
           </Panel>
-          <Panel className="span-5" accent="yellow" label="Choisir sa progression">
+          <Panel className="span-5" accent="violet" label="Choisir sa progression">
             <p className="t-small">
               Les progressions sont classées par ce qu’elles demandent : celles qui n’utilisent que des accords
               appris d’abord. Aucune ne commence par un barré.
@@ -1308,7 +1345,7 @@ export function ChordLessonPage() {
             </div>
           </Panel>
           {scoreProg && (
-            <Panel className="span-12" accent="magenta" label="La progression en tablature">
+            <Panel className="span-12" label="La progression en tablature">
               <TabView
                 score={scoreProg}
                 notes={settings.noteNotation}

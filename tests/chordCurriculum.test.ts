@@ -4,7 +4,7 @@ import {
   CURRICULUM, allChordIds, entryOf, mainlineChordIds, palierOfVoicing, voicingFor,
 } from '../src/modules/accords/curriculum';
 import {
-  chordCards, chordProgress, nextChord, palierStates, transitionsWith,
+  chordCards, chordProgress, nextChord, palierStates, reviewDelayText, transitionsWith,
 } from '../src/modules/accords/recommend';
 
 describe('curriculum des accords ouverts', () => {
@@ -148,5 +148,16 @@ describe('recommandation du prochain accord', () => {
     expect(am.status).toBe('locked');
     expect(am.missing).toEqual(['Asus2']); // le prérequis manquant est nommé
     expect(chordProgress(learned('Em-022000', 'Am-x02210'))).toEqual({ done: 2, total: mainlineChordIds().length });
+  });
+});
+
+describe('échéance de révision en mots', () => {
+  it('minutes, heures puis jours, et « maintenant » une fois l’échéance passée', () => {
+    expect(reviewDelayText(-1)).toBe('à réviser maintenant');
+    expect(reviewDelayText(10_000)).toBe('révision dans 1 min');
+    expect(reviewDelayText(45 * 60_000)).toBe('révision dans 45 min');
+    expect(reviewDelayText(5 * 3_600_000)).toBe('révision dans 5 h');
+    expect(reviewDelayText(24 * 3_600_000)).toBe('révision dans 1 jour');
+    expect(reviewDelayText(3 * 86_400_000)).toBe('révision dans 3 jours');
   });
 });

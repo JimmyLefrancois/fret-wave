@@ -10,6 +10,14 @@ describe('erreurs du micro', () => {
     expect(describeInputError('failed', null).hint).not.toContain('navigateur :');
   });
 
+  it('le secours sans micro est celui du module : pas de pavé numérique dans une leçon d’accord', () => {
+    expect(describeInputError('unavailable', null).hint).toContain('pavé numérique');
+    expect(describeInputError('failed', null).hint).toContain('pavé numérique');
+    const chord = 'Sans micro, tu peux déclarer.';
+    expect(describeInputError('unavailable', null, chord).hint).toContain(chord);
+    expect(describeInputError('failed', null, chord).hint).not.toContain('pavé');
+  });
+
   it('nom d’erreur getUserMedia → état', () => {
     expect(stateFromMediaError('NotAllowedError')).toBe('denied');
     expect(stateFromMediaError('NotSupportedError')).toBe('unavailable');

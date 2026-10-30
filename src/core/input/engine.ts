@@ -70,7 +70,10 @@ export function stateFromMediaError(name: string): InputState {
 }
 
 /** Traduit un état d'erreur en message utile (jamais « une erreur est survenue »). */
-export function describeInputError(state: InputState, detail: string | null): InputErrorText {
+/** Le secours sans micro des modules à pavé (gammes) ; une leçon d'accord n'a pas de pavé. */
+export const KEYPAD_FALLBACK = 'Le mode sans matériel (pavé numérique) reste disponible.';
+
+export function describeInputError(state: InputState, detail: string | null, fallback: string = KEYPAD_FALLBACK): InputErrorText {
   switch (state) {
     case 'denied':
       return {
@@ -88,7 +91,7 @@ export function describeInputError(state: InputState, detail: string | null): In
       return {
         state,
         message: 'aucun périphérique d’entrée',
-        hint: 'branche un micro ou une interface USB, puis réessaie. Le mode sans matériel (pavé numérique) reste disponible.',
+        hint: `branche un micro ou une interface USB, puis réessaie. ${fallback}`,
       };
     case 'busy':
       return {
@@ -101,7 +104,7 @@ export function describeInputError(state: InputState, detail: string | null): In
       return {
         state,
         message: 'le micro n’a pas pu s’ouvrir',
-        hint: `vérifie qu’un micro ou une interface est branché, puis réessaie ; le pavé numérique reste un secours complet.${detail ? ` (navigateur : ${detail})` : ''}`,
+        hint: `vérifie qu’un micro ou une interface est branché, puis réessaie. ${fallback}${detail ? ` (navigateur : ${detail})` : ''}`,
       };
     default:
       return { state, message: 'micro arrêté', hint: 'active l’écoute pour jouer sur la vraie guitare.' };

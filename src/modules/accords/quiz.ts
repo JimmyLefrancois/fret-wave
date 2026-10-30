@@ -130,7 +130,9 @@ export function anonymousScore(v: Voicing, hole?: { string: number; fret: number
     const { label: _drop, ...rest } = m;
     // le trou n'est percé que dans la **première** pile : les frappes suivantes sont dessinées en
     // « simile » (flèche seule), donc une case masquée plus loin ne se verrait pas
-    const events = rest.events.map((ev, i) => ({
+    // le nom porté par l'événement s'efface aussi : le layout le dessine en priorité sur l'étiquette
+    // de mesure, et « Quel accord est écrit ? » affichait sa réponse au-dessus de la portée
+    const events = rest.events.map(({ chord: _name, ...ev }, i) => ({
       ...ev,
       notes: ev.notes.map((n) => (hole && i === 0 && n.string === hole.string ? { ...n, hidden: true } : n)),
     }));

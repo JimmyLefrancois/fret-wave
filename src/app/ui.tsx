@@ -19,11 +19,14 @@ export function Panel(props: {
   label?: string;
   right?: ReactNode;
   as?: 'section' | 'div' | 'article';
+  /** Le panneau où l'on agit maintenant : seul lui porte le halo. L'accent seul ne colore que la
+   *  bordure et le titre — un halo sur chaque panneau ne désignait plus rien. */
+  active?: boolean;
 }) {
-  const { children, accent, className = '', label, right, as: Tag = 'section' } = props;
+  const { children, accent, className = '', label, right, as: Tag = 'section', active = false } = props;
   return (
     <Tag
-      className={`panel ${accent ? 'panel-accent' : ''} ${className}`}
+      className={`panel ${accent ? 'panel-accent' : ''} ${active ? 'panel-active' : ''} ${className}`}
       style={accent ? ({ '--accent': accentVar(accent) } as CSSProperties) : undefined}
     >
       {(label || right) && (
@@ -109,13 +112,16 @@ export function Chip(props: {
   title?: string;
   small?: boolean;
   accent?: Accent;
+  /** Nom accessible quand le libellé visible ne suffit pas (« entrer » répété sur chaque ligne). */
+  ariaLabel?: string;
 }) {
-  const { children, selected, disabled, onClick, title, small, accent } = props;
+  const { children, selected, disabled, onClick, title, small, accent, ariaLabel } = props;
   return (
     <button
       type="button"
       className={`chip ${selected ? 'on' : ''} ${small ? 'chip-sm' : ''}`}
       aria-pressed={selected}
+      aria-label={ariaLabel}
       disabled={disabled}
       title={title}
       onClick={onClick}
@@ -126,11 +132,11 @@ export function Chip(props: {
   );
 }
 
-export function Bar(props: { value: number; max: number; accent?: Accent }) {
-  const { value, max, accent = 'magenta' } = props;
+export function Bar(props: { value: number; max: number; accent?: Accent; label?: string; valueText?: string }) {
+  const { value, max, accent = 'magenta', label, valueText } = props;
   const pct = max <= 0 ? 0 : Math.max(0, Math.min(1, value / max));
   return (
-    <div className="bar" role="progressbar" aria-valuemin={0} aria-valuemax={max} aria-valuenow={value}>
+    <div className="bar" role="progressbar" aria-label={label} aria-valuetext={valueText} aria-valuemin={0} aria-valuemax={max} aria-valuenow={value}>
       <i style={{ width: `${pct * 100}%`, background: accentVar(accent) }} />
     </div>
   );

@@ -1054,7 +1054,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       </p>
 
       {sessionDone && mixed ? (
-        <Panel className="span-5" accent="green" label="Session terminée">
+        <Panel className="span-5" accent="green" active label="Session terminée">
           <p className="stat-line">
             <strong>{sessionDone.forms}</strong> forme{sessionDone.forms > 1 ? 's' : ''} · précision moyenne{' '}
             <strong>{Math.round(sessionDone.accuracy * 100)} %</strong> · <strong>{sessionDone.xp}</strong> XP
@@ -1078,7 +1078,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           </div>
         </Panel>
       ) : result ? (
-        <Panel className="span-5" accent={result.stars > 0 ? 'green' : 'orange'} label="Résultat">
+        <Panel className="span-5" accent={result.stars > 0 ? 'green' : 'orange'} active label="Résultat">
           {/* pas d'étoiles sur un rattrapage : on ne félicite que ce qui prouve (MUSIC_DESIGN §17.1) */}
           {result.proof ? <p className="result-stars">{starRow(result.stars)}</p> : <p className="t-label">Rattrapage</p>}
           <p className={`stat-line ${result.stars === 0 ? 'miss' : ''}`} ref={resultRef} tabIndex={-1}>

@@ -201,7 +201,7 @@ Profondeur par **ombre dure décalée**, pas par flou : `box-shadow: 4px 4px 0` 
 ### Shadow Vocabulary
 - **Panneau** (`box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink)`) : repos des panneaux ; équerres de coin de 9 px en `--accent` en haut à gauche et en bas à droite.
 - **Bouton** (`3px 3px 0 var(--shadow-ink)`) : repos des boutons, 1 px à l'appui.
-- **Halo néon** (`0 0 16-20px -4/-6px <accent>`) : réservé à l'action principale (`.btn-primary`) et au panneau mis en avant (`.panel-accent`). Jamais sur un contrôle secondaire.
+- **Halo néon** (`0 0 16-20px -4/-6px <accent>`) : réservé à l'action principale (`.btn-primary`) et au panneau actif (`.panel-active`, un seul par écran). Jamais sur un contrôle secondaire, ni sur un panneau seulement accentué.
 
 ### Named Rules
 **The Hard-Shadow Rule.** Aucune ombre floue pour la profondeur. Le seul flou autorisé est le halo néon, et il signale l'action ou l'état actif.
@@ -222,7 +222,7 @@ Angles quasi vifs : un seul rayon, 2 px (`--corner`), qui lit comme un coin « p
 - **Chip** (38 px) et **segment** (40 px) sont des boutons : ils portent un fond (surface haute ou fond) pour ne pas se lire comme une étiquette posée sur le décor. Sélectionné : aplat `--accent` (cyan par défaut pour la pastille, magenta pour le segment), texte `--on-accent`, gras.
 
 ### Panneaux et cartes
-- **Panneau :** fond surface, bordure 2 px, ombre dure, équerres. **Panneau accentué :** bordure `--accent` et halo.
+- **Panneau :** fond surface, bordure 2 px, ombre dure, équerres. **Panneau accentué :** bordure et titre en `--accent`, sans halo. **Panneau actif :** accentué plus le halo, réservé au panneau où l'on agit (héros, étape en cours).
 - **Carte de contrôle :** fond surface, bordure 2 px, sans ombre ; titre en Silkscreen cyan ; état « ok » en bordure `--ok`.
 
 ### Accueil (lanceur, D78-D82)

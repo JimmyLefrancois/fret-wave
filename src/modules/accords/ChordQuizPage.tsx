@@ -11,11 +11,11 @@
  * su le lire : c'est la règle posée en 4a (une auto-évaluation ne devient pas une preuve), appliquée
  * ici à l'autre bout de l'échelle.
  */
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
 import { useSettings } from '../../app/settings';
 import { TabView } from '../../app/TabView';
-import { Bar, Chip, Panel, PixelButton } from '../../app/ui';
+import { Chip, Panel, PixelButton } from '../../app/ui';
 import { fmtChord, fmtNote } from '../../core/theory';
 import {
   appendAttempt, loadJournal, newAttemptId, progressStore, readAttempts, summarizeNodes,
@@ -45,6 +45,8 @@ export function ChordQuizPage() {
   const [answers, setAnswers] = useState<boolean[]>([]);
   const [journal, setJournal] = useState<Attempt[]>(() => loadJournal(progressStore()));
   const [round, setRound] = useState(0);
+  // relancer en pleine série demande une seconde touche : la pastille était sur le passage du pouce
+  const [confirmReset, setConfirmReset] = useState(false);
   // le vivier est figé **au début de la manche** : répondre ne doit pas changer les questions en cours
   const journalRef = useRef(journal);
   journalRef.current = journal;
@@ -110,9 +112,18 @@ export function ChordQuizPage() {
     setIndex(0);
     setPicked(null);
     setAnswers([]);
+    setConfirmReset(false);
   }
 
   const xpTotal = useMemo(() => answers.length, [answers.length]);
+
+  // au téléphone, le verdict et « Suivante » tombaient sous la barre du bas : on les amène sous le
+  // pouce dès la réponse (sans animation si l'élève l'a demandé)
+  const verdictRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (picked === null) return;
+    verdictRef.current?.scrollIntoView({ block: 'nearest', behavior: settings.reduceMotion ? 'auto' : 'smooth' });
+  }, [picked, settings.reduceMotion]);
 
   return (
     <main className="shell">
@@ -122,24 +133,24 @@ export function ChordQuizPage() {
           <h1 className="page-title">Sans matériel</h1>
           <p className="t-small t-dim">Lire un accord, sans guitare</p>
         </div>
-        <span className="tag">{finished ? `${score} / ${total}` : `${Math.min(index + 1, total)} / ${total}`}</span>
+        {/* le même badge disait le numéro de question puis le score : chacun est nommé */}
+        <span className="tag">{finished ? `${score} / ${total} justes` : `question ${Math.min(index + 1, total)} / ${total}`}</span>
       </header>
 
-      <div className="lead-band span-12">
+      {/* replié : la bande d'intro dépliée poussait la question et ses réponses sous le premier écran */}
+      <details className="lead-band span-12 ex-more chord-more">
+        <summary>Six questions sur un accord écrit</summary>
         <p className="t-small">
-          Six questions sur ce qu’un accord <strong>écrit</strong> veut dire. C’est le seul entraînement du module qui
-          ne demande ni instrument ni micro — et il ne vaut pas une preuve de jeu : il travaille la lecture, pas le geste.
+          Ce qu’un accord <strong>écrit</strong> veut dire. C’est le seul entraînement du module qui ne demande ni
+          instrument ni micro. Il ne vaut pas une preuve de jeu : il travaille la lecture, pas le geste.
         </p>
-      </div>
+      </details>
 
-      <Panel className="span-7" accent="cyan" label={finished ? 'Résultat' : KIND_LABEL[q.kind]}>
+      <Panel className="span-7" accent="cyan" active label={finished ? 'Résultat' : KIND_LABEL[q.kind]}>
         {!finished ? (
           <>
-            <div className="quiz-head">
-              <p className="t-body">{q.prompt}</p>
-              <Chip small onClick={restart}>Nouvelle série</Chip>
-            </div>
-            <Bar value={answers.length} max={total} accent="cyan" />
+            {/* la progression est dans le badge d'en-tête : une barre ici séparait la question de ce qu'elle montre */}
+            <p className="t-body">{q.prompt}</p>
             {q.score && (
               <div className="quiz-tab">
                 <TabView
@@ -166,26 +177,39 @@ export function ChordQuizPage() {
                     type="button"
                     className={`quiz-option ${cls}`}
                     disabled={picked !== null}
-                    aria-pressed={isPicked}
                     onClick={() => answer(i)}
                   >
-                    <span className="quiz-letter">{'ABCD'[i]}</span>
+                    {/* la marque dit juste ou faux sans compter sur la couleur */}
+                    <span className="quiz-letter">{picked !== null && isAnswer ? '✓' : picked !== null && isPicked ? '✗' : 'ABCD'[i]}</span>
                     <span className="quiz-label">{labelOf(o)}</span>
                   </button>
                 );
               })}
             </div>
-            {picked !== null && (
-              <>
-                <p className={`t-small ${picked === q.answer ? 'ok' : 'ko'}`}>
-                  {picked === q.answer ? 'Juste.' : 'Non — la bonne réponse est en vert.'}
-                </p>
-                <p className="t-small t-dim">{q.explain}</p>
-                <div className="row">
-                  <PixelButton variant="primary" onClick={next}>{index + 1 >= total ? 'Voir le résultat' : 'Suivante →'}</PixelButton>
-                </div>
-              </>
-            )}
+            <div ref={verdictRef} className="quiz-verdict" role="status">
+              {picked !== null && (
+                <>
+                  <p className={`t-small ${picked === q.answer ? 'ok' : 'ko'}`}>
+                    {picked === q.answer ? 'Juste.' : 'Non : la bonne réponse est marquée ✓.'}
+                  </p>
+                  <div className="row">
+                    <PixelButton variant="primary" onClick={next}>{index + 1 >= total ? 'Voir le résultat' : 'Suivante →'}</PixelButton>
+                  </div>
+                  <p className="t-small t-dim">{q.explain}</p>
+                </>
+              )}
+            </div>
+            <div className="row quiz-reset">
+              {confirmReset ? (
+                <>
+                  <span className="t-small t-dim">Reprendre à zéro ? Les réponses déjà données restent au journal.</span>
+                  <PixelButton variant="quiet" onClick={() => setConfirmReset(false)}>Continuer</PixelButton>
+                  <PixelButton variant="danger" onClick={restart}>Nouvelle série</PixelButton>
+                </>
+              ) : (
+                <PixelButton variant="quiet" onClick={() => (answers.length > 0 ? setConfirmReset(true) : restart())}>Nouvelle série</PixelButton>
+              )}
+            </div>
           </>
         ) : (
           <>
@@ -198,12 +222,12 @@ export function ChordQuizPage() {
                   : 'Ce n’est pas grave : le QCM travaille la lecture, le geste se travaille à la guitare. Rejoue la série.'}
             </p>
             <p className="t-small t-dim">
-              Chaque réponse est écrite au journal sous un nœud « savoir » — elle ne rend jamais un accord
-              « appris » : la forme s’apprend au micro, pas au QCM. {xpTotal} réponse{xpTotal > 1 ? 's' : ''} enregistrée{xpTotal > 1 ? 's' : ''}.
+              Tes réponses sont notées comme de la lecture : elles ne rendent jamais un accord
+              « appris », la forme s’apprend au micro, pas au QCM. {xpTotal} réponse{xpTotal > 1 ? 's' : ''} enregistrée{xpTotal > 1 ? 's' : ''}.
             </p>
             <div className="row">
               <PixelButton variant="primary" onClick={restart}>Nouvelle série</PixelButton>
-              <PixelButton onClick={() => navigate('chord')}>Retour à la leçon</PixelButton>
+              <PixelButton onClick={() => navigate('accords')}>Retour aux accords</PixelButton>
             </div>
           </>
         )}
@@ -238,6 +262,7 @@ export function ChordQuizPage() {
             ))}
           </div>
         </div>
+        <p className="t-small t-dim">Changer les types relance la série.</p>
         <ul className="module-facts">
           <li className="t-small t-dim">Reconnaître : la tablature est dessinée <strong>sans le nom</strong> de l’accord.</li>
           <li className="t-small t-dim">Reconstituer : les trois ou quatre notes de l’accord, avec sa tierce.</li>
@@ -253,7 +278,7 @@ export function ChordQuizPage() {
         </p>
       </Panel>
 
-      <Panel className="span-12" accent="yellow" label="Ce que tu sais déjà lire">
+      <Panel className="span-12" label="Ce que tu sais déjà lire">
         <p className="t-small t-dim">
           {learned.size > 0
             ? `${learned.size} accord${learned.size > 1 ? 's' : ''} appris au micro : ${[...learned].map((id) => fmtChord(id.split('-')[0]!, settings.chordNotation)).join(' · ')}.`

@@ -273,7 +273,7 @@ export function HubPage() {
     const sessionSteps = [reviewStep, second].filter((x) => x !== null);
     if (plan.review || (resume.kind !== 'chord' && !firstSteps)) {
       return (
-        <Panel className="span-12 home-go" accent="magenta" label="Session du jour">
+        <Panel className="span-12 home-go" accent="magenta" active label="Session du jour">
           {welcome.length > 0 && (
             <div className="home-welcome" role="status">
               {welcome.map((l, i) => <p key={l} className={i === 0 ? 't-body' : 't-small'}>{l}</p>)}
@@ -325,6 +325,7 @@ export function HubPage() {
         <Panel
           className="span-12 home-go"
           accent="magenta"
+          active
           label="Reprendre l’accord"
         >
           <h3 className="home-title">{chordName(resume.voicingId)}</h3>
@@ -378,6 +379,7 @@ export function HubPage() {
       <Panel
         className="span-12 home-go"
         accent="magenta"
+        active
         label={resume.kind === 'start' ? 'Commencer' : 'Continuer la gamme'}
       >
         <h3 className="home-title">{resolved.title}</h3>
