@@ -8,6 +8,7 @@ import { applyTheme, getTheme } from '../core/themes';
 import { AudioPage } from './AudioPage';
 import { HubPage } from './HubPage';
 import { LoadingScreen } from './LoadingScreen';
+import { MetronomePage } from './MetronomePage';
 import { navigate, parseRoute, ROUTE_HREF, type RouteName } from './router';
 import { SceneBackground } from './SceneBackground';
 import { SettingsPage } from './SettingsPage';
@@ -38,6 +39,7 @@ const NAV: { route: RouteName; label: string; icon: IconName }[] = [
   // rendait invisibles alors que le module est complet depuis la 4b
   { route: 'accords', label: 'Accords', icon: 'navChords' },
   { route: 'tuner', label: 'Accordeur', icon: 'navTuner' },
+  { route: 'metronome', label: 'Métronome', icon: 'navMetronome' },
   // La page « Son » (outil de contrôle de la 1c) sort de la barre : elle reste joignable depuis les réglages
   // et par son URL (#/audio). Cinq onglets en police pixel ne tiennent pas sur un téléphone de 390 px.
   { route: 'settings', label: 'Réglages', icon: 'navSliders' },
@@ -47,7 +49,7 @@ const ACTIVE: Record<RouteName, RouteName> = {
   hub: 'hub', gammes: 'gammes', scale: 'gammes', training: 'gammes', review: 'gammes', sequences: 'gammes', impro: 'gammes',
   // les écrans du module Accords allument l'onglet Accords
   accords: 'accords', chord: 'accords', chordquiz: 'accords',
-  tuner: 'tuner', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
+  tuner: 'tuner', metronome: 'metronome', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
 };
 
 function Page({ route }: { route: RouteName }) {
@@ -65,6 +67,7 @@ function Page({ route }: { route: RouteName }) {
     case 'chord': return <ChordLessonPage />;
     case 'chordquiz': return <ChordQuizPage />;
     case 'tuner': return <TunerPage />;
+    case 'metronome': return <MetronomePage />;
     case 'settings': return <SettingsPage />;
     case 'tab': return <TabPage />;
     case 'audio': return <AudioPage />;

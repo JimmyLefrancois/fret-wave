@@ -20,7 +20,7 @@ const arg = (name, fallback) => {
 };
 const BASE = arg('base', 'http://127.0.0.1:5173');
 const ONLY = arg('hash', null);
-const PAGES = ONLY ? [ONLY] : ['#/hub', '#/gammes', '#/gammes/jouer', '#/gammes/entrainement', '#/accordeur', '#/reglages'];
+const PAGES = ONLY ? [ONLY] : ['#/hub', '#/gammes', '#/gammes/jouer', '#/gammes/entrainement', '#/accordeur', '#/metronome', '#/reglages'];
 const SIZES = [
   { w: 390, h: 844, dpr: 3 },
   { w: 1440, h: 900, dpr: 1 },

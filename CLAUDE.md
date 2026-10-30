@@ -4,7 +4,7 @@ Application web d'apprentissage de la guitare : tablature en pixel art, écoute 
 Interface et textes en français. Projet solo. L'app fonctionne entièrement sans compte ni réseau ; le site et le compte facultatif sont servis par un Worker Cloudflare (D109).
 
 ## Stack
-Vite + TypeScript + React 19 · Canvas 2D (un seul « pixel logique », échelle entière) · `tonal` (théorie) · Tone.js (sortie audio) · `pitchy` (hauteur au micro) · Vitest · localStorage · routeur par hash (`#/hub`, `#/gammes`, `#/accords`, `#/accordeur`, `#/reglages`).
+Vite + TypeScript + React 19 · Canvas 2D (un seul « pixel logique », échelle entière) · `tonal` (théorie) · Tone.js (sortie audio) · `pitchy` (hauteur au micro) · Vitest · localStorage · routeur par hash (`#/hub`, `#/gammes`, `#/accords`, `#/accordeur`, `#/metronome`, `#/reglages`).
 
 ## Commandes
 - `npm run dev` : serveur sur :5173 (UN SEUL à la fois, sinon CSS périmé)

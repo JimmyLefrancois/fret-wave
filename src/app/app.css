@@ -791,16 +791,16 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   gap: 4px;
   min-width: 0;
   height: 56px;
-  padding: 0 2px;
+  padding: 0;
   background: transparent;
   border: 0;
   color: var(--dim);
   /* le libellé est du texte qu'on lit, pas une étiquette de décor : Silkscreen en capitales à 9,5 px
-     tronquait « ACCORDEUR » et perdait les accents (D24). En sans-serif, 11,5 px tient dans un quart
-     de 390 px avec de la marge — mesuré, aucune ellipse. */
+     tronquait « ACCORDEUR » et perdait les accents (D24). Six onglets depuis le Métronome (D112) :
+     la taille suit la largeur pour que « Métronome » tienne dans un sixième d'écran, sans ellipse. */
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 11.5px;
+  font-size: min(11.5px, 2.9vw);
   letter-spacing: 0;
   cursor: pointer;
 }
@@ -2843,3 +2843,132 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .target-field > p { margin: 0; }
 .field .target-other { display: grid; gap: var(--gap-tight); max-inline-size: 420px; margin-top: var(--gap-tight); }
 .field .target-other select { width: 100%; }
+
+/* ---- page Métronome (D112) : à l'arrêt tout est là, en jeu les temps prennent la place ----------------- */
+/* min-height : le panneau va jusqu'à la barre du bas, les temps absorbent la hauteur libre. Démarrer reste
+   donc au même endroit à l'arrêt et en jeu : il ne se dérobe pas sous le doigt. */
+.metro { display: flex; flex-direction: column; gap: var(--gap-block); min-height: calc(100dvh - 100px - env(safe-area-inset-bottom, 0px)); }
+.metro-player { position: relative; flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--gap-inside); min-height: 0; }
+.metro-tempo { display: grid; grid-template-columns: repeat(2, minmax(44px, auto)) minmax(0, 1fr) repeat(2, minmax(44px, auto)); align-items: center; gap: var(--gap-tight); }
+.metro-tempo .btn { min-width: 0; padding: 0; }
+.metro-bpm { display: grid; justify-items: center; gap: 2px; margin: 0; }
+.metro-bpm strong { font-family: var(--font-display); font-size: clamp(30px, 10vw, 48px); font-weight: 400; line-height: 1; color: var(--magenta); font-variant-numeric: tabular-nums; }
+.metro-bpm span { font-size: 12.5px; color: var(--dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* même hauteur pour le curseur et sa ligne de remplacement : rien ne saute quand l'automation s'active */
+.metro-slider { display: block; flex: none; width: 100%; height: 28px; margin: 0; background: transparent; appearance: none; cursor: pointer; }
+.metro-slider:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+/* piste pleine, curseur carré : le rond arrondi du navigateur sort du monde pixel */
+.metro-slider::-webkit-slider-runnable-track { height: 8px; background: linear-gradient(to right, var(--magenta) var(--metro-fill), var(--line) 0); }
+.metro-slider::-moz-range-track { height: 8px; background: linear-gradient(to right, var(--magenta) var(--metro-fill), var(--line) 0); }
+.metro-slider::-webkit-slider-thumb { width: 16px; height: 24px; margin-top: -8px; background: var(--magenta); border: var(--bw) solid var(--bg-deep); border-radius: 0; appearance: none; }
+.metro-slider::-moz-range-thumb { box-sizing: border-box; width: 16px; height: 24px; background: var(--magenta); border: var(--bw) solid var(--bg-deep); border-radius: 0; }
+.metro-ramp-line { display: grid; flex: none; align-items: center; height: 28px; margin: 0; font-size: 14.5px; color: var(--muted); text-align: center; }
+/* la hauteur vient de la place libre, pas du nombre de temps : de 1 à 12, la page ne bouge pas */
+.metro-beats {
+  position: relative;
+  flex: 1 1 76px;
+  display: grid;
+  grid-template-columns: repeat(min(var(--metro-beats), 6), minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: var(--gap-tight);
+  min-height: 76px;
+}
+.metro-beat {
+  container-type: size;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  background: var(--bg);
+  border: var(--bw) solid var(--line);
+  color: var(--dim);
+  font-family: var(--font-label);
+}
+/* sur le chiffre, pas sur le bloc : les unités cq se mesurent sur un conteneur parent */
+.metro-beat span { font-size: clamp(13px, 50cqmin, 72px); line-height: 1; }
+.metro-beat.first { border-color: var(--magenta); }
+.metro-beat.on { background: var(--cyan); border-color: var(--cyan); color: var(--on-accent); }
+.metro-beat.on.first { background: var(--magenta); border-color: var(--magenta); }
+.metro-beat.on.count { background: var(--yellow); border-color: var(--yellow); }
+.metro-status {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 4px 10px;
+  background: var(--bg-deep);
+  border: var(--bw) solid var(--line);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+.metro-meta { display: flex; flex: none; align-items: center; justify-content: space-between; gap: var(--gap-inside); }
+.metro-counters { display: flex; gap: 16px; margin: 0; }
+.metro-counters div { display: grid; }
+.metro-counters dt { font-size: 12px; color: var(--dim); }
+.metro-counters dd { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.2; color: var(--text); font-variant-numeric: tabular-nums; }
+.metro-flash { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: var(--cyan); opacity: 0; animation: metro-flash 0.14s steps(3, end) both; }
+.metro-flash.strong { background: var(--magenta); }
+@keyframes metro-flash { from { opacity: 0.28; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .metro-flash { display: none; } }
+
+/* réglages : une tablette de lignes alignées, libellé à gauche, contrôle à droite ; pas de cadre dans le cadre */
+.metro-settings { display: grid; gap: var(--gap-tight); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
+.metro-label { font-size: 14.5px; color: var(--muted); }
+.metro-line { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-inside); min-height: 38px; }
+.metro-line .metro-label { flex: none; }
+/* colonne de contrôles commune : chaque ligne la remplit, donc mêmes bords gauche et droit de haut en bas */
+.metro-row { display: grid; grid-template-columns: 124px minmax(0, 1fr); align-items: center; gap: 16px; min-height: 38px; }
+.metro-row .segmented { display: flex; gap: var(--gap-tight); min-width: 0; overflow: visible; padding: 0; }
+.metro-row .seg { flex: 1 1 auto; min-width: 0; padding-inline: 4px; }
+.metro-stepper { display: grid; gap: 2px; }
+.metro-stepper .metro-label { font-size: 13px; }
+.metro-stepper-control { display: grid; grid-template-columns: 38px minmax(0, 1fr) 38px; align-items: center; gap: var(--gap-tight); }
+.metro-stepper-control .btn { width: 100%; min-width: 0; min-height: 38px; padding: 0; }
+.metro-stepper-value { text-align: center; font-size: 16px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.metro-hold { display: grid; touch-action: manipulation; user-select: none; }
+/* un interrupteur se lit ici comme les autres lignes : la case passe à droite, sur le même bord que les contrôles */
+.metro-settings .switch { grid-template-columns: minmax(0, 1fr) 22px; min-height: 38px; padding: 0; background: transparent; border: 0; }
+.metro-settings .switch-box { grid-column: 2; grid-row: 1; }
+.metro-settings .switch-label { grid-column: 1; grid-row: 1; font-size: 14.5px; font-weight: 400; color: var(--muted); }
+.metro-settings .switch.on .switch-label { color: var(--text); font-weight: 600; }
+.metro-settings .switch-hint { grid-column: 1 / -1; }
+.metro-group { display: grid; gap: var(--gap-tight); }
+.metro-sub { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-inside) 12px; align-items: end; padding-bottom: var(--gap-inside); }
+.metro-wide { grid-column: 1 / -1; }
+/* filet léger : il sépare ce qu'on règle de ce qu'on range, sans toucher les bords de la colonne */
+.metro-memory::before { content: ''; height: var(--bw); margin: var(--gap-tight) var(--gap-tight) 0; background: var(--line-soft); }
+.metro-slots { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; }
+.metro-slot { min-height: 38px; padding: 0; color: var(--dim); }
+.metro-slot.full { color: var(--green); }
+.metro-slot.on { background: var(--green); border-color: var(--green); color: var(--on-accent); }
+.metro-slot-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap-tight); margin-top: var(--gap-tight); }
+.metro-slot-actions .btn { min-width: 0; min-height: 38px; padding-inline: 2px; font-size: 12.5px; letter-spacing: 0; }
+.metro-go-row { flex: none; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--gap-inside); }
+.metro-go-row .btn { width: 100%; min-height: var(--hero-btn-h); }
+.metro-go { font-size: var(--hero-btn-size); }
+/* plein écran : le jeu seul, lu de l'autre bout de la pièce */
+.metro:fullscreen { padding: 16px; background: var(--bg-deep); }
+.metro:fullscreen .metro-settings { display: none; }
+.metro:fullscreen .metro-bpm strong { font-size: 64px; }
+@media (max-width: 899px) {
+  /* en jeu, on regarde les temps : on arrête pour régler autre chose que le tempo */
+  .metro.running .metro-settings { display: none; }
+  /* le panneau va jusqu'à la barre : sans cette marge réduite, la page défilerait de quelques pixels pour rien */
+  .app-content:has(.metro) { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)); }
+  /* si les réglages dépliés dépassent de l'écran, Démarrer reste à portée au-dessus de la barre */
+  .metro-go-row { position: sticky; inset-block-end: calc(64px + env(safe-area-inset-bottom, 0px)); z-index: 2; }
+}
+/* bureau : le jeu à gauche, tous les réglages à droite */
+@media (min-width: 900px) {
+  .metro:not(:fullscreen) {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--gap-block) 24px;
+    /* la hauteur vient des réglages ; à gauche, les temps lumineux absorbent la différence, paliers ouverts ou non */
+    min-height: 0;
+  }
+  .metro:not(:fullscreen) .metro-settings { grid-column: 2; grid-row: 1 / span 2; align-content: start; padding-top: 0; padding-left: 24px; border-top: 0; border-left: var(--bw) solid var(--line-soft); }
+  .metro-go-row { grid-column: 1; }
+}

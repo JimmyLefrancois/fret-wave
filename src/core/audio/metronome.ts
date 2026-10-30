@@ -39,24 +39,40 @@ export function metronomeClicks(score: TabScore, opts: { subdivide?: boolean } =
 const CLICK_HZ: Record<ClickAccent, number> = { bar: 1568, beat: 1046.5, sub: 784 };
 const CLICK_LEVEL: Record<ClickAccent, number> = { bar: 0.5, beat: 0.38, sub: 0.2 };
 
+export const CLICK_SOUNDS = ['bois', 'bip', 'cloche', 'sec'] as const;
+export type ClickSound = (typeof CLICK_SOUNDS)[number];
+
+/** Timbres synthétisés (aucun fichier) : `ratio` transpose le clic, `drop` fait descendre sa hauteur. */
+const SOUND: Record<ClickSound, { type: OscillatorType; ratio: number; decay: number; gain: number; drop: boolean }> = {
+  bois: { type: 'sine', ratio: 1, decay: 0.05, gain: 1, drop: true },
+  bip: { type: 'square', ratio: 1, decay: 0.04, gain: 0.5, drop: false },
+  cloche: { type: 'triangle', ratio: 1.5, decay: 0.18, gain: 0.9, drop: false },
+  sec: { type: 'triangle', ratio: 2.2, decay: 0.015, gain: 1, drop: false },
+};
+
 export class Metronome {
   constructor(private readonly ctx: AudioContext, private readonly out: AudioNode) {}
 
-  /** Un clic à l'heure audio `time` : sinus court dont la hauteur descend (bloc de bois), enveloppe sans clic parasite. */
-  click(time: number, accent: ClickAccent): void {
+  /** Un clic à l'heure audio `time`, par défaut un sinus court dont la hauteur descend (bloc de bois), enveloppe sans clic parasite. */
+  click(time: number, accent: ClickAccent, sound: ClickSound = 'bois'): void {
     const ctx = this.ctx;
     const o = ctx.createOscillator();
     const g = ctx.createGain();
-    const f = CLICK_HZ[accent];
-    o.type = 'sine';
-    o.frequency.setValueAtTime(f * 1.08, time);
-    o.frequency.exponentialRampToValueAtTime(f * 0.9, time + 0.03);
+    const s = SOUND[sound];
+    const f = CLICK_HZ[accent] * s.ratio;
+    o.type = s.type;
+    if (s.drop) {
+      o.frequency.setValueAtTime(f * 1.08, time);
+      o.frequency.exponentialRampToValueAtTime(f * 0.9, time + 0.03);
+    } else {
+      o.frequency.setValueAtTime(f, time);
+    }
     g.gain.setValueAtTime(0, time);
-    g.gain.linearRampToValueAtTime(CLICK_LEVEL[accent], time + 0.001);
-    g.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+    g.gain.linearRampToValueAtTime(CLICK_LEVEL[accent] * s.gain, time + 0.001);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + s.decay);
     o.connect(g).connect(this.out);
     o.start(time);
-    o.stop(time + 0.07);
+    o.stop(time + s.decay + 0.02);
     o.onended = () => g.disconnect();
   }
 }

@@ -3,6 +3,8 @@ export * from './karplus';
 export * from './mixer';
 export * from './drone';
 export * from './metronome';
+export * from './metronomeRun';
+export * from './metronomeSession';
 export * from './guitar';
 export * from './master';
 export * from './engine';
