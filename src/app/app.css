@@ -3205,3 +3205,70 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .mic-spark:not(:disabled)::before,
   .mic-spark:not(:disabled)::after { content: none; }
 }
+
+/* Module Accords : le contenu est le même sur les deux écrans, dans le même ordre. Sur téléphone, la
+   surface n'existe pas ; au bureau, ses panneaux deviennent des sections d'une seule carte. */
+.chord-surface { display: contents; }
+.chord-surface > :not(.page-head) { margin-block: 0; }
+@media (min-width: 900px) {
+  .chord-surface { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  :where(.chord-surface) > * { grid-column: 1 / -1; min-width: 0; }
+  .chord-surface .t-body { font-size: 17px; }
+
+  .chord-surface > .page-head {
+    margin: 0;
+    position: sticky;
+    top: 54px;
+    z-index: 20;
+    padding: 14px 28px;
+    background: var(--surface-hi);
+    border: 0;
+    border-block-end: var(--bw) solid var(--line);
+  }
+  .chord-surface > .panel {
+    padding: 16px 28px;
+    background: none;
+    border: 0;
+    border-block-end: var(--bw) solid var(--line-soft);
+    box-shadow: none;
+  }
+  .chord-surface > .panel::before,
+  .chord-surface > .panel::after { content: none; }
+  .chord-surface > .span-6 + .span-6,
+  .chord-surface > .span-7 + .span-5,
+  .chord-surface > .span-5 + .span-7 { border-inline-start: var(--bw) solid var(--line-soft); }
+  .chord-surface > .panel .panel-head h2 { display: flex; align-items: center; gap: 12px; color: var(--text); }
+  .chord-surface > .panel .panel-head h2::before { content: ''; flex: none; width: 10px; height: 10px; background: var(--accent, var(--line)); }
+
+  /* étapes de la leçon : des onglets sur une ligne, comme les niveaux des gammes */
+  .chord-surface > .step-nav {
+    display: flex;
+    gap: 0;
+    padding: 0 28px;
+    border-block-end: var(--bw) solid var(--line-soft);
+  }
+  .chord-surface .step-btn {
+    flex: 1 1 0;
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+    min-height: 52px;
+    margin-block-end: calc(-1 * var(--bw));
+    background: none;
+    border: 0;
+    border-block-end: 3px solid transparent;
+    box-shadow: none;
+  }
+  .chord-surface .step-btn:hover { border-block-end-color: var(--line); }
+  .chord-surface .step-btn.on { background: none; border-block-end-color: var(--cyan); }
+  .chord-surface .step-btn .step-label { font-size: 15px; }
+  .chord-surface .step-btn.on .step-label { color: var(--cyan); }
+  .chord-surface > .step-goal { padding: 8px 28px; background: none; border: 0; border-block-end: var(--bw) solid var(--line-soft); }
+
+  .chord-surface .first-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .chord-surface .first-tile,
+  .chord-surface .chord-row { background: none; }
+  .chord-surface .first-tile:not(:hover),
+  .chord-surface .chord-row { border-color: transparent; }
+  .chord-surface .step-toggles { gap: 16px; }
+}

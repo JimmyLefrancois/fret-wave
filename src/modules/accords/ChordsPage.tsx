@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react';
 import { navigate } from '../../app/router';
 import { requestLessonStep, setChordSelection } from '../../app/chordSession';
 import { useSettings } from '../../app/settings';
+import { useDesktop } from '../../app/useDesktop';
 import { ChordBoxView } from '../../app/ChordBoxView';
 import { Bar, Chip, Panel, PixelButton, Reveal } from '../../app/ui';
 import { fmtChord, fmtNote } from '../../core/theory';
@@ -58,6 +59,8 @@ function fretsText(frets: readonly (number | null)[]): string {
 }
 
 export function ChordsPage() {
+  const desktop = useDesktop();
+  const [infoOpen, setInfoOpen] = useState(false);
   const settings = useSettings();
   const [journal] = useState(() => loadJournal(progressStore()));
   const [branch, setBranch] = useState(false);
@@ -208,8 +211,61 @@ export function ChordsPage() {
     );
   };
 
+  // D106 : comment travailler un changement ; l'exercice mesuré reste l'étape Enchaîner de la leçon
+  const changeGuide = (
+      <Panel className="span-12 change-guide" accent="violet" label="Changer d’accord">
+        {/* les trois règles sont la page : côte à côte au bureau, empilées serrées au téléphone */}
+        <ol className="pix-steps pix-steps-rules">
+          {CHANGE_RULES.map((r) => <li key={r}>{r}</li>)}
+        </ol>
+        <Reveal
+          label="Pour aller plus loin sur le changement d’accord"
+          items={[
+            {
+              id: 'methode',
+              label: 'Méthode',
+              content: (
+                <>
+                  <ol className="pix-steps pix-steps-cols">
+                    {CHANGE_STEPS.map((r) => <li key={r}>{r}</li>)}
+                  </ol>
+                  <p className="t-small t-dim">La main droite ne joue qu’à la dernière étape : avant, c’est la main gauche seule qui apprend.</p>
+                </>
+              ),
+            },
+            {
+              id: 'sans-pivot',
+              label: 'Sans pivot',
+              content: (
+                <ul className="module-facts">
+                  {CHANGE_WHOLE_SHAPE.map((r) => <li key={r} className="t-small">{r}</li>)}
+                </ul>
+              ),
+            },
+            {
+              id: 'pieges',
+              label: 'Pièges',
+              content: (
+                <ul className="module-facts module-facts-cols">
+                  {CHANGE_MISTAKES.map((r) => <li key={r} className="t-small">{r}</li>)}
+                </ul>
+              ),
+            },
+          ]}
+        />
+        <div className="change-foot">
+          <p className="t-small t-dim">
+            L’étape Enchaîner chronomètre 30 secondes de va-et-vient au micro. Cinq changements nets valent mieux que
+            quinze crispés.
+          </p>
+          <PixelButton onClick={practiseChange}>S’entraîner : Enchaîner</PixelButton>
+        </div>
+      </Panel>
+  );
+
   return (
-    <main className="shell">
+    <main className="shell play-shell">
+      <div className="play-surface chord-surface">
       <header className="page-head">
         <button type="button" className="back" onClick={() => navigate('hub')} aria-label="Retour au hub">‹</button>
         <div>
@@ -328,55 +384,7 @@ export function ChordsPage() {
         </div>
       </Panel>
 
-      {/* D106 : comment travailler un changement ; l'exercice mesuré reste l'étape Enchaîner de la leçon */}
-      <Panel className="span-12 change-guide" accent="violet" label="Changer d’accord">
-        {/* les trois règles sont la page : côte à côte au bureau, empilées serrées au téléphone */}
-        <ol className="pix-steps pix-steps-rules">
-          {CHANGE_RULES.map((r) => <li key={r}>{r}</li>)}
-        </ol>
-        <Reveal
-          label="Pour aller plus loin sur le changement d’accord"
-          items={[
-            {
-              id: 'methode',
-              label: 'Méthode',
-              content: (
-                <>
-                  <ol className="pix-steps pix-steps-cols">
-                    {CHANGE_STEPS.map((r) => <li key={r}>{r}</li>)}
-                  </ol>
-                  <p className="t-small t-dim">La main droite ne joue qu’à la dernière étape : avant, c’est la main gauche seule qui apprend.</p>
-                </>
-              ),
-            },
-            {
-              id: 'sans-pivot',
-              label: 'Sans pivot',
-              content: (
-                <ul className="module-facts">
-                  {CHANGE_WHOLE_SHAPE.map((r) => <li key={r} className="t-small">{r}</li>)}
-                </ul>
-              ),
-            },
-            {
-              id: 'pieges',
-              label: 'Pièges',
-              content: (
-                <ul className="module-facts module-facts-cols">
-                  {CHANGE_MISTAKES.map((r) => <li key={r} className="t-small">{r}</li>)}
-                </ul>
-              ),
-            },
-          ]}
-        />
-        <div className="change-foot">
-          <p className="t-small t-dim">
-            L’étape Enchaîner chronomètre 30 secondes de va-et-vient au micro. Cinq changements nets valent mieux que
-            quinze crispés.
-          </p>
-          <PixelButton onClick={practiseChange}>S’entraîner : Enchaîner</PixelButton>
-        </div>
-      </Panel>
+      {!desktop && changeGuide}
 
       {/* un palier sans accord (Fondations) ne s'affiche pas ici : matériel et posture vivent dans
           l'accordeur et dans la leçon (D106) */}
@@ -406,6 +414,16 @@ export function ChordsPage() {
           </div>
         </Panel>
       )}
+
+      {desktop && (
+        <div className="play-more">
+          <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
+            {infoOpen ? '▾ Masquer le changement d’accord' : '▸ Changer d’accord : la méthode'}
+          </PixelButton>
+        </div>
+      )}
+      {desktop && infoOpen && changeGuide}
+      </div>
     </main>
   );
 }

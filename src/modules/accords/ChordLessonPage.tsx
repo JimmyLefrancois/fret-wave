@@ -27,6 +27,9 @@ import { useSettings } from '../../app/settings';
 import { ChordBoxView } from '../../app/ChordBoxView';
 import { MicStrip } from '../../app/MicStrip';
 import { TabView } from '../../app/TabView';
+import { InstrumentPicker } from '../../app/AudioControls';
+import { useDesktop } from '../../app/useDesktop';
+import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
 import { Chip, Panel, PixelButton, Segmented, Switch } from '../../app/ui';
 import { AudioEngine } from '../../core/audio/engine';
 import { TabPlayer } from '../../core/audio/tabPlayer';
@@ -75,6 +78,7 @@ function ordinal(i: number): string {
 const DRILL_SECONDS = 30;
 
 export function ChordLessonPage() {
+  const desktop = useDesktop();
   const settings = useSettings();
   const input = useInputSettings();
   const sel = useChordSelection();
@@ -288,6 +292,16 @@ export function ChordLessonPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [micOn]);
+
+  // au bureau, le micro s'ouvre seul dès que le navigateur le permet ; l'interrupteur reste, il est proposé (D104)
+  useEffect(() => {
+    if (!desktop) return;
+    let cancelled = false;
+    void micPermission().then((permission) => {
+      if (!cancelled && canAutoOpenMic(permission, navigator.userActivation?.hasBeenActive ?? false)) setMicOn(true);
+    });
+    return () => { cancelled = true; };
+  }, [desktop]);
 
   useEffect(() => {
     if (!engine) return;
@@ -633,7 +647,8 @@ export function ChordLessonPage() {
   };
 
   return (
-    <main className="shell">
+    <main className="shell play-shell">
+      <div className="play-surface chord-surface">
       <header className="page-head">
         <button type="button" className="back" onClick={() => navigate('accords')} aria-label="Retour au parcours d’accords">‹</button>
         <div>
@@ -705,7 +720,7 @@ export function ChordLessonPage() {
 
       {step === 'decouvrir' && (
         <>
-          <Panel className="span-12" accent="cyan" active label="L’accord">
+          <Panel className="span-6" accent="cyan" active label="L’accord">
             <div className="chord-intro">
               {/* S = 3 : à 2, la boîte faisait 140 px de large, illisible depuis le tabouret, guitare en
                   main ; la navigation d'étapes compacte libère la hauteur qu'elle prend en plus */}
@@ -749,7 +764,7 @@ export function ChordLessonPage() {
             {status && <p className="t-small t-dim">{status}</p>}
           </Panel>
           {scoreStrum && (
-            <Panel className="span-12" label="Tablature plaquée">
+            <Panel className="span-6" label="Tablature plaquée">
               <TabView
                 score={scoreStrum}
                 notes={settings.noteNotation}
@@ -1277,6 +1292,7 @@ export function ChordLessonPage() {
                 chords={settings.chordNotation}
                 annotation="degree"
                 mode="wrap"
+                oneLine={desktop}
                 scale="auto"
                 reduceMotion={settings.reduceMotion}
                 player={player.current}
@@ -1393,6 +1409,7 @@ export function ChordLessonPage() {
                 chords={settings.chordNotation}
                 annotation="degree"
                 mode="wrap"
+                oneLine={desktop}
                 scale="auto"
                 reduceMotion={settings.reduceMotion}
                 player={player.current}
@@ -1402,6 +1419,14 @@ export function ChordLessonPage() {
           )}
         </>
       )}
+
+      {desktop && (
+        <footer className="play-foot">
+          <InstrumentPicker />
+          <PixelButton variant="quiet" onClick={() => navigate('accords')}>← Changer d’accord</PixelButton>
+        </footer>
+      )}
+      </div>
     </main>
   );
 }
