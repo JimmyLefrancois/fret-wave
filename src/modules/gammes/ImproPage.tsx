@@ -25,7 +25,12 @@ import { positionToScore } from '../../core/tab/generators';
 import { Chip, Panel, PixelButton, Switch } from '../../app/ui';
 import { TabView } from '../../app/TabView';
 import { useSettings } from '../../app/settings';
-import { useScaleSelection } from '../../app/scaleSession';
+import { useDesktop } from '../../app/useDesktop';
+import { InstrumentPicker } from '../../app/AudioControls';
+import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
+import { LevelsNav } from './LevelsNav';
+import { PlaySection } from './PlaySection';
+import { setScaleSelection, setTrainingStart, useScaleSelection } from '../../app/scaleSession';
 import { navigate } from '../../app/router';
 import { fmtNote, pitchClassOf } from '../../core/theory';
 import { noteNameOf } from '../../core/input/match';
@@ -33,7 +38,7 @@ import { appendAttempt, newAttemptId, readAttempts } from '../../core/progress/j
 import { progressStore } from '../../core/progress';
 import type { Attempt } from '../../core/progress/journal';
 import { chordAtMeasure, chordName, backingsFor, IMPRO_BACKINGS, STYLE_LABEL, type BackingMode, type BackingStyle } from './impro';
-import { positionLabelPlain, resolveScale } from './resolve';
+import { legendFor, positionLabelPlain, resolveScale } from './resolve';
 import * as clock from '../../core/clock';
 
 const ROLE_CLASS: Record<NoteRole, string> = {
@@ -50,6 +55,7 @@ const pct = (v: number): string => `${Math.round(v * 100)} %`;
 const count = (n: number, one: string, many: string): string => `${n} ${n > 1 ? many : one}`;
 
 export function ImproPage() {
+  const desktop = useDesktop();
   const settings = useSettings();
   const selection = useScaleSelection();
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
@@ -98,6 +104,7 @@ export function ImproPage() {
   const [summary, setSummary] = useState<ImproStats | null>(null);
   const [flash, setFlash] = useState<{ string: number; fret: number }[]>([]);
   const [status, setStatus] = useState('');
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const player = useRef<BackingPlayer | null>(null);
   const startedAt = useRef(0);
@@ -138,7 +145,7 @@ export function ImproPage() {
       system: r.selection.system,
       positionId: r.position.id,
       formIndex: r.position.formIndex ?? r.position.index,
-      level: 4,
+      level: 5,
       strings: r.tuning.strings.length,
       correct: stats.byRole.chord,
       total: stats.notes,
@@ -235,6 +242,16 @@ export function ImproPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [micOn]);
 
+  // au bureau, le micro s'ouvre seul dès que le navigateur le permet
+  useEffect(() => {
+    if (!desktop) return;
+    let cancelled = false;
+    void micPermission().then((permission) => {
+      if (!cancelled && canAutoOpenMic(permission, navigator.userActivation?.hasBeenActive ?? false)) setMicOn(true);
+    });
+    return () => { cancelled = true; };
+  }, [desktop]);
+
   useEffect(() => {
     if (!engine) return;
     return engine.subscribe(() => {
@@ -273,6 +290,203 @@ export function ImproPage() {
   const recent = takes.slice(-8);
   const lane = r.position ? `${positionLabelPlain(r.position, settings.noteNotation)} · ${r.title}` : r.title;
 
+  const tab = score && (
+    <TabView
+      score={score}
+      notes={settings.noteNotation}
+      chords={settings.chordNotation}
+      annotation="none"
+      mode="wrap"
+      scale="auto"
+      reduceMotion={settings.reduceMotion}
+      player={null}
+      transport="stopped"
+      hideRhythm
+      oneLine={desktop}
+      {...(flash.length > 0 ? { flash } : {})}
+    />
+  );
+  const styleChips = (
+    <>
+      {(['synthwave', 'lofi'] as BackingStyle[]).map((s) => (
+        <Chip key={s} selected={style === s} onClick={() => setStyle(s)}>{STYLE_LABEL[s]}</Chip>
+      ))}
+    </>
+  );
+  const chordGrid = (
+    <div className="impro-grid">
+      {backing.chords.map((c, i) => {
+        const name = chordName(((tonicPc + c.offset) % 12 + 12) % 12, c.quality);
+        return (
+          <div key={`${c.roman}-${i}`} className={`impro-chord ${transport === 'playing' && i === measure ? 'on' : ''}`}>
+            <span className="impro-chord-name">{name}</span>
+            <span className="impro-chord-roman">{c.roman}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+  const chordNotes = (
+    <p className="t-small t-dim">
+      Notes de l’accord : {CHORD_INTERVALS[chord.quality].map((iv) => fmtNote(noteNameOf(60 + chord.root + iv), settings.noteNotation)).join(' · ')}
+    </p>
+  );
+  const take = (
+    <>
+      {recent.length === 0 ? (
+        <p className="t-small t-dim">Aucune note encore. Ouvre le micro, démarre l’accompagnement, et joue ce que tu entends.</p>
+      ) : (
+        <div className="impro-notes">
+          {recent.map((n, i) => (
+            <span key={`${n.at}-${i}`} className={`impro-note ${ROLE_CLASS[n.judgement.role]}`} title={ROLE_LABEL[n.judgement.role]}>
+              {fmtNote(noteNameOf(n.midi), settings.noteNotation)}
+            </span>
+          ))}
+        </div>
+      )}
+      {live && (
+        <div className="impro-stats">
+          <span><strong>{pct(live.chordRate)}</strong> de notes d’accord</span>
+          <span><strong>{pct(live.inScaleRate)}</strong> dans la gamme</span>
+          <span><strong>{pct(live.strongChordRate)}</strong> d’accords sur les temps forts</span>
+        </div>
+      )}
+      {summary && (
+        <div className="impro-summary">
+          <p className="t-body"><strong>{summary.score} / 100</strong> — {summary.advice}</p>
+          <p className="t-small t-dim">
+            {count(summary.byRole.chord, 'note d’accord', 'notes d’accord')} · {count(summary.byRole.color, 'couleur', 'couleurs')} ·{' '}
+            {count(summary.byRole.passing, 'passage', 'passages')} · {count(summary.byRole.avoid, 'note à éviter', 'notes à éviter')} ·{' '}
+            {count(summary.byRole.out, 'hors gamme', 'hors gamme')}
+          </p>
+          <p className="t-small t-dim">
+            Le score dit la tenue de la grille (notes d’accord sur les temps forts), pas le goût de la phrase. La prise est enregistrée sur la compétence « improviser sur cette position ».
+          </p>
+        </div>
+      )}
+    </>
+  );
+
+  if (desktop) {
+    const playing = transport === 'playing';
+    // micro fermé, c'est lui l'action principale : Démarrer garde le cyan des modes, le magenta reste unique
+    const micFirst = !micOn && !playing;
+    const degrees = legendFor(r.def);
+    return (
+      <main className="shell play-shell">
+        <div className="play-surface">
+          <header className="play-head">
+            <div className="play-id">
+              <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour">‹</button>
+              <div>
+                <div className="play-title">
+                  <h1 className="page-title">Improviser</h1>
+                  <span className="tag tag-on">Niv5</span>
+                </div>
+                <p className="t-small t-dim">{lane}</p>
+              </div>
+            </div>
+            {!micOn && (
+              <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>▶ Ouvrir le micro</PixelButton>
+            )}
+            <div className="tempo-group">
+              <span className="t-label">Tempo</span>
+              <div className="tempo">
+                <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.max(60, t - 4))} aria-label="Moins vite">−</button>
+                <span className="tempo-val">♩ {tempo}</span>
+                <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.min(140, t + 4))} aria-label="Plus vite">+</button>
+              </div>
+            </div>
+            {playing ? (
+              <PixelButton variant="primary" onClick={stop}>■ Arrêter</PixelButton>
+            ) : (
+              <PixelButton variant={micFirst ? 'ghost' : 'primary'} className={micFirst ? 'train-grid' : ''} onClick={() => void start()} disabled={!score}>▶ Démarrer</PixelButton>
+            )}
+            {live && <span className="badge badge-count">{live.notes} notes</span>}
+          </header>
+
+          <section className="play-tab">
+            <div className="play-tab-bar">
+              <div className="play-degrees" role="img" aria-label={`Couleurs des degrés : ${degrees.map((it) => it.name).join(', ')}`}>
+                {degrees.map((it) => (
+                  <span key={it.fn} className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
+                ))}
+              </div>
+              <div className="field">
+                <span className="t-label">Style</span>
+                <div className="row">{styleChips}</div>
+              </div>
+            </div>
+            <div className="impro-live">
+              {chordGrid}
+              {chordNotes}
+            </div>
+            {tab}
+          </section>
+
+          {(recent.length > 0 || summary || micBusy || status) && (
+            <section className="train-answer">
+              {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+              {status && <p className="t-small ko">{status}</p>}
+              {recent.length > 0 && take}
+            </section>
+          )}
+
+          <div className="play-nav">
+            <LevelsNav
+              current={5}
+              onSelect={(n) => {
+                if (n === 1) navigate('scale');
+                else if (n === 4) navigate('sequences');
+                else if (n === 2 || n === 3) { setTrainingStart({ level: n, segment: 'updown' }); navigate('training'); }
+              }}
+            />
+            <div className="play-pos">
+              <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0 || playing}>‹ Position</PixelButton>
+              <span className="play-dots" aria-hidden="true">
+                {r.positions.map((p, i) => <span key={p.id} className={i === r.selection.positionIndex ? 'on' : ''} />)}
+              </span>
+              <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
+              <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1 || playing}>Position ›</PixelButton>
+            </div>
+          </div>
+
+          <div className="play-more">
+            <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
+              {infoOpen ? '▾ Masquer les détails' : '▸ Détails de l’impro'}
+            </PixelButton>
+          </div>
+
+          {infoOpen && (
+            <div className="play-columns">
+              <div className="play-col">
+                <PlaySection title="Accompagnement">
+                  <p className="t-small t-dim">{backing.why}</p>
+                  {micOn && (
+                    <div className="row">
+                      <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer le micro</PixelButton>
+                    </div>
+                  )}
+                </PlaySection>
+              </div>
+              <div className="play-col">
+                <PlaySection title="Comment jouer" tone="cyan">
+                  <p className="t-small t-dim">Ouvre le micro, démarre l’accompagnement, et joue ce que tu entends : tes notes s’inscrivent sur la tablature.</p>
+                  <p className="t-small t-dim">La grille tourne, l’accord courant s’allume : joue ses notes sur les temps forts, le reste en passage.</p>
+                </PlaySection>
+              </div>
+            </div>
+          )}
+
+          <footer className="play-foot">
+            <InstrumentPicker />
+            <PixelButton variant="quiet" onClick={() => navigate('gammes')} disabled={playing}>← Changer de gamme</PixelButton>
+          </footer>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="shell">
       <header className="page-head">
@@ -281,15 +495,11 @@ export function ImproPage() {
           <h1 className="page-title">Improviser</h1>
           <p className="t-small t-dim">{lane} · {tempo} BPM</p>
         </div>
-        <span className="tag tag-on">N4</span>
+        <span className="tag tag-on">Niv5</span>
       </header>
 
       <Panel className="span-5" accent="magenta" label="Accompagnement">
-        <div className="row">
-          {(['synthwave', 'lofi'] as BackingStyle[]).map((s) => (
-            <Chip key={s} selected={style === s} onClick={() => setStyle(s)}>{STYLE_LABEL[s]}</Chip>
-          ))}
-        </div>
+        <div className="row">{styleChips}</div>
         <p className="t-small t-dim">{backing.why}</p>
         {/* trois éléments, trois largeurs : les boutons font 44 px, la valeur prend le reste. Dans une
             `.row`, chacun demandait 44 % et le « − » occupait la moitié de l'écran. */}
@@ -310,74 +520,20 @@ export function ImproPage() {
       </Panel>
 
       <Panel className="span-7" label="La grille">
-        <div className="impro-grid">
-          {backing.chords.map((c, i) => {
-            const name = chordName(((tonicPc + c.offset) % 12 + 12) % 12, c.quality);
-            return (
-              <div key={`${c.roman}-${i}`} className={`impro-chord ${transport === 'playing' && i === measure ? 'on' : ''}`}>
-                <span className="impro-chord-name">{name}</span>
-                <span className="impro-chord-roman">{c.roman}</span>
-              </div>
-            );
-          })}
-        </div>
+        {chordGrid}
         <p className="t-small">{transport === 'playing' ? <>Accord en cours : <strong>{chordName(chord.root, chord.quality)}</strong> — joue ses notes sur les temps forts, le reste en passage.</> : 'Démarre l’accompagnement : la grille tourne, l’accord courant s’allume.'}</p>
         {/* Les notes à viser, écrites en clair : c'est la seule information qui sert *pendant* qu'on joue. */}
-        <p className="t-small t-dim">
-          Notes de l’accord : {CHORD_INTERVALS[chord.quality].map((iv) => fmtNote(noteNameOf(60 + chord.root + iv), settings.noteNotation)).join(' · ')}
-        </p>
+        {chordNotes}
       </Panel>
 
       {score && (
         <Panel className="span-12" label="Ta position">
-          <TabView
-            score={score}
-            notes={settings.noteNotation}
-            chords={settings.chordNotation}
-            annotation="none"
-            mode="wrap"
-            scale="auto"
-            reduceMotion={settings.reduceMotion}
-            player={null}
-            transport="stopped"
-            hideRhythm
-            {...(flash.length > 0 ? { flash } : {})}
-          />
+          {tab}
         </Panel>
       )}
 
       <Panel className="span-12" label="Ta prise" right={live ? <span className="badge">{live.notes} notes</span> : undefined}>
-        {recent.length === 0 ? (
-          <p className="t-small t-dim">Aucune note encore. Ouvre le micro, démarre l’accompagnement, et joue ce que tu entends.</p>
-        ) : (
-          <div className="impro-notes">
-            {recent.map((n, i) => (
-              <span key={`${n.at}-${i}`} className={`impro-note ${ROLE_CLASS[n.judgement.role]}`} title={ROLE_LABEL[n.judgement.role]}>
-                {fmtNote(noteNameOf(n.midi), settings.noteNotation)}
-              </span>
-            ))}
-          </div>
-        )}
-        {live && (
-          <div className="impro-stats">
-            <span><strong>{pct(live.chordRate)}</strong> de notes d’accord</span>
-            <span><strong>{pct(live.inScaleRate)}</strong> dans la gamme</span>
-            <span><strong>{pct(live.strongChordRate)}</strong> d’accords sur les temps forts</span>
-          </div>
-        )}
-        {summary && (
-          <div className="impro-summary">
-            <p className="t-body"><strong>{summary.score} / 100</strong> — {summary.advice}</p>
-            <p className="t-small t-dim">
-              {count(summary.byRole.chord, 'note d’accord', 'notes d’accord')} · {count(summary.byRole.color, 'couleur', 'couleurs')} ·{' '}
-              {count(summary.byRole.passing, 'passage', 'passages')} · {count(summary.byRole.avoid, 'note à éviter', 'notes à éviter')} ·{' '}
-              {count(summary.byRole.out, 'hors gamme', 'hors gamme')}
-            </p>
-            <p className="t-small t-dim">
-              Le score dit la tenue de la grille (notes d’accord sur les temps forts), pas le goût de la phrase. La prise est enregistrée sur la compétence « improviser sur cette position ».
-            </p>
-          </div>
-        )}
+        {take}
       </Panel>
     </main>
   );

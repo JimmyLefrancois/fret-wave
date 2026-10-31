@@ -2654,7 +2654,7 @@ details[open] > * + * { margin-block-start: var(--gap-inside); }
 
 .home-hero-title { text-shadow: 2px 2px 0 var(--shadow-ink); }
 
-/* Chemin en quatre niveaux (page Jouer) : quatre étapes de même gabarit, la courante cerclée de cyan.
+/* Chemin en cinq niveaux (page Jouer) : quatre étapes de même gabarit, la courante cerclée de cyan.
    Chaque étape est une tuile entière à toucher ; 4 sur une ligne au bureau, 2 × 2 sur téléphone. */
 .row.page-exit { justify-content: flex-start; }
 .levels {
@@ -2662,7 +2662,7 @@ details[open] > * + * { margin-block-start: var(--gap-inside); }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
-@media (min-width: 720px) { .levels { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 720px) { .levels { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 .level {
   display: grid;
   align-content: start;
@@ -3000,3 +3000,208 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .tuner-summary { margin-block: 16px 8px; }
 .tuner-summary strong:last-child:not(.ko) { color: var(--cyan); }
 .tuner-summary strong:last-child { padding: 2px 8px; }
+
+/* Page Jouer au bureau : une seule surface, comme la maquette « Page Gamme ». En-tête collant (identité
+   et écoute), tablature, onglets de niveaux et positions, deux colonnes de sections séparées par un
+   filet pointillé, barre basse. Le téléphone garde sa colonne de panneaux, rendue à part. */
+@media (min-width: 900px) {
+  /* un peu plus large que les autres pages : un aller-retour en cases hautes doit tenir sur une ligne */
+  .play-shell { width: 96vw; }
+  .play-surface {
+    grid-column: 1 / -1;
+    min-width: 0;
+    background: var(--surface);
+    border: var(--bw) solid var(--line);
+    box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink);
+  }
+  .play-shell :focus-visible { scroll-margin-block-start: 170px; }
+  .play-surface .t-small { font-size: 14.5px; }
+
+  .play-head {
+    position: sticky;
+    top: 54px;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 20px;
+    padding: 14px 28px;
+    background: var(--surface-hi);
+    border-block-end: var(--bw) solid var(--line);
+  }
+  .play-id { display: flex; align-items: center; gap: 14px; flex: 1 1 300px; min-width: 0; }
+  .play-title { display: flex; align-items: center; gap: 10px; }
+  .play-title .page-title { margin: 0; font-size: 22px; line-height: 1.1; }
+  .play-transport { display: flex; align-items: center; gap: 8px; }
+  .play-head .btn.play { flex: none; padding-inline: 20px; }
+  .play-head .tempo-group { margin-left: 0; }
+  .play-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 0 18px; }
+  /* case et libellé sur la même ligne pour les trois ; la précision de Drone se pose dessous, hors flux */
+  .play-toggles .switch { position: relative; display: flex; align-items: center; gap: 8px; }
+  .play-toggles .switch-hint { position: absolute; top: calc(50% + 9px); left: 32px; margin: 0; font-size: 12px; line-height: 1.1; white-space: nowrap; }
+  .play-toggles .switch,
+  .play-compare .switch { width: auto; min-height: 44px; margin: 0; padding: 0 2px; background: none; border: 0; }
+
+  .play-tab { display: grid; gap: var(--gap-block); min-width: 0; padding: 16px 16px 8px; }
+  .play-tab > * { min-width: 0; margin: 0; }
+  /* la tablature prend la marge de la surface : quelques pastilles de plus tiennent sans défiler */
+  .play-tab > :not(.tabview) { margin-inline: 12px; }
+  .play-tab-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding-block-end: var(--gap-block); border-block-end: var(--bw) solid var(--line-soft); }
+  .play-degrees { display: flex; gap: 4px; }
+  .play-tab-bar .field { display: flex; align-items: center; gap: 10px; margin: 0; }
+  .play-tab-bar .segmented { flex-wrap: nowrap; padding: 0; }
+  .play-tab-bar .switch-hint { display: none; }
+  .play-surface .tabview { border: 0; scrollbar-color: var(--line) transparent; }
+  .play-neck-dialog { width: min(1100px, calc(100vw - 64px)); max-height: calc(100dvh - 32px); padding: 0; color: var(--text); background: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
+  .play-neck-dialog::backdrop { background: var(--bg-deep); opacity: 0.8; }
+  .play-neck-dialog .panel { margin: 0; border: 0; box-shadow: none; }
+  .play-neck-dialog .panel::before,
+  .play-neck-dialog .panel::after { content: none; }
+  .play-neck-close { display: flex; justify-content: flex-end; padding: 0 18px 16px; }
+  .play-neck-switch { display: block; }
+  .play-shell .play-neck-switch .switch {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+  .play-shell .play-neck-switch .switch-label { font-size: 14px; }
+  .play-tab .panel,
+  .play-tab .tab-legend { padding: 16px 0 0; background: none; border: 0; border-block-start: var(--bw) solid var(--line-soft); box-shadow: none; }
+  .play-tab .panel::before,
+  .play-tab .panel::after { content: none; }
+  .neck-link .switch { width: auto; padding: 4px 0; background: none; border: 0; }
+
+  .play-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px 24px;
+    padding: 0 28px;
+    border-block-end: var(--bw) solid var(--line-soft);
+  }
+  .play-nav .levels { display: flex; flex-wrap: wrap; gap: 0; }
+  .play-nav .level {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 0 22px;
+    margin-block-end: calc(-1 * var(--bw));
+    background: none;
+    border: 0;
+    border-block-end: 3px solid transparent;
+    box-shadow: none;
+  }
+  .play-nav button.level:hover { color: var(--cyan); border-block-end-color: var(--line); }
+  .play-nav .level.here { border-block-end-color: var(--cyan); }
+  .play-nav .level-t { font-size: 16px; font-weight: 500; }
+  .play-nav .level.here .level-t { font-weight: 700; color: var(--cyan); }
+  .play-nav .level-n { padding: 3px 6px; font-size: 11px; color: var(--muted); background: var(--surface-hi); }
+  .play-nav .level.here .level-n { color: var(--on-accent); background: var(--cyan); }
+  .play-nav .level-s { display: none; }
+  .play-pos { display: flex; align-items: center; gap: 14px; padding-block-end: 6px; }
+  .play-dots { display: flex; gap: 4px; }
+  .play-dots > span { width: 10px; height: 10px; border: var(--bw) solid var(--line); }
+  .play-dots > .on { background: var(--magenta); border-color: var(--magenta); }
+
+  .play-more { display: flex; justify-content: center; padding: 14px 28px; }
+  .play-more + .play-columns { padding-block-start: 8px; }
+  .play-columns { display: flex; flex-wrap: wrap; gap: 36px 56px; padding: 32px 28px 36px; }
+  .play-col { display: flex; flex-direction: column; gap: 32px; flex: 1 1 460px; min-width: 0; }
+  .play-sec { display: grid; gap: 14px; min-width: 0; }
+  .play-sec > * { min-width: 0; margin: 0; }
+  .play-sec-head { display: flex; align-items: center; gap: 12px; min-height: 28px; }
+  .play-sec-head .t-label { margin: 0; color: var(--text); }
+  .play-sec-mark { flex: none; width: 10px; height: 10px; background: var(--magenta); }
+  .play-sec-mark.cyan { background: var(--cyan); }
+  .play-sec-rule {
+    flex: 1;
+    height: 4px;
+    background-image: repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 10px);
+  }
+  .play-steps { display: flex; gap: 4px; }
+  .play-steps > span {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-block: 8px;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text);
+    background: var(--surface-hi);
+    border: var(--bw) solid var(--magenta);
+  }
+  .play-steps > .semi { border-color: var(--cyan); }
+  .play-compare { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+  .play-hint { font-size: 20px; font-weight: 500; line-height: 1.5; color: var(--text); max-width: 56ch; }
+
+  .play-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+    padding: 14px 28px;
+    background: var(--surface-hi);
+    border-block-start: var(--bw) solid var(--line-soft);
+  }
+  .play-foot .instrument { flex: 0 1 auto; flex-direction: row; align-items: center; gap: 12px; margin: 0; }
+  .play-foot .instrument select { min-width: 260px; }
+}
+
+/* Page Entraînement au bureau : la même surface que Jouer, la réponse en une rangée sous la tablature */
+@media (min-width: 900px) {
+  .train-answer { display: grid; gap: var(--gap-inside); padding: 12px 28px; border-block-start: var(--bw) solid var(--line-soft); }
+  .train-answer > * { min-width: 0; margin: 0; }
+  .play-surface .verdict { flex: 1 1 280px; position: static; min-width: 0; min-height: 0; margin: 0; padding: 0; background: none; border: 0; }
+  /* la grille se remarque sans voler le primaire : accent cyan plein cadre, pas de halo */
+  .train-grid.btn-ghost:not(:disabled) { color: var(--cyan); border-color: var(--cyan); }
+  .train-grid.on.btn-ghost:not(:disabled) { color: var(--on-accent); background: var(--cyan); }
+  .play-head .seq-tempo { align-items: center; }
+  .play-head .seq-bpm { font-size: 22px; }
+  .train-answer .seq-count { text-align: center; }
+  .impro-live { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: center; gap: var(--gap-block) 24px; }
+  .impro-live > * { margin: 0; }
+  .train-outcome { display: grid; gap: var(--gap-inside); padding: 16px 28px; border-block-start: var(--bw) solid var(--line-soft); }
+  .train-outcome > * { min-width: 0; margin: 0; }
+  .train-outcome .panel { padding: 0; background: none; border: 0; box-shadow: none; }
+  .train-outcome .panel::before,
+  .train-outcome .panel::after { content: none; }
+  .play-tab-bar .row { margin: 0; }
+  .play-surface .switch { width: auto; min-height: 38px; margin: 0; padding: 4px 0; background: none; border: 0; }
+}
+
+/* « Ouvrir le micro » : sans lui, l'exercice n'avance pas. Une comète de lumière glisse sur le cadre, longue
+   traîne cyan et tête vive ; une copie floutée fait le halo. Un dégradé conique tourne, un masque n'en
+   garde que le cadre. */
+@property --mic-spark-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes mic-spark-turn { to { --mic-spark-angle: 360deg; } }
+.mic-spark:not(:disabled) { position: relative; border-color: transparent; }
+.mic-spark:not(:disabled)::before,
+.mic-spark:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--bw) - 1px);
+  padding: 3px;
+  pointer-events: none;
+  background: conic-gradient(from var(--mic-spark-angle), transparent 0 55%, var(--cyan) 82%, var(--spark) 97%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: mic-spark-turn 2.6s linear infinite;
+}
+.mic-spark:not(:disabled)::after { filter: blur(5px); opacity: 0.8; }
+@media (prefers-reduced-motion: reduce) {
+  .mic-spark:not(:disabled) { border-color: var(--spark); }
+  .mic-spark:not(:disabled)::before,
+  .mic-spark:not(:disabled)::after { content: none; }
+}

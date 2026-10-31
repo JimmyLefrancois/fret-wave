@@ -5,7 +5,7 @@
  *  - quatre annotations au choix (note, degré, intervalle, doigté) ;
  *  - un calque « notes de l'accord » qui estompe les notes étrangères ;
  *  - le mode « fondamentales d'abord » et le découpage par nombre de cordes (chunking) ;
- *  - l'exercice « montre-moi la ♭3 » (toucher la pastille) et la comparaison de deux modes voisins ;
+ *  - la comparaison de deux modes voisins ;
  *  - le son final de la 1c (échantillons CC0), un drone de fondamentale, un métronome.
  * Chaque écoute complète est écrite dans le journal local : le hub affiche des chiffres vrais.
  */
@@ -13,23 +13,20 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
 import { requestLiaison, setScaleSelection, useScaleSelection } from '../../app/scaleSession';
 import { setSettings, useSettings } from '../../app/settings';
-import { TabView, type TabPick } from '../../app/TabView';
+import { TabView } from '../../app/TabView';
 import { NeckView } from '../../app/NeckView';
 import { InstrumentPicker } from '../../app/AudioControls';
 import { Panel, PixelButton, PixelIcon, Segmented, Switch } from '../../app/ui';
 import { filterPosition, fmtNote, linkedPair, relabelPosition, stepFormula } from '../../core/theory';
 import { type AnnotationKind, type Direction, defaultChordForScale, linkNeckNotes, neckNotes, positionToScore } from '../../core/tab';
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
-import { AudioEngine } from '../../core/audio/engine';
-import { describeInputError, type InputEngine, type InputFrame } from '../../core/input/engine';
-import { useInputSettings } from '../../core/input/settings';
-import { ensureInputEngine, windowFor } from '../../app/inputSession';
-import { locateInScore, scoreNotes } from '../../core/impro/locate';
 import { appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts } from '../../core/progress';
-import { degreeName, fmtDegree, legendFor, positionLabelPlain, resolveScale, scaleTitle } from './resolve';
+import { fmtDegree, legendFor, positionLabelPlain, resolveScale, scaleTitle } from './resolve';
 import { ScaleRuler } from './ScaleRuler';
 import { TabLegend } from './TabLegend';
 import { LevelsNav } from './LevelsNav';
+import { PlaySection } from './PlaySection';
+import { useDesktop } from '../../app/useDesktop';
 import {
   compareChoices, counterpartPosition, differingDegrees, markDegrees, neighbourPositions, relativeDegrees, samePlaceIndex,
 } from './compare';
@@ -48,6 +45,7 @@ const ANNOTATIONS: { value: AnnotationKind; label: string }[] = [
 type StringLimit = 0 | 2 | 3 | 4;
 
 export function ScaleDiscoveryPage() {
+  const desktop = useDesktop();
   const settings = useSettings();
   const selection = useScaleSelection();
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
@@ -58,19 +56,6 @@ export function ScaleDiscoveryPage() {
   const [tempo, setTempo] = useState(70);
   const [loop, setLoop] = useState(false);
   const [drone, setDrone] = useState(true);
-  /**
-   * P3 de la phase 3 (livrée ici, en phase 7) : **s'écouter sur la position**. La note entendue s'allume
-   * à sa place dans la tablature — c'est le seul retour qui relie « ce que j'entends » à « ce que je lis ».
-   */
-  const [listenOn, setListenOn] = useState(false);
-  const [listenEngine, setListenEngine] = useState<InputEngine | null>(null);
-  const [listenBusy, setListenBusy] = useState(false);
-  const [flash, setFlash] = useState<{ string: number; fret: number }[]>([]);
-  const previousNote = useRef<{ string: number; fret: number; midi: number } | null>(null);
-  const flashTimer = useRef<number | null>(null);
-  const lastFlash = useRef<{ midi: number; at: number } | null>(null);
-  const input = useInputSettings();
-  const listenRef = useRef<(f: InputFrame) => void>(() => {});
   const [metro, setMetro] = useState(false);
   const [chordLayer, setChordLayer] = useState(false);
   const [rootsOnly, setRootsOnly] = useState(false);
@@ -79,22 +64,12 @@ export function ScaleDiscoveryPage() {
   const [compare, setCompare] = useState(false);
   const [compareId, setCompareId] = useState('');
   const [neckLink, setNeckLink] = useState(false);
+  const [structureOpen, setStructureOpen] = useState(false);
+  const [neckOpen, setNeckOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [transport, setTransport] = useState<'stopped' | 'playing' | 'paused'>('stopped');
   const [status, setStatus] = useState('');
   const playing = transport === 'playing';
-
-  // --- exercice « montre-moi la … »
-  const [quiz, setQuiz] = useState(false);
-  const [target, setTarget] = useState<string | null>(null);
-  const [reveal, setReveal] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
-  const [score, setScore] = useState({ right: 0, wrong: 0 });
-  const timers = useRef<number[]>([]);
-  const clearTimers = () => {
-    timers.current.forEach((t) => window.clearTimeout(t));
-    timers.current = [];
-  };
-  useEffect(() => () => clearTimers(), []);
 
   // --- position affichée (fondamentales seules, sous-ensemble de cordes)
   const shownPos = useMemo(() => {
@@ -125,10 +100,6 @@ export function ScaleDiscoveryPage() {
       ? { from: Math.min(fretMin, neighbourPos!.fretMin), to: Math.max(fretMax, neighbourPos!.fretMax) }
       : { from: fretMin, to: fretMax };
   }, [r.position, linkOn, neighbourPos]);
-
-  // degrés en ASCII (modèle) : l'affichage passe par fmtDegree, la mise en évidence par n.fn
-  const availableDegrees = useMemo(() => [...new Set((shownPos?.notes ?? []).map((n) => n.degree))], [shownPos]);
-  const targetLabel = target ? fmtDegree(target) : null;
 
   const scoreTab = useMemo(() => {
     if (!shownPos) return null;
@@ -207,65 +178,6 @@ export function ScaleDiscoveryPage() {
     const p = player.current!;
     return () => p.dispose();
   }, []);
-
-  // --- P3 : s'écouter sur la position (micro ouvert à la demande, refermé en quittant)
-  useEffect(() => {
-    if (!listenOn) {
-      listenEngine?.stop();
-      return;
-    }
-    let cancelled = false;
-    setListenBusy(true);
-    void (async () => {
-      try {
-        await AudioEngine.get().unlock();
-        const e = await ensureInputEngine();
-        if (cancelled) return;
-        setListenEngine(e);
-        await e.start(input, { windowSize: windowFor(r.tuning.id) });
-        if (cancelled) {
-          e.stop();
-          return;
-        }
-        if (e.state !== 'listening') {
-          const d = describeInputError(e.state, e.error);
-          setStatus(`${d.message} — ${d.hint}`);
-          setListenOn(false);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setStatus(`micro indisponible : ${(err as Error).message}`);
-          setListenOn(false);
-        }
-      } finally {
-        if (!cancelled) setListenBusy(false);
-      }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listenOn]);
-
-  useEffect(() => {
-    if (!listenEngine || !scoreTab) return;
-    const notes = scoreNotes(scoreTab);
-    listenRef.current = (f: InputFrame) => {
-      if (!f.stable || !f.isNew) return;
-      const now = performance.now();
-      const last = lastFlash.current;
-      if (last && last.midi === f.midi && now - last.at < 400) return;
-      lastFlash.current = { midi: f.midi, at: now };
-      const at = locateInScore(notes, f.midi, previousNote.current);
-      if (!at) return; // note hors de la position : rien à allumer, et on ne ment pas en allumant ailleurs
-      previousNote.current = at;
-      setFlash([{ string: at.string, fret: at.fret }]);
-      if (flashTimer.current !== null) window.clearTimeout(flashTimer.current);
-      flashTimer.current = window.setTimeout(() => setFlash([]), 900);
-    };
-    return listenEngine.subscribe(() => {
-      const f = listenEngine.last;
-      if (f) listenRef.current(f);
-    });
-  }, [listenEngine, scoreTab]);
 
   const droneAvailable = scoreTab !== null && scoreTonic(scoreTab) !== null;
 
@@ -347,306 +259,459 @@ export function ScaleDiscoveryPage() {
     setScaleSelection({ positionIndex: (r.selection.positionIndex + delta + n) % n });
   };
 
-  // --- exercice : choix de la cible et réponse
-  const pickTarget = () => {
-    const pool = availableDegrees.filter((d) => d !== target);
-    const list = pool.length ? pool : availableDegrees;
-    setTarget(list[Math.floor(Math.random() * list.length)] ?? null);
-    setReveal(null);
-    setFeedback(null);
-  };
-
-  const onPick = (pick: TabPick) => {
-    if (!target) return;
-    const ok = pick.fn === target;
-    setFeedback({ ok, text: ok ? 'juste' : `non, c’était la ${fmtDegree(target)}` });
-    setScore((s) => ({ right: s.right + (ok ? 1 : 0), wrong: s.wrong + (ok ? 0 : 1) }));
-    if (ok) {
-      timers.current.push(window.setTimeout(pickTarget, 900));
-    } else {
-      setReveal(target);
-      timers.current.push(window.setTimeout(() => setReveal(null), 1800));
-    }
-  };
-
-  const toggleQuiz = (on: boolean) => {
-    setQuiz(on);
-    setScore({ right: 0, wrong: 0 });
-    setFeedback(null);
-    setReveal(null);
-    if (on) pickTarget();
-    else setTarget(null);
-  };
-
   const characteristic = (r.def.characteristic ?? []).map(fmtDegree);
+  const steps = stepFormula(r.def);
+
+  // --- pièces communes aux deux mises en page : téléphone (colonne) et bureau (surface unique)
+  const back = <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour à la sélection">‹</button>;
+  const subtitle = <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {r.tuning.strings.length} cordes</p>;
+  const tab = scoreTab ? (
+    <TabView
+      score={scoreTab}
+      notes={settings.noteNotation}
+      chords={settings.chordNotation}
+      annotation={annotation}
+      mode="wrap"
+      scale="auto"
+      reduceMotion={settings.reduceMotion}
+      player={player.current}
+      transport={transport}
+      emphasizeChordTones={chordLayer}
+      hideRhythm={!showRhythm}
+      oneLine={desktop}
+    />
+  ) : (
+    <Panel accent="yellow">
+      <p className="t-body">Aucune position pour cette gamme / cet accordage.</p>
+      <PixelButton onClick={() => navigate('gammes')}>Changer de système</PixelButton>
+    </Panel>
+  );
+  const neckSwitch = (
+    <Switch
+      checked={settings.showNeck}
+      onChange={(v) => setSettings({ showNeck: v })}
+      label="Vue manche"
+      hint="la forme de la position, tonique cerclée"
+      inline
+    />
+  );
+  // la forme que la tab écrit en chiffres : même pastilles, même orientation (aiguë en haut)
+  const neckPanel = scoreTab && neckZone && (
+    <Panel
+      className="span-12 neck-panel"
+      label="Manche"
+      right={<span className="badge">tonique {fmtNote(r.tonic, settings.noteNotation)} · cases {neckZone.from}–{neckZone.to}</span>}
+    >
+      <NeckView
+        tuning={r.tuning}
+        notes={neckLabelled}
+        zone={neckZone}
+        notation={settings.noteNotation}
+        label={positionLabelPlain(r.position, settings.noteNotation)}
+      />
+      {neighbourPos && (
+        <div className="neck-link">
+          <Switch
+            checked={linkOn}
+            onChange={setNeckLink}
+            label="Position voisine"
+            hint={`cases ${neighbourPos.fretMin}–${neighbourPos.fretMax}`}
+            inline
+          />
+          {linkOn && (
+            <>
+              <p className="t-small t-dim">En pointillés, les cases communes : c’est par elles que la main passe d’une position à l’autre.</p>
+              <PixelButton variant="quiet" onClick={() => { requestLiaison(); navigate('sequences'); }}>
+                Travailler la liaison ›
+              </PixelButton>
+            </>
+          )}
+        </div>
+      )}
+    </Panel>
+  );
+  const neck = settings.showNeck && neckPanel;
+  const tabLegend = <TabLegend def={r.def} readonly={settings.reduceMotion} />;
+  // le chemin d'une forme en cinq niveaux : on est au 1, les suivants sont à un toucher
+  const levels = (
+    <LevelsNav
+      current={1}
+      onSelect={(n) => navigate(n === 5 ? 'impro' : n === 4 ? 'sequences' : 'training')}
+    />
+  );
+  const prevPosition = <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>‹ Position</PixelButton>;
+  const nextPosition = <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2}>Position ›</PixelButton>;
+  const positionCount = <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>;
+  const transportButtons = (
+    <>
+      <PixelButton variant="primary" onClick={onPlay} disabled={!scoreTab || playing} ariaLabel="Lecture" className="play">
+        <PixelIcon name="play" size={18} /> {transport === 'paused' ? 'Reprendre' : 'Écouter'}
+      </PixelButton>
+      <PixelButton variant="quiet" onClick={onPause} disabled={!playing} ariaLabel="Pause">
+        <PixelIcon name="pause" size={14} />
+      </PixelButton>
+      <PixelButton variant="quiet" onClick={onStop} ariaLabel="Stop">
+        <PixelIcon name="stop" size={12} />
+      </PixelButton>
+    </>
+  );
+  // le tempo est un réglage de lecture : il vit sur la même ligne que le transport, à droite
+  const tempoControl = (
+    <div className="tempo-group">
+      <span className="t-label">Tempo</span>
+      <div className="tempo">
+        <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.max(40, t - 5))} aria-label="Moins vite">−</button>
+        <span className="tempo-val">♩ {tempo}</span>
+        <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.min(200, t + 5))} aria-label="Plus vite">+</button>
+      </div>
+    </div>
+  );
+  const audioSwitches = (droneInline: boolean) => (
+    <>
+      <Switch checked={drone && droneAvailable} onChange={setDrone} label="Drone" hint="fond. + quinte" inline={droneInline} />
+      <Switch checked={metro} onChange={setMetro} label="Métronome" />
+      <Switch checked={loop} onChange={setLoop} label="Boucle" />
+    </>
+  );
+  // Une phrase sur la gamme elle-même (« mêmes notes que Do majeur ») : elle ouvre le panneau,
+  // au lieu de traîner en bas après les options, où elle n'avait ni sujet ni étiquette.
+  const parentNote = r.parent && <p className="t-small t-dim">{r.parent}</p>;
+  const directionField = (
+    <div className="field">
+      <span className="t-label">Sens</span>
+      <Segmented
+        size="sm"
+        label="Sens de lecture"
+        value={direction}
+        onChange={setDirection}
+        options={(Object.keys(DIRECTION_LABEL) as Direction[]).map((d) => ({ value: d, label: DIRECTION_LABEL[d] }))}
+      />
+    </div>
+  );
+  const annotationOptions = (
+    <Segmented
+      size="sm"
+      label="Annotation"
+      value={annotation}
+      onChange={setAnnotation}
+      options={ANNOTATIONS.map((a) => ({ value: a.value, label: a.label }))}
+    />
+  );
+  const neckNote = settings.showNeck && <p className="t-small t-dim">Elle s’applique aussi au manche.</p>;
+  const moreOptions = (
+    <>
+      <details className="more-opts">
+        <summary className="t-label">Plus d’options</summary>
+        <div className="field">
+          <span className="t-label">Cordes (découpage)</span>
+          <Segmented<StringLimit>
+            size="sm"
+            label="Nombre de cordes affichées"
+            value={stringLimit}
+            onChange={setStringLimit}
+            options={[
+              { value: 0, label: 'toutes' },
+              { value: 2, label: '2 graves' },
+              { value: 3, label: '3' },
+              { value: 4, label: '4' },
+            ]}
+          />
+        </div>
+        <div className="toggle-grid">
+          <Switch checked={chordLayer} onChange={setChordLayer} label={`Accord${r.chord ? ` (${r.chord})` : ''}`} hint="estompe les autres notes" />
+          <Switch checked={rootsOnly} onChange={setRootsOnly} label="Fondamentales" hint="1 et 5 seulement" />
+        </div>
+        <Switch checked={showRhythm} onChange={setShowRhythm} label="Rythme" hint="hampes et ligatures" />
+        {stringLimit !== 0 && (
+          <p className="t-small t-dim">Découpage : les {stringLimit} cordes graves d’abord, puis on ajoute les suivantes.</p>
+        )}
+      </details>
+      {status && <p className="t-small t-dim status">{status}</p>}
+    </>
+  );
+  // Le geste suivant, écrit noir sur blanc : on a vu la position, on la joue. Deux suites, et pas
+  // une seule : répéter la position (justesse) ou improviser dessus (musique) — c'est la même
+  // position, ce ne sont pas les mêmes compétences.
+  const nextStep = (
+    <div className="next-step">
+      <div className="next-step-row">
+        <PixelButton variant="primary" onClick={() => navigate('training')} title="S’exercer sur cette position, au micro" ariaLabel="S’exercer sur cette position, au micro">
+          ▶ S’exercer
+        </PixelButton>
+        <PixelButton onClick={() => navigate('impro')} title="Improviser sur cette position, avec un accompagnement" ariaLabel="Improviser sur cette position, avec un accompagnement">
+          Improviser
+        </PixelButton>
+        <PixelButton variant="quiet" onClick={() => navigate('sequences')} title="Séquences au métronome : par 3, par 4, tierces, quartes, saut de corde, tour depuis un degré" ariaLabel="Séquences au métronome">
+          Séquences
+        </PixelButton>
+      </div>
+      <p className="t-small t-dim">
+        S’exercer : le micro valide chaque note, la case se remplit. Sans micro, le pavé numérique
+        prend le relais. Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature : seule une
+        tentative de l’exercice sert à la révision, une écoute ici ne prouve rien.
+      </p>
+    </div>
+  );
+  // la règle et les couleurs d'abord : la comparaison s'y appuie
+  const structure = (
+    <>
+      <ScaleRuler def={r.def} />
+      <p className="t-small t-dim">
+        Sur une corde, chaque chiffre compte les cases jusqu’à la note suivante : 12 cases de la fondamentale à l’octave.
+        Cette suite reconstruit la gamme depuis n’importe quelle case.
+      </p>
+      <p className="t-label structure-sub">Une couleur par rôle</p>
+      <div className="legend">
+        {legend.map((it) => (
+          <div key={it.fn} className="legend-item">
+            <span className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
+            <span className="legend-name">{it.name}</span>
+            {it.characteristic && <span className="tag tag-on">caractéristique</span>}
+          </div>
+        ))}
+      </div>
+      <p className="t-small t-dim">
+        Chaque couleur marque le <strong>rôle</strong> de la note dans la gamme, pas sa place sur le manche : ♯4 et ♭5 sont sur la même case, mais gardent chacune leur couleur.
+        {characteristic.length > 0 ? ` Note${characteristic.length > 1 ? 's' : ''} caractéristique${characteristic.length > 1 ? 's' : ''} : ${characteristic.join(', ')} (anneau qui pulse).` : ''}
+      </p>
+    </>
+  );
+  const compareChooser = choice && choices.length > 1 && (
+    <Segmented
+      size="sm"
+      label="Gamme à comparer"
+      value={choice.id}
+      onChange={setCompareId}
+      options={choices.map((c) => ({ value: c.id, label: c.short, note: c.difference }))}
+    />
+  );
+  const compareResult = choice && (
+    <>
+      {compare && comparison && (
+        <>
+          <p className="t-small">
+            {choice.kind === 'relative' ? (
+              <><strong>Mêmes notes, mêmes cases</strong> : seule la tonique change. La note qui brille est la fondamentale de l’autre gamme.</>
+            ) : (
+              <><strong>Même forme au même endroit</strong> : {choice.difference} (la note qui brille).</>
+            )}
+          </p>
+          <p className="t-label comp-label">{r.title} · {comparison.diff.onlyA.join(' ') || '—'}</p>
+          <TabView
+            score={comparison.mine}
+            notes={settings.noteNotation}
+            chords={settings.chordNotation}
+            annotation={annotation}
+            mode="wrap"
+            scale="auto"
+            reduceMotion
+            player={null}
+            transport="stopped"
+            hideRhythm
+          />
+          <p className="t-label comp-label">{otherTitle} · {comparison.diff.onlyB.join(' ') || '—'}</p>
+          <TabView
+            score={comparison.score}
+            notes={settings.noteNotation}
+            chords={settings.chordNotation}
+            annotation={annotation}
+            mode="wrap"
+            scale="auto"
+            reduceMotion
+            player={null}
+            transport="stopped"
+            hideRhythm
+          />
+          {choice.kind === 'relative' && (
+            <PixelButton variant="quiet" onClick={openRelative}>Ouvrir {otherTitle} ›</PixelButton>
+          )}
+        </>
+      )}
+      {compare && !comparison && <p className="t-small t-dim">Pas de position équivalente pour cette comparaison.</p>}
+    </>
+  );
+
+  if (desktop) {
+    return (
+      <main className="shell play-shell">
+        <div className="play-surface">
+          {/* l'identité et l'écoute restent à portée pendant tout le défilement */}
+          <header className="play-head">
+            <div className="play-id">
+              {back}
+              <div>
+                <div className="play-title">
+                  <h1 className="page-title">{r.title}</h1>
+                  <span className="tag tag-on">Niv1</span>
+                </div>
+                {subtitle}
+              </div>
+            </div>
+            <div className="play-transport">{transportButtons}</div>
+            {tempoControl}
+            <div className="play-toggles">{audioSwitches(false)}</div>
+          </header>
+
+          <section className="play-tab">
+            <div className="play-tab-bar">
+              <div className="play-degrees" role="img" aria-label={`Couleurs des degrés : ${legend.map((it) => it.name).join(', ')}`}>
+                {legend.map((it) => (
+                  <span key={it.fn} className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
+                ))}
+              </div>
+              {directionField}
+              <div className="field">
+                <span className="t-label">Annotation</span>
+                {annotationOptions}
+              </div>
+              {neckPanel && <PixelButton variant="quiet" onClick={() => setNeckOpen(true)}>Vue manche</PixelButton>}
+            </div>
+            {tab}
+            {tabLegend}
+          </section>
+
+          {neckOpen && neckPanel && (
+            <dialog
+              ref={(d) => { if (d && !d.open) d.showModal(); }}
+              className="play-neck-dialog"
+              aria-label="Vue manche"
+              onClose={() => setNeckOpen(false)}
+              // un clic sur le fond (hors du contenu) referme
+              onClick={(e) => { if (e.target === e.currentTarget) e.currentTarget.close(); }}
+            >
+              {neckPanel}
+              <form method="dialog" className="play-neck-close">
+                <PixelButton variant="quiet" onClick={() => setNeckOpen(false)}>Fermer</PixelButton>
+              </form>
+            </dialog>
+          )}
+
+          <div className="play-nav">
+            {levels}
+            <div className="play-pos">
+              {prevPosition}
+              <span className="play-dots" aria-hidden="true">
+                {r.positions.map((p, i) => <span key={p.id} className={i === r.selection.positionIndex ? 'on' : ''} />)}
+              </span>
+              {positionCount}
+              {nextPosition}
+            </div>
+          </div>
+
+          <div className="play-more">
+            <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
+              {infoOpen ? '▾ Masquer les détails' : '▸ Détails de la gamme'}
+            </PixelButton>
+          </div>
+
+          {infoOpen && (
+            <div className="play-columns">
+              <div className="play-col">
+                <PlaySection
+                  title="Structure"
+                  action={(
+                    <button type="button" className="linkish" aria-expanded={structureOpen} onClick={() => setStructureOpen((o) => !o)}>
+                      {structureOpen ? '▾ Masquer' : '▸ Détails'}
+                    </button>
+                  )}
+                >
+                  <div className="play-steps" role="img" aria-label={`Structure de la gamme : ${steps.join(', ')}`}>
+                    {steps.map((s, i) => (
+                      <span key={i} className={Number(s) === 1 ? 'semi' : ''} style={{ flexGrow: Number(s) }}>{s}</span>
+                    ))}
+                  </div>
+                  <p className="t-small t-dim">Chaque chiffre compte les cases : 1 = un demi-ton, 2 = un ton.</p>
+                  {structureOpen && structure}
+                </PlaySection>
+                <PlaySection title="Lecture">{parentNote}{moreOptions}</PlaySection>
+              </div>
+
+              <div className="play-col">
+                {choice && (
+                  <PlaySection title="Comprendre" tone="cyan">
+                    <div className="play-compare">
+                      <span className="t-label">Comparer avec</span>
+                      {compareChooser}
+                      <Switch checked={compare} onChange={setCompare} label="Côte à côte" />
+                    </div>
+                    <p className="t-small t-dim">{otherTitle} : {choice.difference}</p>
+                    {compareResult}
+                  </PlaySection>
+                )}
+                {r.hint && (
+                  <PlaySection title="Ce que tu écoutes" tone="cyan">
+                    <p className="play-hint">{r.hint}</p>
+                  </PlaySection>
+                )}
+              </div>
+            </div>
+          )}
+
+          <footer className="play-foot">
+            <InstrumentPicker />
+            <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
+          </footer>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="shell">
       <header className="page-head">
-        <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour à la sélection">‹</button>
+        {back}
         <div>
           <h1 className="page-title">{r.title}</h1>
-          <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {r.tuning.strings.length} cordes</p>
+          {subtitle}
         </div>
-        <span className="tag tag-on">N1</span>
+        <span className="tag tag-on">Niv1</span>
       </header>
 
-      {quiz && (
-        <div className={`quiz-strip ${feedback ? (feedback.ok ? 'ok' : 'no') : ''}`} role="status">
-          <span className="quiz-q">
-            Touche la <strong>{targetLabel ?? '—'}</strong>
-            {target ? <em> · {degreeName(target)}</em> : null}
-          </span>
-          <span className="quiz-score">
-            {feedback
-              ? `${feedback.text} · ${score.right}/${score.right + score.wrong}`
-              : `${score.right} juste${score.right > 1 ? 's' : ''} · ${score.wrong} erreur${score.wrong > 1 ? 's' : ''}`}
-          </span>
-        </div>
-      )}
+      {tab}
 
-      {scoreTab ? (
-        <TabView
-          score={scoreTab}
-          notes={settings.noteNotation}
-          chords={settings.chordNotation}
-          annotation={annotation}
-          mode="wrap"
-          scale="auto"
-          reduceMotion={settings.reduceMotion}
-          player={player.current}
-          transport={transport}
-          emphasizeChordTones={chordLayer}
-          hideRhythm={!showRhythm}
-          {...(reveal ? { highlightFn: reveal } : {})}
-          {...(quiz ? { onPick } : {})}
-          {...(flash.length > 0 ? { flash } : {})}
-        />
-      ) : (
-        <Panel accent="yellow">
-          <p className="t-body">Aucune position pour cette gamme / cet accordage.</p>
-          <PixelButton onClick={() => navigate('gammes')}>Changer de système</PixelButton>
-        </Panel>
-      )}
+      {scoreTab && <div className="listen-band">{neckSwitch}</div>}
 
-      {scoreTab && (
-        <div className="listen-band">
-          <Switch
-            checked={listenOn}
-            onChange={setListenOn}
-            label={listenBusy ? 'Micro…' : 'M’écouter'}
-            hint="la note que tu joues s’allume sur la position"
-            inline
-          />
-          {/* sans instrument : l'interrupteur vit à côté de la tablature qu'il interroge, pas 600 px plus bas */}
-          <Switch
-            checked={quiz}
-            onChange={toggleQuiz}
-            label="Montre-moi la note"
-            hint="l’app demande une fonction, tu touches la pastille"
-            inline
-          />
-          <Switch
-            checked={settings.showNeck}
-            onChange={(v) => setSettings({ showNeck: v })}
-            label="Vue manche"
-            hint="la forme de la position, tonique cerclée"
-            inline
-          />
-          {quiz && (
-            <p className="t-small t-dim">
-              Les fonctions demandées sont celles qui sont affichées : « Fondamentales », dans « Plus d’options », réduit la difficulté.
-            </p>
-          )}
-        </div>
-      )}
+      {neck}
 
-      {/* la forme que la tab écrit en chiffres : même pastilles, même orientation (aiguë en haut) */}
-      {settings.showNeck && scoreTab && neckZone && (
-        <Panel
-          className="span-12 neck-panel"
-          label="Manche"
-          right={<span className="badge">tonique {fmtNote(r.tonic, settings.noteNotation)} · cases {neckZone.from}–{neckZone.to}</span>}
-        >
-          <NeckView
-            tuning={r.tuning}
-            notes={neckLabelled}
-            zone={neckZone}
-            notation={settings.noteNotation}
-            label={positionLabelPlain(r.position, settings.noteNotation)}
-          />
-          {neighbourPos && (
-            <div className="neck-link">
-              <Switch
-                checked={linkOn}
-                onChange={setNeckLink}
-                label="Position voisine"
-                hint={`cases ${neighbourPos.fretMin}–${neighbourPos.fretMax}`}
-                inline
-              />
-              {linkOn && (
-                <>
-                  <p className="t-small t-dim">En pointillés, les cases communes : c’est par elles que la main passe d’une position à l’autre.</p>
-                  <PixelButton variant="quiet" onClick={() => { requestLiaison(); navigate('sequences'); }}>
-                    Travailler la liaison ›
-                  </PixelButton>
-                </>
-              )}
-            </div>
-          )}
-        </Panel>
-      )}
+      {tabLegend}
 
-      <TabLegend def={r.def} readonly={settings.reduceMotion} />
-
-      {/* le chemin d'une forme en quatre niveaux : on est au 1, les trois suivants sont à un toucher */}
-      <LevelsNav current={1} onSelect={(n) => navigate(n === 4 ? 'impro' : 'training')} />
+      {levels}
 
       <div className="pos-nav">
-        <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>‹ Position</PixelButton>
-        <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
-        <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2}>Position ›</PixelButton>
+        {prevPosition}
+        {positionCount}
+        {nextPosition}
       </div>
 
       <Panel className="span-7" accent="magenta" label="Écoute" right={<span className="badge">{r.formula}</span>}>
         <div className="transport-row">
-          <PixelButton variant="primary" onClick={onPlay} disabled={!scoreTab || playing} ariaLabel="Lecture" className="play">
-            <PixelIcon name="play" size={18} /> {transport === 'paused' ? 'Reprendre' : 'Écouter'}
-          </PixelButton>
-          <PixelButton variant="quiet" onClick={onPause} disabled={!playing} ariaLabel="Pause">
-            <PixelIcon name="pause" size={14} />
-          </PixelButton>
-          <PixelButton variant="quiet" onClick={onStop} ariaLabel="Stop">
-            <PixelIcon name="stop" size={12} />
-          </PixelButton>
-          {/* le tempo est un réglage de lecture : il vit sur la même ligne que le transport, à droite */}
-          <div className="tempo-group">
-            <span className="t-label">Tempo</span>
-            <div className="tempo">
-              <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.max(40, t - 5))} aria-label="Moins vite">−</button>
-              <span className="tempo-val">♩ {tempo}</span>
-              <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.min(200, t + 5))} aria-label="Plus vite">+</button>
-            </div>
-          </div>
+          {transportButtons}
+          {tempoControl}
         </div>
-        <div className="toggle-grid">
-          <Switch checked={drone && droneAvailable} onChange={setDrone} label="Drone" hint="fond. + quinte" inline />
-          <Switch checked={metro} onChange={setMetro} label="Métronome" />
-          <Switch checked={loop} onChange={setLoop} label="Boucle" />
-        </div>
+        <div className="toggle-grid">{audioSwitches(true)}</div>
       </Panel>
 
       <Panel className="span-5 panel-fill" label="Lecture">
-        {/* Une phrase sur la gamme elle-même (« mêmes notes que Do majeur ») : elle ouvre le panneau,
-            au lieu de traîner en bas après les options, où elle n'avait ni sujet ni étiquette. */}
-        {r.parent && <p className="t-small t-dim">{r.parent}</p>}
-        <div className="field">
-          <span className="t-label">Sens</span>
-          <Segmented
-            size="sm"
-            label="Sens de lecture"
-            value={direction}
-            onChange={setDirection}
-            options={(Object.keys(DIRECTION_LABEL) as Direction[]).map((d) => ({ value: d, label: DIRECTION_LABEL[d] }))}
-          />
-        </div>
+        {parentNote}
+        {directionField}
         <div className="field">
           <span className="t-label">Annotation sous la tablature</span>
-          <Segmented
-            size="sm"
-            label="Annotation"
-            value={annotation}
-            onChange={setAnnotation}
-            options={ANNOTATIONS.map((a) => ({ value: a.value, label: a.label }))}
-          />
-          {settings.showNeck && <p className="t-small t-dim">Elle s’applique aussi au manche.</p>}
+          {annotationOptions}
+          {neckNote}
         </div>
-        <details className="more-opts">
-          <summary className="t-label">Plus d’options</summary>
-          <div className="field">
-            <span className="t-label">Cordes (découpage)</span>
-            <Segmented<StringLimit>
-              size="sm"
-              label="Nombre de cordes affichées"
-              value={stringLimit}
-              onChange={setStringLimit}
-              options={[
-                { value: 0, label: 'toutes' },
-                { value: 2, label: '2 graves' },
-                { value: 3, label: '3' },
-                { value: 4, label: '4' },
-              ]}
-            />
-          </div>
-          <div className="toggle-grid">
-            <Switch checked={chordLayer} onChange={setChordLayer} label={`Accord${r.chord ? ` (${r.chord})` : ''}`} hint="estompe les autres notes" />
-            <Switch checked={rootsOnly} onChange={setRootsOnly} label="Fondamentales" hint="1 et 5 seulement" />
-          </div>
-          <Switch checked={showRhythm} onChange={setShowRhythm} label="Rythme" hint="hampes et ligatures" />
-          {stringLimit !== 0 && (
-            <p className="t-small t-dim">Découpage : les {stringLimit} cordes graves d’abord, puis on ajoute les suivantes.</p>
-          )}
-        </details>
-        {status && <p className="t-small t-dim status">{status}</p>}
+        {moreOptions}
       </Panel>
 
-      {/* Le geste suivant, écrit noir sur blanc : on a vu la position, on la joue. Deux suites, et pas
-          une seule : répéter la position (justesse) ou improviser dessus (musique) — c'est la même
-          position, ce ne sont pas les mêmes compétences. */}
-      <div className="next-step">
-        <div className="next-step-row">
-          <PixelButton variant="primary" onClick={() => navigate('training')} title="S’exercer sur cette position, au micro" ariaLabel="S’exercer sur cette position, au micro">
-            ▶ S’exercer
-          </PixelButton>
-          <PixelButton onClick={() => navigate('impro')} title="Improviser sur cette position, avec un accompagnement" ariaLabel="Improviser sur cette position, avec un accompagnement">
-            Improviser
-          </PixelButton>
-          <PixelButton variant="quiet" onClick={() => navigate('sequences')} title="Séquences au métronome : par 3, par 4, tierces, quartes, saut de corde, tour depuis un degré" ariaLabel="Séquences au métronome">
-            Séquences
-          </PixelButton>
-        </div>
-        <p className="t-small t-dim">
-          S’exercer : le micro valide chaque note, la case se remplit. Sans micro, le pavé numérique
-          prend le relais. Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature : seule une
-          tentative de l’exercice sert à la révision, une écoute ici ne prouve rien.
-        </p>
-      </div>
+      {nextStep}
 
-      {/* la règle et les couleurs d'abord : la comparaison s'y appuie */}
-      <Panel className="span-12" label="Structure" right={<span className="badge">{stepFormula(r.def).join('-')}</span>}>
-        <ScaleRuler def={r.def} />
-        <p className="t-small t-dim">
-          Sur une corde, chaque chiffre compte les cases jusqu’à la note suivante : 12 cases de la fondamentale à l’octave.
-          Cette suite reconstruit la gamme depuis n’importe quelle case.
-        </p>
-        <p className="t-label structure-sub">Une couleur par rôle</p>
-        <div className="legend">
-          {legend.map((it) => (
-            <div key={it.fn} className="legend-item">
-              <span className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
-              <span className="legend-name">{it.name}</span>
-              {it.characteristic && <span className="tag tag-on">caractéristique</span>}
-            </div>
-          ))}
-        </div>
-        <p className="t-small t-dim">
-          Chaque couleur marque le <strong>rôle</strong> de la note dans la gamme, pas sa place sur le manche : ♯4 et ♭5 sont sur la même case, mais gardent chacune leur couleur.
-          {characteristic.length > 0 ? ` Note${characteristic.length > 1 ? 's' : ''} caractéristique${characteristic.length > 1 ? 's' : ''} : ${characteristic.join(', ')} (anneau qui pulse).` : ''}
-        </p>
-      </Panel>
+      <Panel className="span-12" label="Structure" right={<span className="badge">{steps.join('-')}</span>}>{structure}</Panel>
 
       {choice && (
         <Panel className="span-12" label="Comparer">
-          {choices.length > 1 && (
+          {compareChooser && (
             <div className="field">
               <span className="t-label">Avec</span>
-              <Segmented
-                size="sm"
-                label="Gamme à comparer"
-                value={choice.id}
-                onChange={setCompareId}
-                options={choices.map((c) => ({ value: c.id, label: c.short, note: c.difference }))}
-              />
+              {compareChooser}
             </div>
           )}
           <Switch
@@ -655,47 +720,7 @@ export function ScaleDiscoveryPage() {
             label="Côte à côte"
             hint={`${otherTitle} : ${choice.difference}`}
           />
-          {compare && comparison && (
-            <>
-              <p className="t-small">
-                {choice.kind === 'relative' ? (
-                  <><strong>Mêmes notes, mêmes cases</strong> : seule la tonique change. La note qui brille est la fondamentale de l’autre gamme.</>
-                ) : (
-                  <><strong>Même forme au même endroit</strong> : {choice.difference} (la note qui brille).</>
-                )}
-              </p>
-              <p className="t-label comp-label">{r.title} · {comparison.diff.onlyA.join(' ') || '—'}</p>
-              <TabView
-                score={comparison.mine}
-                notes={settings.noteNotation}
-                chords={settings.chordNotation}
-                annotation={annotation}
-                mode="wrap"
-                scale="auto"
-                reduceMotion
-                player={null}
-                transport="stopped"
-                hideRhythm
-              />
-              <p className="t-label comp-label">{otherTitle} · {comparison.diff.onlyB.join(' ') || '—'}</p>
-              <TabView
-                score={comparison.score}
-                notes={settings.noteNotation}
-                chords={settings.chordNotation}
-                annotation={annotation}
-                mode="wrap"
-                scale="auto"
-                reduceMotion
-                player={null}
-                transport="stopped"
-                hideRhythm
-              />
-              {choice.kind === 'relative' && (
-                <PixelButton variant="quiet" onClick={openRelative}>Ouvrir {otherTitle} ›</PixelButton>
-              )}
-            </>
-          )}
-          {compare && !comparison && <p className="t-small t-dim">Pas de position équivalente pour cette comparaison.</p>}
+          {compareResult}
         </Panel>
       )}
 
@@ -715,4 +740,3 @@ export function ScaleDiscoveryPage() {
     </main>
   );
 }
-

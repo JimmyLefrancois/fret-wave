@@ -41,9 +41,13 @@ import {
   type Attempt, type AttemptLevel, type NodeStats,
 } from '../../core/progress';
 import { capStep, missingText, type FormStep } from './curriculum';
-import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resolve';
+import { degreeName, fmtDegree, legendFor, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
+import { InstrumentPicker } from '../../app/AudioControls';
 import { LevelsNav } from './LevelsNav';
+import { PlaySection } from './PlaySection';
+import { useDesktop } from '../../app/useDesktop';
+import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
 import { Celebration } from './Celebration';
 import {
   SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, endScreenFor, nextStepFor, STEP_LABEL, type StepKind, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
@@ -85,13 +89,13 @@ function mmss(seconds: number): string {
  * La maîtrise se recalcule depuis le journal : si les règles changent, cette phrase dit ce qui compte.
  */
 function formStateLine(n: NodeStats | null, speedTarget: number): string {
-  if (!n) return 'Cette forme : jamais vérifiée. « Apprise » = 2 réussites sur 2 jours, dont une sur la position entière, de mémoire (N3) ou au micro.';
+  if (!n) return 'Cette forme : jamais vérifiée. « Apprise » = 2 réussites sur 2 jours, dont une sur la position entière, de mémoire (Niv3) ou au micro.';
   if (n.state === 'learning' || n.state === 'available') {
     return `Cette forme : en apprentissage. Pour « apprise », il manque ${missingText(n)}.`;
   }
   if (n.state === 'learned') return 'Cette forme : apprise. « Maîtrisée » viendra avec la révision tenue à 16 jours.';
   return `Cette forme : ${stateLabel(n)}.`
-    + (n.speedVerified ? '' : ` Pour la vitesse : de mémoire (N3), au micro, grille en croches tenue à ${speedTarget} BPM, ≥ 95 %.`);
+    + (n.speedVerified ? '' : ` Pour la vitesse : de mémoire (Niv3), au micro, grille en croches tenue à ${speedTarget} BPM, ≥ 95 %.`);
 }
 
 function starRow(n: number): string {
@@ -99,6 +103,8 @@ function starRow(n: number): string {
 }
 
 export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boolean } = {}) {
+  const desktop = useDesktop();
+  const [infoOpen, setInfoOpen] = useState(false);
   const settings = useSettings();
   const selection = useScaleSelection();
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
@@ -321,7 +327,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       // le chrono repart de la grille : sinon une grille lancée puis abandonnée compte dans la tentative
       setStartedAt(clock.now());
       setGrid('running');
-      setFeedback({ ok: true, info: true, text: `grille : ${g.beats} temps à ${g.score.tempo} BPM (${g.seconds.toFixed(1)} s)` });
+      setFeedback(desktop ? null : { ok: true, info: true, text: `grille : ${g.beats} temps à ${g.score.tempo} BPM (${g.seconds.toFixed(1)} s)` });
     } catch (e) {
       setFeedback({ ok: false, text: `métronome indisponible : ${(e as Error).message}` });
       setGrid('off');
@@ -649,6 +655,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         }
         return;
       }
+      if (desktop) return; // au bureau, seul le micro répond
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
       if (/^[0-9]$/.test(e.key)) {
         e.preventDefault();
@@ -670,7 +677,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [press, validate, result, nextOpen, mixed, celebrate]);
+  }, [press, validate, result, nextOpen, mixed, celebrate, desktop]);
 
   // --- micro : ouverture à la demande, fermeture en quittant l'écran
   useEffect(() => {
@@ -714,6 +721,16 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [micOn]);
+
+  // au bureau, le micro est le seul moyen de répondre : il s'ouvre seul dès que le navigateur le permet
+  useEffect(() => {
+    if (!desktop) return;
+    let cancelled = false;
+    void micPermission().then((permission) => {
+      if (!cancelled && canAutoOpenMic(permission, navigator.userActivation?.hasBeenActive ?? false)) setMicOn(true);
+    });
+    return () => { cancelled = true; };
+  }, [desktop]);
 
   useEffect(() => {
     if (!engine) return;
@@ -964,190 +981,602 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   };
   const activeIndex = activeKey ? exercise.holes.findIndex((h) => h.key === activeKey) + 1 : 0;
 
+  const blindPanel = blindLive && (
+    <Panel className="span-12" accent="cyan" label="À l’aveugle">
+      {(() => {
+        const bg = blindGridRef.current!;
+        const elapsed = (performance.now() - blindClickPerf.current) / 1000;
+        const count = countInBeat(elapsed, bg);
+        const beat = Math.min(bg.grid.beats, Math.floor(Math.max(0, elapsed - bg.countIn) / (60 / bg.grid.score.tempo)) + 1);
+        return count !== null ? (
+          <p className="blind-count" aria-live="assertive">{count}</p>
+        ) : (
+          <p className="t-body" aria-live="polite">
+            Joue la position, dans l’ordre · temps {beat} / {bg.grid.beats}
+            {elapsed - bg.countIn > bg.grid.seconds ? ' · grille finie, termine quand tu veux' : ''}
+          </p>
+        );
+      })()}
+      <MicStrip
+        engine={engine}
+        notation={settings.noteNotation}
+        thresholdDb={input.thresholds[input.source]}
+        tolerance={input.centsTolerance}
+        tuning={r.tuning}
+        a4={input.a4}
+      />
+      <p className="t-small t-dim">Aucun verdict pendant le jeu : la tablature et les cases justes ou fausses reviennent à la fin.</p>
+      <div className="row">
+        <PixelButton variant="primary" onClick={finishBlind}>Terminer</PixelButton>
+      </div>
+    </Panel>
+  );
+  const tab = (
+    <TabView
+      score={display}
+      notes={settings.noteNotation}
+      chords={settings.chordNotation}
+      // à froid, rien ne fuit : ni degré, ni doigté, ni légende — sauf une fois la série finie
+      annotation={coldActive && !result ? 'none' : 'degree'}
+      mode="wrap"
+      scale="auto"
+      minScale={3}
+      reduceMotion={settings.reduceMotion}
+      player={null}
+      transport="stopped"
+      hideRhythm
+      oneLine={desktop}
+      // au bureau on répond à la guitare : le curseur avance seul, rien à toucher sur la tablature
+      {...(desktop ? {} : { onPick })}
+      {...(activeKey && !desktop ? { activeHoleKey: activeKey } : {})}
+      coverTop={answerBarTop}
+    />
+  );
+  const tabLegend = !(coldActive && !result) && <TabLegend def={r.def} readonly={settings.reduceMotion} />;
+  const lookPanel = coldStep === 'look' && lookStart !== null && lookNeck && (
+      <Panel
+        className="span-12 neck-panel"
+        label="Manche"
+        right={<span className="badge">tonique {fmtNote(r.tonic, settings.noteNotation)} · cases {lookNeck.zone.from}–{lookNeck.zone.to}</span>}
+      >
+        <NeckView
+          tuning={r.tuning}
+          notes={lookNeck.notes}
+          zone={lookNeck.zone}
+          notation={settings.noteNotation}
+          label={positionLabelPlain(r.position, settings.noteNotation)}
+        />
+      </Panel>
+    );
+  const verdict = (
+    <p className={`verdict ${feedback ? (feedback.info ? 'info' : feedback.ok ? 'ok' : 'no') : !result ? 'prompt' : ''}`} role="status">
+      {feedback && !feedback.info && <span className="verdict-mark" aria-hidden="true">{feedback.ok ? '✓' : '✕'}</span>}
+      {/* sans verdict, la consigne tient la place : « Corde de La · case ? », lisible de loin (le saut du pavé au premier chiffre n'existe plus) */}
+      {feedback ? feedback.text : !result ? (activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide') : ''}
+    </p>
+  );
+  const sessionPanel = sessionDone && (
+    <Panel className="span-5" accent="green" active label="Session terminée">
+      <p className="stat-line">
+        <strong>{sessionDone.forms}</strong> forme{sessionDone.forms > 1 ? 's' : ''} · précision moyenne{' '}
+        <strong>{Math.round(sessionDone.accuracy * 100)} %</strong> · <strong>{sessionDone.xp}</strong> XP
+      </p>
+      <p className="t-small">
+        Enchaîner des formes différentes coûte plus cher sur le moment et retient mieux que répéter la même :
+        c’est fait exprès. Les échéances sont recalculées, le hub les affiche.
+      </p>
+      {retryLine(sessionDone.retries) && <p className="t-small">{retryLine(sessionDone.retries)}</p>}
+      {afterStep && <p className="t-small">{afterStep.text}</p>}
+      <div className="row">
+        {/* la séance s'arrête à 5 ; s'il reste des dues (8 au plus aujourd'hui), on propose la suite (D97),
+            puis l'étape suivante de la séance du jour (D98) */}
+        {moreDueNow > 0 && (
+          <PixelButton variant="primary" onClick={startMixed}>Encore {moreDueNow} forme{moreDueNow > 1 ? 's' : ''} due{moreDueNow > 1 ? 's' : ''}</PixelButton>
+        )}
+        {afterStep && (
+          <PixelButton variant={moreDueNow > 0 ? 'ghost' : 'primary'} onClick={() => goAfter(afterStep.step)}>{afterStep.action}</PixelButton>
+        )}
+        <PixelButton variant={moreDueNow > 0 || afterStep ? 'quiet' : 'primary'} onClick={() => navigate('hub')}>Accueil</PixelButton>
+      </div>
+    </Panel>
+  );
+  const resultPanel = result && (
+    <Panel className="span-5" accent={result.stars > 0 ? 'green' : 'orange'} active label="Résultat">
+      {/* pas d'étoiles sur un rattrapage : on ne félicite que ce qui prouve (MUSIC_DESIGN §17.1) */}
+      {result.proof ? <p className="result-stars">{starRow(result.stars)}</p> : <p className="t-label">Rattrapage</p>}
+      <p className={`stat-line ${result.stars === 0 ? 'miss' : ''}`} ref={resultRef} tabIndex={-1}>
+        <strong>{Math.round(result.accuracy * 100)} %</strong> de trous justes au premier essai · {result.revealed} révélé{result.revealed > 1 ? 's' : ''} · {result.errors} erreur{result.errors > 1 ? 's' : ''}
+      </p>
+      {missedLine && <p className="t-small">{missedLine} — contour pointillé sur la tablature.</p>}
+      <p className="t-small">
+        {result.grid === 'kept'
+          ? `tempo : grille tenue en ${mmss(result.seconds)} · `
+          : result.grid === 'missed'
+            ? `tempo : hors grille (${mmss(result.seconds)} pour ${gridSpec.seconds.toFixed(1)} s) · `
+            : ''}
+        {!result.proof
+          ? 'Essai de rattrapage : enregistré, sans effet sur la révision, la maîtrise ni l’XP.'
+          : result.xp > 0
+            ? `+${result.xp} XP. Tentative enregistrée : elle entre dans la répétition espacée.`
+            : '0 XP. La tentative est enregistrée quand même : elle dit où tu en es, et rien n’est bloqué.'}
+      </p>
+      <p className="t-small">
+        {formStateLine(formNode, settings.speedTargetBpm)}
+        {result.proof && result.accuracy < 0.8 && formNode?.state === 'learned'
+          ? ' Un essai raté ne retire pas « apprise » : elle se compte en réussites.'
+          : ''}
+      </p>
+      {coldStep === 'look' && (
+        <>
+          <p className="t-small">
+            {lookStart === null
+              ? `${Math.round(result.accuracy * 100)} % à froid, sous les 80 % : la carte revient bientôt. Regarde la forme ${settings.lookSeconds} s, puis rejoue-la de mémoire — ce second essai ne compte pas.`
+              : `Regarde la forme : elle se masque dans ${lookRemaining(lookStart, now, settings.lookSeconds)} s.`}
+          </p>
+          <div className="row">
+            {lookStart === null ? (
+              <PixelButton variant="primary" onClick={() => { setLookStart(clock.now()); setNow(clock.now()); }}>
+                ▶ Regarde la forme ({settings.lookSeconds} s)
+              </PixelButton>
+            ) : (
+              <PixelButton variant="primary" onClick={beginRetry}>J’ai vu, masquer</PixelButton>
+            )}
+            <PixelButton variant="quiet" onClick={nextInQueue}>Passer · forme suivante</PixelButton>
+          </div>
+        </>
+      )}
+      <div className="row">
+        {coldStep === 'look' ? null : mixed ? (
+          <>
+            <PixelButton variant="primary" onClick={nextInQueue} disabled={queue.length === 0}>
+              {qIndex + 1 >= queue.length ? 'Terminer la session' : `Suivant · ${queue[qIndex + 1]?.title ?? ''}`}
+            </PixelButton>
+            <PixelButton variant="quiet" onClick={() => { setRetake(true); restart(); }} title="Juste après la correction : l’essai est enregistré sans compter">
+              Refaire celle-ci
+            </PixelButton>
+          </>
+        ) : (
+          <>
+            <PixelButton variant="primary" onClick={() => runStep(nextSteps.primary)}>{STEP_LABEL[nextSteps.primary]}</PixelButton>
+            <PixelButton onClick={() => runStep(nextSteps.secondary)}>{STEP_LABEL[nextSteps.secondary]}</PixelButton>
+          </>
+        )}
+      </div>
+      {!mixed && coldStep !== 'look' && (
+        <p className="t-small result-links">
+          <button type="button" className="linkish" onClick={() => navigate('gammes')}>Changer de gamme</button>
+          {' · '}
+          <button type="button" className="linkish" onClick={() => navigate('hub')}>Accueil</button>
+        </p>
+      )}
+    </Panel>
+  );
+  const micAction = micState === 'listening' ? (
+      <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer</PixelButton>
+    ) : (
+      <PixelButton variant="primary" className={desktop ? 'mic-spark' : ''} onClick={() => setMicOn(true)} disabled={micBusy}>
+        ▶ Ouvrir le micro
+      </PixelButton>
+    );
+  const micStrip = micOn && (
+      <MicStrip
+        engine={engine}
+        notation={settings.noteNotation}
+        thresholdDb={input.thresholds[input.source]}
+        tolerance={input.centsTolerance}
+        tuning={r.tuning}
+        a4={input.a4}
+      />
+    );
+  const micLive = (
+    <p className="sr-only" aria-live="polite">
+      {activeIndex > 0 && activeStringLabel ? `Emplacement ${activeIndex} sur ${total}, corde de ${activeStringLabel}. Flèches gauche et droite pour changer.` : ''}
+    </p>
+  );
+  const sessionFacts = mixed && queue.length > 0 && queue[qIndex] && (
+      <dl className="ex-facts">
+        <dt>Session</dt>
+        <dd>
+          {sessionFact(qIndex, queue.length, queue[qIndex]!)}
+          <details className="ex-more">
+            <summary>Les {queue.length} formes</summary>
+            <ol>
+              {queue.map((t, i) => (
+                <li key={`${t.nodeId}-${i}`} className={i === qIndex ? 'current' : ''}>{t.title} ({t.positionLabel}) : {t.reason}</li>
+              ))}
+            </ol>
+          </details>
+        </dd>
+        <dt>Consigne</dt>
+        <dd>
+          {coldStep === 'cold'
+            ? 'De mémoire, sans revoir la forme. Seul ce premier essai compte.'
+            : coldStep === 'retry'
+              ? 'Rattrapage : tu viens de voir la forme, il ne compte pas.'
+              : `${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes} notes, la position entière.`}
+        </dd>
+        {!result && (
+          <>
+            <dt>État</dt>
+            <dd>{formStateLine(formNode, settings.speedTargetBpm)}</dd>
+          </>
+        )}
+      </dl>
+    );
+  const coldNotes = (
+    <>
+      {!mixed && coldStep === 'cold' && (
+        <p className="t-small">
+          <strong>Rappel à froid</strong> : la position entière, de mémoire, sans la revoir avant. Seul ce premier
+          essai compte pour la révision, la maîtrise et l’XP.
+        </p>
+      )}
+      {!mixed && coldStep === 'retry' && (
+        <p className="t-small">
+          <strong>Essai de rattrapage</strong> : enregistré comme pratique, sans effet sur la révision, la maîtrise
+          ni l’XP — tu viens de voir la forme.
+        </p>
+      )}
+    </>
+  );
+  const levelField = !mixed && (
+      <div className="field">
+        <span className="t-label">Niveau</span>
+        <Segmented<AttemptLevel>
+          size="sm"
+          label="Niveau"
+          value={level}
+          onChange={(v) => restart(v, segment)}
+          options={[
+            { value: 2, label: 'Niv2 · trous' },
+            { value: 3, label: 'Niv3 · rappel' },
+          ]}
+        />
+      </div>
+    );
+  const blindSwitch = !mixed && level === 3 && (
+      <Switch
+        checked={blindOn && micState === 'listening'}
+        onChange={setBlindOn}
+        disabled={micState !== 'listening'}
+        label="À l’aveugle"
+        hint={micState === 'listening'
+          ? 'aucune tablature pendant le jeu, verdict à la fin'
+          : 'ouvre le micro : à l’aveugle, seul le son est jugé'}
+      />
+    );
+  const levelText = !mixed && (
+    <>
+    <p className="t-small">
+      {level === 2
+        ? `${Math.round(settings.holeRate * 100)} % des notes masquées (au moins 2, jamais toutes) : ici ${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes}. `
+          + (micOn || desktop
+            ? (desktop ? 'Ouvre le micro et joue la note à la guitare : elle remplit l’emplacement.' : 'Joue la note à la guitare : elle remplit l’emplacement. Le pavé reste un secours.')
+            : 'Touche un emplacement vide, tape son numéro au pavé, valide.')
+        : `${exercise.notes} cases à écrire de mémoire : seules les cordes, les mesures et le rythme restent visibles.`
+          + (micOn ? ' Joue-les dans l’ordre que tu veux.' : '')}
+    </p>
+    {!result && <p className="t-small">{formStateLine(formNode, settings.speedTargetBpm)}</p>}
+    </>
+    );
+  const mixedSwitches = (
+    <div className="row">
+      <Switch checked={mixed} onChange={toggleMixed} label="Session mélangée" hint="3 à 5 formes différentes d’affilée" />
+      <Switch
+        checked={settings.coldReview}
+        onChange={(v) => setSettings({ coldReview: v })}
+        label="Rappel à froid en révision"
+        hint="une forme due : de mémoire d’abord, sans la revoir (prochaine session)"
+      />
+    </div>
+  );
+  const segmentField = !mixed && (
+      <div className="field">
+        <span className="t-label">{desktop ? 'Sens' : 'Découpage'}</span>
+        <Segmented<Segment>
+          size="sm"
+          label="Découpage"
+          value={segment}
+          onChange={(v) => restart(level, v)}
+          options={(desktop ? SEGMENTS.filter((s) => s.value === 'all' || s.value === 'updown') : SEGMENTS)
+            .map((s) => ({ value: s.value, label: desktop && s.value === 'all' ? 'aller' : s.label, note: s.hint }))}
+        />
+      </div>
+    );
+  const gridTempo = (
+    <div className="tempo">
+      <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.max(MIN_TEMPO, settings.trainingTempo - 5) })} aria-label="Grille moins vite">−</button>
+      <span className="tempo-val">♩ {settings.trainingTempo}</span>
+      <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.min(MAX_TEMPO, settings.trainingTempo + 5) })} aria-label="Grille plus vite">+</button>
+    </div>
+  );
+  const gridSubdivisionField = (
+    <Segmented<GridSubdivision>
+      size="sm"
+      label="Notes par temps"
+      value={settings.gridSubdivision}
+      onChange={(v) => setSettings({ gridSubdivision: v })}
+      options={[{ value: 1, label: 'noires' }, { value: 2, label: 'croches' }]}
+    />
+  );
+  // grille abandonnée avant toute réponse : elle ne compte pas dans la tentative, le chrono repart de zéro
+  const stopGridByHand = () => {
+    stopGrid();
+    if (Object.keys(marks).length === 0 && Object.keys(errors).length === 0) setStartedAt(null);
+  };
+  const gridButton = (
+    // au bureau, sa propre couleur : le cyan, en aplat quand c'est le geste du moment (micro ouvert, grille lancée)
+    <PixelButton
+      variant={!desktop && grid === 'running' ? 'primary' : 'ghost'}
+      className={desktop ? `train-grid ${grid === 'running' || micState === 'listening' ? 'on' : ''}` : ''}
+      title="Joue en rythme : le métronome donne le temps, jamais les notes"
+      onClick={() => (grid === 'running' ? stopGridByHand() : void startGrid())}
+      disabled={!!result}
+    >
+      {grid === 'running' ? 'Arrêter la grille' : desktop ? '▶ Grille (métronome)' : 'Grille (métronome)'}
+    </PixelButton>
+  );
+  const gridEstimate = (
+    <span className="t-small t-dim">{gridSpec.beats} temps ≈ {gridSpec.seconds.toFixed(1)} s</span>
+  );
+  const elapsedLabel = startedAt !== null && !result && <span className="t-label">{mmss(elapsed)}</span>;
+  const howScoredBody = (
+    <>
+      <p className="t-small">
+        Les trous justes <strong>au premier essai</strong>. Une case trouvée du deuxième coup n’est pas « sue »,
+        elle est reconnue. Le score d’aujourd’hui déplace la case dans la file de révision, il ne la certifie pas.
+      </p>
+      <p className="t-small t-dim">
+        Étoiles : ★ dès 80 % · ★★ dès 95 % · ★★★ sans une erreur ni une case révélée. Si tu as lancé la grille,
+        ★★ et ★★★ exigent de la tenir ; la manquer plafonne à ★. Une case écrite de mémoire (Niv3) pèse 1,5 dans la
+        maîtrise, un trou comblé (Niv2) pèse 1.
+      </p>
+      <p className="t-small t-dim">
+        {settings.gridSubdivision === 2 ? 'Deux trous par temps' : 'Un temps par trou'}, en mesures entières
+        ({gridSpec.npm} notes/min). Finir dans la grille et juste à ≥ 95 % vaut ★★, parfait sans une erreur vaut ★★★.
+        Le métronome ne joue aucune note : il ne donne pas les réponses.
+      </p>
+      <p className="t-small t-dim">
+        Vitesse « maîtrisée » : de mémoire (Niv3), au micro, position entière, ≥ 95 %, grille tenue à
+        {' '}{settings.speedTargetBpm} BPM en croches ({settings.speedTargetBpm * 2} notes/min) — réglage du tempo cible dans Réglages.
+      </p>
+      <p className="t-small t-dim">
+        Série de {total} trou{total > 1 ? 's' : ''} sur {exercise.notes} note{exercise.notes > 1 ? 's' : ''} ({plan.strings} corde{plan.strings > 1 ? 's' : ''}).
+        {journal.length > 0 ? ` ${journal.length} tentative${journal.length > 1 ? 's' : ''} déjà enregistrée${journal.length > 1 ? 's' : ''} sur cet appareil.` : ' Aucune tentative enregistrée pour l’instant.'}
+      </p>
+      <p className="t-small t-dim">
+        L’annotation sous la tablature reste celle de ton réglage (notes, degrés, intervalles, doigtés) — elle est masquée sur les trous.
+        Une note masquée n’est jamais jouée par l’app avant d’être trouvée.
+      </p>
+    </>
+  );
+  const celebration = result && celebrate && endScreenFor(result.stars, result.proof, mixed) && (
+      <Celebration
+        title={r.title}
+        position={positionLabelPlain(r.position, settings.noteNotation)}
+        stars={result.stars}
+        accuracy={result.accuracy}
+        seconds={result.seconds}
+        revealed={result.revealed}
+        errors={result.errors}
+        earned={result.xp}
+        totalXp={totals.total}
+        todayXp={totals.today}
+        cap={totals.cap}
+        streakDays={streakDays}
+        sessionsToday={sessionsToday}
+        readonly={settings.reduceMotion}
+        onClose={() => setCelebrate(false)}
+        gridKept={result.grid === 'kept'}
+        {...(mixed
+          ? {}
+          : {
+              actions: [
+                { label: STEP_LABEL[nextSteps.primary], onClick: () => runStep(nextSteps.primary) },
+                endScreenFor(result.stars, result.proof, mixed) === 'calm'
+                  ? { label: STEP_LABEL[nextSteps.secondary], onClick: () => runStep(nextSteps.secondary) }
+                  : { label: 'Continuer', onClick: () => setCelebrate(false) },
+              ],
+            })}
+        {...(endScreenFor(result.stars, result.proof, mixed) === 'calm'
+          ? { calm: true, detail: missedLine ?? `${Math.round(result.accuracy * 100)} % au premier essai` }
+          : {})}
+      />
+    );
+  const prevPosition = (
+    <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0}>‹ Position</PixelButton>
+  );
+  const positionCount = <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>;
+  const nextPosition = (
+    <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1}>Position ›</PixelButton>
+  );
+  const answerKey = (k: string) => (
+    <button
+      key={k}
+      type="button"
+      className={`key ${k === '✓' ? 'key-ok' : k === 'C' ? 'key-alt' : ''}`}
+      onClick={() => (k === 'C' ? setEntry('') : k === '✓' ? validate() : press(k))}
+      disabled={k === 'C' ? !entry : k === '✓' ? !activeHole || entry === '' : !activeHole}
+      aria-label={k === 'C' ? 'Effacer' : k === '✓' ? 'Valider' : undefined}
+    >
+      {k}
+    </button>
+  );
+  const levels = !mixed && (
+    <LevelsNav
+      current={level === 3 ? 3 : 2}
+      onSelect={(n) => (n === 1 ? navigate('scale') : n === 5 ? navigate('impro') : n === 4 ? navigate('sequences') : restart(n, segment))}
+    />
+  );
+  const degrees = legendFor(r.def);
+  const headTag = mixed && queue.length > 0 ? `Session ${qIndex + 1} / ${queue.length}${coldActive ? ' · à froid' : ''}` : `Niv${level}`;
+  const subtitle = <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {plan.label}</p>;
+  const back = <button type="button" className="back" onClick={() => navigate(mixed ? 'hub' : 'gammes')} aria-label="Retour">‹</button>;
+
+
+  if (desktop) {
+    const finished = result || (sessionDone && mixed);
+    return (
+      <main className="shell play-shell">
+        <div className="play-surface">
+          {/* le micro et la grille restent à portée : on les touche la guitare en main */}
+          <header className="play-head">
+            <div className="play-id">
+              {back}
+              <div>
+                <div className="play-title">
+                  <h1 className="page-title">{r.title}</h1>
+                  <span className="tag tag-on">{headTag}</span>
+                </div>
+                {subtitle}
+              </div>
+            </div>
+            {!micOn && <div className="play-transport">{micAction}</div>}
+            {level === 3 && gridTempo}
+            {level === 3 && gridButton}
+            <span className="badge badge-count">{done} / {total} notes</span>
+            {/* en N3, le chrono est celui de la grille : il s'arrête avec elle */}
+            {(level !== 3 || grid === 'running') && elapsedLabel}
+          </header>
+
+          {blindLive ? (
+            <section className="train-outcome">{blindPanel}</section>
+          ) : (
+            <>
+              <section className="play-tab">
+                <div className="play-tab-bar">
+                  {/* à froid, rien ne fuit : pas de légende avant la fin de la série */}
+                  {tabLegend !== false && (
+                    <div className="play-degrees" role="img" aria-label={`Couleurs des degrés : ${degrees.map((it) => it.name).join(', ')}`}>
+                      {degrees.map((it) => (
+                        <span key={it.fn} className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
+                      ))}
+                    </div>
+                  )}
+                  {segmentField}
+                  {level === 3 && (
+                    <div className="field">
+                      <span className="t-label">Grille</span>
+                      {gridSubdivisionField}
+                    </div>
+                  )}
+                  {/* la précision du commutateur n'a pas la place ici : elle reste au survol */}
+                  {blindSwitch && <div title={micState === 'listening' ? 'aucune tablature pendant le jeu, verdict à la fin' : 'ouvre le micro : à l’aveugle, seul le son est jugé'}>{blindSwitch}</div>}
+                  {coldActive ? (
+                    <PixelButton variant="quiet" onClick={nextInQueue}>Passer · forme suivante</PixelButton>
+                  ) : coldStep !== 'look' && !result && (
+                    <div className="row">
+                      {!mixed && level === 3 && blindOn && micState === 'listening' && (
+                        <PixelButton variant="primary" onClick={() => void startBlind()}>▶ Lancer à l’aveugle</PixelButton>
+                      )}
+                      <PixelButton variant="quiet" onClick={() => restart()} title="Même gamme, nouveaux trous">↻ Nouvelle série</PixelButton>
+                    </div>
+                  )}
+                </div>
+                {tab}
+                {tabLegend}
+                {lookPanel}
+              </section>
+
+              {finished ? (
+                <section className="train-outcome">
+                  {verdict}
+                  {sessionDone && mixed ? sessionPanel : resultPanel}
+                </section>
+              ) : (
+                <>
+                  {micLive}
+                  {/* rien à dire : pas de rangée, les niveaux suivent la tablature comme sur la page Jouer */}
+                  {(feedback || micError || micBusy || (!mixed && (coldStep === 'cold' || coldStep === 'retry'))) && (
+                    <section className="train-answer">
+                      {feedback && (
+                        <p className={`verdict ${feedback.info ? 'info' : feedback.ok ? 'ok' : 'no'}`} role="status">
+                          {!feedback.info && <span className="verdict-mark" aria-hidden="true">{feedback.ok ? '✓' : '✕'}</span>}
+                          {feedback.text}
+                        </p>
+                      )}
+                      {micError && <p className="t-small mic-line-error" role="alert">{micError}</p>}
+                      {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+                      {coldNotes}
+                    </section>
+                  )}
+                </>
+              )}
+
+              {!mixed && (
+                <div className="play-nav">
+                  {levels}
+                  <div className="play-pos">
+                    {prevPosition}
+                    <span className="play-dots" aria-hidden="true">
+                      {r.positions.map((p, i) => <span key={p.id} className={i === r.selection.positionIndex ? 'on' : ''} />)}
+                    </span>
+                    {positionCount}
+                    {nextPosition}
+                  </div>
+                </div>
+              )}
+
+              <div className="play-more">
+                <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
+                  {infoOpen ? '▾ Masquer les détails' : '▸ Détails de la série'}
+                </PixelButton>
+              </div>
+
+              {infoOpen && (
+                <div className="play-columns">
+                  <div className="play-col">
+                    <PlaySection title="Exercice">
+                      {sessionFacts}
+                      {levelText}
+                      {level === 3 && gridEstimate}
+                      <p className="t-small t-dim">Valide au micro : le micro ou l’interface USB doit être branché avant d’ouvrir.</p>
+                      {mixedSwitches}
+                    </PlaySection>
+                  </div>
+                  <div className="play-col">
+                    <PlaySection title="Comment c’est noté ?" tone="cyan">{howScoredBody}</PlaySection>
+                  </div>
+                </div>
+              )}
+
+              {/* en séance, la file mène : on n'en sort pas d'ici */}
+              {!mixed && (
+                <footer className="play-foot">
+                  <InstrumentPicker />
+                  <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
+                </footer>
+              )}
+            </>
+          )}
+        </div>
+        {!blindLive && celebration}
+      </main>
+    );
+  }
+
   return (
     <main className="shell">
       <header className="page-head">
-        <button type="button" className="back" onClick={() => navigate(mixed ? 'hub' : 'gammes')} aria-label="Retour">‹</button>
+        {back}
         <div>
           <h1 className="page-title">{r.title}</h1>
-          <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {plan.label}</p>
+          {subtitle}
         </div>
-        <span className="tag tag-on">
-          {mixed && queue.length > 0 ? `Session ${qIndex + 1} / ${queue.length}${coldActive ? ' · à froid' : ''}` : `N${level}`}
-        </span>
+        <span className="tag tag-on">{headTag}</span>
       </header>
 
-      {blindLive ? (
-        <Panel className="span-12" accent="cyan" label="À l’aveugle">
-          {(() => {
-            const bg = blindGridRef.current!;
-            const elapsed = (performance.now() - blindClickPerf.current) / 1000;
-            const count = countInBeat(elapsed, bg);
-            const beat = Math.min(bg.grid.beats, Math.floor(Math.max(0, elapsed - bg.countIn) / (60 / bg.grid.score.tempo)) + 1);
-            return count !== null ? (
-              <p className="blind-count" aria-live="assertive">{count}</p>
-            ) : (
-              <p className="t-body" aria-live="polite">
-                Joue la position, dans l’ordre · temps {beat} / {bg.grid.beats}
-                {elapsed - bg.countIn > bg.grid.seconds ? ' · grille finie, termine quand tu veux' : ''}
-              </p>
-            );
-          })()}
-          <MicStrip
-            engine={engine}
-            notation={settings.noteNotation}
-            thresholdDb={input.thresholds[input.source]}
-            tolerance={input.centsTolerance}
-            tuning={r.tuning}
-            a4={input.a4}
-          />
-          <p className="t-small t-dim">Aucun verdict pendant le jeu : la tablature et les cases justes ou fausses reviennent à la fin.</p>
-          <div className="row">
-            <PixelButton variant="primary" onClick={finishBlind}>Terminer</PixelButton>
-          </div>
-        </Panel>
-      ) : (
+      {blindLive ? blindPanel : (
       <>
-      <TabView
-        score={display}
-        notes={settings.noteNotation}
-        chords={settings.chordNotation}
-        // à froid, rien ne fuit : ni degré, ni doigté, ni légende — sauf une fois la série finie
-        annotation={coldActive && !result ? 'none' : 'degree'}
-        mode="wrap"
-        scale="auto"
-        minScale={3}
-        reduceMotion={settings.reduceMotion}
-        player={null}
-        transport="stopped"
-        hideRhythm
-        onPick={onPick}
-        {...(activeKey ? { activeHoleKey: activeKey } : {})}
-        coverTop={answerBarTop}
-      />
+      {tab}
 
-      {!(coldActive && !result) && <TabLegend def={r.def} readonly={settings.reduceMotion} />}
+      {tabLegend}
 
-      {/* « Regarde la forme » : le temps de regarder, la forme se lit aussi sur le manche (D103) */}
-      {coldStep === 'look' && lookStart !== null && lookNeck && (
-        <Panel
-          className="span-12 neck-panel"
-          label="Manche"
-          right={<span className="badge">tonique {fmtNote(r.tonic, settings.noteNotation)} · cases {lookNeck.zone.from}–{lookNeck.zone.to}</span>}
-        >
-          <NeckView
-            tuning={r.tuning}
-            notes={lookNeck.notes}
-            zone={lookNeck.zone}
-            notation={settings.noteNotation}
-            label={positionLabelPlain(r.position, settings.noteNotation)}
-          />
-        </Panel>
-      )}
+      {lookPanel}
 
+      {verdict}
 
-      {/* verdict : sous la tablature, là où sont les yeux — pas au bas du pavé */}
-      <p className={`verdict ${feedback ? (feedback.info ? 'info' : feedback.ok ? 'ok' : 'no') : !result ? 'prompt' : ''}`} role="status">
-        {feedback && !feedback.info && <span className="verdict-mark" aria-hidden="true">{feedback.ok ? '✓' : '✕'}</span>}
-        {/* sans verdict, la consigne tient la place : « Corde de La · case ? », lisible de loin (le saut du pavé au premier chiffre n'existe plus) */}
-        {feedback ? feedback.text : !result ? (activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide') : ''}
-      </p>
-
-      {sessionDone && mixed ? (
-        <Panel className="span-5" accent="green" active label="Session terminée">
-          <p className="stat-line">
-            <strong>{sessionDone.forms}</strong> forme{sessionDone.forms > 1 ? 's' : ''} · précision moyenne{' '}
-            <strong>{Math.round(sessionDone.accuracy * 100)} %</strong> · <strong>{sessionDone.xp}</strong> XP
-          </p>
-          <p className="t-small">
-            Enchaîner des formes différentes coûte plus cher sur le moment et retient mieux que répéter la même :
-            c’est fait exprès. Les échéances sont recalculées, le hub les affiche.
-          </p>
-          {retryLine(sessionDone.retries) && <p className="t-small">{retryLine(sessionDone.retries)}</p>}
-          {afterStep && <p className="t-small">{afterStep.text}</p>}
-          <div className="row">
-            {/* la séance s'arrête à 5 ; s'il reste des dues (8 au plus aujourd'hui), on propose la suite (D97),
-                puis l'étape suivante de la séance du jour (D98) */}
-            {moreDueNow > 0 && (
-              <PixelButton variant="primary" onClick={startMixed}>Encore {moreDueNow} forme{moreDueNow > 1 ? 's' : ''} due{moreDueNow > 1 ? 's' : ''}</PixelButton>
-            )}
-            {afterStep && (
-              <PixelButton variant={moreDueNow > 0 ? 'ghost' : 'primary'} onClick={() => goAfter(afterStep.step)}>{afterStep.action}</PixelButton>
-            )}
-            <PixelButton variant={moreDueNow > 0 || afterStep ? 'quiet' : 'primary'} onClick={() => navigate('hub')}>Accueil</PixelButton>
-          </div>
-        </Panel>
-      ) : result ? (
-        <Panel className="span-5" accent={result.stars > 0 ? 'green' : 'orange'} active label="Résultat">
-          {/* pas d'étoiles sur un rattrapage : on ne félicite que ce qui prouve (MUSIC_DESIGN §17.1) */}
-          {result.proof ? <p className="result-stars">{starRow(result.stars)}</p> : <p className="t-label">Rattrapage</p>}
-          <p className={`stat-line ${result.stars === 0 ? 'miss' : ''}`} ref={resultRef} tabIndex={-1}>
-            <strong>{Math.round(result.accuracy * 100)} %</strong> de trous justes au premier essai · {result.revealed} révélé{result.revealed > 1 ? 's' : ''} · {result.errors} erreur{result.errors > 1 ? 's' : ''}
-          </p>
-          {missedLine && <p className="t-small">{missedLine} — contour pointillé sur la tablature.</p>}
-          <p className="t-small">
-            {result.grid === 'kept'
-              ? `tempo : grille tenue en ${mmss(result.seconds)} · `
-              : result.grid === 'missed'
-                ? `tempo : hors grille (${mmss(result.seconds)} pour ${gridSpec.seconds.toFixed(1)} s) · `
-                : ''}
-            {!result.proof
-              ? 'Essai de rattrapage : enregistré, sans effet sur la révision, la maîtrise ni l’XP.'
-              : result.xp > 0
-                ? `+${result.xp} XP. Tentative enregistrée : elle entre dans la répétition espacée.`
-                : '0 XP. La tentative est enregistrée quand même : elle dit où tu en es, et rien n’est bloqué.'}
-          </p>
-          <p className="t-small">
-            {formStateLine(formNode, settings.speedTargetBpm)}
-            {result.proof && result.accuracy < 0.8 && formNode?.state === 'learned'
-              ? ' Un essai raté ne retire pas « apprise » : elle se compte en réussites.'
-              : ''}
-          </p>
-          {coldStep === 'look' && (
-            <>
-              <p className="t-small">
-                {lookStart === null
-                  ? `${Math.round(result.accuracy * 100)} % à froid, sous les 80 % : la carte revient bientôt. Regarde la forme ${settings.lookSeconds} s, puis rejoue-la de mémoire — ce second essai ne compte pas.`
-                  : `Regarde la forme : elle se masque dans ${lookRemaining(lookStart, now, settings.lookSeconds)} s.`}
-              </p>
-              <div className="row">
-                {lookStart === null ? (
-                  <PixelButton variant="primary" onClick={() => { setLookStart(clock.now()); setNow(clock.now()); }}>
-                    ▶ Regarde la forme ({settings.lookSeconds} s)
-                  </PixelButton>
-                ) : (
-                  <PixelButton variant="primary" onClick={beginRetry}>J’ai vu, masquer</PixelButton>
-                )}
-                <PixelButton variant="quiet" onClick={nextInQueue}>Passer · forme suivante</PixelButton>
-              </div>
-            </>
-          )}
-          <div className="row">
-            {coldStep === 'look' ? null : mixed ? (
-              <>
-                <PixelButton variant="primary" onClick={nextInQueue} disabled={queue.length === 0}>
-                  {qIndex + 1 >= queue.length ? 'Terminer la session' : `Suivant · ${queue[qIndex + 1]?.title ?? ''}`}
-                </PixelButton>
-                <PixelButton variant="quiet" onClick={() => { setRetake(true); restart(); }} title="Juste après la correction : l’essai est enregistré sans compter">
-                  Refaire celle-ci
-                </PixelButton>
-              </>
-            ) : (
-              <>
-                <PixelButton variant="primary" onClick={() => runStep(nextSteps.primary)}>{STEP_LABEL[nextSteps.primary]}</PixelButton>
-                <PixelButton onClick={() => runStep(nextSteps.secondary)}>{STEP_LABEL[nextSteps.secondary]}</PixelButton>
-              </>
-            )}
-          </div>
-          {!mixed && coldStep !== 'look' && (
-            <p className="t-small result-links">
-              <button type="button" className="linkish" onClick={() => navigate('gammes')}>Changer de gamme</button>
-              {' · '}
-              <button type="button" className="linkish" onClick={() => navigate('hub')}>Accueil</button>
-            </p>
-          )}
-        </Panel>
-      ) : (
+      {sessionDone && mixed ? sessionPanel : result ? resultPanel : (
       <Panel
           className="span-5 numpad-panel"
           {...(result ? {} : { accent: 'cyan' as const })}
@@ -1171,27 +1600,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               </span>
               )}
             </div>
-            {micState === 'listening' ? (
-              <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer</PixelButton>
-            ) : (
-              <PixelButton variant="primary" onClick={() => setMicOn(true)} disabled={micBusy}>
-                ▶ Ouvrir le micro
-              </PixelButton>
-            )}
+            {micAction}
           </div>
-          {micOn && (
-            <MicStrip
-              engine={engine}
-              notation={settings.noteNotation}
-              thresholdDb={input.thresholds[input.source]}
-              tolerance={input.centsTolerance}
-              tuning={r.tuning}
-              a4={input.a4}
-            />
-          )}
-          <p className="sr-only" aria-live="polite">
-            {activeIndex > 0 && activeStringLabel ? `Emplacement ${activeIndex} sur ${total}, corde de ${activeStringLabel}. Flèches gauche et droite pour changer.` : ''}
-          </p>
+          {micStrip}
+          {micLive}
           {micState === 'listening' ? (
             // micro ouvert : le pavé n'est plus le geste principal — replié, il reste un secours
             <details className="pad-fold">
@@ -1219,106 +1631,17 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             <span className="answer-bar-count">{done}/{total}</span>
           </p>
           <div className="answer-bar-keys">
-            {['1', '2', '3', '4', '5', 'C', '6', '7', '8', '9', '0', '✓'].map((k) => (
-              <button
-                key={k}
-                type="button"
-                className={`key ${k === '✓' ? 'key-ok' : k === 'C' ? 'key-alt' : ''}`}
-                onClick={() => (k === 'C' ? setEntry('') : k === '✓' ? validate() : press(k))}
-                disabled={k === 'C' ? !entry : k === '✓' ? !activeHole || entry === '' : !activeHole}
-                aria-label={k === 'C' ? 'Effacer' : k === '✓' ? 'Valider' : undefined}
-              >
-                {k}
-              </button>
-            ))}
+            {['1', '2', '3', '4', '5', 'C', '6', '7', '8', '9', '0', '✓'].map(answerKey)}
           </div>
         </div>
       )}
 
       <Panel className="span-7" label="Exercice">
-        {/* en séance : une liste de définitions plutôt qu'un long paragraphe (constat 14) */}
-        {mixed && queue.length > 0 && queue[qIndex] && (
-          <dl className="ex-facts">
-            <dt>Session</dt>
-            <dd>
-              {sessionFact(qIndex, queue.length, queue[qIndex]!)}
-              <details className="ex-more">
-                <summary>Les {queue.length} formes</summary>
-                <ol>
-                  {queue.map((t, i) => (
-                    <li key={`${t.nodeId}-${i}`} className={i === qIndex ? 'current' : ''}>{t.title} ({t.positionLabel}) : {t.reason}</li>
-                  ))}
-                </ol>
-              </details>
-            </dd>
-            <dt>Consigne</dt>
-            <dd>
-              {coldStep === 'cold'
-                ? 'De mémoire, sans revoir la forme. Seul ce premier essai compte.'
-                : coldStep === 'retry'
-                  ? 'Rattrapage : tu viens de voir la forme, il ne compte pas.'
-                  : `${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes} notes, la position entière.`}
-            </dd>
-            {!result && (
-              <>
-                <dt>État</dt>
-                <dd>{formStateLine(formNode, settings.speedTargetBpm)}</dd>
-              </>
-            )}
-          </dl>
-        )}
-        {!mixed && coldStep === 'cold' && (
-          <p className="t-small">
-            <strong>Rappel à froid</strong> : la position entière, de mémoire, sans la revoir avant. Seul ce premier
-            essai compte pour la révision, la maîtrise et l’XP.
-          </p>
-        )}
-        {!mixed && coldStep === 'retry' && (
-          <p className="t-small">
-            <strong>Essai de rattrapage</strong> : enregistré comme pratique, sans effet sur la révision, la maîtrise
-            ni l’XP — tu viens de voir la forme.
-          </p>
-        )}
-        {!mixed && (
-          <div className="field">
-            <span className="t-label">Niveau</span>
-            <Segmented<AttemptLevel>
-              size="sm"
-              label="Niveau"
-              value={level}
-              onChange={(v) => restart(v, segment)}
-              options={[
-                { value: 2, label: 'N2 · trous' },
-                { value: 3, label: 'N3 · rappel' },
-              ]}
-            />
-          </div>
-        )}
-        {!mixed && level === 3 && (
-          <Switch
-            checked={blindOn && micState === 'listening'}
-            onChange={setBlindOn}
-            disabled={micState !== 'listening'}
-            label="À l’aveugle"
-            hint={micState === 'listening'
-              ? 'aucune tablature pendant le jeu, verdict à la fin'
-              : 'ouvre le micro : à l’aveugle, seul le son est jugé'}
-          />
-        )}
-        {!mixed && (
-        <>
-        <p className="t-small">
-          {level === 2
-            ? `${Math.round(settings.holeRate * 100)} % des notes masquées (au moins 2, jamais toutes) : ici ${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes}. `
-              + (micOn
-                ? 'Joue la note à la guitare : elle remplit l’emplacement. Le pavé reste un secours.'
-                : 'Touche un emplacement vide, tape son numéro au pavé, valide.')
-            : `${exercise.notes} cases à écrire de mémoire : seules les cordes, les mesures et le rythme restent visibles.`
-              + (micOn ? ' Joue-les dans l’ordre que tu veux.' : '')}
-        </p>
-        {!result && <p className="t-small">{formStateLine(formNode, settings.speedTargetBpm)}</p>}
-        </>
-        )}
+        {sessionFacts}
+        {coldNotes}
+        {levelField}
+        {blindSwitch}
+        {levelText}
         <div className="row exercise-start">
           {coldActive ? (
             // à froid, pas de nouvelle série (elle effacerait les cases déjà révélées) ni d'écoute : « Passer » suffit
@@ -1334,62 +1657,23 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
               {!result && <PixelButton variant="quiet" onClick={() => navigate('scale')}>Écouter d’abord</PixelButton>}
             </>
           )}
-          {startedAt !== null && !result && <span className="t-label">{mmss(elapsed)}</span>}
+          {elapsedLabel}
         </div>
 
         <details className="adv-settings">
           <summary className="t-label">Réglages de la série · découpage, mélange, métronome</summary>
-          <div className="row">
-            <Switch checked={mixed} onChange={toggleMixed} label="Session mélangée" hint="3 à 5 formes différentes d’affilée" />
-            <Switch
-              checked={settings.coldReview}
-              onChange={(v) => setSettings({ coldReview: v })}
-              label="Rappel à froid en révision"
-              hint="une forme due : de mémoire d’abord, sans la revoir (prochaine session)"
-            />
-          </div>
-          {!mixed && (
-            <div className="field">
-              <span className="t-label">Découpage</span>
-              <Segmented<Segment>
-                size="sm"
-                label="Découpage"
-                value={segment}
-                onChange={(v) => restart(level, v)}
-                options={SEGMENTS.map((s) => ({ value: s.value, label: s.label, note: s.hint }))}
-              />
-            </div>
-          )}
+          {mixedSwitches}
+          {segmentField}
           <div className="grid-row">
-            <div className="tempo">
-              <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.max(MIN_TEMPO, settings.trainingTempo - 5) })} aria-label="Grille moins vite">−</button>
-              <span className="tempo-val">♩ {settings.trainingTempo}</span>
-              <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.min(MAX_TEMPO, settings.trainingTempo + 5) })} aria-label="Grille plus vite">+</button>
-            </div>
-            <Segmented<GridSubdivision>
-              size="sm"
-              label="Notes par temps"
-              value={settings.gridSubdivision}
-              onChange={(v) => setSettings({ gridSubdivision: v })}
-              options={[{ value: 1, label: 'noires' }, { value: 2, label: 'croches' }]}
-            />
-            <PixelButton variant={grid === 'running' ? 'primary' : 'ghost'} onClick={() => (grid === 'running' ? stopGrid() : void startGrid())} disabled={!!result}>
-              {grid === 'running' ? 'Arrêter la grille' : 'Grille (métronome)'}
-            </PixelButton>
-            <span className="t-small t-dim">{gridSpec.beats} temps ≈ {gridSpec.seconds.toFixed(1)} s</span>
+            {gridTempo}
+            {gridSubdivisionField}
+            {gridButton}
+            {gridEstimate}
           </div>
         </details>
       </Panel>
 
-
-
-
-      {!mixed && (
-        <LevelsNav
-          current={level === 3 ? 3 : 2}
-          onSelect={(n) => (n === 1 ? navigate('scale') : n === 4 ? navigate('impro') : restart(n, segment))}
-        />
-      )}
+      {levels}
       <p className="t-small t-dim foot-note">
         Vitesse : <button type="button" className="linkish" onClick={() => navigate('sequences')}>séquences au métronome, palier automatique</button>.
       </p>
@@ -1397,75 +1681,18 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       {/* tout le barème au même endroit, replié : l'élève qui joue n'a pas à le lire pour jouer */}
       <details className="how-scored">
         <summary>Comment c’est noté ?</summary>
-        <p className="t-small">
-          Les trous justes <strong>au premier essai</strong>. Une case trouvée du deuxième coup n’est pas « sue »,
-          elle est reconnue. Le score d’aujourd’hui déplace la case dans la file de révision, il ne la certifie pas.
-        </p>
-        <p className="t-small t-dim">
-          Étoiles : ★ dès 80 % · ★★ dès 95 % · ★★★ sans une erreur ni une case révélée. Si tu as lancé la grille,
-          ★★ et ★★★ exigent de la tenir ; la manquer plafonne à ★. Une case écrite de mémoire (N3) pèse 1,5 dans la
-          maîtrise, un trou comblé (N2) pèse 1.
-        </p>
-        <p className="t-small t-dim">
-          {settings.gridSubdivision === 2 ? 'Deux trous par temps' : 'Un temps par trou'}, en mesures entières
-          ({gridSpec.npm} notes/min). Finir dans la grille et juste à ≥ 95 % vaut ★★, parfait sans une erreur vaut ★★★.
-          Le métronome ne joue aucune note : il ne donne pas les réponses.
-        </p>
-        <p className="t-small t-dim">
-          Vitesse « maîtrisée » : de mémoire (N3), au micro, position entière, ≥ 95 %, grille tenue à
-          {' '}{settings.speedTargetBpm} BPM en croches ({settings.speedTargetBpm * 2} notes/min) — réglage du tempo cible dans Réglages.
-        </p>
-        <p className="t-small t-dim">
-          Série de {total} trou{total > 1 ? 's' : ''} sur {exercise.notes} note{exercise.notes > 1 ? 's' : ''} ({plan.strings} corde{plan.strings > 1 ? 's' : ''}).
-          {journal.length > 0 ? ` ${journal.length} tentative${journal.length > 1 ? 's' : ''} déjà enregistrée${journal.length > 1 ? 's' : ''} sur cet appareil.` : ' Aucune tentative enregistrée pour l’instant.'}
-        </p>
-        <p className="t-small t-dim">
-          L’annotation sous la tablature reste celle de ton réglage (notes, degrés, intervalles, doigtés) — elle est masquée sur les trous.
-          Une note masquée n’est jamais jouée par l’app avant d’être trouvée.
-        </p>
+        {howScoredBody}
       </details>
 
-      {result && celebrate && endScreenFor(result.stars, result.proof, mixed) && (
-        <Celebration
-          title={r.title}
-          position={positionLabelPlain(r.position, settings.noteNotation)}
-          stars={result.stars}
-          accuracy={result.accuracy}
-          seconds={result.seconds}
-          revealed={result.revealed}
-          errors={result.errors}
-          earned={result.xp}
-          totalXp={totals.total}
-          todayXp={totals.today}
-          cap={totals.cap}
-          streakDays={streakDays}
-          sessionsToday={sessionsToday}
-          readonly={settings.reduceMotion}
-          onClose={() => setCelebrate(false)}
-          gridKept={result.grid === 'kept'}
-          {...(mixed
-            ? {}
-            : {
-                actions: [
-                  { label: STEP_LABEL[nextSteps.primary], onClick: () => runStep(nextSteps.primary) },
-                  endScreenFor(result.stars, result.proof, mixed) === 'calm'
-                    ? { label: STEP_LABEL[nextSteps.secondary], onClick: () => runStep(nextSteps.secondary) }
-                    : { label: 'Continuer', onClick: () => setCelebrate(false) },
-                ],
-              })}
-          {...(endScreenFor(result.stars, result.proof, mixed) === 'calm'
-            ? { calm: true, detail: missedLine ?? `${Math.round(result.accuracy * 100)} % au premier essai` }
-            : {})}
-        />
-      )}
+      {celebration}
 
       {/* en séance, la file mène : changer de position en sortirait, et un second « 1 / 5 » brouillerait
           « Séance 1 sur 5 » (constat 23) */}
       {!mixed && (
         <div className="pos-nav">
-          <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0}>‹ Position</PixelButton>
-          <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
-          <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1}>Position ›</PixelButton>
+          {prevPosition}
+          {positionCount}
+          {nextPosition}
         </div>
       )}
 
