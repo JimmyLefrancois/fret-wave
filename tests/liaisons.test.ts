@@ -55,6 +55,12 @@ describe('liaisons : partitions', () => {
     }
   });
 
+  it('le préfixe remplace le nom de la liaison, les cases restent', () => {
+    const label = (s: TabScore) => s.measures[0]!.label?.text;
+    expect(label(liaisonToScore(boxes, first, std, 'link'))).toMatch(/^deux positions · cases/);
+    expect(label(liaisonToScore(boxes, first, std, 'link', { labelPrefix: 'Position 1 vers 2' }))).toMatch(/^Position 1 vers 2 · cases/);
+  });
+
   it('deux positions : part et revient au bas de la grave, atteint le haut de l’aiguë', () => {
     const [low, high] = linkedPair(boxes, first)!;
     const n = notesOf(liaisonToScore(boxes, first, std, 'link'));

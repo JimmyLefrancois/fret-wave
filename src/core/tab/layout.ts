@@ -20,6 +20,7 @@ export const METRICS = {
   pillH: 13,
   pillW1: 11,
   pillW2: 17,
+  pillW2Compact: 15,
   glyphH: 7,
   /** marge haute (glow, triangle du curseur) */
   topPad: 3,
@@ -66,6 +67,13 @@ export interface LayoutOptions {
    * de la première colonne (constaté à 390 px).
    */
   padLeft?: number;
+  /**
+   * Mode wrap : toutes les mesures sur une seule ligne (grand écran). Si l'espacement au temps ne tient
+   * pas dans `maxWidth`, les colonnes passent à leur largeur minimale avant tout débordement.
+   */
+  oneLine?: boolean;
+  /** Pastilles à deux chiffres resserrées (`pillW2Compact`) : dernier recours d'une ligne unique trop longue. */
+  compactPills?: boolean;
 }
 
 export const DEFAULT_LAYOUT: LayoutOptions = {
@@ -207,8 +215,9 @@ export function annotationText(n: TabNote, kind: AnnotationKind, notation: NoteN
   }
 }
 
-function pillWidth(n: TabNote): number {
-  return n.muted || n.fret < 10 ? METRICS.pillW1 : METRICS.pillW2;
+function pillWidth(n: TabNote, o: LayoutOptions): number {
+  if (n.muted || n.fret < 10) return METRICS.pillW1;
+  return o.compactPills ? METRICS.pillW2Compact : METRICS.pillW2;
 }
 
 function pillText(n: TabNote): string {
@@ -272,7 +281,7 @@ function planColumns(score: TabScore, o: LayoutOptions): MeasurePlan[] {
       let annW = 0;
       let hasBarre = false;
       if (showStack) {
-        half = Math.max(...ev.notes.map((n) => (pillWidth(n) - 1) / 2));
+        half = Math.max(...ev.notes.map((n) => (pillWidth(n, o) - 1) / 2));
         if (isStackEvent && o.annotation !== 'none') {
           annW = Math.max(0, ...ev.notes.map((n) => textWidth(annotationText(n, o.annotation, o.notes))));
         }
@@ -288,6 +297,25 @@ function planColumns(score: TabScore, o: LayoutOptions): MeasurePlan[] {
     const width = 1 + padL + cols.reduce((s, c) => s + c.w, 0) + METRICS.barPadR;
     return { index: mi, cols, padL, width, tsW, tickStart: starts[mi]!, tickEnd: starts[mi]! + measureLength(score, mi) };
   });
+}
+
+/**
+ * Plus grande échelle entière, de `maxScale` à 2, à laquelle le score tient sur une ligne dans
+ * `viewWidth` pixels CSS. L'échelle 2 est le plancher de lisibilité : si le score n'y tient pas non
+ * plus (`fits` faux : aller-retour en pastilles à deux chiffres), sa ligne déborde et la vue défile.
+ */
+export function oneLineFit(
+  score: TabScore, options: LayoutOptions, viewWidth: number, dpr: number, maxScale: number,
+): { scale: number; fits: boolean; compact: boolean } {
+  const fitsAt = (s: number, compactPills: boolean) => {
+    const logical = Math.floor(viewWidth / (Math.max(1, Math.round(s * dpr)) / dpr));
+    const maxWidth = logical - (options.padLeft ?? 4);
+    return layoutScore(score, { ...options, mode: 'wrap', oneLine: true, compactPills, maxWidth }).width <= maxWidth;
+  };
+  for (let s = maxScale; s >= 2; s--) {
+    if (fitsAt(s, false)) return { scale: s, fits: true, compact: false };
+  }
+  return { scale: 2, fits: fitsAt(2, true), compact: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -373,7 +401,13 @@ export function layoutScore(score: TabScore, options: LayoutOptions = DEFAULT_LA
   // --- répartition des mesures en lignes
   const maxW = o.maxWidth ?? 190;
   const groups: MeasurePlan[][] = [];
-  if (o.mode === 'scroll') {
+  if (o.oneLine && o.mode === 'wrap' && x0 + plans.reduce((s, p) => s + p.width, 0) + 4 > maxW) {
+    for (const p of plans) {
+      for (const c of p.cols) c.w = c.natural;
+      p.width = 1 + p.padL + p.cols.reduce((s, c) => s + c.w, 0) + METRICS.barPadR;
+    }
+  }
+  if (o.mode === 'scroll' || o.oneLine) {
     groups.push(plans);
   } else {
     let cur: MeasurePlan[] = [];
@@ -507,7 +541,7 @@ function buildColumn(
   if (c.showStack) {
     for (const n of c.ev.notes) {
       const yc = stringYs[rowOf(n.string)]!;
-      const pw = pillWidth(n);
+      const pw = pillWidth(n, o);
       col.pills.push({
         x: cx - (pw - 1) / 2, y: yc - 6, w: pw, h: METRICS.pillH, string: n.string, fret: n.fret,
         text: pillText(n), fn: n.fn, muted: !!n.muted, hidden: !!n.hidden,

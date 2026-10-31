@@ -9,8 +9,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChordNotation, NoteNotation } from '../core/theory';
 import {
-  CanvasSurface, cursorAt, describeScore, drawOverlay, drawScore, drawText, layoutScore,
-  type AnnotationKind, type ScoreLayout, type TabScore,
+  CanvasSurface, cursorAt, describeScore, drawOverlay, drawScore, drawText, layoutScore, oneLineFit,
+  type AnnotationKind, type LayoutOptions, type ScoreLayout, type TabScore,
 } from '../core/tab';
 import type { TabPlayer } from '../core/audio/tabPlayer';
 import { useThemeTokens } from './settings';
@@ -42,6 +42,8 @@ export interface TabViewProps {
   coverTop?: () => number | null;
   /** Échelle minimale en mode auto, appliquée seulement sur un grand écran (≥ 880 × 1 100 px) : tablature de jeu, lue à 1-2 m. Plus bas, une tablature à l'échelle 3 repousse la consigne et la réponse sous la ligne de flottaison. */
   minScale?: number;
+  /** Mode wrap : garde tout le score sur une ligne (bureau). Baisse l'échelle automatique, puis défile à l'horizontale s'il le faut. */
+  oneLine?: boolean;
   /** Toucher une pastille (exercice « montre-moi la ♭3 »). */
   onPick?: (pick: TabPick) => void;
   /**
@@ -89,7 +91,7 @@ function autoScale(viewWidth: number, viewHeight: number): number {
 
 export function TabView(props: TabViewProps) {
   const tabTheme = useThemeTokens().tab;
-  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, activeHoleKey, coverTop, minScale, onPick, flash } = props;
+  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, activeHoleKey, coverTop, minScale, oneLine = false, onPick, flash } = props;
   const playing = transport === 'playing';
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -120,23 +122,32 @@ export function TabView(props: TabViewProps) {
     };
   }, []);
 
-  const S = scale === 'auto' ? Math.max(autoScale(box.w, box.h), box.w >= 880 && box.h >= 1100 ? (minScale ?? 0) : 0) : scale;
+  /** Marge gauche des noms de cordes, en pixels logiques : elle fait partie du budget de largeur. */
+  const PAD_LEFT = 4;
+  const baseOptions: LayoutOptions = useMemo(() => ({
+    mode, padLeft: PAD_LEFT, notes, chords, annotation, stacks: 'change', emphasizeChordTones, hideRhythm, oneLine,
+    ...(highlightFn ? { highlightFn } : {}),
+    ...(activeHoleKey ? { activeHoleKey } : {}),
+  }), [mode, notes, chords, annotation, emphasizeChordTones, hideRhythm, oneLine, highlightFn, activeHoleKey]);
+
+  const baseS = scale === 'auto' ? Math.max(autoScale(box.w, box.h), box.w >= 880 && box.h >= 1100 ? (minScale ?? 0) : 0) : scale;
+  const fit = useMemo(
+    () => (oneLine && scale === 'auto' ? oneLineFit(score, baseOptions, box.w, dpr, baseS) : { scale: baseS, fits: true, compact: false }),
+    [oneLine, scale, score, baseOptions, box.w, dpr, baseS],
+  );
+  const S = fit.scale;
   const k = Math.max(1, Math.round(S * dpr));
   const cssPerLogical = k / dpr;
   const viewLogical = Math.max(60, Math.floor(box.w / cssPerLogical));
-  /** Marge gauche des noms de cordes, en pixels logiques : elle fait partie du budget de largeur. */
-  const PAD_LEFT = 4;
 
   const layout: ScoreLayout = useMemo(
-    () => layoutScore(score, {
-      mode, maxWidth: Math.max(60, viewLogical - PAD_LEFT), padLeft: PAD_LEFT,
-      notes, chords, annotation, stacks: 'change',
-      emphasizeChordTones, hideRhythm,
-      ...(highlightFn ? { highlightFn } : {}),
-      ...(activeHoleKey ? { activeHoleKey } : {}),
-    }),
-    [score, mode, viewLogical, notes, chords, annotation, emphasizeChordTones, hideRhythm, highlightFn, activeHoleKey],
+    () => layoutScore(score, { ...baseOptions, compactPills: fit.compact, maxWidth: Math.max(60, viewLogical - PAD_LEFT) }),
+    [score, baseOptions, fit.compact, viewLogical],
   );
+
+  useEffect(() => {
+    if (wrapRef.current) wrapRef.current.scrollLeft = 0;
+  }, [score]);
 
   const cssW = layout.width * cssPerLogical;
   const cssH = layout.height * cssPerLogical;
@@ -224,6 +235,10 @@ export function TabView(props: TabViewProps) {
         stage.style.transform = '';
         if (tick !== null) {
           const cur = cursorAt(layout, tick);
+          // la ligne unique déborde : la vue suit le curseur, et la souris peut la faire défiler à l'arrêt
+          if (!fit.fits && wrapRef.current) {
+            wrapRef.current.scrollLeft = cur.x * cssPerLogical - cursorAnchor * wrapRef.current.clientWidth;
+          }
           if (cur.systemIndex !== lastSystem.current) {
             lastSystem.current = cur.systemIndex;
             const wrap = wrapRef.current;
@@ -236,7 +251,7 @@ export function TabView(props: TabViewProps) {
         }
       }
     },
-    [mode, layout, viewLogical, cssPerLogical, cursorAnchor],
+    [mode, layout, viewLogical, cssPerLogical, cursorAnchor, fit.fits],
   );
 
   useEffect(() => {
@@ -292,6 +307,14 @@ export function TabView(props: TabViewProps) {
       viewLogical,
     };
   }, [layout, score, player, cssPerLogical, viewLogical]);
+
+  // la ligne unique déborde : la note désignée reste dans la vue
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (fit.fits || !activeHoleKey || !wrap) return;
+    const pill = layout.columns.flatMap((c) => c.pills).find((p) => p.active);
+    if (pill) wrap.scrollLeft = pill.x * cssPerLogical - cursorAnchor * wrap.clientWidth;
+  }, [fit.fits, activeHoleKey, layout, cssPerLogical, cursorAnchor]);
 
   // le trou désigné change (flèches, réponse juste) : sur une tablature repliée en plusieurs lignes,
   // il peut sortir de l'écran — on le ramène en vue. Pas au premier trou : la page ne saute pas à l'ouverture.

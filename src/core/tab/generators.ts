@@ -143,6 +143,8 @@ function tabNoteFromPosition(
 }
 
 export interface PositionScoreOptions extends BaseOptions {
+  /** Liaison : remplace le nom du motif devant les cases (« Position 1 vers 2 »). */
+  labelPrefix?: string;
   direction?: Direction;
   /** Durée de chaque note en ticks (croche par défaut). */
   noteTicks?: number;
@@ -379,7 +381,7 @@ export function liaisonToScore(
     return fingers.get(s.from)!.get(noteKey(s.note.string, s.note.fret));
   };
   const frets = steps.map((s) => s.note.fret);
-  const text = opts.labelText ?? `${SEQUENCE_LABEL[pattern]} · cases ${Math.min(...frets)}–${Math.max(...frets)}`;
+  const text = opts.labelText ?? `${opts.labelPrefix ?? SEQUENCE_LABEL[pattern]} · cases ${Math.min(...frets)}–${Math.max(...frets)}`;
   return makeScore(
     'exercise', tuning, opts,
     steps.map((s) => {

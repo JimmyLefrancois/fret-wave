@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { TUNINGS, generatePositions } from '../src/core/theory';
 import { VOICINGS } from '../src/data/voicings';
 import {
-  METRICS, PPQ, arpeggioToScore, chordToScore, cursorAt, layoutScore, measureStarts, positionToScore, progressionToScore,
+  METRICS, PPQ, arpeggioToScore, chordToScore, cursorAt, layoutScore, measureStarts, oneLineFit, positionToScore, progressionToScore,
   scaleToScore, totalTicks, validateScore, type ColumnLayout, type LayoutOptions, type ScoreLayout, type TabScore,
 } from '../src/core/tab';
 import { rhythmScore } from './helpers/fixtures';
@@ -385,5 +385,49 @@ describe('arpège et accords : mise en page des types de score restants', () => 
       expect(c.arrow).toBeUndefined();
     }
     expect(l.rows.arrowsY).toBeNull();
+  });
+});
+
+describe('tablature sur une seule ligne (bureau)', () => {
+  const aller = (id: string, i: number) => positionToScore(
+    generatePositions(id, 'A', std, '3nps')[i]!, std, { direction: 'updown', fingers: true },
+  );
+  const base: LayoutOptions = { ...wrap, annotation: 'degree', padLeft: 4 };
+
+  it('garde toutes les mesures sur une ligne, sans chevauchement de pastilles', () => {
+    for (let i = 0; i < 7; i++) {
+      const l = layoutScore(aller('ionian', i), { ...base, oneLine: true, maxWidth: 400 });
+      expect(l.systems).toHaveLength(1);
+      const pills = allPills(l);
+      for (const [n, a] of pills.entries()) {
+        for (const b of pills.slice(n + 1)) expect(overlap(a, b)).toBe(false);
+      }
+    }
+  });
+
+  it('retient la plus grande échelle entière qui tient, jamais moins de 2', () => {
+    const score = aller('ionian', 0);
+    const { scale, fits } = oneLineFit(score, base, 1600, 1, 4);
+    expect(fits).toBe(true);
+    expect(scale).toBeLessThan(4);
+    const maxWidth = Math.floor(1600 / scale) - 4;
+    expect(layoutScore(score, { ...base, oneLine: true, maxWidth }).width).toBeLessThanOrEqual(maxWidth);
+    expect(oneLineFit(score, base, 100, 1, 4)).toEqual({ scale: 2, fits: false, compact: true });
+  });
+
+  it('resserre les pastilles à deux chiffres en dernier recours, sans chevauchement', () => {
+    const haut = positionToScore(
+      generatePositions('ionian', 'A', std, '3nps').find((p) => p.fretMin >= 9)!, std, { direction: 'updown', fingers: true },
+    );
+    expect(oneLineFit(haut, base, 1340, 1, 2)).toEqual({ scale: 2, fits: true, compact: true });
+    const pills = allPills(layoutScore(haut, { ...base, oneLine: true, compactPills: true, maxWidth: 666 }));
+    expect(pills.filter((p) => p.w === METRICS.pillW2Compact).length).toBeGreaterThan(0);
+    for (const [n, a] of pills.entries()) {
+      for (const b of pills.slice(n + 1)) expect(overlap(a, b)).toBe(false);
+    }
+  });
+
+  it('sans l’option, le retour à la ligne ne change pas', () => {
+    expect(layoutScore(aller('ionian', 2), { ...base, maxWidth: 300 }).systems.length).toBeGreaterThan(1);
   });
 });
