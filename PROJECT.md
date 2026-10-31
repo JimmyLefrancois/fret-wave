@@ -9,6 +9,13 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 ---
 
 
+## État exact de la refonte bureau du module Gammes (sur `master`, D114)
+
+- **Pages refondues au bureau (≥ 900 px)** : Jouer, Entraînement, Séquences, Improviser. Chacune rend deux mises en page (`useDesktop`) : une surface unique au bureau, la colonne de panneaux d'origine sur téléphone.
+- **Au bureau, Entraînement se joue uniquement au micro** : ni pavé, ni clavier, ni sélection de case. Sans micro, on ne peut pas terminer une série à trous au bureau, et rien ne le dit à l'écran hors le bouton « Ouvrir le micro ».
+- **Pas encore refondus** : Révision (même composant qu'Entraînement, donc déjà sur la surface, non vérifiée), le module Accords, le hub, Accordeur, Métronome, Réglages.
+- **À tester sur instrument réel** : remplissage au micro sans case cerclée, suivi de la vue, prise d'impro et score à la nouvelle mise en page. Tout a été vérifié au micro simulé ou par injection.
+
 ## État exact du lot « mémoire et vitesse » (branche `gammes/memoire-vitesse`, module Gammes)
 
 **Pourquoi** : ton signalement — une forme devenait « apprise » sans jouer la gamme entière. Vérifié dans le code : le nœud `gam:lecture:*` ignorait le segment et le niveau ; deux séries par défaut (2 cordes, N2 à 35 % ≈ **2 trous**) sur deux jours suffisaient ; la révision restait en N2 sous la boîte 3 et sur 2 cordes. Principe du lot : **un essai fait juste après avoir vu la réponse ne prouve rien ; ce qui prouve, c'est le rappel à froid et le geste joué à tempo.**

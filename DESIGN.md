@@ -17,6 +17,7 @@ colors:
   neon-yellow: "#FFD23F"
   neon-violet: "#A86BFF"
   neon-green: "#7CFF6B"
+  spark: "#FFD23F"
   night-danger: "#FF5C7A"
   night-ok: "#4CFF9A"
   night-on-accent: "#12021F"
@@ -35,6 +36,7 @@ colors:
   dawn-yellow: "#7D6000"
   dawn-violet: "#5B2A9E"
   dawn-green: "#1C6B36"
+  dawn-spark: "#FFC93C"
   dawn-danger: "#B3122F"
   dawn-ok: "#14683A"
   dawn-on-accent: "#FFF8F2"
@@ -163,6 +165,8 @@ Fondamentale jaune `#FFD23F`, 2 orange `#FF8A3D`, 3 magenta `#FF3CAC`, 4 vert `#
 
 **The Fixed-Interval Rule.** Aucune couleur d'intervalle n'est lue depuis le thème. Un thème peut changer le panneau de la tablature, pas le sens d'une couleur de note.
 
+**The Spark Rule.** `--spark` est de la lumière, jamais du texte : le jaune d'Aube est assombri pour se lire, l'étincelle garde un jaune vif dans les deux thèmes.
+
 **The No-Hex Rule.** `app.css` ne contient aucun hex ; tout passe par les variables issues des tokens.
 
 ## Typography
@@ -178,7 +182,7 @@ Fondamentale jaune `#FFD23F`, 2 orange `#FF8A3D`, 3 magenta `#FF3CAC`, 4 vert `#
 - **Title** (système, 650, 17 px, 1.35) : `.card-title`, titre d'élément dans une liste.
 - **Body** (système, 400, 16-16,5 px, 1.55) : explications, consignes ; `.t-small` à 14,5 px en atténué.
 - **Control** (système, 650-700, 13,5 px, capitales, interlettrage 0,04em) : texte des boutons ; 12,5-13,5 px pour pastilles et segments.
-- **Label** (Silkscreen, 700, 11 px, 0,06em, capitales) : `.t-label`, `.tag`, titres de carte de contrôle (12-13 px).
+- **Label** (Silkscreen, 700, 14 px pour `.t-label`, 11 px pour `.tag`, 0,06em, capitales) : `.t-label`, `.tag`, titres de carte de contrôle (12-13 px).
 - **Label large** (Silkscreen, 700, 13 px, token `--label-lg`) : étiquettes lues à un mètre, celles du héros de l'accueil et l'accroche de l'affiche.
 - **Action du héros** (système, 17 px, bouton de 56 px, tokens `--hero-btn-size` et `--hero-btn-h`) : le seul bouton primaire de l'accueil, la chose à lire depuis le tabouret, guitare en main.
 - **Titre de la tâche** (système, 700, 30 px, 36 px au bureau, token `--hero-title`) : la gamme ou l'accord du héros, **le plus grand mot de l'accueil** ; la marque de l'affiche descend à 22-30 px (D82).
@@ -193,6 +197,8 @@ Application à une colonne sur téléphone (390 px est la cible de référence),
 Rythme vertical en trois valeurs : 12 px entre blocs de page (`--gap-block`), 8 px entre sous-blocs d'un panneau (`--gap-inside`), 4 px entre un libellé et sa valeur (`--gap-tight`). Zones tactiles ≥ 38 px (pastilles 38, segments 40, boutons 44, action du héros 56, navigation 52). La barre fixe ne cache jamais l'élément focalisé : `scroll-padding` à sa hauteur (en bas au téléphone, en haut au bureau).
 
 La tablature est un canvas à largeur variable dont le facteur d'échelle est entier (S ≥ 2) ; la mise en page de la tablature est une fonction pure (`core/tab`).
+
+**Pages de jeu au bureau (≥ 900 px, module Gammes, D114).** Une seule surface (`.play-surface`), plus large que les autres pages (96 vw) pour la tablature. De haut en bas : en-tête collant à 54 px (`.play-head`), barre de réglages avec un trait dessous (`.play-tab-bar`), tablature, zone de verdict rendue seulement si elle a du contenu, niveaux et positions sur une ligne (`.play-nav`), bouton « Détails » (`.play-more`), deux colonnes de sections à filet pointillé (`PlaySection`), barre basse (`.play-foot`). L'écran de jeu tient sans défiler à 1440 × 900, sauf Séquences, dont la tablature reste sur plusieurs lignes. Un outil secondaire visuel, comme le manche, s'ouvre dans un `<dialog>`.
 
 ## Elevation & Depth
 
@@ -230,6 +236,9 @@ Angles quasi vifs : un seul rayon, 2 px (`--corner`), qui lit comme un coin « p
 - **Héros :** panneau accentué magenta ; titre de la tâche, une ligne de contexte à 16 px, puis la rangée d'actions à **deux poids** : le primaire (56 px, 17 px, touche « Espace » au clavier seulement), l'autre étape en bouton ordinaire à sa taille (44 px), et « changer de gamme / d'accord » en **lien** souligné. Le primaire garde la même place dans tous les états : pleine largeur au téléphone, à gauche et au moins 20 rem au bureau.
 - **Étapes :** liste numérotée en pastilles pixel 28 px ; étape en cours en aplat magenta, étape franchie en ✓ vert estompée (franchie seulement sur un fait observé, D79).
 - **Parcours :** une ligne par module (nom en `--label-lg` cyan, sujet et compte, barre pixel 12 px au trait `--line` remplie de `--green`) ; trois colonnes au bureau, empilées sous 900 px.
+
+### Actions de l'en-tête de jeu
+Le magenta reste à l'action principale, une seule à l'écran. **Ouvrir le micro**, quand un clic est nécessaire, porte une comète qui tourne sur son cadre (`.mic-spark`, traîne `--cyan`, tête `--spark`) ; avec le mouvement réduit, un simple cadre `--spark`. Un mode à ne pas oublier prend le cyan (`.train-grid`) : contour au repos, aplat quand c'est le geste du moment.
 
 ### Navigation
 Barre opaque (`--bg-deep`, trait 2 px `--line`) à six destinations, icônes pixel pleines 10×10 dessinées à ×2 (20 px). Téléphone : en bas, pleine largeur, icône au-dessus d'un libellé sans-serif de 11,5 px au plus (la taille suit la largeur pour que six onglets tiennent), 56 px de haut. Bureau (≥ 900 px) : en haut, onglets alignés à gauche sur le bord du contenu, icône et libellé de 14 px sur une ligne, 52 px de haut, sans cadre ni mot-symbole (la marque vit dans l'affiche de l'accueil). Repos en `--dim`, survol en `--text`, actif en magenta (icône et libellé), sans halo. Libellé tronqué par ellipse, jamais à la ligne.

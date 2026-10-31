@@ -26,6 +26,8 @@ Ces préférences viennent de la refonte de `gammes/jouer`, corrigée demande ap
 - **Pas de bavardage à l'écran.** Pas de bloc d'écoute du micro (« joue une note », « aucune note stable ») ni de message de confirmation (« grille : 12 temps… ») : le geste et le résultat suffisent. Ces blocs restent seulement là où ils sont le seul repère, comme à l'aveugle.
 - **Pas de place vide réservée.** Une zone sans contenu n'est pas rendue ; l'espacement entre tablature et onglets reste celui de la page Jouer, même si un verdict décale un peu la page quand il apparaît.
 - **Chaque niveau n'expose que ses options.** La grille métronome n'existe qu'en N3 ; les options fines (découpage par cordes) disparaissent au profit d'un choix simple (aller, aller-retour).
+- **Rien de perdu quand on range.** Les consignes et textes d'aide vont dans les Détails plutôt que de disparaître, et un terme de réglage peu clair (Travail, Motif, Départ) y est expliqué.
+- **Le titre dit ce qui est joué** : « Position 1 vers 2 · cases 5–10 » plutôt qu'un nom de motif, et sur le manche, toute position jouée s'affiche à pleine intensité.
 - **La barre basse est commune** : Instrument et « ← Changer de gamme », dans `.play-foot`, hors session mélangée.
 - **Un compteur dit ce qu'il compte** (« 0 / 35 notes », pas « 0 / 35 ») **et s'arrête avec ce qu'il mesure.**
 
@@ -67,6 +69,7 @@ Dès que l'ordre des blocs diffère, rends deux mises en page plutôt que d'empi
 - Utilise `localhost`, pas `127.0.0.1` : le serveur Vite n'écoute pas sur ce dernier. Supprime tout script temporaire de `tools/`.
 
 - Si tu retires un contrôle, vérifie ce qui en dépendait : un message, un état qui continue de tourner (chrono, métronome), un texte d'aide devenu faux dans les Détails.
+- Le micro simulé (`--use-fake-device-for-media-stream`, `grantPermissions`) teste l'ouverture, pas les notes : dis ce qui reste à essayer à la guitare. `window.__sequence.feedPass()` injecte une passe.
 - Pour remplir une série sans micro au test, le clavier est coupé au bureau : passe par `window.__training` (`press`, `validate`) ou teste en largeur mobile.
 
 ## Avant de supprimer
@@ -77,6 +80,12 @@ Toute suppression passe par deux étapes, même quand la demande est claire, et 
 2. **Pose la question à l'auteur** avec `AskUserQuestion` : ce que la suppression retire, ce que ça casse ou change, et une alternative s'il y en a une, comme masquer ou déplacer. Attends sa réponse avant de supprimer.
 
 Si la demande repose sur une prémisse fausse (« on est forcément à l'aveugle en N3, non ? »), corrige-la dans cette même question.
+
+Déplacer ou fermer sans perdre de fonction n'est pas une suppression : pas de question dans ce cas, mais nomme le déplacement.
+
+## Fin de refonte
+
+Mets à jour `DESIGN.md`, `docs/DECISIONS.md` et l'état en tête de `PROJECT.md` quand la page change de structure.
 
 ## Compte rendu
 
