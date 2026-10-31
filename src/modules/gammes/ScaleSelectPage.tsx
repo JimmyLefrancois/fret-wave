@@ -44,6 +44,10 @@ export function ScaleSelectPage() {
     navigate(where);
   };
 
+  // naturelles d'abord, altérées dessous ; une hauteur à deux noms garde ses deux boutons
+  const tonicNames = Array.from({ length: 12 }, (_, pc) => tonicSpellings(r.def, pc))
+    .flatMap((names) => names.map((name) => ({ name, names })));
+
   return (
     <main className="shell">
       <header className="page-head">
@@ -56,20 +60,20 @@ export function ScaleSelectPage() {
 
       <Panel className="span-5 panel-fill" accent="magenta" label="1 · La gamme">
         <p className="t-label tonics-label">Tonique</p>
-        <div className="tonics">
-          {Array.from({ length: 12 }, (_, pc) => tonicSpellings(r.def, pc)).map((names) =>
-            names.map((n) => (
+        {[tonicNames.filter((t) => t.name.length === 1), tonicNames.filter((t) => t.name.length > 1)].map((group, i) => group.length > 0 && (
+          <div key={i} className={i === 0 ? 'tonics' : 'tonics tonics-alt'}>
+            {group.map(({ name: n, names }) => (
               <Chip
-                key={n}
-                selected={r.selection.tonic === n}
-                onClick={() => set({ tonic: n, ...resetPosition })}
-                title={names.length > 1 ? `${names.map((x) => fmtNote(x, settings.noteNotation)).join(' ou ')} : même son, deux orthographes` : undefined}
+                    key={n}
+                    selected={r.selection.tonic === n}
+                    onClick={() => set({ tonic: n, ...resetPosition })}
+                    title={names.length > 1 ? `${names.map((x) => fmtNote(x, settings.noteNotation)).join(' ou ')} : même son, deux orthographes` : undefined}
               >
                 {fmtNote(n, settings.noteNotation)}
               </Chip>
-            )),
-          )}
-        </div>
+            ))}
+          </div>
+        ))}
         <Segmented
           size="sm"
           label="Famille de gammes"

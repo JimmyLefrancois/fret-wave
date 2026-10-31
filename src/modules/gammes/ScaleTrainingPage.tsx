@@ -47,6 +47,7 @@ import { InstrumentPicker } from '../../app/AudioControls';
 import { LevelsNav } from './LevelsNav';
 import { PlaySection } from './PlaySection';
 import { useDesktop } from '../../app/useDesktop';
+import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
 import { Celebration } from './Celebration';
 import {
@@ -70,12 +71,6 @@ interface Result {
   grid: GridOutcome;
   /** La tentative vaut-elle preuve ? (`false` : rattrapage, écrit `afterReveal`) */
   proof: boolean;
-}
-
-/** Haut de la barre de réponse fixe (téléphone), si elle est affichée : la case active reste au-dessus (constat 19). */
-function answerBarTop(): number | null {
-  const bar = document.querySelector('.answer-bar');
-  return bar && getComputedStyle(bar).display !== 'none' ? bar.getBoundingClientRect().top : null;
 }
 
 function mmss(seconds: number): string {
@@ -103,7 +98,11 @@ function starRow(n: number): string {
 }
 
 export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boolean } = {}) {
-  const desktop = useDesktop();
+  const wide = useDesktop();
+  // la série se joue en paysage ; un grand téléphone y dépasse 900 px, sans perdre pour autant son pavé
+  const [playing, setPlaying] = useState(false);
+  const desktop = wide && !playing;
+  const closePlay = useCallback(() => setPlaying(false), []);
   const [infoOpen, setInfoOpen] = useState(false);
   const settings = useSettings();
   const selection = useScaleSelection();
@@ -949,29 +948,14 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     `${fmtNote(pitch.replace(/-?\d+$/, ''), settings.noteNotation)}${i === 0 ? ' grave' : i === all.length - 1 ? ' aigu' : ''}`);
   const missedLine = result ? missedSummary(exercise.holes, missed, stringNames) : null;
   const nextSteps = nextStepFor(level === 3 ? 3 : 2, result?.stars ?? 0, result?.proof ?? true);
-  const padBody = (
-    <>
-          <div className="numpad-entry" aria-live="polite">
-            <span className="numpad-label">{activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide'}</span>
-            <span className="numpad-digits">{entry || '—'}</span>
-          </div>
-          <div className="numpad">
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-              <button key={d} type="button" className="key" onClick={() => press(d)} disabled={!activeHole || !!result}>{d}</button>
-            ))}
-            <button type="button" className="key key-alt" onClick={() => setEntry('')} disabled={!entry}>C</button>
-            <button type="button" className="key" onClick={() => press('0')} disabled={!activeHole || !!result}>0</button>
-            <button type="button" className="key key-ok" onClick={validate} disabled={!activeHole || entry === '' || !!result}>✓</button>
-          </div>
-          {/* aide du pavé, repliée : elle ne sert qu'une fois (constat 14) */}
-          <details className="ex-more numpad-hint">
-            <summary>Clavier</summary>
-            <p className="t-small t-dim">
-              Clavier physique : chiffres, retour arrière, entrée ; flèches ← → pour changer d’emplacement. Une case à deux chiffres (10 à 24) se tape d’affilée.
-            </p>
-          </details>
-    </>
-  );
+  // série finie : retour au portrait, où se lit le résultat
+  useEffect(() => {
+    if (result) setPlaying(false);
+  }, [result]);
+  const openPlay = () => {
+    setPlaying(true);
+    openLandscape();
+  };
   const runStep = (k: StepKind) => {
     setCelebrate(false);
     if (k === 'review') navigate('scale');
@@ -1025,11 +1009,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       player={null}
       transport="stopped"
       hideRhythm
-      oneLine={desktop}
+      oneLine={wide || playing}
       // au bureau on répond à la guitare : le curseur avance seul, rien à toucher sur la tablature
       {...(desktop ? {} : { onPick })}
       {...(activeKey && !desktop ? { activeHoleKey: activeKey } : {})}
-      coverTop={answerBarTop}
     />
   );
   const tabLegend = !(coldActive && !result) && <TabLegend def={r.def} readonly={settings.reduceMotion} />;
@@ -1158,16 +1141,6 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         ▶ Ouvrir le micro
       </PixelButton>
     );
-  const micStrip = micOn && (
-      <MicStrip
-        engine={engine}
-        notation={settings.noteNotation}
-        thresholdDb={input.thresholds[input.source]}
-        tolerance={input.centsTolerance}
-        tuning={r.tuning}
-        a4={input.a4}
-      />
-    );
   const micLive = (
     <p className="sr-only" aria-live="polite">
       {activeIndex > 0 && activeStringLabel ? `Emplacement ${activeIndex} sur ${total}, corde de ${activeStringLabel}. Flèches gauche et droite pour changer.` : ''}
@@ -1219,21 +1192,6 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       )}
     </>
   );
-  const levelField = !mixed && (
-      <div className="field">
-        <span className="t-label">Niveau</span>
-        <Segmented<AttemptLevel>
-          size="sm"
-          label="Niveau"
-          value={level}
-          onChange={(v) => restart(v, segment)}
-          options={[
-            { value: 2, label: 'Niv2 · trous' },
-            { value: 3, label: 'Niv3 · rappel' },
-          ]}
-        />
-      </div>
-    );
   const blindSwitch = !mixed && level === 3 && (
       <Switch
         checked={blindOn && micState === 'listening'}
@@ -1272,14 +1230,14 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   );
   const segmentField = !mixed && (
       <div className="field">
-        <span className="t-label">{desktop ? 'Sens' : 'Découpage'}</span>
+        <span className="t-label">Sens</span>
         <Segmented<Segment>
           size="sm"
           label="Découpage"
           value={segment}
           onChange={(v) => restart(level, v)}
-          options={(desktop ? SEGMENTS.filter((s) => s.value === 'all' || s.value === 'updown') : SEGMENTS)
-            .map((s) => ({ value: s.value, label: desktop && s.value === 'all' ? 'aller' : s.label, note: s.hint }))}
+          options={SEGMENTS.filter((s) => s.value === 'all' || s.value === 'updown')
+            .map((s) => ({ value: s.value, label: s.value === 'all' ? 'aller' : s.label, note: s.hint }))}
         />
       </div>
     );
@@ -1313,7 +1271,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       onClick={() => (grid === 'running' ? stopGridByHand() : void startGrid())}
       disabled={!!result}
     >
-      {grid === 'running' ? 'Arrêter la grille' : desktop ? '▶ Grille (métronome)' : 'Grille (métronome)'}
+      {grid === 'running' ? 'Arrêter la grille' : desktop ? '▶ Grille (métronome)' : '▶ Grille'}
     </PixelButton>
   );
   const gridEstimate = (
@@ -1383,13 +1341,13 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           : {})}
       />
     );
-  const prevPosition = (
-    <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0}>‹ Position</PixelButton>
-  );
+  const firstPosition = r.selection.positionIndex === 0;
+  const lastPosition = r.selection.positionIndex >= r.positions.length - 1;
+  const gotoPrevious = () => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) });
+  const gotoNext = () => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) });
+  const prevPosition = <PixelButton variant="quiet" onClick={gotoPrevious} disabled={firstPosition}>‹ Position</PixelButton>;
   const positionCount = <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>;
-  const nextPosition = (
-    <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1}>Position ›</PixelButton>
-  );
+  const nextPosition = <PixelButton variant="quiet" onClick={gotoNext} disabled={lastPosition}>Position ›</PixelButton>;
   const answerKey = (k: string) => (
     <button
       key={k}
@@ -1555,149 +1513,134 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     );
   }
 
+  // Téléphone : la tablature se lit mal à la verticale, la série se joue donc en paysage, tablature sur une
+  // ligne et pavé à côté. Le portrait règle, lance, et rend le résultat.
+  const micSwitch = <Switch checked={micOn} onChange={setMicOn} disabled={micBusy} label="Micro" />;
+  const canPlay = !blindLive && coldStep !== 'look' && !(sessionDone && mixed);
   return (
-    <main className="shell">
-      <header className="page-head">
-        {back}
-        <div>
-          <h1 className="page-title">{r.title}</h1>
-          {subtitle}
+    <main className="shell mplay">
+      <header className="mplay-head">
+        <div className="mplay-id">
+          {back}
+          <div className="mplay-title">
+            <h1 className="page-title">{r.title}</h1>
+            {subtitle}
+          </div>
+          <span className="tag tag-on">{headTag}</span>
         </div>
-        <span className="tag tag-on">{headTag}</span>
+        {canPlay && (
+          <div className="mplay-transport">
+            <PixelButton variant="primary" className="play" onClick={openPlay}>
+              {result ? 'Voir la correction' : done > 0 ? '▶ Reprendre' : '▶ Jouer'}
+            </PixelButton>
+            {!result && <span className="mplay-toggles">{micSwitch}</span>}
+            <span className="badge badge-count">{done} / {total} notes</span>
+          </div>
+        )}
       </header>
 
       {blindLive ? blindPanel : (
       <>
-      {tab}
-
-      {tabLegend}
-
-      {lookPanel}
-
-      {verdict}
-
-      {sessionDone && mixed ? sessionPanel : result ? resultPanel : (
-      <Panel
-          className="span-5 numpad-panel"
-          {...(result ? {} : { accent: 'cyan' as const })}
-          label="Réponse"
-          right={<span className="badge badge-count">{done} / {total}</span>}
-        >
-          <div className={`mic-line ${micState === 'listening' ? 'on' : ''}`}>
-            <div className="mic-line-body">
-              <span className="mic-line-title">
-                {micState === 'listening' ? 'Micro ouvert : joue la note, elle se remplit' : 'Valide au micro (tu joues) ou au pavé (tu tapes)'}
-              </span>
-              {micError ? (
-                <span className="t-small mic-line-error" role="alert">{micError}</span>
-              ) : (
-              <span className="t-small t-dim">
-                {micBusy
-                  ? 'ouverture du périphérique…'
-                  : micState === 'listening'
-                    ? 'le pavé numérique reste disponible à tout moment'
-                    : 'le micro ou l’interface USB doit être branché avant d’ouvrir'}
-              </span>
-              )}
+      {sessionDone && mixed ? (<>{verdict}{sessionPanel}</>) : result ? (<>{verdict}{resultPanel}</>) : (
+      <section className="mplay-tab">
+        <div className="mplay-bar">
+          {sessionFacts}
+          {!mixed && (
+            <div className="mplay-pos">
+              <PixelButton variant="quiet" onClick={gotoPrevious} disabled={firstPosition} ariaLabel="Position précédente">‹</PixelButton>
+              <span className="t-label">Position {r.selection.positionIndex + 1} / {r.positions.length}</span>
+              <PixelButton variant="quiet" onClick={gotoNext} disabled={lastPosition} ariaLabel="Position suivante">›</PixelButton>
             </div>
-            {micAction}
-          </div>
-          {micStrip}
-          {micLive}
-          {micState === 'listening' ? (
-            // micro ouvert : le pavé n'est plus le geste principal — replié, il reste un secours
-            <details className="pad-fold">
-              <summary>Pavé de secours</summary>
-              {padBody}
-            </details>
-          ) : padBody}
-        </Panel>
-      )}
-
-      {/* téléphone : barre de réponse fixe au-dessus de la navigation — la tablature et la réponse
-          restent à l'écran ensemble (le pavé du panneau, 1 000 px plus bas, y est masqué) */}
-      {!result && !blindLive && !(coldStep === 'look') && (
-        <div className={`answer-bar ${barFlash ? `flash ${barFlash.ok ? 'ok' : 'no'}` : feedback && !feedback.info ? (feedback.ok ? 'ok' : 'no') : ''}`} role="group" aria-label="Réponse">
-          <p className="answer-bar-line">
-            {barFlash ? (
-              <span className="answer-bar-verdict" aria-hidden="true">{barFlash.ok ? '✓' : '✕'} {barFlash.text}</span>
-            ) : (
-              <span className="answer-bar-target">{activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide'}</span>
-            )}
-            {!barFlash && feedback && !feedback.info && !entry && (
-              <span className="answer-bar-mark" aria-hidden="true">{feedback.ok ? '✓' : '✕'}</span>
-            )}
-            <span className="answer-bar-digits">{entry || '—'}</span>
-            <span className="answer-bar-count">{done}/{total}</span>
-          </p>
-          <div className="answer-bar-keys">
-            {['1', '2', '3', '4', '5', 'C', '6', '7', '8', '9', '0', '✓'].map(answerKey)}
-          </div>
-        </div>
-      )}
-
-      <Panel className="span-7" label="Exercice">
-        {sessionFacts}
-        {coldNotes}
-        {levelField}
-        {blindSwitch}
-        {levelText}
-        <div className="row exercise-start">
+          )}
+          {segmentField}
+          {level === 3 && (
+            <div className="mplay-grid">
+              {gridTempo}
+              {gridSubdivisionField}
+            </div>
+          )}
+          {blindSwitch}
           {coldActive ? (
-            // à froid, pas de nouvelle série (elle effacerait les cases déjà révélées) ni d'écoute : « Passer » suffit
+            // à froid, pas de nouvelle série (elle effacerait les cases déjà révélées) : « Passer » suffit
             <PixelButton variant="quiet" onClick={nextInQueue}>Passer · forme suivante</PixelButton>
-          ) : coldStep === 'look' ? null : (
+          ) : coldStep !== 'look' && (
             <>
-              {!mixed && level === 3 && blindOn && micState === 'listening' && !result && (
+              {!mixed && level === 3 && blindOn && micState === 'listening' && (
                 <PixelButton variant="primary" onClick={() => void startBlind()}>▶ Lancer à l’aveugle</PixelButton>
               )}
-              {/* jamais l'action principale : en pleine série elle efface les trous trouvés, et le micro
-                  (avant) ou la suite du résultat (après) portent déjà l'accent */}
-              {!result && <PixelButton variant="ghost" onClick={() => restart()} title="Même gamme, nouveaux trous">↻ Nouvelle série</PixelButton>}
-              {!result && <PixelButton variant="quiet" onClick={() => navigate('scale')}>Écouter d’abord</PixelButton>}
+              <PixelButton variant="quiet" onClick={() => restart()} title="Même gamme, nouveaux trous">↻ Nouvelle série</PixelButton>
             </>
           )}
-          {elapsedLabel}
+          {micError && <p className="t-small mic-line-error" role="alert">{micError}</p>}
+          {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+          {coldNotes}
         </div>
-
-        <details className="adv-settings">
-          <summary className="t-label">Réglages de la série · découpage, mélange, métronome</summary>
-          {mixedSwitches}
-          {segmentField}
-          <div className="grid-row">
-            {gridTempo}
-            {gridSubdivisionField}
-            {gridButton}
-            {gridEstimate}
-          </div>
-        </details>
-      </Panel>
-
-      {levels}
-      <p className="t-small t-dim foot-note">
-        Vitesse : <button type="button" className="linkish" onClick={() => navigate('sequences')}>séquences au métronome, palier automatique</button>.
-      </p>
-
-      {/* tout le barème au même endroit, replié : l'élève qui joue n'a pas à le lire pour jouer */}
-      <details className="how-scored">
-        <summary>Comment c’est noté ?</summary>
-        {howScoredBody}
-      </details>
-
-      {celebration}
-
-      {/* en séance, la file mène : changer de position en sortirait, et un second « 1 / 5 » brouillerait
-          « Séance 1 sur 5 » (constat 23) */}
-      {!mixed && (
-        <div className="pos-nav">
-          {prevPosition}
-          {positionCount}
-          {nextPosition}
-        </div>
+        {lookPanel}
+      </section>
       )}
 
+      {!mixed && <div className="mplay-levels">{levels}</div>}
+
+      <div className="mplay-more">
+        <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
+          {infoOpen ? '▾ Masquer les détails' : '▸ Détails de la série'}
+        </PixelButton>
+      </div>
+
+      {infoOpen && (
+        <>
+          <Panel className="span-12" label="Exercice">
+            {levelText}
+            {level === 3 && gridEstimate}
+            <p className="t-small t-dim">Micro : le micro ou l’interface USB doit être branché avant d’ouvrir. Le pavé reste toujours disponible.</p>
+            {mixedSwitches}
+          </Panel>
+          {tabLegend}
+          <Panel className="span-12" label="Comment c’est noté ?">{howScoredBody}</Panel>
+        </>
+      )}
+
+      {/* en séance, la file mène : on n'en sort pas d'ici */}
+      {!mixed && (
+        <footer className="mplay-foot">
+          <InstrumentPicker />
+          <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
+        </footer>
+      )}
       </>
       )}
+
+      {playing && (
+        <LandscapeView label={`Exercice : ${r.title}`} onClose={closePlay}>
+          <div className="tab-full-bar">
+            <PixelButton variant="quiet" onClick={closePlay}>Fermer</PixelButton>
+            <span className="tab-full-title">{r.title}</span>
+            {micSwitch}
+            {level === 3 && !result && gridButton}
+            {!result && elapsedLabel}
+            <span className="badge badge-count">{done} / {total} notes</span>
+          </div>
+          <div className="land-body">
+            {tab}
+            {!result && (
+              <div className={`land-pad ${barFlash ? (barFlash.ok ? 'ok' : 'no') : feedback && !feedback.info ? (feedback.ok ? 'ok' : 'no') : ''}`} role="group" aria-label="Réponse">
+                <p className="land-target" aria-live="polite">
+                  {barFlash
+                    ? `${barFlash.ok ? '✓' : '✕'} ${barFlash.text}`
+                    : feedback?.info ? feedback.text : activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide'}
+                </p>
+                <p className="land-digits">{entry || '—'}</p>
+                <div className="land-keys">
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '✓'].map(answerKey)}
+                </div>
+              </div>
+            )}
+          </div>
+          {micLive}
+        </LandscapeView>
+      )}
+
+      {celebration}
     </main>
   );
 }

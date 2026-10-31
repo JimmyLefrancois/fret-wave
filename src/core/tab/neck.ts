@@ -259,3 +259,19 @@ export function drawNeck(s: Surface, l: NeckLayout, theme: TabTheme): void {
   }
   for (const p of l.pills) drawPill(s, theme, p);
 }
+
+/** La note qui sonne : un cadre de 2 px autour de sa pastille, sur une couche à part, le manche ne se redessine pas. */
+export function drawNeckPlayhead(s: Surface, l: NeckLayout, sounding: readonly { string: number; fret: number }[], theme: TabTheme): void {
+  for (const n of sounding) {
+    const p = l.pills.find((q) => q.string === n.string && q.fret === n.fret);
+    if (!p) continue;
+    const x = p.x - 3;
+    const y = p.y - 3;
+    const w = p.w + 6;
+    const h = p.h + 6;
+    s.fillRect(x, y, w, 2, theme.cursor);
+    s.fillRect(x, y + h - 2, w, 2, theme.cursor);
+    s.fillRect(x, y, 2, h, theme.cursor);
+    s.fillRect(x + w - 2, y, 2, h, theme.cursor);
+  }
+}

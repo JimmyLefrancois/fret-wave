@@ -154,6 +154,26 @@ export function scoreToPlayEvents(score: TabScore, opts: PlayOptions = {}): Play
   return out;
 }
 
+/**
+ * Rang du dernier événement commencé à `tick` (-1 avant le premier). `events` est trié, comme le rend
+ * `scoreToPlayEvents` ; un silence garde la note précédente : le repère ne clignote pas entre deux notes.
+ */
+export function eventIndexAt(events: readonly PlayEvent[], tick: number): number {
+  let lo = 0;
+  let hi = events.length - 1;
+  let found = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (events[mid]!.tick <= tick) {
+      found = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return found;
+}
+
 export function ticksToSeconds(ticks: number, bpm: number): number {
   return (ticks / PPQ) * (60 / bpm);
 }

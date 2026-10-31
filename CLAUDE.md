@@ -37,6 +37,7 @@ Vite + TypeScript + React 19 · Canvas 2D (un seul « pixel logique », échelle
 - Une déclaration de l'élève (« sans micro ») n'est jamais une preuve : pas de score au journal.
 - Texte courant en sans-serif système ; polices pixel réservées aux étiquettes.
 - Refonte d'une page au bureau : suivre le skill `refonte-page` (surface unique, deux rendus via `useDesktop`, mobile inchangé).
+- Refonte d'une page sur téléphone : suivre le skill `refonte-mobile` (mêmes choix que le bureau, blocs conservés, bureau inchangé).
 - Tout changement de logique s'accompagne d'un test. Pas de nouvelle dépendance sans le dire.
 - Ne change aucune règle musicale, barème d'XP ou seuil de maîtrise sans demande explicite.
 

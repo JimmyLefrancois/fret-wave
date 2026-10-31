@@ -5,7 +5,7 @@
  *   node .claude/skills/refonte-page/scripts/capture.mjs <dossier> <tag> <route> [largeurs]
  *   node .claude/skills/refonte-page/scripts/capture.mjs ./shots avant gammes/jouer 1920,1440,1100,900,390
  *
- * Les fichiers sont nommés <tag>-<largeur>[-dawn].png. Le thème Aube n'est capturé qu'au bureau.
+ * Les fichiers sont nommés <tag>-<largeur>[-dawn].png.
  */
 import { mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
@@ -19,7 +19,7 @@ mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch();
 for (const width of widths.split(',').map(Number)) {
-  for (const theme of width >= 900 ? ['', 'dawn'] : ['']) {
+  for (const theme of ['', 'dawn']) {
     const context = await browser.newContext({ viewport: { width, height: width >= 900 ? 900 : 844 } });
     if (theme) {
       await context.addInitScript((t) => {
