@@ -9,10 +9,10 @@
  *  - le son final de la 1c (échantillons CC0), un drone de fondamentale, un métronome.
  * Chaque écoute complète est écrite dans le journal local : le hub affiche des chiffres vrais.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
 import { requestLiaison, setScaleSelection, useScaleSelection } from '../../app/scaleSession';
-import { setSettings, useSettings } from '../../app/settings';
+import { useSettings } from '../../app/settings';
 import { TabView } from '../../app/TabView';
 import { NeckView } from '../../app/NeckView';
 import { InstrumentPicker } from '../../app/AudioControls';
@@ -24,9 +24,10 @@ import { appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts } fr
 import { fmtDegree, legendFor, positionLabelPlain, resolveScale, scaleTitle } from './resolve';
 import { ScaleRuler } from './ScaleRuler';
 import { TabLegend } from './TabLegend';
-import { LevelsNav } from './LevelsNav';
+import { LEVELS, LevelsNav } from './LevelsNav';
 import { PlaySection } from './PlaySection';
 import { useDesktop } from '../../app/useDesktop';
+import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import {
   compareChoices, counterpartPosition, differingDegrees, markDegrees, neighbourPositions, relativeDegrees, samePlaceIndex,
 } from './compare';
@@ -66,6 +67,7 @@ export function ScaleDiscoveryPage() {
   const [neckLink, setNeckLink] = useState(false);
   const [structureOpen, setStructureOpen] = useState(false);
   const [neckOpen, setNeckOpen] = useState(false);
+  const [tabFull, setTabFull] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [transport, setTransport] = useState<'stopped' | 'playing' | 'paused'>('stopped');
   const [status, setStatus] = useState('');
@@ -253,6 +255,12 @@ export function ScaleDiscoveryPage() {
     setStatus('arrêté');
   };
 
+  const closeTabFull = useCallback(() => setTabFull(false), []);
+  const openTabFull = () => {
+    setTabFull(true);
+    openLandscape();
+  };
+
   const gotoPosition = (delta: number) => {
     const n = r.positions.length;
     if (n === 0) return;
@@ -286,15 +294,6 @@ export function ScaleDiscoveryPage() {
       <PixelButton onClick={() => navigate('gammes')}>Changer de système</PixelButton>
     </Panel>
   );
-  const neckSwitch = (
-    <Switch
-      checked={settings.showNeck}
-      onChange={(v) => setSettings({ showNeck: v })}
-      label="Vue manche"
-      hint="la forme de la position, tonique cerclée"
-      inline
-    />
-  );
   // la forme que la tab écrit en chiffres : même pastilles, même orientation (aiguë en haut)
   const neckPanel = scoreTab && neckZone && (
     <Panel
@@ -308,6 +307,7 @@ export function ScaleDiscoveryPage() {
         zone={neckZone}
         notation={settings.noteNotation}
         label={positionLabelPlain(r.position, settings.noteNotation)}
+        playback={{ score: scoreTab, player: player.current!, transport }}
       />
       {neighbourPos && (
         <div className="neck-link">
@@ -330,7 +330,22 @@ export function ScaleDiscoveryPage() {
       )}
     </Panel>
   );
-  const neck = settings.showNeck && neckPanel;
+  const neckButton = neckPanel && <PixelButton variant="quiet" onClick={() => setNeckOpen(true)}>Vue manche</PixelButton>;
+  const neckDialog = neckOpen && neckPanel && (
+    <dialog
+      ref={(d) => { if (d && !d.open) d.showModal(); }}
+      className="play-neck-dialog"
+      aria-label="Vue manche"
+      onClose={() => setNeckOpen(false)}
+      // un clic sur le fond (hors du contenu) referme
+      onClick={(e) => { if (e.target === e.currentTarget) e.currentTarget.close(); }}
+    >
+      {neckPanel}
+      <form method="dialog" className="play-neck-close">
+        <PixelButton variant="quiet" onClick={() => setNeckOpen(false)}>Fermer</PixelButton>
+      </form>
+    </dialog>
+  );
   const tabLegend = <TabLegend def={r.def} readonly={settings.reduceMotion} />;
   // le chemin d'une forme en cinq niveaux : on est au 1, les suivants sont à un toucher
   const levels = (
@@ -376,17 +391,14 @@ export function ScaleDiscoveryPage() {
   // Une phrase sur la gamme elle-même (« mêmes notes que Do majeur ») : elle ouvre le panneau,
   // au lieu de traîner en bas après les options, où elle n'avait ni sujet ni étiquette.
   const parentNote = r.parent && <p className="t-small t-dim">{r.parent}</p>;
-  const directionField = (
-    <div className="field">
-      <span className="t-label">Sens</span>
-      <Segmented
-        size="sm"
-        label="Sens de lecture"
-        value={direction}
-        onChange={setDirection}
-        options={(Object.keys(DIRECTION_LABEL) as Direction[]).map((d) => ({ value: d, label: DIRECTION_LABEL[d] }))}
-      />
-    </div>
+  const directionOptions = (
+    <Segmented
+      size="sm"
+      label="Sens de lecture"
+      value={direction}
+      onChange={setDirection}
+      options={(Object.keys(DIRECTION_LABEL) as Direction[]).map((d) => ({ value: d, label: DIRECTION_LABEL[d] }))}
+    />
   );
   const annotationOptions = (
     <Segmented
@@ -397,7 +409,6 @@ export function ScaleDiscoveryPage() {
       options={ANNOTATIONS.map((a) => ({ value: a.value, label: a.label }))}
     />
   );
-  const neckNote = settings.showNeck && <p className="t-small t-dim">Elle s’applique aussi au manche.</p>;
   const moreOptions = (
     <>
       <details className="more-opts">
@@ -429,29 +440,6 @@ export function ScaleDiscoveryPage() {
       {status && <p className="t-small t-dim status">{status}</p>}
     </>
   );
-  // Le geste suivant, écrit noir sur blanc : on a vu la position, on la joue. Deux suites, et pas
-  // une seule : répéter la position (justesse) ou improviser dessus (musique) — c'est la même
-  // position, ce ne sont pas les mêmes compétences.
-  const nextStep = (
-    <div className="next-step">
-      <div className="next-step-row">
-        <PixelButton variant="primary" onClick={() => navigate('training')} title="S’exercer sur cette position, au micro" ariaLabel="S’exercer sur cette position, au micro">
-          ▶ S’exercer
-        </PixelButton>
-        <PixelButton onClick={() => navigate('impro')} title="Improviser sur cette position, avec un accompagnement" ariaLabel="Improviser sur cette position, avec un accompagnement">
-          Improviser
-        </PixelButton>
-        <PixelButton variant="quiet" onClick={() => navigate('sequences')} title="Séquences au métronome : par 3, par 4, tierces, quartes, saut de corde, tour depuis un degré" ariaLabel="Séquences au métronome">
-          Séquences
-        </PixelButton>
-      </div>
-      <p className="t-small t-dim">
-        S’exercer : le micro valide chaque note, la case se remplit. Sans micro, le pavé numérique
-        prend le relais. Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature : seule une
-        tentative de l’exercice sert à la révision, une écoute ici ne prouve rien.
-      </p>
-    </div>
-  );
   // la règle et les couleurs d'abord : la comparaison s'y appuie
   const structure = (
     <>
@@ -475,6 +463,30 @@ export function ScaleDiscoveryPage() {
         {characteristic.length > 0 ? ` Note${characteristic.length > 1 ? 's' : ''} caractéristique${characteristic.length > 1 ? 's' : ''} : ${characteristic.join(', ')} (anneau qui pulse).` : ''}
       </p>
     </>
+  );
+  const tabFullView = tabFull && scoreTab && (
+    <LandscapeView label={`Tablature : ${r.title}`} onClose={closeTabFull}>
+      <div className="tab-full-bar">
+        <PixelButton variant="quiet" onClick={closeTabFull}>Fermer</PixelButton>
+        <span className="tab-full-title">{r.title}</span>
+        <div className="tab-full-transport">{transportButtons}</div>
+        {tempoControl}
+      </div>
+      <TabView
+        score={scoreTab}
+        notes={settings.noteNotation}
+        chords={settings.chordNotation}
+        annotation={annotation}
+        mode="wrap"
+        scale="auto"
+        reduceMotion={settings.reduceMotion}
+        player={player.current}
+        transport={transport}
+        emphasizeChordTones={chordLayer}
+        hideRhythm={!showRhythm}
+        oneLine
+      />
+    </LandscapeView>
   );
   const compareChooser = choice && choices.length > 1 && (
     <Segmented
@@ -559,32 +571,21 @@ export function ScaleDiscoveryPage() {
                   <span key={it.fn} className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
                 ))}
               </div>
-              {directionField}
+              <div className="field">
+                <span className="t-label">Sens</span>
+                {directionOptions}
+              </div>
               <div className="field">
                 <span className="t-label">Annotation</span>
                 {annotationOptions}
               </div>
-              {neckPanel && <PixelButton variant="quiet" onClick={() => setNeckOpen(true)}>Vue manche</PixelButton>}
+              {neckButton}
             </div>
             {tab}
             {tabLegend}
           </section>
 
-          {neckOpen && neckPanel && (
-            <dialog
-              ref={(d) => { if (d && !d.open) d.showModal(); }}
-              className="play-neck-dialog"
-              aria-label="Vue manche"
-              onClose={() => setNeckOpen(false)}
-              // un clic sur le fond (hors du contenu) referme
-              onClick={(e) => { if (e.target === e.currentTarget) e.currentTarget.close(); }}
-            >
-              {neckPanel}
-              <form method="dialog" className="play-neck-close">
-                <PixelButton variant="quiet" onClick={() => setNeckOpen(false)}>Fermer</PixelButton>
-              </form>
-            </dialog>
-          )}
+          {neckDialog}
 
           <div className="play-nav">
             {levels}
@@ -652,91 +653,115 @@ export function ScaleDiscoveryPage() {
             <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
           </footer>
         </div>
+        {tabFullView}
       </main>
     );
   }
 
+  // Téléphone : les mêmes choix que la surface du bureau, en gardant les blocs. Une tablature à la verticale
+  // se lit mal (plusieurs écrans pour une position) : le manche la remplace, la note jouée s'y cadre, et la
+  // tablature reste à un geste. L'écoute reste collée en haut ; le reste attend derrière « Détails ».
   return (
-    <main className="shell">
-      <header className="page-head">
-        {back}
-        <div>
-          <h1 className="page-title">{r.title}</h1>
-          {subtitle}
+    <main className="shell mplay">
+      <header className="mplay-head">
+        <div className="mplay-id">
+          {back}
+          <div className="mplay-title">
+            <h1 className="page-title">{r.title}</h1>
+            {subtitle}
+          </div>
+          <span className="tag tag-on">Niv1</span>
         </div>
-        <span className="tag tag-on">Niv1</span>
-      </header>
-
-      {tab}
-
-      {scoreTab && <div className="listen-band">{neckSwitch}</div>}
-
-      {neck}
-
-      {tabLegend}
-
-      {levels}
-
-      <div className="pos-nav">
-        {prevPosition}
-        {positionCount}
-        {nextPosition}
-      </div>
-
-      <Panel className="span-7" accent="magenta" label="Écoute" right={<span className="badge">{r.formula}</span>}>
-        <div className="transport-row">
+        <div className="mplay-transport">
           {transportButtons}
           {tempoControl}
         </div>
-        <div className="toggle-grid">{audioSwitches(true)}</div>
-      </Panel>
+      </header>
 
-      <Panel className="span-5 panel-fill" label="Lecture">
-        {parentNote}
-        {directionField}
-        <div className="field">
-          <span className="t-label">Annotation sous la tablature</span>
+      <section className="mplay-tab">
+        <div className="mplay-bar">
+          <div className="mplay-pos">
+            <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2} ariaLabel="Position précédente">‹</PixelButton>
+            <span className="t-label">Position {r.selection.positionIndex + 1} / {r.positions.length}</span>
+            <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2} ariaLabel="Position suivante">›</PixelButton>
+          </div>
+          {directionOptions}
           {annotationOptions}
-          {neckNote}
+          <div className="mplay-toggles">{audioSwitches(false)}</div>
         </div>
-        {moreOptions}
-      </Panel>
+        {neckPanel}
+        {tabLegend}
+        {scoreTab && (
+          <div className="mplay-tab-toggle">
+            <PixelButton variant="quiet" onClick={openTabFull}>Tablature</PixelButton>
+          </div>
+        )}
+        {!scoreTab && tab}
+      </section>
 
-      {nextStep}
+      <div className="mplay-levels">{levels}</div>
 
-      <Panel className="span-12" label="Structure" right={<span className="badge">{steps.join('-')}</span>}>{structure}</Panel>
-
-      {choice && (
-        <Panel className="span-12" label="Comparer">
-          {compareChooser && (
-            <div className="field">
-              <span className="t-label">Avec</span>
-              {compareChooser}
-            </div>
-          )}
-          <Switch
-            checked={compare}
-            onChange={setCompare}
-            label="Côte à côte"
-            hint={`${otherTitle} : ${choice.difference}`}
-          />
-          {compareResult}
-        </Panel>
-      )}
-
-      {r.hint && (
-        <Panel className="span-12" label="Ce que tu écoutes">
-          <p className="t-body">{r.hint}</p>
-        </Panel>
-      )}
-
-      <Panel className="span-12">
-        <InstrumentPicker />
-      </Panel>
-
-      <div className="row span-7 page-exit">
-        <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
+      <div className="mplay-more">
+        <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
+          {infoOpen ? '▾ Masquer les détails' : '▸ Détails de la gamme'}
+        </PixelButton>
       </div>
+
+      {infoOpen && (
+        <>
+          <Panel className="span-12" label="Lecture" right={<span className="badge">{r.formula}</span>}>
+            {parentNote}
+            {moreOptions}
+          </Panel>
+
+          <Panel className="span-12" label="Structure" right={<span className="badge">{steps.join('-')}</span>}>{structure}</Panel>
+
+          {choice && (
+            <Panel className="span-12" label="Comparer">
+              {compareChooser && (
+                <div className="field">
+                  <span className="t-label">Avec</span>
+                  {compareChooser}
+                </div>
+              )}
+              <Switch
+                checked={compare}
+                onChange={setCompare}
+                label="Côte à côte"
+                hint={`${otherTitle} : ${choice.difference}`}
+              />
+              {compareResult}
+            </Panel>
+          )}
+
+          {r.hint && (
+            <Panel className="span-12" label="Ce que tu écoutes">
+              <p className="t-body">{r.hint}</p>
+            </Panel>
+          )}
+
+          <Panel className="span-12" label="Les niveaux">
+            <dl className="mplay-levels-help">
+              {LEVELS.map((l) => (
+                <div key={l.n}>
+                  <dt>Niv{l.n} {l.title}</dt>
+                  <dd>{l.hint}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="t-small t-dim">
+              S’exercer : le micro valide chaque note, la case se remplit. Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature : seule une
+              tentative de l’exercice sert à la révision, une écoute ici ne prouve rien.
+            </p>
+          </Panel>
+        </>
+      )}
+
+      <footer className="mplay-foot">
+        <InstrumentPicker />
+        <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
+      </footer>
+      {tabFullView}
     </main>
   );
 }

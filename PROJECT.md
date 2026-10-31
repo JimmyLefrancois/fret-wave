@@ -9,6 +9,15 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 ---
 
 
+## État exact de la refonte téléphone (D119, D120)
+`gammes/jouer` (blocs, manche en vue principale, tablature en plein écran paysage) , `gammes/entrainement` (série jouée en paysage) et `gammes/sequences` (session jouée en paysage, D122) sont refaites ; sur ces exercices, le portrait ne garde que Jouer, les options sont dans la vue paysage (D123). Les autres pages restent à faire avec le skill `refonte-mobile`, une à la fois. Non essayé sur un vrai téléphone. À décider : retrait de l'interrupteur « Vue manche » des Réglages.
+
+## État exact de la PWA (D118, non déployée)
+
+- **Fait, testé** : app installable, hors ligne complet (sons compris), mise à jour automatique à l'ouverture. Tests : 937 OK.
+- **Vérifié en local sous Chromium** (`tools/pwa-check.mjs`, sur `wrangler dev`) : mise en cache, hors ligne, `/api` non intercepté, rechargement seul à la réouverture. **Non vérifié** : installation réelle sur Android et iOS, micro en mode installé.
+- **Non déployé** : part avec `npm run deploy`.
+
 ## État exact de la synchro du journal (D117, non déployée)
 
 - **Fait, testé** : migration `0002_attempts.sql` (appliquée en local), routes `/api/attempts`, synchro automatique du journal quand connecté. Tests : 932 OK.

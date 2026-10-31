@@ -7,7 +7,7 @@
  */
 export type PathLevel = 1 | 2 | 3 | 4 | 5;
 
-const LEVELS: { n: PathLevel; title: string; hint: string }[] = [
+export const LEVELS: { n: PathLevel; title: string; hint: string }[] = [
   { n: 1, title: 'Découvrir', hint: 'avec le son' },
   { n: 2, title: 'Trous', hint: 'compléter les notes masquées' },
   { n: 3, title: 'Rappel', hint: 'tout de mémoire, tablature cachée' },

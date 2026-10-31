@@ -360,3 +360,8 @@ export function scrollToKeepVisible(holeTop: number, holeBottom: number, viewpor
   if (holeBottom + margin > limit) return Math.min(holeBottom + margin - limit, holeTop - margin);
   return 0;
 }
+
+/** Début du chrono à la reprise d'une série en pause : décalé de la durée de la pause, qui ne compte pas. */
+export function resumedStart(startedAt: number, pausedAt: number, now: number): number {
+  return startedAt + Math.max(0, now - pausedAt);
+}
