@@ -71,8 +71,8 @@
       "night-line": {
         "role": "neutral",
         "displayName": "Trait de nuit",
-        "canonical": "#3A1C71",
-        "oklch": "oklch(32.4% 0.137 293.4)",
+        "canonical": "#5B2FA8",
+        "oklch": "oklch(43.4% 0.181 294.2)",
         "tonalRamp": [
           "#0B0913",
           "#271E41",
@@ -87,8 +87,8 @@
       "night-line-soft": {
         "role": "neutral",
         "displayName": "Trait doux de nuit",
-        "canonical": "#28124F",
-        "oklch": "oklch(25.6% 0.105 294.2)",
+        "canonical": "#3A1C71",
+        "oklch": "oklch(32.4% 0.137 293.4)",
         "tonalRamp": [
           "#0B0A11",
           "#27203A",

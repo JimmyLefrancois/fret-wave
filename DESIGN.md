@@ -6,8 +6,8 @@ colors:
   night-bg: "#0D0221"
   night-surface: "#150A33"
   night-surface-hi: "#201048"
-  night-line: "#3A1C71"
-  night-line-soft: "#28124F"
+  night-line: "#5B2FA8"
+  night-line-soft: "#3A1C71"
   night-text: "#F6EEFF"
   night-muted: "#C4B6E4"
   night-dim: "#A99BCF"
@@ -153,7 +153,7 @@ Une palette de nuit saturée (violets profonds, néons) et son jumeau diurne où
 
 ### Neutral
 - **Vide nocturne** (`#06000F`) et **nuit** (`#0D0221`) : fond de page et fond de champ ; **surface** (`#150A33`) et **surface haute** (`#201048`) : panneaux et boutons. Aube : ciel `#FFDCC7`, fond `#FFF3E8`, papier `#FFFBF5`, papier chaud `#FFE7D6`.
-- **Trait** (`#3A1C71` / `#B23A6B`) et **trait doux** (`#28124F` / `#F3C3D3`) : bordures.
+- **Trait** (`#5B2FA8` / `#B23A6B`) et **trait doux** (`#3A1C71` / `#F3C3D3`) : bordures.
 - **Texte / atténué / discret** (`#F6EEFF`, `#C4B6E4`, `#A99BCF` ; aube `#2B0B2E`, `#5E2C52`, `#6E4462`) : sur aube, tous ≥ 7:1 (testé dans `tests/theme.test.ts`).
 - **Danger / ok** (`#FF5C7A`, `#4CFF9A` ; aube `#B3122F`, `#14683A`). **Encre sur accent** (`#12021F` / `#FFF8F2`) : le texte posé sur un aplat d'accent.
 
