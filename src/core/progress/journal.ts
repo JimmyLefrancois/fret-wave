@@ -374,9 +374,13 @@ export function loadJournal(store: KeyValueStore | null): Attempt[] {
   return legacy;
 }
 
+/** Émis sur `window` après chaque tentative ajoutée : la synchro du compte s'y accroche (`app/journalSync`). */
+export const JOURNAL_CHANGED = 'fretwave:journal';
+
 export function appendAttempt(store: KeyValueStore | null, attempt: Attempt): Attempt[] {
   const next = [...readAttempts(store), normalizeAttempt(attempt)].filter((a): a is Attempt => a !== null);
   writeAttempts(store, next);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(JOURNAL_CHANGED));
   return next;
 }
 

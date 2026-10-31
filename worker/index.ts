@@ -1,3 +1,4 @@
+import { attemptsRoute } from './attempts';
 import { createAuth, type Env } from './auth';
 import { routeApi } from './routes';
 
@@ -9,6 +10,7 @@ let auth: ReturnType<typeof createAuth> | undefined;
 
 export default {
   fetch(request, env) {
-    return routeApi(request, (req) => (auth ??= createAuth(env)).handler(req));
+    const handleAuth = (req: Request) => (auth ??= createAuth(env)).handler(req);
+    return routeApi(request, handleAuth, (req) => attemptsRoute(req, env.DB, handleAuth));
   },
 } satisfies ExportedHandler<Env>;

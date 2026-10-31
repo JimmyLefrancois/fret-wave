@@ -9,6 +9,13 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 ---
 
 
+## État exact de la synchro du journal (D117, non déployée)
+
+- **Fait, testé** : migration `0002_attempts.sql` (appliquée en local), routes `/api/attempts`, synchro automatique du journal quand connecté. Tests : 932 OK.
+- **Vérifié en local** : routes 401 sans session, SQL d'insertion et d'élagage sur D1 local. **Non vérifié** : la connexion Discord puis la synchro entre deux navigateurs réels.
+- **Effacer les données locales** : masqué quand l'élève est connecté (le journal vient du compte). Hors connexion, il reste avec confirmation.
+- **Non déployé** : la migration distante part avec `npm run deploy`.
+
 ## État exact de la refonte bureau de la page Réglages (sur `master`, D116)
 
 - **Au bureau (≥ 900 px)** : une seule surface à deux colonnes (`.set-surface`), en-tête de page compris. Groupes séparés par un filet pointillé entre rangées et un trait plein entre colonnes ; Mouvement en deux colonnes d'interrupteurs. Sur téléphone, `display: contents` : rendu identique au pixel près (vérifié sur 390 px).

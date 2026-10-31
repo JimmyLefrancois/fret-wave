@@ -3,8 +3,9 @@
  * Tout est mémorisé localement. Les pages de contrôle de la 1a-1c restent accessibles ici :
  * ce sont des outils de vérification, pas l'interface finale.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { navigate } from './router';
+import { ACCOUNTS_ENABLED, fetchAccount } from '../core/account/client';
 import { SCALE_SELECTION_KEY, DEFAULT_SELECTION, setScaleSelection } from './scaleSession';
 import { DEFAULT_SETTINGS, HOLE_RATES, MAX_TEMPO, MIN_TEMPO, setSettings, useSettings, type HoleRate } from './settings';
 import { AccountPanel } from './AccountPanel';
@@ -29,6 +30,18 @@ export function SettingsPage() {
   const [wiped, setWiped] = useState(false);
   const [count, setCount] = useState(() => loadJournal(progressStore()).length);
   const [dataMsg, setDataMsg] = useState<string | null>(null);
+  // connecté, le journal est celui du compte : l'effacer ici le ferait revenir à la prochaine synchro
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    if (!ACCOUNTS_ENABLED) return;
+    let alive = true;
+    fetchAccount().then(
+      (account) => { if (alive) setConnected(account !== null); },
+      () => { /* compte indisponible : on ne sait pas, le bouton reste */ },
+    );
+    return () => { alive = false; };
+  }, []);
 
   const wipe = () => {
     try {
@@ -310,14 +323,20 @@ export function SettingsPage() {
             L’import fusionne par identifiant : importer deux fois le même fichier ne double rien. Un fichier d’une autre
             version est refusé avec sa raison, pas appliqué à moitié.
           </p>
-          {!confirmWipe ? (
+          {!connected && (!confirmWipe ? (
             <PixelButton variant="danger" onClick={() => setConfirmWipe(true)}>Effacer les données locales</PixelButton>
           ) : (
-            <div className="row">
-              <PixelButton variant="danger" onClick={wipe}>Confirmer l’effacement</PixelButton>
-              <PixelButton variant="quiet" onClick={() => setConfirmWipe(false)}>Annuler</PixelButton>
+            <div className="field">
+              <p className="t-small">
+                Efface le journal, les réglages et la gamme en cours de ce navigateur. Ça ne peut pas se défaire ;
+                exporte avant si tu veux garder les tentatives.
+              </p>
+              <div className="row">
+                <PixelButton variant="danger" onClick={wipe}>Confirmer l’effacement</PixelButton>
+                <PixelButton variant="quiet" onClick={() => setConfirmWipe(false)}>Annuler</PixelButton>
+              </div>
             </div>
-          )}
+          ))}
           {wiped && (
             <p className="t-small t-dim">
               Données effacées. Retour à {DEFAULT_SELECTION.tonic === 'A' ? 'La mineure pentatonique' : 'la gamme par défaut'}.

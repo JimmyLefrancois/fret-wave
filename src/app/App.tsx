@@ -18,6 +18,7 @@ import { TheoryPage } from './TheoryPage';
 import { TunerPage } from './TunerPage';
 import { PixelIcon, type IconName } from './ui';
 import { installDevHooks } from './devHooks';
+import { startJournalSync } from './journalSync';
 import { ScaleDiscoveryPage } from '../modules/gammes/ScaleDiscoveryPage';
 import { ScaleSelectPage } from '../modules/gammes/ScaleSelectPage';
 import { ScaleTrainingPage } from '../modules/gammes/ScaleTrainingPage';
@@ -86,6 +87,7 @@ export function App() {
   useEffect(() => {
     installDevHooks();
     void engine.preload();
+    void startJournalSync();
   }, [engine]);
 
   // thème : variables CSS + meta theme-color (le premier rendu se fait déjà avec les défauts CSS)
