@@ -27,7 +27,7 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 
 ## Ce qui ne se transpose pas du bureau
 
-- **Le pavé, le clavier et la sélection de case restent.** « On répond à la guitare » et « le micro seul valide » valent pour le bureau uniquement : sur téléphone, le pavé est le repli sans micro. Ne touche pas à la logique d'exercice sans demande.
+- **Au téléphone aussi, on répond à la guitare** : l'auteur a retiré pavé, clavier et sélection de case sur Entraînement (D121). Propose la même chose ailleurs, avec la question de `refonte-page`, car un élève sans micro ne peut plus finir. Micro ouvert seul si possible, sinon bouton `.mic-spark`.
 - **`oneLine` ne s'applique que dans la vue paysage** : passe `oneLine={wide || playing}`, sinon la tablature reste en plusieurs lignes.
 - **Les popups restent possibles pour un outil secondaire**, mais si l'outil devient la vue principale, il passe dans la page.
 - **Tablature d'exercice : à trancher page par page.** Elle est le support de l'exercice (trous, motifs). Ne la remplace pas par le manche : pose la question à l'auteur avec `AskUserQuestion`, en montrant ce qui change. Sur Entraînement, il a choisi le paysage : le portrait règle, lance et rend le résultat (`ScaleTrainingPage.tsx`, D120). Propose ce modèle en premier.
@@ -47,7 +47,7 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 - Réutilise les classes `.mplay-*` : renomme ce qui n'est propre à aucune page plutôt que de dupliquer. Styles sous `@media (max-width: 899px)`, sauf ce qui doit survivre au paysage.
 - **Un grand téléphone dépasse 900 px en paysage** : `useDesktop` bascule et la page passe en rendu bureau. Toute vue paysage est rendue dans les deux `return` par `createPortal`, avec son CSS hors des media queries de largeur.
 - **Plein écran paysage** : `LandscapeView` et `openLandscape` (`src/app/LandscapeView.tsx`), ce dernier appelé dans le geste. L'iPhone refuse le plein écran et le verrou : `.tab-full` pivote alors en CSS sous `@media (orientation: portrait)`.
-- **Vue paysage avec réponses** : `const desktop = wide && !playing`, sinon un grand téléphone perd pavé et toucher au passage de 900 px. Le toucher lit `offsetX` et `offsetY` du canvas, seules valeurs justes dans la vue pivotée : n'y utilise pas `clientX`. Fin de série : referme la vue, le résultat se lit en portrait, avec un bouton pour revoir la correction.
+- **Vue paysage d'exercice** : `const desktop = wide && !playing`, sinon un grand téléphone change de rendu au passage de 900 px. Fermer la vue avant la fin remet la série à zéro, sauf à froid, où recommencer fausserait l'essai : pause, micro sans effet, reprise par « Reprendre ». Sur Séquences, fermer termine la session et enregistre les passes (D122). Fin de série : referme la vue, le résultat se lit en portrait, avec un bouton pour revoir la correction. Si la tablature n'est plus visible en portrait, dis-le : « Touche Jouer pour afficher la tablature. »
 - Un composant partagé (`LevelsNav`) se restyle par un conteneur (`.mplay-levels`), pas directement : les pages pas encore refaites gardent leur rendu.
 - Le suivi de lecture d'une `TabView` en `wrap` ignore l'en-tête collant et la barre de navigation : vérifie qu'il reste visible.
 
@@ -56,7 +56,6 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 - `npx tsc --noEmit`, un test pour toute logique, `npm test` et `npm run build` à la fin.
 - Captures à **390, 360, 320 et 768 px** dans les deux thèmes : regarde-les, jusqu'en bas de page. 360 px est courant sur Android, et c'est là que les rangées passent à la ligne. Pas de `scrollWidth` supérieur à la fenêtre.
 - Vue paysage : 390 × 844 (pivot CSS), 844 × 390, 932 × 430. Playwright ne redimensionne pas une fenêtre en plein écran : remplace `requestFullscreen` par un refus dans `addInitScript`, et teste la sortie à part avec `document.exitFullscreen()`.
-- Dans la vue pivotée, un `getBoundingClientRect` est tourné : calcule les points de test depuis le bord droit de la scène (`x = right - ly`, `y = top + lx`), et n'oublie pas qu'une pastille peut être sous le pavé.
 - Joue une série entière (`window.__training` : `select`, `press`, `validate`) jusqu'au résultat, et vérifie chaque niveau.
 - Dans une vue en portail, cible les boutons par `.tab-full` : ceux de la page existent encore derrière.
 - États ouverts : Détails, popups, Position voisine. Contenus extrêmes : titre long, cases hautes, aller-retour.

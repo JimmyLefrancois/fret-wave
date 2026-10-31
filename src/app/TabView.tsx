@@ -363,10 +363,8 @@ export function TabView(props: TabViewProps) {
     const stage = stageRef.current;
     if (!stage) return;
     const r = stage.getBoundingClientRect();
-    // sur le canvas, les coordonnées locales : la vue paysage de l'iPhone pivote en CSS, l'écran ne dit plus rien
-    const onCanvas = e.target instanceof HTMLCanvasElement;
-    const lx = (onCanvas ? e.nativeEvent.offsetX : e.clientX - r.left) / cssPerLogical;
-    const ly = (onCanvas ? e.nativeEvent.offsetY : e.clientY - r.top) / cssPerLogical;
+    const lx = (e.clientX - r.left) / cssPerLogical;
+    const ly = (e.clientY - r.top) / cssPerLogical;
     // un trou (pastille de 11 px logiques) reçoit une marge plus large : cible tactile ≥ 44 px CSS à S=2
     const inside = (p: { x: number; y: number; w: number; h: number }, mx: number, my: number) =>
       lx >= p.x - mx && lx <= p.x + p.w + mx && ly >= p.y - my && ly <= p.y + p.h + my;

@@ -1112,24 +1112,8 @@ table.kv td:first-child { color: var(--muted); }
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
 }
-.key {
-  min-height: 48px;
-  font-family: var(--font-body);
-  font-size: 20px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--text);
-  background: var(--surface-hi);
-  border: var(--bw) solid var(--line);
-  box-shadow: 3px 3px 0 var(--bg-deep);
-  cursor: pointer;
-}
-.key:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--bg-deep); }
 /* désactivée mais lisible (en Aube, l'opacité 0,35 effaçait le pavé) : couleurs de repos, pas de transparence */
-.key:disabled { cursor: default; box-shadow: none; color: var(--dim); background: var(--surface); border-color: var(--line-soft); }
-.key:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
-.key-ok { border-color: var(--green); color: var(--green); }
-.key-alt { border-color: var(--line-soft); color: var(--muted); }
+
 /* verdict de l'exercice : juste sous la tablature, lisible à 1-2 m (texte courant, pas de police pixel).
    Vide, il ne prend aucune place mais reste une région annoncée au lecteur d'écran. */
 .verdict {
@@ -3220,6 +3204,7 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .mplay-title .page-title { margin: 0; font-size: 18px; line-height: 1.15; white-space: normal; overflow-wrap: anywhere; }
   .mplay-transport { display: flex; align-items: center; gap: 6px; }
   .mplay-transport .btn.play { flex: 1 1 auto; min-width: 0; padding-inline: 8px; }
+  .mplay-transport .btn { white-space: nowrap; }
   .mplay-transport .btn:not(.play) { flex: none; padding-inline: 12px; }
   /* l'en-tête est étroit : les boutons disent déjà ce qu'ils règlent */
   .mplay-transport .tempo-group { flex: none; margin-left: 0; }
@@ -3233,6 +3218,7 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .mplay-bar .field { margin: 0; }
   .mplay-bar .switch { width: auto; margin: 0; padding: 4px 2px; background: none; border: 0; }
   .mplay-bar .field > .t-label { display: none; }
+  .mplay-hint { margin: 0; padding-block: 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.3; text-align: center; text-transform: uppercase; color: var(--cyan); background: none; }
   .mplay-grid { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
   .mplay-pos { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .mplay-pos .btn { min-width: 40px; padding-inline: 8px; }
@@ -3275,6 +3261,9 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 }
 @media (max-width: 389px) {
   .mplay-bar .segmented .seg { padding-inline: 6px; font-size: 12px; }
+  .mplay-hint { font-size: 12px; letter-spacing: 0; }
+  .mplay-transport .btn { padding-inline: 6px; font-size: 12px; white-space: nowrap; }
+  .mplay-transport .badge { font-size: 10px; padding-inline: 4px; }
 }
 /* trop étroit pour une rangée : collé, l'en-tête prendrait un tiers de l'écran */
 @media (max-width: 359px) {
@@ -3319,27 +3308,12 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   }
 }
 
-/* Exercice en paysage : tablature sur une ligne, pavé à droite (même contrainte que `.tab-full`) */
-.tab-full-bar .switch { display: flex; flex: none; align-items: center; gap: 8px; width: auto; min-height: 38px; margin: 0; padding: 0 2px; background: none; border: 0; }
+/* Exercice en paysage : la tablature sur une ligne, le verdict dessous (même contrainte que `.tab-full`) */
 .tab-full-bar .btn,
 .tab-full-bar .badge { flex: none; }
-.land-body { display: flex; flex: 1; align-items: center; gap: 8px; min-height: 0; }
-.land-body .tabview { flex: 1; min-width: 0; align-self: center; }
-.land-pad {
-  display: grid;
-  flex: none;
-  align-content: center;
-  align-self: stretch;
-  gap: 4px;
-  width: 172px;
-  padding: 6px 8px;
-  padding-inline-end: max(8px, env(safe-area-inset-right, 0px));
-  background: var(--bg-deep);
-  border-inline-start: var(--bw) solid var(--cyan);
-}
-.land-pad.ok { border-inline-start-color: var(--ok); }
-.land-pad.no { border-inline-start-color: var(--danger); }
-.land-target { margin: 0; font-size: 13px; font-weight: 700; line-height: 1.2; min-height: 2.4em; }
-.land-digits { margin: 0; font-size: 20px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
-.land-keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
-.land-keys .key { min-height: 40px; min-width: 0; padding: 0; font-size: 16px; }
+.land-body { display: flex; flex: 1; align-items: center; min-height: 0; }
+.land-body .tabview { flex: 1; min-width: 0; }
+.land-status { flex: none; margin: 0; padding: 6px 12px; font-weight: 700; color: var(--text); background: var(--surface-hi); border-block-start: var(--bw) solid var(--cyan); }
+.land-count { font-size: 22px; line-height: 1; text-align: center; }
+.land-status.ok { border-block-start-color: var(--ok); }
+.land-status.no { border-block-start-color: var(--danger); }

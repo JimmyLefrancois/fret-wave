@@ -2,7 +2,7 @@
  * Module Gammes — niveaux 2 « Mémorisation » et 3 « Rappel » (BRIEF.md §2, MUSIC_DESIGN §3.4, §13).
  *
  * Un seul écran pour les deux niveaux, parce que la mécanique est la même : **des trous dans une
- * tablature réelle**, que l'élève comble au pavé numérique (ou au clavier). Ce qui change :
+ * tablature réelle**, que l'élève comble en jouant, micro ouvert. Ce qui change :
  *  - N2 masque une part des notes (réglable 20 / 35 / 50 %, au moins 2 trous, jamais toutes) ;
  *  - N3 masque **tout** (la tablature ne donne que les cordes, les mesures et le rythme) et chronomètre.
  *
@@ -23,7 +23,7 @@ import { clearTrainingStart, peekTrainingStart, setScaleSelection, useScaleSelec
 import { openStep } from '../../app/openStep';
 import { dailySession } from '../../app/hubPlan';
 import { MAX_TEMPO, MIN_TEMPO, setSettings, useSettings } from '../../app/settings';
-import { TabView, type TabPick } from '../../app/TabView';
+import { TabView } from '../../app/TabView';
 import { NeckView } from '../../app/NeckView';
 import { Panel, PixelButton, Segmented, Switch } from '../../app/ui';
 import { MicStrip } from '../../app/MicStrip';
@@ -51,7 +51,7 @@ import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
 import { Celebration } from './Celebration';
 import {
-  SEGMENTS, buildExercise, clickMasked, holeKey, insideGrid, endScreenFor, nextStepFor, STEP_LABEL, type StepKind, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
+  SEGMENTS, buildExercise, resumedStart, clickMasked, insideGrid, endScreenFor, nextStepFor, STEP_LABEL, type StepKind, missedSummary, mulberry32, segmentPlan, starsFor, stepOpen, tempoGrid, withRevealed,
   type GridOutcome, type GridSubdivision, type Segment,
 } from './exercise';
 import { REVIEW_MAX, buildReviewQueue, moreDue, sessionFact, type ReviewTarget } from './review';
@@ -99,7 +99,7 @@ function starRow(n: number): string {
 
 export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boolean } = {}) {
   const wide = useDesktop();
-  // la série se joue en paysage ; un grand téléphone y dépasse 900 px, sans perdre pour autant son pavé
+  // la série se joue en paysage ; un grand téléphone y dépasse 900 px, sans changer de rendu pour autant
   const [playing, setPlaying] = useState(false);
   const desktop = wide && !playing;
   const closePlay = useCallback(() => setPlaying(false), []);
@@ -131,13 +131,6 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   /** Panneau de réussite : ouvert à la fin d'une série, refermé par « Continuer » ou Échap. */
   const [celebrate, setCelebrate] = useState(false);
   // téléphone : le verdict (« non — réessaie… ») est caché sous la barre de réponse ; on l'y montre ~1,6 s
-  const [barFlash, setBarFlash] = useState<{ ok: boolean; text: string } | null>(null);
-  useEffect(() => {
-    if (!feedback || feedback.info) return;
-    setBarFlash({ ok: feedback.ok, text: feedback.text });
-    const t = window.setTimeout(() => setBarFlash(null), 1600);
-    return () => window.clearTimeout(t);
-  }, [feedback]);
   // le résultat prend le focus (et s'annonce) dès qu'aucun écran de fin ne le recouvre
   const resultRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
@@ -326,12 +319,31 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       // le chrono repart de la grille : sinon une grille lancée puis abandonnée compte dans la tentative
       setStartedAt(clock.now());
       setGrid('running');
-      setFeedback(desktop ? null : { ok: true, info: true, text: `grille : ${g.beats} temps à ${g.score.tempo} BPM (${g.seconds.toFixed(1)} s)` });
+      setFeedback(null);
     } catch (e) {
       setFeedback({ ok: false, text: `métronome indisponible : ${(e as Error).message}` });
       setGrid('off');
     }
   };
+
+  // fermer la vue de jeu avant la fin remet la série à zéro. Exception : à froid, recommencer effacerait les
+  // cases révélées et fausserait le seul essai qui compte ; la série se met en pause (chrono, métronome coupé).
+  const pausedAt = useRef<number | null>(null);
+  const wasPlaying = useRef(false);
+  useEffect(() => {
+    const closed = wasPlaying.current && !playing;
+    wasPlaying.current = playing;
+    if (!closed || result) return;
+    if (!coldActive) {
+      restart();
+      return;
+    }
+    if (startedAt !== null) pausedAt.current = clock.now();
+    if (grid !== 'running') return;
+    stopGrid();
+    if (Object.keys(marks).length === 0 && Object.keys(errors).length === 0) setStartedAt(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing]);
 
   /** Série à l'aveugle : une mesure de décompte, puis la grille ; la tablature n'est plus dessinée. */
   const startBlind = async () => {
@@ -632,51 +644,19 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     setEntry((e) => (e.length >= 2 ? e : `${e}${d}`));
   }, [startedAt]);
 
-  const onPick = (pick: TabPick) => {
-    if (!pick.hidden) {
-      setFeedback({ ok: true, info: true, text: 'cette case est déjà écrite : touche un emplacement vide' });
-      return;
-    }
-    setActiveKey(holeKey(pick.columnIndex, pick.string));
-    setEntry('');
-    setFeedback(null);
-  };
-
-  // --- clavier physique : chiffres, retour arrière, entrée
+  // après le résultat : Entrée rejoue (hors session mélangée, hors écran de fin, hors bouton focalisé)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (result) {
-        // après le résultat : Entrée rejoue (hors session mélangée, hors écran de fin, hors bouton focalisé)
-        if (e.key === 'Enter' && !mixed && !celebrate && !(t && t.closest('button, a, summary, input, select, textarea'))) {
-          e.preventDefault();
-          restart();
-        }
-        return;
-      }
-      if (desktop) return; // au bureau, seul le micro répond
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
-      if (/^[0-9]$/.test(e.key)) {
+      if (result && e.key === 'Enter' && !mixed && !celebrate && !(t && t.closest('button, a, summary, input, select, textarea'))) {
         e.preventDefault();
-        press(e.key);
-      } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-        // flèches : trou ouvert suivant / précédent (le canvas ne prend pas le focus)
-        if (t && t.closest('input, select, textarea, [role="slider"]')) return;
-        e.preventDefault();
-        setActiveKey((k) => nextOpen(k, e.key === 'ArrowRight' ? 1 : -1) ?? k);
-        setEntry('');
-      } else if (e.key === 'Backspace') {
-        e.preventDefault();
-        setEntry((v) => v.slice(0, -1));
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        validate();
+        restart();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [press, validate, result, nextOpen, mixed, celebrate, desktop]);
+  }, [result, mixed, celebrate]);
 
   // --- micro : ouverture à la demande, fermeture en quittant l'écran
   useEffect(() => {
@@ -708,7 +688,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         }
       } catch (err) {
         if (!cancelled) {
-          setMicError(`le micro n’a pas pu s’ouvrir — réessaie ; le pavé reste un secours complet. (navigateur : ${(err as Error).message})`);
+          setMicError(`le micro n’a pas pu s’ouvrir — réessaie. (navigateur : ${(err as Error).message})`);
           setMicOn(false);
         }
       } finally {
@@ -721,15 +701,14 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [micOn]);
 
-  // au bureau, le micro est le seul moyen de répondre : il s'ouvre seul dès que le navigateur le permet
+  // le micro est le seul moyen de répondre : il s'ouvre seul dès que le navigateur le permet
   useEffect(() => {
-    if (!desktop) return;
     let cancelled = false;
     void micPermission().then((permission) => {
       if (!cancelled && canAutoOpenMic(permission, navigator.userActivation?.hasBeenActive ?? false)) setMicOn(true);
     });
     return () => { cancelled = true; };
-  }, [desktop]);
+  }, []);
 
   useEffect(() => {
     if (!engine) return;
@@ -742,7 +721,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
   // la fonction de traitement change à chaque rendu (exercice, marques, erreurs) : on la rebranche
   useEffect(() => {
-    onFrameRef.current = handleFrame;
+    // téléphone : on ne compte que ce qui se joue tablature ouverte (l'aveugle, lui, se joue sans elle)
+    onFrameRef.current = wide || playing || blindLive ? handleFrame : () => {};
   });
 
   // réglages d'entrée à chaud (seuil, clarté, La de référence)
@@ -953,6 +933,11 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     if (result) setPlaying(false);
   }, [result]);
   const openPlay = () => {
+    if (startedAt !== null && pausedAt.current !== null && !result) {
+      setStartedAt(resumedStart(startedAt, pausedAt.current, clock.now()));
+      setNow(clock.now());
+    }
+    pausedAt.current = null;
     setPlaying(true);
     openLandscape();
   };
@@ -1010,9 +995,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       transport="stopped"
       hideRhythm
       oneLine={wide || playing}
-      // au bureau on répond à la guitare : le curseur avance seul, rien à toucher sur la tablature
-      {...(desktop ? {} : { onPick })}
-      {...(activeKey && !desktop ? { activeHoleKey: activeKey } : {})}
+      // on répond à la guitare : le curseur avance seul, rien à toucher sur la tablature
     />
   );
   const tabLegend = !(coldActive && !result) && <TabLegend def={r.def} readonly={settings.reduceMotion} />;
@@ -1137,7 +1120,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const micAction = micState === 'listening' ? (
       <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer</PixelButton>
     ) : (
-      <PixelButton variant="primary" className={desktop ? 'mic-spark' : ''} onClick={() => setMicOn(true)} disabled={micBusy}>
+      <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>
         ▶ Ouvrir le micro
       </PixelButton>
     );
@@ -1208,11 +1191,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     <p className="t-small">
       {level === 2
         ? `${Math.round(settings.holeRate * 100)} % des notes masquées (au moins 2, jamais toutes) : ici ${total} trou${total > 1 ? 's' : ''} sur ${exercise.notes}. `
-          + (micOn || desktop
-            ? (desktop ? 'Ouvre le micro et joue la note à la guitare : elle remplit l’emplacement.' : 'Joue la note à la guitare : elle remplit l’emplacement. Le pavé reste un secours.')
-            : 'Touche un emplacement vide, tape son numéro au pavé, valide.')
+          + 'Ouvre le micro et joue la note à la guitare : elle remplit l’emplacement.'
         : `${exercise.notes} cases à écrire de mémoire : seules les cordes, les mesures et le rythme restent visibles.`
-          + (micOn ? ' Joue-les dans l’ordre que tu veux.' : '')}
+          + ' Joue-les dans l’ordre que tu veux.'}
     </p>
     {!result && <p className="t-small">{formStateLine(formNode, settings.speedTargetBpm)}</p>}
     </>
@@ -1348,18 +1329,6 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   const prevPosition = <PixelButton variant="quiet" onClick={gotoPrevious} disabled={firstPosition}>‹ Position</PixelButton>;
   const positionCount = <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>;
   const nextPosition = <PixelButton variant="quiet" onClick={gotoNext} disabled={lastPosition}>Position ›</PixelButton>;
-  const answerKey = (k: string) => (
-    <button
-      key={k}
-      type="button"
-      className={`key ${k === '✓' ? 'key-ok' : k === 'C' ? 'key-alt' : ''}`}
-      onClick={() => (k === 'C' ? setEntry('') : k === '✓' ? validate() : press(k))}
-      disabled={k === 'C' ? !entry : k === '✓' ? !activeHole || entry === '' : !activeHole}
-      aria-label={k === 'C' ? 'Effacer' : k === '✓' ? 'Valider' : undefined}
-    >
-      {k}
-    </button>
-  );
   const levels = !mixed && (
     <LevelsNav
       current={level === 3 ? 3 : 2}
@@ -1514,8 +1483,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   }
 
   // Téléphone : la tablature se lit mal à la verticale, la série se joue donc en paysage, tablature sur une
-  // ligne et pavé à côté. Le portrait règle, lance, et rend le résultat.
-  const micSwitch = <Switch checked={micOn} onChange={setMicOn} disabled={micBusy} label="Micro" />;
+  // ligne. Le portrait règle, lance, et rend le résultat.
   const canPlay = !blindLive && coldStep !== 'look' && !(sessionDone && mixed);
   return (
     <main className="shell mplay">
@@ -1530,10 +1498,10 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
         </div>
         {canPlay && (
           <div className="mplay-transport">
-            <PixelButton variant="primary" className="play" onClick={openPlay}>
+            {!result && !micOn && micAction}
+            <PixelButton variant={micOn || result ? 'primary' : 'ghost'} className="play" onClick={openPlay}>
               {result ? 'Voir la correction' : done > 0 ? '▶ Reprendre' : '▶ Jouer'}
             </PixelButton>
-            {!result && <span className="mplay-toggles">{micSwitch}</span>}
             <span className="badge badge-count">{done} / {total} notes</span>
           </div>
         )}
@@ -1560,6 +1528,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
             </div>
           )}
           {blindSwitch}
+          {coldStep !== 'look' && <p className="mplay-hint">Touche Jouer pour afficher la tablature.</p>}
           {coldActive ? (
             // à froid, pas de nouvelle série (elle effacerait les cases déjà révélées) : « Passer » suffit
             <PixelButton variant="quiet" onClick={nextInQueue}>Passer · forme suivante</PixelButton>
@@ -1592,7 +1561,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           <Panel className="span-12" label="Exercice">
             {levelText}
             {level === 3 && gridEstimate}
-            <p className="t-small t-dim">Micro : le micro ou l’interface USB doit être branché avant d’ouvrir. Le pavé reste toujours disponible.</p>
+            <p className="t-small t-dim">Valide au micro : le micro ou l’interface USB doit être branché avant d’ouvrir.</p>
             {mixedSwitches}
           </Panel>
           {tabLegend}
@@ -1615,27 +1584,17 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           <div className="tab-full-bar">
             <PixelButton variant="quiet" onClick={closePlay}>Fermer</PixelButton>
             <span className="tab-full-title">{r.title}</span>
-            {micSwitch}
+            {!result && !micOn && micAction}
             {level === 3 && !result && gridButton}
             {!result && elapsedLabel}
             <span className="badge badge-count">{done} / {total} notes</span>
           </div>
-          <div className="land-body">
-            {tab}
-            {!result && (
-              <div className={`land-pad ${barFlash ? (barFlash.ok ? 'ok' : 'no') : feedback && !feedback.info ? (feedback.ok ? 'ok' : 'no') : ''}`} role="group" aria-label="Réponse">
-                <p className="land-target" aria-live="polite">
-                  {barFlash
-                    ? `${barFlash.ok ? '✓' : '✕'} ${barFlash.text}`
-                    : feedback?.info ? feedback.text : activeStringLabel ? `Corde de ${activeStringLabel} · case ?` : 'Touche un emplacement vide'}
-                </p>
-                <p className="land-digits">{entry || '—'}</p>
-                <div className="land-keys">
-                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '✓'].map(answerKey)}
-                </div>
-              </div>
-            )}
-          </div>
+          <div className="land-body">{tab}</div>
+          {!result && (feedback || micError) && (
+            <p className={`land-status ${feedback && !feedback.info ? (feedback.ok ? 'ok' : 'no') : ''}`} role="status">
+              {micError ?? feedback?.text}
+            </p>
+          )}
           {micLive}
         </LandscapeView>
       )}

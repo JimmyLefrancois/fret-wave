@@ -11,7 +11,7 @@
  * le journal plafonné à 2 000 entrées ne doit pas se remplir de passes. Elle nourrit la **vitesse** de la
  * forme (« maîtrisée »), jamais « apprise » ni la révision.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
 import { setScaleSelection, setTrainingStart, takeLiaisonRequest, useScaleSelection } from '../../app/scaleSession';
 import { useSettings } from '../../app/settings';
@@ -20,10 +20,10 @@ import { NeckView } from '../../app/NeckView';
 import { Panel, PixelButton, Segmented } from '../../app/ui';
 import { InstrumentPicker } from '../../app/AudioControls';
 import { useDesktop } from '../../app/useDesktop';
+import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
 import { LevelsNav } from './LevelsNav';
 import { PlaySection } from './PlaySection';
-import { MicStrip } from '../../app/MicStrip';
 import { ensureInputEngine, inputEngineIfAny, windowFor } from '../../app/inputSession';
 import { AudioEngine } from '../../core/audio/engine';
 import { TabPlayer } from '../../core/audio/tabPlayer';
@@ -64,7 +64,11 @@ function targetsOf(score: TabScore): Target[] {
 }
 
 export function SequencePage() {
-  const desktop = useDesktop();
+  const wide = useDesktop();
+  // la session se joue en paysage ; un grand téléphone y dépasse 900 px, sans changer de rendu pour autant
+  const [playing, setPlaying] = useState(false);
+  const desktop = wide && !playing;
+  const closePlay = useCallback(() => setPlaying(false), []);
   const settings = useSettings();
   const selection = useScaleSelection();
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
@@ -346,15 +350,23 @@ export function SequencePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [micOn]);
 
-  // au bureau, le micro s'ouvre seul dès que le navigateur le permet
+  // fermer la vue de jeu termine la session : les passes déjà validées sont enregistrées, le bilan se lit en portrait
+  const wasPlaying = useRef(false);
   useEffect(() => {
-    if (!desktop) return;
+    const closed = wasPlaying.current && !playing;
+    wasPlaying.current = playing;
+    if (closed && ladder) stopSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing]);
+
+  // le micro s'ouvre seul dès que le navigateur le permet
+  useEffect(() => {
     let cancelled = false;
     void micPermission().then((permission) => {
       if (!cancelled && canAutoOpenMic(permission, navigator.userActivation?.hasBeenActive ?? false)) setMicOn(true);
     });
     return () => { cancelled = true; };
-  }, [desktop]);
+  }, []);
 
   useEffect(() => {
     if (!engine) return;
@@ -446,6 +458,8 @@ export function SequencePage() {
       player={null}
       transport="stopped"
       hideRhythm
+      // bureau : plusieurs lignes, les motifs sont longs ; téléphone en paysage : une ligne qui suit la note
+      oneLine={playing}
       {...(cursor ? { activeHoleKey: cursor } : {})}
     />
   );
@@ -693,106 +707,122 @@ export function SequencePage() {
     );
   }
 
+  // Téléphone : comme l'entraînement, le portrait règle et lance, la session se joue en paysage sur une ligne
+  const micFirst = !micOn && !ladder;
+  const startPlay = () => {
+    setPlaying(true);
+    openLandscape();
+    begin();
+  };
+  const passLine = lastPass && phase !== 'pass' && (
+    <p className={`seq-line ${lastPass.ok ? 'ok' : 'no'}`} role="status">
+      <span className="verdict-mark" aria-hidden="true">{lastPass.ok ? '✓' : '✕'}</span>
+      {Math.round(lastPass.accuracy * 100)} % · {lastPass.inTime ? 'en place' : 'pas en place'} — {lastPass.ok ? 'réussie' : 'à reprendre'}
+    </p>
+  );
   return (
-    <main className="shell">
-      <header className="page-head">
-        <button type="button" className="back" onClick={() => navigate('training')} aria-label="Retour à l’entraînement">‹</button>
-        <div>
-          <h1 className="page-title">{r.title}</h1>
-          <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · séquence {SEQUENCE_LABEL[pattern]}{pattern === 'cycle' ? ` depuis la ${fmtDegree(start)}` : ''}</p>
+    <main className="shell mplay">
+      <header className="mplay-head">
+        <div className="mplay-id">
+          <button type="button" className="back" onClick={() => navigate('training')} aria-label="Retour à l’entraînement">‹</button>
+          <div className="mplay-title">
+            <h1 className="page-title">{r.title}</h1>
+            <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · séquence {SEQUENCE_LABEL[pattern]}{pattern === 'cycle' ? ` depuis la ${fmtDegree(start)}` : ''}</p>
+          </div>
+          <span className="tag tag-on">Niv4</span>
         </div>
-        <span className="tag tag-on">{ladder ? `♪ ${bpm}` : 'Séquences'}</span>
+        <div className="mplay-transport">
+          {micFirst && (
+            <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>▶ Ouvrir le micro</PixelButton>
+          )}
+          <PixelButton variant={micFirst ? 'ghost' : 'primary'} className="play" onClick={startPlay}>▶ Commencer</PixelButton>
+        </div>
       </header>
 
-      {/* scène : tempo, décompte, verdict de passe et bouton principal, au-dessus de la tablature —
-          c'est ce qu'on regarde de loin, les mains sur le manche */}
-      <section className="seq-stage" aria-label="Passe en cours">
-        <div className="seq-tempo">
-          <span className="seq-bpm">♪ {bpm}</span>
-          {shift !== 0 && (
-            <span className={`seq-shift ${shift > 0 ? 'up' : 'down'}`} role="status">
-              {shift > 0 ? `↑ +${shift}` : `↓ ${shift}`} BPM
-            </span>
-          )}
+      <section className="mplay-tab">
+        <div className="mplay-bar">
+          <div className="mplay-pos">
+            <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0} ariaLabel="Position précédente">‹</PixelButton>
+            <span className="t-label">Position {r.selection.positionIndex + 1} / {r.positions.length}</span>
+            <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1} ariaLabel="Position suivante">›</PixelButton>
+          </div>
+          {workField}
+          {patternField}
+          {startField}
+          <div className="mplay-grid">
+            {listening ? <span className="t-small t-dim">Départ à {startTempo(readAttempts(progressStore()), form, pattern)} BPM</span> : manualTempo}
+            {!listening && <span className="t-small t-dim">BPM en croches</span>}
+          </div>
+          <p className="mplay-hint">Touche Commencer pour afficher la tablature.</p>
+          {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+          {passLine}
+          {savedNote}
+          {statusNote}
         </div>
-        <div className="seq-now">
-          {countLeft !== null ? (
-            <p className="seq-count" aria-live="assertive">{countLeft}</p>
-          ) : phase === 'pass' ? (
-            <p className="seq-line" aria-live="polite">Joue la séquence sur le métronome.</p>
-          ) : lastPass ? (
-            <p className={`seq-line ${lastPass.ok ? 'ok' : 'no'}`} role="status">
-              <span className="verdict-mark" aria-hidden="true">{lastPass.ok ? '✓' : '✕'}</span>
-              {Math.round(lastPass.accuracy * 100)} % · {lastPass.inTime ? 'en place' : 'pas en place'} — {lastPass.ok ? 'réussie' : 'à reprendre'}
-            </p>
-          ) : (
-            <p className="seq-line seq-idle">{listening ? 'Micro ouvert : chaque passe est jugée.' : 'Sans micro : tempo manuel, rien n’est vérifié.'}</p>
-          )}
-          {ladder?.best ? <p className="t-small t-dim">validé : {ladder.best} BPM</p> : null}
-        </div>
-        {ladder ? (
-          <PixelButton variant="primary" onClick={stopSession}>Terminer la session</PixelButton>
-        ) : (
-          <PixelButton variant="primary" onClick={begin}>▶ Commencer {listening ? `(${startTempo(readAttempts(progressStore()), form, pattern)} BPM)` : `à ${manualBpm} BPM`}</PixelButton>
-        )}
+        {neckPanel}
       </section>
 
-      {tab}
-
-      {neckPanel}
-
-      <Panel className="span-12" label="Séquence" right={<span className="badge">{phase === 'pass' && listening ? `${consumed} / ${targets.length}` : `${targets.length} notes`}</span>}>
-        {workField}
-        {patternField}
-        {startField}
-        {startHint}
-        <div className={`mic-line ${listening ? 'on' : ''}`}>
-          <div className="mic-line-body">
-            <span className="mic-line-title">{listening ? 'Micro ouvert : chaque passe est jugée' : 'Sans micro : tempo manuel, rien n’est vérifié'}</span>
-            <span className="t-small t-dim">
-              {micBusy ? 'ouverture du périphérique…' : listening ? 'palier automatique : +4 après deux passes propres, −5 après deux échecs' : 'ni palier, ni XP — la tablature et le métronome seulement'}
-            </span>
-          </div>
-          {listening ? (
-            <PixelButton variant="quiet" onClick={() => setMicOn(false)} disabled={!!ladder}>Fermer</PixelButton>
-          ) : (
-            <PixelButton variant="primary" onClick={() => setMicOn(true)} disabled={micBusy || !!ladder}>▶ Ouvrir le micro</PixelButton>
-          )}
-        </div>
-        {listening && (
-          <MicStrip
-            engine={engine}
-            notation={settings.noteNotation}
-            thresholdDb={input.thresholds[input.source]}
-            tolerance={input.centsTolerance}
-            tuning={r.tuning}
-            a4={input.a4}
-          />
-        )}
-        {!listening && !ladder && (
-          <div className="tempo-row">
-            {manualTempo}
-            <span className="t-small t-dim">BPM en croches</span>
-          </div>
-        )}
-        {pauseNote}
-        <div className="row exercise-start">
-          <PixelButton variant="quiet" onClick={() => navigate('training')} disabled={!!ladder}>Exercice de mémoire</PixelButton>
-        </div>
-        {savedNote}
-        {statusNote}
-      </Panel>
-
-      <details className="how-scored">
-        <summary>Comment c’est noté ?</summary>
-        {howScoredBody}
-      </details>
-
-      <div className="pos-nav">
-        {prevPosition}
-        {positionCount}
-        {nextPosition}
+      <div className="mplay-levels">
+        <LevelsNav
+          current={4}
+          onSelect={(n) => {
+            if (n === 1) navigate('scale');
+            else if (n === 5) navigate('impro');
+            else if (n === 2 || n === 3) { setTrainingStart({ level: n, segment: 'updown' }); navigate('training'); }
+          }}
+        />
       </div>
+
+      <div className="mplay-more">
+        <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
+          {infoOpen ? '▾ Masquer les détails' : '▸ Détails de la séquence'}
+        </PixelButton>
+      </div>
+
+      {infoOpen && (
+        <>
+          <Panel className="span-12" label="Séquence">
+            {liaisons.length > 0 && (
+              <p className="t-small"><strong>Travail</strong> : ce que tu entraînes. Motifs : une figure qui se répète à l’intérieur de la position. Liaisons : le passage d’une position à une autre.</p>
+            )}
+            {inLiaisons ? (
+              <p className="t-small"><strong>Liaison</strong> : le trajet sur le manche. Deux positions : monter dans l’une, descendre dans la voisine. Traversée : toutes les positions d’un seul trait, du bas au haut du manche. Position étendue : la position, plus les notes de la suivante sur les deux cordes aiguës.</p>
+            ) : (
+              <p className="t-small"><strong>Motif</strong> : la figure jouée, en montant puis en descendant. Par 3 et par 4 : des groupes de 3 ou 4 notes voisines, qui repartent une note plus haut (1 2 3, 2 3 4…). Tierces : une note, puis celle d’après la suivante (1 3, 2 4…). Quartes : une note, puis la troisième d’après (1 4, 2 5…). Saut de corde : une corde, puis celle d’après la suivante. Tour : toute la position, depuis le degré de ton choix.</p>
+            )}
+            <p className="t-small"><strong>Départ</strong> : le degré d’où part le tour. Ce réglage n’apparaît qu’avec le motif « tour ».</p>
+            {startHint}
+            <p className="t-small t-dim">{listening ? 'Palier automatique : +4 après deux passes propres, −5 après deux échecs.' : 'Sans micro : ni palier, ni XP — la tablature et le métronome seulement.'}</p>
+            {micOn && <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer le micro</PixelButton>}
+          </Panel>
+          <Panel className="span-12" label="Comment c’est noté ?">{howScoredBody}</Panel>
+        </>
+      )}
+
+      <footer className="mplay-foot">
+        <InstrumentPicker />
+        <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
+      </footer>
+
+      {playing && (
+        <LandscapeView label={`Séquence : ${r.title}`} onClose={closePlay}>
+          <div className="tab-full-bar">
+            <PixelButton variant="quiet" onClick={closePlay}>Terminer</PixelButton>
+            <span className="tab-full-title">{SEQUENCE_LABEL[pattern]}</span>
+            <div className="seq-tempo">
+              <span className="seq-bpm">♪ {bpm}</span>
+              {shift !== 0 && <span className={`seq-shift ${shift > 0 ? 'up' : 'down'}`} role="status">{shift > 0 ? `↑ +${shift}` : `↓ ${shift}`}</span>}
+            </div>
+            <span className="badge badge-count">{phase === 'pass' && listening ? `${consumed} / ${targets.length}` : targets.length} notes</span>
+          </div>
+          <div className="land-body">{tab}</div>
+          {countLeft !== null ? (
+            <p className="land-status land-count" aria-live="assertive">{countLeft}</p>
+          ) : (passLine || pauseNote || statusNote) && (
+            <div className="land-status">{passLine}{pauseNote}{statusNote}</div>
+          )}
+        </LandscapeView>
+      )}
     </main>
   );
 }

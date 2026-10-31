@@ -750,8 +750,7 @@ export function ScaleDiscoveryPage() {
               ))}
             </dl>
             <p className="t-small t-dim">
-              S’exercer : le micro valide chaque note, la case se remplit. Sans micro, le pavé numérique
-              prend le relais. Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature : seule une
+              S’exercer : le micro valide chaque note, la case se remplit. Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature : seule une
               tentative de l’exercice sert à la révision, une écoute ici ne prouve rien.
             </p>
           </Panel>
