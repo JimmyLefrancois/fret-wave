@@ -3275,3 +3275,52 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .chord-surface > .play-tab-bar { justify-content: flex-start; padding: 8px 28px; border-block-end: var(--bw) solid var(--line-soft); }
   .chord-surface .quiz-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-inside); }
 }
+
+/* Page Réglages : sur téléphone, la surface ne se voit pas (ses enfants gardent la colonne du shell).
+   Au bureau, une seule surface à deux colonnes. Les groupes sont séparés par un filet pointillé entre
+   deux rangées et par un trait plein entre les colonnes, jamais par un cadre dans le cadre. */
+.set-surface { display: contents; }
+@media (min-width: 900px) {
+  .set-surface {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+    background-color: var(--surface);
+    /* le trait central : une image de fond, pour qu'il traverse toute la hauteur sans toucher aux groupes */
+    background-image: linear-gradient(var(--line-soft), var(--line-soft));
+    background-size: var(--bw) 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: var(--bw) solid var(--line);
+    box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink);
+  }
+  /* en-tête de la surface : même cadre que la page, filet dessous */
+  .set-surface > .page-head {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 16px 28px;
+    background: var(--surface-hi);
+    border: 0;
+    border-block-end: var(--bw) solid var(--line);
+  }
+  /* un groupe sur toute la largeur (compte, son, données) garde un fond plein : il masque le trait central */
+  .set-surface > .span-12 { grid-column: 1 / -1; }
+  .set-surface > .span-6 { grid-column: auto; }
+  .set-surface > .panel {
+    margin: 0;
+    padding: 24px 28px;
+    background: none;
+    border: 0;
+    border-block-end: var(--bw) dashed var(--line-soft);
+    box-shadow: none;
+  }
+  .set-surface > .panel:last-child { border-block-end: 0; }
+  .set-surface > .panel::before,
+  .set-surface > .panel::after { content: none; }
+  .set-surface > .span-12.panel { background: var(--surface); }
+  .set-surface > .panel .panel-head { margin-bottom: 12px; }
+  /* Mouvement : cinq interrupteurs en deux colonnes, pour que la colonne ne reste pas creuse */
+  .set-switches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; align-content: start; }
+  .set-switches > .panel-head { grid-column: 1 / -1; }
+}

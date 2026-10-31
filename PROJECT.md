@@ -9,6 +9,12 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 ---
 
 
+## État exact de la refonte bureau de la page Réglages (sur `master`, D116)
+
+- **Au bureau (≥ 900 px)** : une seule surface à deux colonnes (`.set-surface`), en-tête de page compris. Groupes séparés par un filet pointillé entre rangées et un trait plein entre colonnes ; Mouvement en deux colonnes d'interrupteurs. Sur téléphone, `display: contents` : rendu identique au pixel près (vérifié sur 390 px).
+- **Doublon retiré** : le bouton « Accordeur et calibration » (Entrée audio) menait à la même page que « Accordeur » dans la navigation ; retiré sur demande, sur bureau et téléphone.
+- **Mouvement** laisse un vide sous lui à côté d'Exercices (colonne plus haute). Sans réorganiser l'ordre des blocs, il reste tel quel.
+
 ## État exact de la refonte bureau du module Gammes (sur `master`, D114)
 
 - **Pages refondues au bureau (≥ 900 px)** : Jouer, Entraînement, Séquences, Improviser. Chacune rend deux mises en page (`useDesktop`) : une surface unique au bureau, la colonne de panneaux d'origine sur téléphone.
