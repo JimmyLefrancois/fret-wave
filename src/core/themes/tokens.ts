@@ -66,6 +66,8 @@ export interface ThemeTokens {
     cyan: Hex;
     orange: Hex;
     yellow: Hex;
+    /** Étincelle qui signale une action : pure lumière, jamais du texte (le jaune d'Aube est assombri pour se lire). */
+    spark: Hex;
     violet: Hex;
     green: Hex;
     danger: Hex;
@@ -106,6 +108,7 @@ export function cssVars(t: ThemeTokens): Record<string, string> {
     '--cyan': t.palette.cyan,
     '--orange': t.palette.orange,
     '--yellow': t.palette.yellow,
+    '--spark': t.palette.spark,
     '--violet': t.palette.violet,
     '--green': t.palette.green,
     '--danger': t.palette.danger,

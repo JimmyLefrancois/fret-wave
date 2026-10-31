@@ -24,6 +24,7 @@ export const SYNTHWAVE: ThemeTokens = {
     cyan: '#05D9E8',
     orange: '#FF9E3D',
     yellow: '#FFD23F',
+    spark: '#FFD23F',
     violet: '#A86BFF',
     green: '#7CFF6B',
     danger: '#FF5C7A',

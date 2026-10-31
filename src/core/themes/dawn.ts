@@ -60,6 +60,7 @@ export const DAWN: ThemeTokens = {
     orange: '#B4530A',
     // 4,98:1 sur surfaceHi (4,26 avec #8A6A00) : la ★ d'un sans-faute se lit sur sa pastille
     yellow: '#7D6000',
+    spark: '#FFC93C',
     violet: '#5B2A9E',
     green: '#1C6B36',
     danger: '#B3122F',
