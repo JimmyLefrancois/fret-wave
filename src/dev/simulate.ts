@@ -257,7 +257,7 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
         if (best !== undefined) bpm.set(form.formIndex, Math.min(160, cur + 6));
         const total = 40;
         push({
-          ts: t, kind: 'sequence' as AttemptKind, formIndex: form.formIndex, level: 2, strings: 6,
+          ts: t, kind: 'sequence' as AttemptKind, formIndex: form.formIndex, level: 4, strings: 6,
           correct: persona.mic ? Math.round(acc * total) : null, total: persona.mic ? total : null,
           seconds: 180, missedStrings: [], tempoOk: best !== undefined,
           pattern: SEQUENCE_PATTERNS[Math.floor(rng() * SEQUENCE_PATTERNS.length)]!, bpmStart: cur,
@@ -269,7 +269,7 @@ export function simulate(persona: Persona, opts: SimOptions = {}): Attempt[] {
       case 'impro': {
         const notes = 30 + Math.floor(rng() * 30);
         push({
-          ts: t, kind: 'impro', formIndex: form.formIndex, level: 4, strings: 6,
+          ts: t, kind: 'impro', formIndex: form.formIndex, level: 5, strings: 6,
           correct: Math.round(notes * clamp01(0.4 + rng() * 0.4)), total: notes,
           seconds: 120, missedStrings: [], tempoOk: rng() < 0.6,
         }, form);

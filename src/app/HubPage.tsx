@@ -457,7 +457,7 @@ export function HubPage() {
         {regressed > 0 && (
           <p className="t-small t-dim">
             {regressed} forme{regressed > 1 ? 's' : ''} repassée{regressed > 1 ? 's' : ''} en apprentissage : « apprise » exige
-            maintenant une réussite sur la position entière, de mémoire (N3) ou jouée au micro. Rien n’est effacé, le compte
+            maintenant une réussite sur la position entière, de mémoire (Niv3) ou jouée au micro. Rien n’est effacé, le compte
             est recalculé depuis tes tentatives.
           </p>
         )}
@@ -482,7 +482,7 @@ export function HubPage() {
             <p className="t-small t-dim">
               Tout est calculé depuis tes tentatives enregistrées, jamais compté à part : un passage n’est réussi qu’au-dessus
               de 80 % de trous justes au premier essai, une forme n’est « apprise » qu’après deux réussites sur deux jours,
-              dont une sur la position entière, de mémoire (N3) ou jouée au micro. Un essai fait juste après avoir revu la
+              dont une sur la position entière, de mémoire (Niv3) ou jouée au micro. Un essai fait juste après avoir revu la
               forme est enregistré, mais ne compte pas.
             </p>
             <p className="t-small t-dim">

@@ -20,7 +20,7 @@ import { unseenZoneTonic } from './transpose';
 export const GAP_TEXT: Readonly<Record<LearnedGap, string>> = {
   successes: 'encore une réussite (≥ 80 %)',
   days: 'une réussite un autre jour',
-  strong: 'une réussite sur la position entière, de mémoire (N3) ou au micro',
+  strong: 'une réussite sur la position entière, de mémoire (Niv3) ou au micro',
 };
 
 /** « encore une réussite (≥ 80 %) et une réussite un autre jour » ; vide si rien ne manque. */

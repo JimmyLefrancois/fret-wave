@@ -95,7 +95,7 @@ export function seriesAttempt(spec: SeriesSpec, sel: SeriesTarget, ts: number, s
   const formIndex = pos.formIndex ?? pos.index;
   const strings = tuning.strings.length;
   const notes = spec.full ? 2 * pos.notes.length - 1 : Math.ceil(pos.notes.length / 2);
-  const level: AttemptLevel = spec.kind === 'listen' ? 1 : spec.kind === 'impro' ? 4
+  const level: AttemptLevel = spec.kind === 'listen' ? 1 : spec.kind === 'impro' ? 5 : spec.kind === 'sequence' ? 4
     : spec.kind === 'recall' || spec.kind === 'blind' ? 3 : 2;
   const total = spec.kind === 'listen' ? null
     : spec.kind === 'impro' || spec.kind === 'sequence' ? 40

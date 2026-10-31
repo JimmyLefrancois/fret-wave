@@ -48,7 +48,7 @@ export type AttemptModule = 'gammes' | 'accords';
  * Niveaux du module Gammes (MUSIC_DESIGN §3.4) : 1 découverte, 2 mémorisation, 3 rappel, **4 improvisation**
  * (phase 7 — une prise sur accompagnement, qui ne se mesure pas comme une forme jouée note à note).
  */
-export type AttemptLevel = 1 | 2 | 3 | 4;
+export type AttemptLevel = 1 | 2 | 3 | 4 | 5;
 
 export interface Attempt {
   /** Identifiant stable (sert à dédupliquer un import). */
@@ -268,7 +268,8 @@ export function normalizeAttempt(v: unknown): Attempt | null {
     system: a.system,
     positionId: typeof a.positionId === 'string' ? a.positionId : '',
     formIndex: Math.round(a.formIndex),
-    level: a.level === 2 || a.level === 3 || a.level === 4 ? a.level : 1,
+    // séquences Niv4 et impro Niv5 : le genre fixe le niveau, y compris sur un journal écrit avant cette numérotation
+    level: a.kind === 'impro' ? 5 : a.kind === 'sequence' ? 4 : a.level === 2 || a.level === 3 || a.level === 4 ? a.level : 1,
     strings: typeof a.strings === 'number' ? Math.max(1, Math.round(a.strings)) : 6,
     correct,
     total,

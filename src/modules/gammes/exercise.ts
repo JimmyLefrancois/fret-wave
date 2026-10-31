@@ -205,10 +205,10 @@ export function endScreenFor(stars: number, proof: boolean, mixed: boolean): 'ce
 export type StepKind = 'review' | 'upgrade' | 'replay' | 'downgrade';
 
 export const STEP_LABEL: Readonly<Record<StepKind, string>> = {
-  review: 'Revoir la forme (N1)',
-  upgrade: 'Passer au rappel (N3)',
+  review: 'Revoir la forme (Niv1)',
+  upgrade: 'Passer au rappel (Niv3)',
   replay: 'Rejouer',
-  downgrade: 'Revenir aux trous (N2)',
+  downgrade: 'Revenir aux trous (Niv2)',
 };
 
 /**

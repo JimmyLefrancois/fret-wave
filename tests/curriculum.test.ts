@@ -52,7 +52,7 @@ describe('nextFormStep', () => {
     const s = nextFormStep(j, 'pentatonic-minor', 'A', 'boxes', 'standard', NOW)!;
     expect(s.level).toBe(3);
     expect(s.label).toBe('Position 1 · de mémoire');
-    expect(s.why).toBe('il manque une réussite sur la position entière, de mémoire (N3) ou au micro');
+    expect(s.why).toBe('il manque une réussite sur la position entière, de mémoire (Niv3) ou au micro');
   });
 
   it('au micro : la réussite forte se fait en N2 au micro', () => {

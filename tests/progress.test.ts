@@ -584,3 +584,21 @@ describe('série de semaines (D99)', () => {
     expect(weeks[weeks.length - 1]).toBeGreaterThanOrEqual(5);
   });
 });
+
+describe('numérotation des niveaux', () => {
+  const attempt = (kind: 'impro' | 'sequence', level: 1 | 2 | 3 | 4 | 5) => ({
+    id: 'a', ts: 1, kind, scaleId: 'major', tonic: 'A', tuningId: 'standard', system: 'caged', positionId: '', formIndex: 0,
+    level, strings: 6, correct: 8, total: 10, seconds: 30, fretMin: 5, missedStrings: [], tempoOk: false,
+  });
+
+  it('un journal écrit avant la renumérotation passe à Niv4 séquences et Niv5 impro', () => {
+    expect(normalizeAttempt(attempt('impro', 4))!.level).toBe(5);
+    expect(normalizeAttempt(attempt('sequence', 2))!.level).toBe(4);
+  });
+
+  it('la renumérotation ne change pas l’XP', () => {
+    for (const [kind, before] of [['impro', 4], ['sequence', 2]] as const) {
+      expect(xpForAttempt(normalizeAttempt(attempt(kind, before))!)).toBe(xpForAttempt(attempt(kind, before) as never));
+    }
+  });
+});

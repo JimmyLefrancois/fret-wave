@@ -14,7 +14,7 @@ export const MODULES: readonly LearningModule[] = [
     status: 'available',
     statusLabel: 'Niveau 1 ouvert',
     route: 'gammes',
-    facts: ['31 gammes · 5 systèmes', 'N1 Découverte · niveaux 2-4 en phase 2'],
+    facts: ['31 gammes · 5 systèmes', 'Niv1 Découverte · niveaux 2-4 en phase 2'],
   },
   {
     id: 'accords',

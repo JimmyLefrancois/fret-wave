@@ -189,7 +189,7 @@ export function SettingsPage() {
           </div>
           <p className="t-small t-dim">
             Une forme « maîtrisée » dit sa vitesse vérifiée quand tu l’as jouée de mémoire, au micro, propre (≥ 95 %), à ce
-            tempo : grille N3 en croches tenue, ou séquence validée. 80 par défaut : le tempo où une gamme devient un geste.
+            tempo : grille Niv3 en croches tenue, ou séquence validée. 80 par défaut : le tempo où une gamme devient un geste.
           </p>
         </div>
         <div className="field">
