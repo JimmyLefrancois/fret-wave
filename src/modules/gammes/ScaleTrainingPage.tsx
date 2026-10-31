@@ -1485,6 +1485,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   // Téléphone : la tablature se lit mal à la verticale, la série se joue donc en paysage, tablature sur une
   // ligne. Le portrait règle, lance, et rend le résultat.
   const canPlay = !blindLive && coldStep !== 'look' && !(sessionDone && mixed);
+  // essai au Niv2 : Jouer dans le bloc, et toutes les options de jeu dans la vue qui s'ouvre
+  const optionsInPlay = level === 2 && !mixed && coldStep === null;
   return (
     <main className="shell mplay">
       <header className="mplay-head">
@@ -1496,7 +1498,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           </div>
           <span className="tag tag-on">{headTag}</span>
         </div>
-        {canPlay && (
+        {canPlay && !(optionsInPlay && !result) && (
           <div className="mplay-transport">
             {!result && !micOn && micAction}
             <PixelButton variant={micOn || result ? 'primary' : 'ghost'} className="play" onClick={openPlay}>
@@ -1511,6 +1513,14 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       <>
       {sessionDone && mixed ? (<>{verdict}{sessionPanel}</>) : result ? (<>{verdict}{resultPanel}</>) : (
       <section className="mplay-tab">
+        {optionsInPlay ? (
+          <div className="mplay-bar">
+            <PixelButton variant="primary" className="mplay-play" onClick={openPlay}>▶ Jouer</PixelButton>
+            <p className="t-small t-dim mplay-play-note">
+              La tablature s’ouvre en paysage, avec des notes masquées. Joue-les à la guitare, micro ouvert : chaque note juste remplit son emplacement. Position et sens se règlent là-bas.
+            </p>
+          </div>
+        ) : (
         <div className="mplay-bar">
           {sessionFacts}
           {!mixed && (
@@ -1544,6 +1554,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
           {coldNotes}
         </div>
+        )}
         {lookPanel}
       </section>
       )}
@@ -1581,9 +1592,20 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
 
       {playing && (
         <LandscapeView label={`Exercice : ${r.title}`} onClose={closePlay}>
-          <div className="tab-full-bar">
+          <div className={`tab-full-bar ${optionsInPlay ? 'tab-full-options' : ''}`}>
             <PixelButton variant="quiet" onClick={closePlay}>Fermer</PixelButton>
-            <span className="tab-full-title">{r.title}</span>
+            {optionsInPlay && !result ? (
+              <>
+                <div className="land-pos">
+                  <PixelButton variant="quiet" onClick={gotoPrevious} disabled={firstPosition} ariaLabel="Position précédente">‹</PixelButton>
+                  <span className="t-label">{r.selection.positionIndex + 1} / {r.positions.length}</span>
+                  <PixelButton variant="quiet" onClick={gotoNext} disabled={lastPosition} ariaLabel="Position suivante">›</PixelButton>
+                </div>
+                {segmentField}
+                <PixelButton variant="quiet" onClick={() => restart()} ariaLabel="Nouvelle série" title="Même gamme, nouveaux trous">↻</PixelButton>
+                <span className="tab-full-title" />
+              </>
+            ) : <span className="tab-full-title">{r.title}</span>}
             {!result && !micOn && micAction}
             {level === 3 && !result && gridButton}
             {!result && elapsedLabel}
