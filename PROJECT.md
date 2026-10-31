@@ -10,7 +10,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 
 
 ## État exact de la refonte téléphone (D119, D120)
-`gammes/jouer` (blocs, manche en vue principale, tablature en plein écran paysage) , `gammes/entrainement` (série jouée en paysage) et `gammes/sequences` (session jouée en paysage, D122) sont refaites. Les autres pages restent à faire avec le skill `refonte-mobile`, une à la fois. Non essayé sur un vrai téléphone. À décider : retrait de l'interrupteur « Vue manche » des Réglages.
+`gammes/jouer` (blocs, manche en vue principale, tablature en plein écran paysage) , `gammes/entrainement` (série jouée en paysage) et `gammes/sequences` (session jouée en paysage, D122) sont refaites ; sur ces exercices, le portrait ne garde que Jouer, les options sont dans la vue paysage (D123). Les autres pages restent à faire avec le skill `refonte-mobile`, une à la fois. Non essayé sur un vrai téléphone. À décider : retrait de l'interrupteur « Vue manche » des Réglages.
 
 ## État exact de la PWA (D118, non déployée)
 

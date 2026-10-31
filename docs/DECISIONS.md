@@ -150,7 +150,9 @@
 
 | D122 | **Refonte téléphone de `gammes/sequences`** (ta demande du 2026-10-31, skill `refonte-mobile`) | Portrait pour régler, « ▶ Commencer » ouvre la session en paysage : tablature sur une ligne qui suit la note attendue, tempo et compte en barre, décompte et verdict dessous. **Fermer termine la session** : les passes validées sont écrites au journal, comme « Terminer la session ». Le micro s'ouvre seul si possible ; le jeu sans micro reste, tempo manuel, non vérifié, comme au bureau. Le bureau garde ses lignes multiples. Retirés sur téléphone : « Exercice de mémoire » (doublon de Niv3) et la bande d'écoute. Barème et journal non modifiés. |
 
-**D1-D122 tranchées, sauf D113 réservé** (D13 écartée ; D7 remplacée par D14 ; D18 tranchée ; **D24 = la typographie de la 1d**, ajoutée au journal). **En attente** : le bonus d'XP « à l'aveugle » (D84, proposé). Sinon la suite (phase 5) est décrite au §12 de `PROJECT.md`.
+| D123 | **Options de jeu dans la vue paysage** (ta demande du 2026-10-31, essayée au Niv2 puis validée) | Niv2, Niv3 et Séquences : le portrait ne garde qu'un bloc « ▶ Jouer » et une phrase d'explication par niveau ; l'indication « Touche Jouer… » disparaît, sauf en session mélangée ou à froid, qui gardent leurs réglages en portrait. Position, sens, tempo, noires/croches, à l'aveugle, grille, motif et micro passent dans la barre paysage, sur une à trois rangées. **Séquences** : Jouer ouvre la vue, Commencer y lance la session (remplace D122 sur ce point), les réglages s'effacent pendant le jeu. Le manche des liaisons reste en portrait, sous Jouer. **À l'aveugle** : lancé depuis la vue, il revient en portrait sans remise à zéro. Barème et journal non modifiés. |
+
+**D1-D123 tranchées, sauf D113 réservé** (D13 écartée ; D7 remplacée par D14 ; D18 tranchée ; **D24 = la typographie de la 1d**, ajoutée au journal). **En attente** : le bonus d'XP « à l'aveugle » (D84, proposé). Sinon la suite (phase 5) est décrite au §12 de `PROJECT.md`.
 
 ---
 

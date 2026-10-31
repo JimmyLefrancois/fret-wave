@@ -330,10 +330,13 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   // cases révélées et fausserait le seul essai qui compte ; la série se met en pause (chrono, métronome coupé).
   const pausedAt = useRef<number | null>(null);
   const wasPlaying = useRef(false);
+  const keepOnClose = useRef(false);
   useEffect(() => {
     const closed = wasPlaying.current && !playing;
     wasPlaying.current = playing;
-    if (!closed || result) return;
+    const keep = keepOnClose.current;
+    keepOnClose.current = false;
+    if (!closed || result || keep) return;
     if (!coldActive) {
       restart();
       return;
@@ -1485,8 +1488,8 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
   // Téléphone : la tablature se lit mal à la verticale, la série se joue donc en paysage, tablature sur une
   // ligne. Le portrait règle, lance, et rend le résultat.
   const canPlay = !blindLive && coldStep !== 'look' && !(sessionDone && mixed);
-  // essai au Niv2 : Jouer dans le bloc, et toutes les options de jeu dans la vue qui s'ouvre
-  const optionsInPlay = level === 2 && !mixed && coldStep === null;
+  // hors session : Jouer dans le bloc, et toutes les options de jeu dans la vue qui s'ouvre
+  const optionsInPlay = !mixed && coldStep === null;
   return (
     <main className="shell mplay">
       <header className="mplay-head">
@@ -1517,7 +1520,9 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           <div className="mplay-bar">
             <PixelButton variant="primary" className="mplay-play" onClick={openPlay}>▶ Jouer</PixelButton>
             <p className="t-small t-dim mplay-play-note">
-              La tablature s’ouvre en paysage, avec des notes masquées. Joue-les à la guitare, micro ouvert : chaque note juste remplit son emplacement. Position et sens se règlent là-bas.
+              {level === 2
+                ? 'La tablature s’ouvre en paysage, avec des notes masquées. Joue-les à la guitare, micro ouvert : chaque note juste remplit son emplacement. Position et sens se règlent là-bas.'
+                : 'La tablature s’ouvre en paysage, vide : seules les cordes restent. Joue la position de mémoire, micro ouvert. Position, sens, grille et mode à l’aveugle se règlent là-bas.'}
             </p>
           </div>
         ) : (
@@ -1602,6 +1607,22 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
                   <PixelButton variant="quiet" onClick={gotoNext} disabled={lastPosition} ariaLabel="Position suivante">›</PixelButton>
                 </div>
                 {segmentField}
+                {level === 3 && gridTempo}
+                {level === 3 && gridSubdivisionField}
+                {blindSwitch}
+                {level === 3 && blindOn && micState === 'listening' && (
+                  <PixelButton
+                    variant="primary"
+                    onClick={() => {
+                      // l'aveugle se joue sans tablature, en portrait : ce n'est pas un abandon de la série
+                      keepOnClose.current = true;
+                      setPlaying(false);
+                      void startBlind();
+                    }}
+                  >
+                    ▶ À l’aveugle
+                  </PixelButton>
+                )}
                 <PixelButton variant="quiet" onClick={() => restart()} ariaLabel="Nouvelle série" title="Même gamme, nouveaux trous">↻</PixelButton>
                 <span className="tab-full-title" />
               </>

@@ -3318,6 +3318,10 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .tab-full-options .field { display: flex; flex: none; margin: 0; }
 .tab-full-options .field > .t-label { display: none; }
 .tab-full-options .segmented { padding: 0; }
+.tab-full-options .switch { display: flex; flex: none; align-items: center; gap: 8px; width: auto; min-height: 38px; margin: 0; padding: 0 2px; background: none; border: 0; }
+.tab-full-options .switch-hint { display: none; }
+.tab-full-options .segmented { flex-wrap: nowrap; }
+.tab-full-options .tab-full-title:empty { display: none; }
 .land-pos { display: flex; flex: none; align-items: center; gap: 6px; }
 .land-pos .t-label { margin: 0; }
 .land-body .tabview { flex: 1; min-width: 0; }

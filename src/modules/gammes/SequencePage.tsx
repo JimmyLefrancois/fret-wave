@@ -709,10 +709,9 @@ export function SequencePage() {
 
   // Téléphone : comme l'entraînement, le portrait règle et lance, la session se joue en paysage sur une ligne
   const micFirst = !micOn && !ladder;
-  const startPlay = () => {
+  const openPlay = () => {
     setPlaying(true);
     openLandscape();
-    begin();
   };
   const passLine = lastPass && phase !== 'pass' && (
     <p className={`seq-line ${lastPass.ok ? 'ok' : 'no'}`} role="status">
@@ -731,29 +730,14 @@ export function SequencePage() {
           </div>
           <span className="tag tag-on">Niv4</span>
         </div>
-        <div className="mplay-transport">
-          {micFirst && (
-            <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>▶ Ouvrir le micro</PixelButton>
-          )}
-          <PixelButton variant={micFirst ? 'ghost' : 'primary'} className="play" onClick={startPlay}>▶ Commencer</PixelButton>
-        </div>
       </header>
 
       <section className="mplay-tab">
         <div className="mplay-bar">
-          <div className="mplay-pos">
-            <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0} ariaLabel="Position précédente">‹</PixelButton>
-            <span className="t-label">Position {r.selection.positionIndex + 1} / {r.positions.length}</span>
-            <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1} ariaLabel="Position suivante">›</PixelButton>
-          </div>
-          {workField}
-          {patternField}
-          {startField}
-          <div className="mplay-grid">
-            {listening ? <span className="t-small t-dim">Départ à {startTempo(readAttempts(progressStore()), form, pattern)} BPM</span> : manualTempo}
-            {!listening && <span className="t-small t-dim">BPM en croches</span>}
-          </div>
-          <p className="mplay-hint">Touche Commencer pour afficher la tablature.</p>
+          <PixelButton variant="primary" className="mplay-play" onClick={openPlay}>▶ Jouer</PixelButton>
+          <p className="t-small t-dim mplay-play-note">
+            La tablature s’ouvre en paysage. Règle le motif, la position et le tempo, puis touche Commencer : elle défile sur la note attendue, et le tempo monte tout seul au micro.
+          </p>
           {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
           {passLine}
           {savedNote}
@@ -806,13 +790,30 @@ export function SequencePage() {
 
       {playing && (
         <LandscapeView label={`Séquence : ${r.title}`} onClose={closePlay}>
-          <div className="tab-full-bar">
-            <PixelButton variant="quiet" onClick={closePlay}>Terminer</PixelButton>
-            <span className="tab-full-title">{SEQUENCE_LABEL[pattern]}</span>
-            <div className="seq-tempo">
-              <span className="seq-bpm">♪ {bpm}</span>
-              {shift !== 0 && <span className={`seq-shift ${shift > 0 ? 'up' : 'down'}`} role="status">{shift > 0 ? `↑ +${shift}` : `↓ ${shift}`}</span>}
-            </div>
+          <div className={`tab-full-bar ${ladder ? '' : 'tab-full-options'}`}>
+            <PixelButton variant="quiet" onClick={closePlay}>{ladder ? 'Terminer' : 'Fermer'}</PixelButton>
+            {!ladder && (
+              <>
+                <div className="land-pos">
+                  <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0} ariaLabel="Position précédente">‹</PixelButton>
+                  <span className="t-label">{r.selection.positionIndex + 1} / {r.positions.length}</span>
+                  <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1} ariaLabel="Position suivante">›</PixelButton>
+                </div>
+                {workField}
+                {patternField}
+                {startField}
+                {!listening && manualTempo}
+                {micFirst && <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>▶ Ouvrir le micro</PixelButton>}
+                <PixelButton variant={micFirst ? 'ghost' : 'primary'} onClick={begin}>{beginLabel}</PixelButton>
+              </>
+            )}
+            <span className="tab-full-title">{ladder ? SEQUENCE_LABEL[pattern] : ''}</span>
+            {ladder && (
+              <div className="seq-tempo">
+                <span className="seq-bpm">♪ {bpm}</span>
+                {shift !== 0 && <span className={`seq-shift ${shift > 0 ? 'up' : 'down'}`} role="status">{shift > 0 ? `↑ +${shift}` : `↓ ${shift}`}</span>}
+              </div>
+            )}
             <span className="badge badge-count">{phase === 'pass' && listening ? `${consumed} / ${targets.length}` : targets.length} notes</span>
           </div>
           <div className="land-body">{tab}</div>

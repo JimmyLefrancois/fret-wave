@@ -13,7 +13,7 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 
 ## Ce que l'auteur veut
 
-- **L'action d'abord.** En-tête collant (`.mplay-head`, `top: 0`) : retour, titre, sous-titre, niveau, puis action principale et tempo sur une rangée. Il reste petit (116 px sur Jouer).
+- **L'action d'abord.** En-tête collant (`.mplay-head`, `top: 0`) : retour, titre, sous-titre, niveau, puis action principale et tempo sur une rangée sur une page d'écoute. Il reste petit (116 px sur Jouer). Sur une page d'exercice, l'action est dans le bloc.
 - **Les réglages au-dessus de ce qu'ils règlent**, dans le même bloc, séparés par un trait. Segments sans libellé quand les options parlent d'elles-mêmes. Interrupteurs sans cadre, sur une rangée.
 - **Position : `‹` à gauche, « Position 1 / 5 » centré, `›` à droite.** Rien d'autre sur cette rangée, et elle passe au-dessus du contenu : un contrôle situé sous un contenu haut est à un écran de défilement. C'est un écart voulu avec le bureau.
 - **Niveaux en onglets, sur une rangée** (`.mplay-levels`) : numéro et titre, le niveau courant en cyan plein. Les précisions des tuiles vont dans les Détails.
@@ -47,7 +47,8 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 - Réutilise les classes `.mplay-*` : renomme ce qui n'est propre à aucune page plutôt que de dupliquer. Styles sous `@media (max-width: 899px)`, sauf ce qui doit survivre au paysage.
 - **Un grand téléphone dépasse 900 px en paysage** : `useDesktop` bascule et la page passe en rendu bureau. Toute vue paysage est rendue dans les deux `return` par `createPortal`, avec son CSS hors des media queries de largeur.
 - **Plein écran paysage** : `LandscapeView` et `openLandscape` (`src/app/LandscapeView.tsx`), ce dernier appelé dans le geste. L'iPhone refuse le plein écran et le verrou : `.tab-full` pivote alors en CSS sous `@media (orientation: portrait)`.
-- **Vue paysage d'exercice** : `const desktop = wide && !playing`, sinon un grand téléphone change de rendu au passage de 900 px. Fermer la vue avant la fin remet la série à zéro, sauf à froid, où recommencer fausserait l'essai : pause, micro sans effet, reprise par « Reprendre ». Sur Séquences, fermer termine la session et enregistre les passes (D122). Fin de série : referme la vue, le résultat se lit en portrait, avec un bouton pour revoir la correction. Si la tablature n'est plus visible en portrait, dis-le : « Touche Jouer pour afficher la tablature. »
+- **Vue paysage d'exercice** : `const desktop = wide && !playing`, sinon un grand téléphone change de rendu au passage de 900 px. Fermer la vue avant la fin remet la série à zéro, sauf à froid, où recommencer fausserait l'essai : pause, micro sans effet, reprise par « Reprendre ». Sur Séquences, fermer termine la session et enregistre les passes (D122). Fin de série : referme la vue, le résultat se lit en portrait, avec un bouton pour revoir la correction.
+- **Page d'exercice** : le portrait ne contient qu'un bloc avec « ▶ Jouer » et, dessous, une phrase qui dit ce qui va se passer, propre à chaque niveau. Tout ce qui règle le jeu (position, sens, motif, tempo, grille, mode à l'aveugle, micro) est dans la barre de la vue paysage (`.tab-full-options`, sur plusieurs rangées si besoin), et disparaît pendant une session. Le geste de départ y reste aussi (Commencer, sur Séquences). Une session mélangée ou à froid garde ses réglages en portrait.
 - Un composant partagé (`LevelsNav`) se restyle par un conteneur (`.mplay-levels`), pas directement : les pages pas encore refaites gardent leur rendu.
 - Le suivi de lecture d'une `TabView` en `wrap` ignore l'en-tête collant et la barre de navigation : vérifie qu'il reste visible.
 
