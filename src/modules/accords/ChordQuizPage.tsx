@@ -15,6 +15,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
 import { useSettings } from '../../app/settings';
 import { TabView } from '../../app/TabView';
+import { useDesktop } from '../../app/useDesktop';
 import { Chip, Panel, PixelButton } from '../../app/ui';
 import { fmtChord, fmtNote } from '../../core/theory';
 import {
@@ -37,6 +38,8 @@ function quizPool(attempts: readonly Attempt[]): string[] {
 }
 
 export function ChordQuizPage() {
+  const desktop = useDesktop();
+  const [infoOpen, setInfoOpen] = useState(false);
   const settings = useSettings();
   const [seed, setSeed] = useState(() => Math.floor(Date.now() / 1000) % 1000);
   const [kinds, setKinds] = useState<QuizKind[]>([...QUIZ_KINDS]);
@@ -125,8 +128,35 @@ export function ChordQuizPage() {
     verdictRef.current?.scrollIntoView({ block: 'nearest', behavior: settings.reduceMotion ? 'auto' : 'smooth' });
   }, [picked, settings.reduceMotion]);
 
+  const kindsField = (
+    <div className="field">
+      <span className="t-label">Types de questions</span>
+      <div className="pair-list">
+        {QUIZ_KINDS.map((k) => (
+          <Chip
+            key={k}
+            small
+            selected={kinds.includes(k)}
+            onClick={() => {
+              const next = kinds.includes(k) ? kinds.filter((x) => x !== k) : [...kinds, k];
+              if (next.length === 0) return; // au moins un type : sinon il n'y a pas d'exercice
+              setKinds(next);
+              setRound((r) => r + 1);
+              setIndex(0);
+              setPicked(null);
+              setAnswers([]);
+            }}
+          >
+            {KIND_LABEL[k]}
+          </Chip>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
-    <main className="shell">
+    <main className="shell play-shell">
+      <div className="play-surface chord-surface">
       <header className="page-head">
         <button type="button" className="back" onClick={() => navigate('accords')} aria-label="Retour au parcours d’accords">‹</button>
         <div>
@@ -137,16 +167,18 @@ export function ChordQuizPage() {
         <span className="tag">{finished ? `${score} / ${total} justes` : `question ${Math.min(index + 1, total)} / ${total}`}</span>
       </header>
 
+      {desktop && <div className="play-tab-bar">{kindsField}</div>}
+
       {/* replié : la bande d'intro dépliée poussait la question et ses réponses sous le premier écran */}
-      <details className="lead-band span-12 ex-more chord-more">
+      {!desktop && <details className="lead-band span-12 ex-more chord-more">
         <summary>Six questions sur un accord écrit</summary>
         <p className="t-small">
           Ce qu’un accord <strong>écrit</strong> veut dire. C’est le seul entraînement du module qui ne demande ni
           instrument ni micro. Il ne vaut pas une preuve de jeu : il travaille la lecture, pas le geste.
         </p>
-      </details>
+      </details>}
 
-      <Panel className="span-7" accent="cyan" active label={finished ? 'Résultat' : KIND_LABEL[q.kind]}>
+      <Panel className="span-12" accent="cyan" active label={finished ? 'Résultat' : KIND_LABEL[q.kind]}>
         {!finished ? (
           <>
             {/* la progression est dans le badge d'en-tête : une barre ici séparait la question de ce qu'elle montre */}
@@ -233,35 +265,21 @@ export function ChordQuizPage() {
         )}
       </Panel>
 
-      <Panel className="span-5" accent="violet" label="Comment c’est corrigé">
+      {desktop && (
+        <div className="play-more">
+          <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
+            {infoOpen ? '▾ Masquer les détails' : '▸ Détails du QCM'}
+          </PixelButton>
+        </div>
+      )}
+
+      {(!desktop || infoOpen) && <Panel className="span-7" accent="violet" label="Comment c’est corrigé">
         <p className="t-small">
           Les distracteurs ne sont pas tirés au hasard : ce sont les <strong>confusions réelles</strong> — Mi
           mineur contre Mi majeur, La mineur contre Do, Ré contre Ré sus2. Une question qui opposerait Do et
           Mi♭ ne testerait rien.
         </p>
-        <div className="field">
-          <span className="t-label">Types de questions</span>
-          <div className="pair-list">
-            {QUIZ_KINDS.map((k) => (
-              <Chip
-                key={k}
-                small
-                selected={kinds.includes(k)}
-                onClick={() => {
-                  const next = kinds.includes(k) ? kinds.filter((x) => x !== k) : [...kinds, k];
-                  if (next.length === 0) return; // au moins un type : sinon il n'y a pas d'exercice
-                  setKinds(next);
-                  setRound((r) => r + 1);
-                  setIndex(0);
-                  setPicked(null);
-                  setAnswers([]);
-                }}
-              >
-                {KIND_LABEL[k]}
-              </Chip>
-            ))}
-          </div>
-        </div>
+        {!desktop && kindsField}
         <p className="t-small t-dim">Changer les types relance la série.</p>
         <ul className="module-facts">
           <li className="t-small t-dim">Reconnaître : la tablature est dessinée <strong>sans le nom</strong> de l’accord.</li>
@@ -276,15 +294,22 @@ export function ChordQuizPage() {
           Notions de lecture travaillées : <strong>{savoirs.length}</strong>
           {savoirs.length > 0 ? ` · ${savoirs.filter((n) => n.state === 'learned' || n.state === 'mastered').length} su${savoirs.filter((n) => n.state === 'learned' || n.state === 'mastered').length > 1 ? 's' : ''} avec deux bonnes réponses sur deux jours` : ''}.
         </p>
-      </Panel>
+      </Panel>}
 
-      <Panel className="span-12" label="Ce que tu sais déjà lire">
+      {(!desktop || infoOpen) && <Panel className="span-5" label="Ce que tu sais déjà lire">
+        {desktop && (
+          <p className="t-small">
+          Ce qu’un accord <strong>écrit</strong> veut dire. C’est le seul entraînement du module qui ne demande ni
+          instrument ni micro. Il ne vaut pas une preuve de jeu : il travaille la lecture, pas le geste.
+          </p>
+        )}
         <p className="t-small t-dim">
           {learned.size > 0
             ? `${learned.size} accord${learned.size > 1 ? 's' : ''} appris au micro : ${[...learned].map((id) => fmtChord(id.split('-')[0]!, settings.chordNotation)).join(' · ')}.`
             : 'Aucun accord n’est encore validé au micro : le QCM peut servir à préparer la première leçon.'}
         </p>
-      </Panel>
+      </Panel>}
+      </div>
     </main>
   );
 }

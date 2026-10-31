@@ -13,7 +13,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 
 - **Pages refondues au bureau (≥ 900 px)** : Jouer, Entraînement, Séquences, Improviser. Chacune rend deux mises en page (`useDesktop`) : une surface unique au bureau, la colonne de panneaux d'origine sur téléphone.
 - **Au bureau, Entraînement se joue uniquement au micro** : ni pavé, ni clavier, ni sélection de case. Sans micro, on ne peut pas terminer une série à trous au bureau, et rien ne le dit à l'écran hors le bouton « Ouvrir le micro ».
-- **Pas encore refondus** : Révision (même composant qu'Entraînement, donc déjà sur la surface, non vérifiée), le QCM d'accords, le hub, Accordeur, Métronome, Réglages. Accords (parcours et leçon) est fait (D115).
+- **Pas encore refondus** : Révision (même composant qu'Entraînement, donc déjà sur la surface, non vérifiée), le hub, Accordeur, Métronome, Réglages. Accords (parcours, leçon et QCM) est fait (D115).
 - **À tester sur instrument réel** : remplissage au micro sans case cerclée, suivi de la vue, prise d'impro et score à la nouvelle mise en page. Tout a été vérifié au micro simulé ou par injection.
 
 ## État exact du lot « mémoire et vitesse » (branche `gammes/memoire-vitesse`, module Gammes)

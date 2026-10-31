@@ -3271,4 +3271,7 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .chord-surface .first-tile:not(:hover),
   .chord-surface .chord-row { border-color: transparent; }
   .chord-surface .step-toggles { gap: 16px; }
+  /* QCM : pas de guitare ici, les réponses restent au clic, sur deux colonnes pour tenir à l'écran */
+  .chord-surface > .play-tab-bar { justify-content: flex-start; padding: 8px 28px; border-block-end: var(--bw) solid var(--line-soft); }
+  .chord-surface .quiz-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-inside); }
 }
