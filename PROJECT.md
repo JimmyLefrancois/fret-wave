@@ -17,6 +17,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 - **Vérifié au navigateur** : parcours complet à 1280 et 390 px, réponses simulées, thèmes Synthwave et Aube.
 - **Non vérifié** : la révision d'accord à la vraie guitare ou au micro réel.
 - **Coches en base (D140)** : `chord_mark`, route `/api/chord-marks`, requêtes vérifiées sur D1 local. Synchro entre deux appareils réels non vérifiée.
+- **Accueil au téléphone (D143)** : titre « Fretwave » entre le haut de l'écran et l'horizon, blocs sur l'horizon, boutons Gammes et Accords seuls quand rien n'est dû. Vérifié de 320 à 768 px dans les deux thèmes.
 - **Découverte d'un accord (D142)** : `#/accords/apprendre`, testée (`tests/chordLearn.test.ts`, `tests/hubPage.test.ts`), vérifiée au navigateur de 390 à 1440 px dans les deux thèmes (`tools/chord-learn-check.mjs`).
 - **Déployé le 2026-11-01** : migration 0003 appliquée à distance, `/api/chord-marks` répond en production (401 sans session).
 

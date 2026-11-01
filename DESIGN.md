@@ -232,7 +232,7 @@ Angles quasi vifs : un seul rayon, 2 px (`--corner`), qui lit comme un coin « p
 - **Carte de contrôle :** fond surface, bordure 2 px, sans ombre ; titre en Silkscreen cyan ; état « ok » en bordure `--ok`.
 
 ### Accueil (D139)
-L'écran d'ouverture, `.hub-surface` sur le bureau comme au téléphone : un en-tête, puis un panneau actif vert par famille due (gammes, accords). Rien de dû : un panneau neutre donne la prochaine échéance et mène à Gammes et Accords. Ni plan du jour ni conseil calculé.
+L'écran d'ouverture, `.hub-surface` sur le bureau comme au téléphone : un en-tête, puis un panneau actif vert par famille due (gammes, accords). Rien de dû : un panneau neutre donne la prochaine échéance et mène à Gammes et Accords. Au téléphone (D143), le titre « Fretwave » occupe la bande au-dessus de l'horizon, sans barre de marque, et ce panneau se réduit aux deux boutons. Ni plan du jour ni conseil calculé.
 
 ### Bloc « À réviser » (D128)
 En haut de Gammes : panneau actif vert, le seul halo de la page, une ligne par forme due (titre en gras, position et palier en atténué), puis un seul bouton primaire. Rien de dû : une phrase atténuée donne la prochaine échéance. Aucune forme suivie : rien n'est rendu.

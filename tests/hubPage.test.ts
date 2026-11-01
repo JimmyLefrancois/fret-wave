@@ -15,6 +15,12 @@ describe('accueil : accords à réviser', () => {
     return renderToStaticMarkup(createElement(HubPage));
   }
 
+  it('titre l\'accueil du nom de l\'app, sur téléphone comme au bureau', () => {
+    const html = render();
+    expect(html).toContain('>Fretwave</h1>');
+    expect(html).not.toContain('Accueil');
+  });
+
   it('garde le bloc visible sans révision et sans bouton de lancement', () => {
     const html = render();
     expect(html).toContain('Accords à réviser');

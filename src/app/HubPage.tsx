@@ -40,10 +40,7 @@ export function HubPage() {
   return (
     <main className="shell"><div className="hub-surface">
       <header className="page-head">
-        <div>
-          <h1 className="page-title"><span className="hub-mobile-title">Accueil</span><span className="hub-desktop-title">Fretwave</span></h1>
-          <p className="t-small t-dim hub-summary">{nothingDue ? 'Rien n’est dû aujourd’hui.' : 'Ce qui est dû aujourd’hui.'}</p>
-        </div>
+        <h1 className="page-title hub-title">Fretwave</h1>
       </header>
 
       {scales.forms.length > 0 && (
@@ -85,7 +82,7 @@ export function HubPage() {
         </Panel>
 
       {nothingDue && (
-        <Panel className="span-12" label="Révision">
+        <Panel className="span-12 hub-empty" label="Révision">
           {nextDue.length > 0 ? (
             <p className="t-body">Prochaine échéance : {reviewDelayText(Math.min(...nextDue) - clock.now())}.</p>
           ) : (
