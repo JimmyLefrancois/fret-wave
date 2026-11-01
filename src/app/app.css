@@ -3240,18 +3240,23 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .mplay-tab .panel::after { content: none; }
 
   /* cinq onglets sur une rangée : le numéro, le titre ; les précisions sont dans les Détails */
-  .mplay-levels .levels { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin: 0; }
+  .mplay-levels .levels { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: 0; background: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
   .mplay-levels .level { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 52px; padding: 6px 1px; text-align: center; }
   .mplay-levels .level-n { font-size: 11px; }
   .mplay-levels .level-t { font-size: clamp(10.5px, 3vw, 12px); line-height: 1.15; }
   .mplay-levels .level-s { display: none; }
   /* sur le décor : la surface, seule valeur qui s'en détache dans les deux thèmes (en Aube, surface haute et fond se confondent) */
-  .mplay-levels .level { background: var(--surface); }
+  /* une seule barre d'onglets, pas cinq tuiles : un filet entre deux niveaux */
+  .mplay-levels .level { background: none; border: 0; border-inline-start: 1px solid var(--line-soft); box-shadow: none; }
+  .mplay-levels .level:first-child { border-inline-start: 0; }
   .mplay-levels .level.here { background: var(--cyan); }
   .mplay-levels .level.here .level-n,
   .mplay-levels .level.here .level-t { color: var(--on-accent); }
 
   .mplay-more { display: flex; justify-content: center; }
+  /* dépliés, les détails partent du bouton : pas d'écart, un seul trait entre les deux */
+  .mplay-more:has(+ .panel) { margin-block-end: calc(-1 * (var(--gap-block) + var(--bw))); }
+  .mplay-more:has(+ .panel) .btn { box-shadow: none; }
   .mplay-more .btn,
   .mplay-foot .btn { width: 100%; color: var(--text); background: var(--surface); border-color: var(--line); }
   .mplay-levels-help { display: grid; gap: var(--gap-inside); margin: 0; }
