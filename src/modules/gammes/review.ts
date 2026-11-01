@@ -201,7 +201,7 @@ export interface ReviewSummary {
 }
 
 /** Début du jour local qui suit `now`, à l'heure près d'un changement d'heure : assez juste pour un délai affiché. */
-function nextDay(now: number): number {
+export function nextDay(now: number): number {
   const d = new Date(now);
   d.setHours(0, 0, 0, 0);
   return d.getTime() + DAY;
@@ -212,8 +212,9 @@ export function reviewSummary(attempts: readonly Attempt[], now: number): Review
   const forms = buildReviewQueue(attempts, now);
   const count = reviewCount(attempts, now);
   const lecture = cardsFrom(attempts).filter((c) => c.nodeId.startsWith('gam:lecture:'));
-  // une carte due déjà rappelée à froid aujourd'hui attend demain
-  const waiting = lecture.map((c) => (c.due > now ? c.due : nextDay(now)));
+  // une forme déjà rappelée à froid aujourd'hui attend demain, même si son palier dit 10 min
+  const cold = coldToday(attempts, now);
+  const waiting = lecture.map((c) => (cold.has(c.nodeId) ? Math.max(c.due, nextDay(now)) : c.due > now ? c.due : nextDay(now)));
   return { forms, count, nextDue: forms.length === 0 && waiting.length > 0 ? Math.min(...waiting) : null };
 }
 

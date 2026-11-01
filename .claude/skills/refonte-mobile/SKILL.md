@@ -13,6 +13,7 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 
 ## Ce que l'auteur veut
 
+- **Accueil et Révision des accords (D139)** n'ont qu'une mise en page, partagée avec le bureau (`.hub-surface`) : là, une retouche téléphone touche aussi le bureau, vérifie les deux. Un texte posé sur le décor sans panneau est illisible : garde les blocs.
 - **L'action d'abord.** En-tête collant (`.mplay-head`, `top: 0`) : retour, titre, sous-titre, niveau, puis action principale et tempo sur une rangée sur une page d'écoute. Il reste petit (116 px sur Jouer). Sur une page d'exercice, l'action est dans le bloc.
 - **Les réglages au-dessus de ce qu'ils règlent**, dans le même bloc, séparés par un trait. Segments sans libellé quand les options parlent d'elles-mêmes. Interrupteurs sans cadre, sur une rangée.
 - **Position : `‹` à gauche, « Position 1 / 5 » centré, `›` à droite.** Rien d'autre sur cette rangée, et elle passe au-dessus du contenu : un contrôle situé sous un contenu haut est à un écran de défilement. C'est un écart voulu avec le bureau.

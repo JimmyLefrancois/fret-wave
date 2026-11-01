@@ -231,17 +231,23 @@ Angles quasi vifs : un seul rayon, 2 px (`--corner`), qui lit comme un coin « p
 - **Panneau :** fond surface, bordure 2 px, ombre dure, équerres. **Panneau accentué :** bordure et titre en `--accent`, sans halo. **Panneau actif :** accentué plus le halo, réservé au panneau où l'on agit (héros, étape en cours).
 - **Carte de contrôle :** fond surface, bordure 2 px, sans ombre ; titre en Silkscreen cyan ; état « ok » en bordure `--ok`.
 
+### Accueil (D139)
+L'écran d'ouverture, `.hub-surface` sur le bureau comme au téléphone : un en-tête, puis un panneau actif vert par famille due (gammes, accords). Rien de dû : un panneau neutre donne la prochaine échéance et mène à Gammes et Accords. Ni plan du jour ni conseil calculé.
+
 ### Bloc « À réviser » (D128)
-En haut de Gammes, l'écran d'ouverture : panneau actif vert, le seul halo de la page, une ligne par forme due (titre en gras, position et palier en atténué), puis un seul bouton primaire. Rien de dû : une phrase atténuée donne la prochaine échéance. Aucune forme suivie : rien n'est rendu.
+En haut de Gammes : panneau actif vert, le seul halo de la page, une ligne par forme due (titre en gras, position et palier en atténué), puis un seul bouton primaire. Rien de dû : une phrase atténuée donne la prochaine échéance. Aucune forme suivie : rien n'est rendu.
 
 ### Liste d'accords (D128)
-Une surface au bureau (`.chord-surface`), un panneau par type au téléphone. Une rangée : diagramme en canvas, nom, cases et notes, deux pastilles d'écoute. Au bureau, autant de colonnes que la largeur en accepte (290 px au moins) ; au téléphone, le diagramme à gauche, nom et écoute à droite.
+Une surface au bureau (`.chord-surface`), un panneau par type au téléphone. Une rangée : le nom au-dessus, aligné à gauche (D141), le diagramme en canvas, deux pastilles d'écoute, deux coches discrètes (`.chord-marks`, D139). Au bureau, autant de colonnes que la largeur en accepte (290 px au moins), contenu calé en haut pour aligner les diagrammes d'une rangée ; au téléphone, le diagramme à gauche, écoute et coches à droite.
+
+### Révision d'accord (D139)
+Une seule mise en page, bureau et téléphone : en-tête de page, puis un panneau actif vert. Les cordes à jouer sont des cases (`.chord-recall`) : cyan pour la cible, vert juste, orange révélée. Le diagramme reste caché jusqu'au résultat ou à « Regarde la forme ».
 
 ### Actions de l'en-tête de jeu
 Le magenta reste à l'action principale, une seule à l'écran. **Ouvrir le micro**, quand un clic est nécessaire, porte une comète qui tourne sur son cadre (`.mic-spark`, traîne `--cyan`, tête `--spark`) ; avec le mouvement réduit, un simple cadre `--spark`. Un mode à ne pas oublier prend le cyan (`.train-grid`) : contour au repos, aplat quand c'est le geste du moment.
 
 ### Navigation
-Barre opaque (`--bg-deep`, trait 2 px `--line`) à cinq destinations, icônes pixel pleines 10×10 dessinées à ×2 (20 px). Téléphone : en bas, pleine largeur, icône au-dessus d'un libellé sans-serif de 11,5 px au plus (la taille suit la largeur pour que six onglets tiennent), 56 px de haut. Bureau (≥ 900 px) : en haut, onglets alignés à gauche sur le bord du contenu, icône et libellé de 14 px sur une ligne, 52 px de haut, sans cadre ni mot-symbole (la marque vit dans l'affiche de l'accueil). Repos en `--dim`, survol en `--text`, actif en magenta (icône et libellé), sans halo. Libellé tronqué par ellipse, jamais à la ligne.
+Barre opaque (`--bg-deep`, trait 2 px `--line`) à six destinations au bureau, cinq au téléphone où Réglages passe dans l'en-tête, icônes pixel pleines 10×10 dessinées à ×2 (20 px). Téléphone : en bas, pleine largeur, icône au-dessus d'un libellé sans-serif de 11,5 px au plus (la taille suit la largeur pour que six onglets tiennent), 56 px de haut. Bureau (≥ 900 px) : en haut, onglets alignés à gauche sur le bord du contenu, icône et libellé de 14 px sur une ligne, 52 px de haut, sans cadre ni mot-symbole (la marque vit dans l'affiche de l'accueil). Repos en `--dim`, survol en `--text`, actif en magenta (icône et libellé), sans halo. Libellé tronqué par ellipse, jamais à la ligne.
 
 ### Tablature (composant signature)
 Panneau de tablature dessiné au canvas : cordes fines, barres de mesure, chiffres sur pastilles colorées par intervalle avec contour qui sépare du fond (sombre en nuit, papier en aube), curseur de lecture magenta à cœur clair. Sur aube, le panneau s'éclaircit (`#FFFBF5`, encre `#2B0B2E`) mais les aplats d'intervalle restent saturés. Le chiffre sur pastille a toujours un contour : jamais de scanlines dessus.

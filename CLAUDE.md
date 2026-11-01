@@ -1,10 +1,10 @@
 # Fretwave
 
-Boîte à outils pour guitariste : gammes en tablature pixel art, liste d'accords, accordeur, métronome, séquences et improvisation au micro, révision espacée des gammes (D128).
+Boîte à outils pour guitariste : gammes en tablature pixel art, liste d'accords, accordeur, métronome, séquences et improvisation au micro, révision espacée des gammes et des accords, accueil des révisions dues (D128, D139).
 Interface et textes en français. Projet solo. L'app fonctionne entièrement sans compte ni réseau ; le site et le compte facultatif sont servis par un Worker Cloudflare (D109).
 
 ## Stack
-Vite + TypeScript + React 19 · Canvas 2D (un seul « pixel logique », échelle entière) · `tonal` (théorie) · Tone.js (sortie audio) · `pitchy` (hauteur au micro) · Vitest · localStorage · routeur par hash (`#/gammes`, `#/accords`, `#/accordeur`, `#/metronome`, `#/reglages`).
+Vite + TypeScript + React 19 · Canvas 2D (un seul « pixel logique », échelle entière) · `tonal` (théorie) · Tone.js (sortie audio) · `pitchy` (hauteur au micro) · Vitest · localStorage · routeur par hash (`#/accueil`, `#/gammes`, `#/accords`, `#/accordeur`, `#/metronome`, `#/reglages`).
 
 ## Commandes
 - `npm run dev` : serveur sur :5173 (UN SEUL à la fois, sinon CSS périmé)
@@ -22,16 +22,16 @@ Vite + TypeScript + React 19 · Canvas 2D (un seul « pixel logique », échelle
 - `src/core/input/` : micro, détection de hauteur, calibration, accordeur
 - `src/core/progress/` : journal, état des formes, Leitner, export
 - `src/core/themes/` : design tokens (thèmes Synthwave Neon et Aube)
-- `src/modules/gammes/` : Gammes, Découvrir, Séquences, Improviser, Révision ; `src/modules/accords/` : liste d'accords
+- `src/modules/gammes/` : Gammes, Découvrir, Séquences, Improviser, Révision ; `src/modules/accords/` : liste d'accords, révision des accords
 - `src/app/` : pages React, `src/data/` : voicings
 - `tools/*.mjs` : contrôles de mise en page et de micro simulé (Playwright), hors `npm test`
-- `worker/` : API Cloudflare (`/api`, Better Auth), `migrations/` : schéma D1, `wrangler.jsonc` : configuration. Le site est servi uniquement par Cloudflare ; hors du panneau Compte, l'app n'appelle pas encore l'API (D109)
+- `worker/` : API Cloudflare (`/api`, Better Auth), `migrations/` : schéma D1, `wrangler.jsonc` : configuration. Le site est servi uniquement par Cloudflare ; hors du panneau Compte et de la synchro du journal et des coches d'accords (D117, D140), l'app n'appelle pas l'API
 
 ## Règles
 - Le style pixel art est voulu : garde le thème Synthwave Neon (et son jumeau Aube) et les tokens de `src/core/themes/`. Pas de refonte vers un autre style ; les améliorations se font dans ce monde (voir `DESIGN.md`).
 - Toute modif de style passe par les tokens de thème, et les deux thèmes (Synthwave, Aube) doivent rester cohérents.
 - Impeccable (skill de design) ne concerne pas la tablature : elle est dessinée en canvas par le moteur maison, alors qu'Impeccable travaille sur le DOM et le CSS. `src/core/tab/` est exclu de ses demandes.
-- L'app est une boîte à outils, pas un cours (D128) : ni XP, ni niveaux, ni parcours, ni leçons. Seule la révision Leitner des gammes reste. Ne réintroduis pas de mécanique d'apprentissage sans demande.
+- L'app est une boîte à outils, pas un cours (D128) : ni XP, ni niveaux, ni parcours, ni leçons. Seule la révision Leitner reste, gammes et accords (D139). Ne réintroduis pas de mécanique d'apprentissage sans demande.
 - La logique vit dans des modules TS purs testables ; React ne gère que l'UI.
 - Aucun hex de couleur dans `app.css` : tout passe par les tokens de thème.
 - Les couleurs d'intervalle (`core/tab/colors.ts`) sont hors thème.

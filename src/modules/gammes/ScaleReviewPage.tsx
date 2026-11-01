@@ -34,7 +34,7 @@ import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
 import { buildExercise, missedSummary, stepOpen, stringsOf, withRevealed } from './exercise';
 import {
-  REVIEW_MAX, buildReviewQueue, formReviewTarget, moreDue, reviewDelayText, sessionFact, type ReviewTarget,
+  REVIEW_MAX, buildReviewQueue, formReviewTarget, moreDue, nextDay, reviewDelayText, sessionFact, type ReviewTarget,
 } from './review';
 import { coldNext, countsAsProof, lookRemaining, retryLine, type ColdStep } from './coldReview';
 import * as clock from '../../core/clock';
@@ -670,7 +670,7 @@ export function ScaleReviewPage() {
         {!result.proof
           ? 'Essai de rattrapage : enregistré, sans effet sur la révision.'
           : nextReview
-            ? `Tentative enregistrée · ${reviewDelayText(nextReview.due - clock.now())}.`
+            ? `Tentative enregistrée · ${reviewDelayText(Math.max(nextReview.due, nextDay(clock.now())) - clock.now())}.`
             : 'Tentative enregistrée.'}
       </p>
       {coldStep === 'look' && (

@@ -52,9 +52,9 @@ for (const [tag, width, height, mobile] of [['bureau', 1440, 900, false], ['tele
   // ouverture
   await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.bottombar');
-  check('l’app s’ouvre sur Gammes', (await page.evaluate(() => location.hash)) === '#/gammes');
+  check('l’app s’ouvre sur l’accueil', (await page.evaluate(() => location.hash)) === '#/accueil');
   const tabs = await page.locator('.navbtn').allInnerTexts();
-  check('navigation des outils, sans Accueil', tabs.length === (mobile ? 4 : 5) && !tabs.includes('Accueil'), tabs.join(', '));
+  check('navigation des outils, avec Accueil', tabs.length === (mobile ? 5 : 6) && tabs.includes('Accueil'), tabs.join(', '));
   const home = await text();
   check('le bloc À réviser annonce 2 formes', /À réviser/i.test(home) && /ces 2 formes/i.test(home));
   await shot('gammes');
@@ -191,7 +191,7 @@ for (const [tag, width, height, mobile] of [['bureau', 1440, 900, false], ['tele
   await shot('reglages');
 
   // anciennes URLs
-  for (const [hash, want] of [['#/hub', 'Gammes'], ['#/gammes/entrainement', 'Gammes'], ['#/accords/lecon', 'Accords'], ['#/accords/qcm', 'Accords']]) {
+  for (const [hash, want] of [['#/hub', 'Accueil'], ['#/gammes/entrainement', 'Gammes'], ['#/accords/lecon', 'Accords'], ['#/accords/qcm', 'Accords']]) {
     await goto(hash);
     const on = await page.locator('.navbtn.on').innerText();
     check(`${hash} mène à ${want}`, on === want, on);

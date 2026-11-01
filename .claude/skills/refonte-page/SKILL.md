@@ -23,6 +23,8 @@ Ces préférences viennent de la refonte de `gammes/jouer`, corrigée demande ap
 - **Le micro s'ouvre seul quand le navigateur le permet** (`canAutoOpenMic` dans `src/core/input/autoOpen.ts`) et se ferme en quittant la page. Le bouton n'apparaît que si un clic est nécessaire, avec la comète `.mic-spark` pour qu'on le voie.
 - **Une couleur par rôle dans l'en-tête.** Le rouge magenta reste à l'action principale. Un mode qu'on oublierait, comme la grille métronome, prend le cyan (`.train-grid`), en aplat quand c'est le geste du moment.
 - **Pas de niveaux (D128) :** Gammes a trois onglets sans numéro, Découvrir, Séquences, Improviser. Ni XP, ni étoiles, ni parcours : une page reste un outil.
+- **Accueil et Révision des accords (D139) : une seule mise en page.** Elles utilisent `.hub-surface`, en-tête puis panneaux, sans `useDesktop` ni rendu paysage : pas de tablature à faire tenir. L'accueil montre seulement ce qui est dû : ne lui ajoute ni plan du jour ni conseil calculé.
+- **Une page de `.shell` sans surface doit occuper la grille** (`grid-column: 1 / -1`), sinon elle s'écrase sur une colonne au bureau.
 - **Pas de bavardage à l'écran.** Pas de bloc d'écoute du micro (« joue une note », « aucune note stable ») ni de message de confirmation (« grille : 12 temps… ») : le geste et le résultat suffisent. Ces blocs restent seulement là où ils sont le seul repère, comme à l'aveugle.
 - **Pas de place vide réservée.** Une zone sans contenu n'est pas rendue ; l'espacement entre tablature et onglets reste celui de la page Jouer, même si un verdict décale un peu la page quand il apparaît.
 - **Chaque outil n'expose que ses options.** Les options fines disparaissent au profit d'un choix simple.

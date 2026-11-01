@@ -14,10 +14,12 @@ export function routeApi(
   request: Request,
   handleAuth: RequestHandler,
   handleAttempts: RequestHandler,
+  handleChordMarks: RequestHandler = () => json({ error: 'not_found' }, 404),
 ): Promise<Response> | Response {
   const { pathname } = new URL(request.url);
   if (pathname === '/api/health') return json({ ok: true });
   if (pathname === '/api/auth' || pathname.startsWith('/api/auth/')) return handleAuth(request);
   if (pathname === '/api/attempts') return handleAttempts(request);
+  if (pathname === '/api/chord-marks') return handleChordMarks(request);
   return json({ error: 'not_found' }, 404);
 }

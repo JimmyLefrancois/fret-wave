@@ -24,12 +24,15 @@ import { ScaleSelectPage } from '../modules/gammes/ScaleSelectPage';
 import { ScaleReviewPage } from '../modules/gammes/ScaleReviewPage';
 import { ImproPage } from '../modules/gammes/ImproPage';
 import { SequencePage } from '../modules/gammes/SequencePage';
+import { HubPage } from './HubPage';
 import { ChordDictionaryPage } from '../modules/accords/ChordDictionaryPage';
+import { ChordReviewPage } from '../modules/accords/ChordReviewPage';
 import { ChordsPage } from '../modules/accords/ChordsPage';
 
 const SHORT_NAME: Record<string, string> = { nylon: 'GUITARE NYLON', electric: 'GUITARE ÉLECTRIQUE' };
 
 const NAV: { route: RouteName; label: string; icon: IconName }[] = [
+  { route: 'hub', label: 'Accueil', icon: 'navHome' },
   { route: 'gammes', label: 'Gammes', icon: 'navScales' },
   { route: 'accords', label: 'Accords', icon: 'navChords' },
   { route: 'tuner', label: 'Accordeur', icon: 'navTuner' },
@@ -41,6 +44,7 @@ const NAV: { route: RouteName; label: string; icon: IconName }[] = [
 
 function Page({ route }: { route: RouteName }) {
   switch (route) {
+    case 'hub': return <HubPage />;
     case 'gammes': return <ScaleSelectPage />;
     case 'scale': return <ScaleDiscoveryPage />;
     case 'review': return <ScaleReviewPage />;
@@ -48,6 +52,7 @@ function Page({ route }: { route: RouteName }) {
     case 'impro': return <ImproPage />;
     case 'accords': return <ChordsPage />;
     case 'dictionary': return <ChordDictionaryPage />;
+    case 'chordReview': return <ChordReviewPage />;
     case 'tuner': return <TunerPage />;
     case 'metronome': return <MetronomePage />;
     case 'settings': return <SettingsPage />;
@@ -85,8 +90,8 @@ export function App() {
       window.scrollTo({ top: 0 });
     };
     window.addEventListener('hashchange', on);
-    // URL nue : on installe la route de Gammes sans recharger
-    if (!location.hash) history.replaceState(null, '', ROUTE_HREF.gammes);
+    // URL nue : on installe la route de l'accueil sans recharger
+    if (!location.hash) history.replaceState(null, '', ROUTE_HREF.hub);
     return () => window.removeEventListener('hashchange', on);
   }, []);
 
@@ -119,7 +124,7 @@ export function App() {
         variant="poster"
         sunX={0.82}
       />
-      <header className="mobile-brand"><a href={ROUTE_HREF.gammes} className="brand">Fretwave</a><button type="button" aria-label="Réglages" onClick={() => navigate('settings')}><PixelIcon name="navSliders" size={24} /></button></header>
+      <header className="mobile-brand"><a href={ROUTE_HREF.hub} className="brand">Fretwave</a><button type="button" aria-label="Réglages" onClick={() => navigate('settings')}><PixelIcon name="navSliders" size={24} /></button></header>
       <div id="main-content" tabIndex={-1} className={`app-content ${isDevPage ? 'dev' : ''}`}>
         <Page route={route} />
       </div>

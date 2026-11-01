@@ -1,10 +1,11 @@
 /**
- * Synchro automatique du journal quand le compte est connecté (D117). Déclenchée à l'ouverture, après
- * chaque tentative (regroupée), au retour de la page et au retour du réseau. Sans session, elle ne
+ * Synchro automatique du journal et des coches d'accords quand le compte est connecté (D117, D140).
+ * Déclenchée à l'ouverture, après chaque tentative ou coche (regroupées), au retour de la page et au retour du réseau. Sans session, elle ne
  * fait rien ; hors build de production, elle n'existe pas.
  */
 import { ACCOUNTS_ENABLED, fetchAccount } from '../core/account/client';
-import { syncJournal } from '../core/account/journalSync';
+import { syncChordMarks, syncJournal } from '../core/account/journalSync';
+import { CHORD_MARKS_CHANGED } from '../core/progress/chordMarks';
 import { JOURNAL_CHANGED, JOURNAL_SYNCED, progressStore } from '../core/progress/journal';
 
 const DEBOUNCE_MS = 1500;
@@ -25,7 +26,10 @@ async function run(): Promise<void> {
   running = (async () => {
     do {
       again = false;
-      if ((await syncJournal(progressStore())) === 'signedOut') {
+      // une panne sur les coches n'empêche pas le journal, et inversement : chacune repassera à la prochaine synchro
+      const journal = await syncJournal(progressStore());
+      const marks = journal === 'signedOut' ? journal : await syncChordMarks(progressStore());
+      if (marks === 'signedOut') {
         enabled = false;
         return;
       }
@@ -47,6 +51,7 @@ export async function startJournalSync(): Promise<void> {
   if (!ACCOUNTS_ENABLED || started) return;
   started = true;
   window.addEventListener(JOURNAL_CHANGED, schedule);
+  window.addEventListener(CHORD_MARKS_CHANGED, schedule);
   window.addEventListener('online', () => void run());
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') void run();

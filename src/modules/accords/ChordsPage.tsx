@@ -1,12 +1,15 @@
 /**
  * Module Accords (D128) : une liste. Chaque forme montre son diagramme et s'écoute sur place,
- * plaquée ou arpégée. Le dictionnaire a sa page (D130).
+ * plaquée ou arpégée. Le dictionnaire a sa page (D130). Deux coches discrètes décident de la révision (D139) :
+ * ce sont des déclarations, seul le rappel au micro compte au journal.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { navigate } from '../../app/router';
 import { useSettings } from '../../app/settings';
 import { ChordBoxView } from '../../app/ChordBoxView';
 import { Chip, Panel, PixelButton } from '../../app/ui';
+import { JOURNAL_SYNCED, progressStore, readChordMarks, toggleChordMark, type ChordMarkKind } from '../../core/progress';
+import * as clock from '../../core/clock';
 import { fmtChord } from '../../core/theory';
 import type { Voicing } from '../../core/theory/voicings';
 import { VOICINGS } from '../../data/voicings';
@@ -18,6 +21,14 @@ export function ChordsPage() {
   const groups = useMemo(() => chordGroups(VOICINGS), []);
   const count = groups.reduce((n, g) => n + g.voicings.length, 0);
   const { sounding, error, listen } = useChordListen();
+  const [marks, setMarks] = useState(() => readChordMarks(progressStore()));
+  const mark = (kind: ChordMarkKind, id: string) => setMarks(toggleChordMark(progressStore(), kind, id, clock.now()));
+  // une coche posée sur un autre appareil arrive avec la synchro
+  useEffect(() => {
+    const on = () => setMarks(readChordMarks(progressStore()));
+    window.addEventListener(JOURNAL_SYNCED, on);
+    return () => window.removeEventListener(JOURNAL_SYNCED, on);
+  }, []);
   const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set());
   const allFolded = folded.size === groups.length;
   const toggle = (id: string) => setFolded((prev) => {
@@ -31,13 +42,21 @@ export function ChordsPage() {
     const on = (style: ChordStyle) => sounding?.id === v.id && sounding.style === style;
     return (
       <article key={v.id} className="chord-row">
+        <h3 className="chord-name">{name}</h3>
         <ChordBoxView voicing={v} maxScale={2} />
-        <div className="chord-main">
-          <h3 className="chord-name">{name}</h3>
-        </div>
         <div className="chord-side">
           <Chip small selected={on('strum')} ariaLabel={`Écouter ${name} plaqué`} onClick={() => void listen(v, 'strum')}>▶ Plaqué</Chip>
           <Chip small selected={on('arpeggio')} ariaLabel={`Écouter ${name} arpégé`} onClick={() => void listen(v, 'arpeggio')}>▶ Arpégé</Chip>
+        </div>
+        <div className="chord-marks">
+          <label>
+            <input type="checkbox" checked={marks.known.includes(v.id)} onChange={() => mark('known', v.id)} aria-label={`Je connais ${name}`} />
+            Je connais cet accord
+          </label>
+          <label>
+            <input type="checkbox" checked={marks.noReview.includes(v.id)} onChange={() => mark('noReview', v.id)} aria-label={`Ne pas réviser ${name}`} />
+            Ne pas réviser
+          </label>
         </div>
         {v.note && <p className="t-small t-dim chord-note">{v.note}</p>}
       </article>

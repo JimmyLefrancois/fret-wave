@@ -1063,6 +1063,8 @@ table.kv td:first-child { color: var(--muted); }
   border: 2px solid var(--line-soft);
 }
 .chord-row > .chordbox { flex: none; }
+/* le nom coiffe sa forme, sur toute la largeur : un nom long (Cmaj7) ne passe plus sous les écoutes */
+.chord-row > .chord-name { flex: 0 0 100%; grid-column: 1 / -1; }
 
 .chord-main { min-width: 0; flex: 1 1 220px; display: grid; gap: 1px; }
 /* le nom et ses notes vont ensemble ; la phrase de prof qui suit est un autre bloc */
@@ -1082,6 +1084,21 @@ table.kv td:first-child { color: var(--muted); }
 /* mêmes largeurs et texte centré : les deux écoutes se lisent comme une colonne */
 .chord-side .chip { min-width: 84px; }
 .chord-side .tag { white-space: nowrap; }
+/* deux coches discrètes : elles décident de la révision, elles ne décrivent pas l'accord (D139) */
+.chord-marks { flex: 0 0 100%; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0 14px; font-size: 13px; line-height: 1.2; color: var(--muted); }
+.chord-marks label { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; margin: 0; cursor: pointer; }
+.chord-marks input { width: 14px; height: 14px; margin: 0; accent-color: var(--green); }
+/* les cordes d'un accord en rappel : la position de la main reste cachée, seul l'avancement se lit */
+.chord-recall { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.chord-recall li { min-width: 64px; padding: 10px 8px; text-align: center; font-size: 14px; color: var(--muted); background: var(--surface-hi); border: 2px solid var(--line-soft); }
+.chord-recall li.active { color: var(--text); border-color: var(--cyan); }
+.chord-recall li.right { color: var(--green); border-color: var(--green); }
+.chord-recall li.revealed { color: var(--orange); border-color: var(--orange); }
+.chord-review-body { display: grid; gap: var(--gap-inside); margin-top: 10px; justify-items: start; }
+.chord-review-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.chord-review-title { flex: 1 1 200px; min-width: 0; }
+.hub-surface { grid-column: 1 / -1; min-width: 0; display: grid; gap: 16px; }
+.hub-surface .review-forms { margin-block-end: 12px; }
 
 .chordbox { display: block; line-height: 0; }
 .chordbox canvas { display: block; image-rendering: pixelated; }
@@ -1809,7 +1826,7 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 
 }
 
-/* Liste d'accords au téléphone : le diagramme à gauche, nom et écoute à droite. Empilés, 40 formes
+/* Liste d'accords au téléphone : le nom au-dessus, le diagramme à gauche, écoute et coches à droite. Empilés, 40 formes
    faisaient treize mille pixels de page. */
 @media (max-width: 899px) {
   .chord-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 6px 12px; }
@@ -1905,7 +1922,8 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 
   /* une liste à consulter : autant de formes que la largeur en accepte, sans retour à la ligne dans une rangée */
   .chord-surface .chord-list { grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
-  .chord-surface .chord-row { background: none; }
+  /* une rangée a la hauteur de sa plus longue carte : le contenu reste en haut, les diagrammes s'alignent */
+  .chord-surface .chord-row { background: none; align-content: flex-start; }
   .chord-surface .chord-main { flex: 1 1 0; }
   /* le canvas réserve à gauche la place du numéro de case : la droite reçoit le même vide */
   .chord-surface .chord-row { padding-inline-end: 34px; }

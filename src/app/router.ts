@@ -3,9 +3,10 @@
  * Une route = un écran ; l'état fin (gamme choisie, position) vit dans les magasins, pas dans l'URL.
  */
 
-export type RouteName = 'gammes' | 'scale' | 'review' | 'sequences' | 'impro' | 'accords' | 'dictionary' | 'tuner' | 'metronome' | 'settings' | 'tab' | 'audio' | 'theory';
+export type RouteName = 'hub' | 'gammes' | 'scale' | 'review' | 'sequences' | 'impro' | 'accords' | 'dictionary' | 'chordReview' | 'tuner' | 'metronome' | 'settings' | 'tab' | 'audio' | 'theory';
 
 export const ROUTE_HREF: Readonly<Record<RouteName, string>> = {
+  hub: '#/accueil',
   gammes: '#/gammes',
   scale: '#/gammes/jouer',
   review: '#/gammes/revision',
@@ -13,6 +14,7 @@ export const ROUTE_HREF: Readonly<Record<RouteName, string>> = {
   impro: '#/gammes/impro',
   accords: '#/accords',
   dictionary: '#/accords/dictionnaire',
+  chordReview: '#/accords/revision',
   tuner: '#/accordeur',
   metronome: '#/metronome',
   settings: '#/reglages',
@@ -26,16 +28,19 @@ const LEGACY: Readonly<Record<string, RouteName>> = {
   '#tab': 'tab',
   '#audio': 'audio',
   '#theorie': 'theory',
-  '': 'gammes',
-  '#': 'gammes',
+  '': 'hub',
+  '#': 'hub',
 };
 
-/** L'app s'ouvre sur Gammes ; une page retirée (accueil, entraînement, leçon, QCM) mène à son outil (D128). */
+/** L'app s'ouvre sur l'accueil (D139) ; une page retirée (entraînement, leçon, QCM) mène à son outil (D128). */
 export function parseRoute(hash: string): RouteName {
   const h = (hash || '').trim();
   if (LEGACY[h] !== undefined) return LEGACY[h]!;
   const clean = h.replace(/^#\/?/, '').replace(/\/+$/, '');
   switch (clean) {
+    case 'accueil':
+    case 'hub':
+      return 'hub';
     case 'gammes/jouer':
       return 'scale';
     case 'gammes/revision':
@@ -47,6 +52,8 @@ export function parseRoute(hash: string): RouteName {
       return 'impro';
     case 'accords/dictionnaire':
       return 'dictionary';
+    case 'accords/revision':
+      return 'chordReview';
     case 'accords':
     case 'accords/lecon':
     case 'accords/lecon-accord':
@@ -74,8 +81,8 @@ export function parseRoute(hash: string): RouteName {
 
 /** L'onglet de navigation allumé pour chaque page. */
 export const ACTIVE_ROUTE: Readonly<Record<RouteName, RouteName>> = {
-  gammes: 'gammes', scale: 'gammes', review: 'gammes', sequences: 'gammes', impro: 'gammes',
-  accords: 'accords', dictionary: 'accords',
+  hub: 'hub', gammes: 'gammes', scale: 'gammes', review: 'gammes', sequences: 'gammes', impro: 'gammes',
+  accords: 'accords', dictionary: 'accords', chordReview: 'accords',
   tuner: 'tuner', metronome: 'metronome', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
 };
 
@@ -89,7 +96,7 @@ export function hrefOf(route: RouteName): string {
   return ROUTE_HREF[route];
 }
 
-const EXERCISE_ROUTES: readonly RouteName[] = ['review', 'sequences', 'impro'];
+const EXERCISE_ROUTES: readonly RouteName[] = ['review', 'chordReview', 'sequences', 'impro'];
 
 /** La route d'exercice d'où l'on arrive, s'il y en a une : c'est là que l'accordeur propose de revenir. */
 export function exerciseOrigin(previous: RouteName | null): RouteName | null {

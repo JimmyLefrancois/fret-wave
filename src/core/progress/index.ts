@@ -6,3 +6,4 @@ export * from './journal';
 export * from './mastery';
 export * from './scheduler';
 export * from './exportData';
+export * from './chordMarks';

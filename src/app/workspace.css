@@ -118,7 +118,7 @@
   .mobile-brand button { display: grid; place-items: center; width: 44px; height: 44px; color: var(--muted); background: var(--surface); border: var(--bw) solid var(--line); }
   .workspace .shell { max-width: 768px; padding: 18px 12px 0; }
   .workspace .app-content { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
-  .workspace .bottombar { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .workspace .bottombar { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .workspace .navbtn { height: 64px; font-size: 12px; }
   .workspace .page-title { font-size: clamp(25px, 6.8vw, 36px); }
   /* le bas de page ne dépend pas du dernier bloc : pas de marge en plus au-dessus de la navigation */

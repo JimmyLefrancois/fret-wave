@@ -17,8 +17,10 @@ function fakeStore(initial: Record<string, string> = {}) {
 
 describe('routeur par hash', () => {
   it('route les URLs de la 1d et les anciennes URLs de la 1a-1c', () => {
-    expect(parseRoute('')).toBe('gammes');
-    expect(parseRoute('#')).toBe('gammes');
+    expect(parseRoute('')).toBe('hub');
+    expect(parseRoute('#')).toBe('hub');
+    expect(parseRoute('#/accueil')).toBe('hub');
+    expect(parseRoute('#/accords/revision')).toBe('chordReview');
     expect(parseRoute('#/gammes')).toBe('gammes');
     expect(parseRoute('#/gammes/jouer')).toBe('scale');
     expect(parseRoute('#/gammes/jouer/')).toBe('scale');
@@ -34,7 +36,7 @@ describe('routeur par hash', () => {
   });
 
   it('une page retirée mène à son outil', () => {
-    expect(parseRoute('#/hub')).toBe('gammes');
+    expect(parseRoute('#/hub')).toBe('hub');
     expect(parseRoute('#/gammes/entrainement')).toBe('gammes');
     expect(parseRoute('#/accords/lecon')).toBe('accords');
     expect(parseRoute('#/accords/qcm')).toBe('accords');
