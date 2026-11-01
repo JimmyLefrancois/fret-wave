@@ -1,7 +1,6 @@
 /**
  * Journal de pratique local (début du modèle de progression de la phase 2, journal d'événements).
- * La 1d n'a ni XP ni répétition espacée : on se contente d'**enregistrer ce qui a réellement été écouté**
- * (gamme, tonique, système, position, durée) pour que le hub affiche des chiffres vrais, pas des décors.
+ * Journal d'écoute de la phase 1d, repris une seule fois par `loadJournal`. Plus rien ne l'écrit dans l'app.
  */
 import type { KeyValueStore } from '../audio/mixer';
 

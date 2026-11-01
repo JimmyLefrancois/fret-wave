@@ -14,7 +14,6 @@ import {
 } from '../core/tab';
 import type { TabPlayer } from '../core/audio/tabPlayer';
 import { useThemeTokens } from './settings';
-import { scrollToKeepVisible } from '../modules/gammes/exercise';
 
 export interface TabViewProps {
   score: TabScore;
@@ -34,36 +33,15 @@ export interface TabViewProps {
   emphasizeChordTones?: boolean;
   /** Mode « débutant » : masque hampes, ligatures et silences. */
   hideRhythm?: boolean;
-  /** Met en évidence toutes les pastilles d'une fonction (correction d'exercice). */
-  highlightFn?: string;
-  /** Trou désigné dans un exercice de mémorisation (`${columnIndex}:${string}`). */
-  activeHoleKey?: string;
-  /** Haut (repère de la fenêtre) d'une barre fixe qui couvre le bas de l'écran, ou `null` : le trou désigné reste au-dessus. */
-  coverTop?: () => number | null;
   /** Échelle minimale en mode auto, appliquée seulement sur un grand écran (≥ 880 × 1 100 px) : tablature de jeu, lue à 1-2 m. Plus bas, une tablature à l'échelle 3 repousse la consigne et la réponse sous la ligne de flottaison. */
   minScale?: number;
   /** Mode wrap : garde tout le score sur une ligne (bureau). Baisse l'échelle automatique, puis défile à l'horizontale s'il le faut. */
   oneLine?: boolean;
-  /** Toucher une pastille (exercice « montre-moi la ♭3 »). */
-  onPick?: (pick: TabPick) => void;
   /**
    * Notes **jouées** à allumer (improvisation, phase 7) : emplacements corde/case déjà résolus dans la
    * position affichée. La page les garde environ une seconde puis les retire.
    */
   flash?: readonly { string: number; fret: number }[];
-}
-
-export interface TabPick {
-  fn: string;
-  fret: number;
-  string: number;
-  /** Rang de la colonne (événement) touchée : identifie un trou sans révéler sa case. */
-  columnIndex: number;
-  /** La pastille touchée est un trou (emplacement vide) : `fret` ne doit pas être affiché. */
-  hidden: boolean;
-  /** Coordonnées logiques du centre de la pastille (repère du canvas). */
-  x: number;
-  y: number;
 }
 
 export interface TabMetrics {
@@ -91,7 +69,7 @@ function autoScale(viewWidth: number, viewHeight: number): number {
 
 export function TabView(props: TabViewProps) {
   const tabTheme = useThemeTokens().tab;
-  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, highlightFn, activeHoleKey, coverTop, minScale, oneLine = false, onPick, flash } = props;
+  const { score, notes, chords, annotation, mode, scale, reduceMotion, player, transport, cursorAnchor = 0.3, emphasizeChordTones = false, hideRhythm = false, minScale, oneLine = false, flash } = props;
   const playing = transport === 'playing';
   const wrapRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -126,9 +104,7 @@ export function TabView(props: TabViewProps) {
   const PAD_LEFT = 4;
   const baseOptions: LayoutOptions = useMemo(() => ({
     mode, padLeft: PAD_LEFT, notes, chords, annotation, stacks: 'change', emphasizeChordTones, hideRhythm, oneLine,
-    ...(highlightFn ? { highlightFn } : {}),
-    ...(activeHoleKey ? { activeHoleKey } : {}),
-  }), [mode, notes, chords, annotation, emphasizeChordTones, hideRhythm, oneLine, highlightFn, activeHoleKey]);
+  }), [mode, notes, chords, annotation, emphasizeChordTones, hideRhythm, oneLine]);
 
   const baseS = scale === 'auto' ? Math.max(autoScale(box.w, box.h), box.w >= 880 && box.h >= 1100 ? (minScale ?? 0) : 0) : scale;
   const fit = useMemo(
@@ -308,85 +284,13 @@ export function TabView(props: TabViewProps) {
     };
   }, [layout, score, player, cssPerLogical, viewLogical]);
 
-  // la ligne unique déborde : la note désignée reste dans la vue
-  useEffect(() => {
-    const wrap = wrapRef.current;
-    if (fit.fits || !activeHoleKey || !wrap) return;
-    const pill = layout.columns.flatMap((c) => c.pills).find((p) => p.active);
-    if (pill) wrap.scrollLeft = pill.x * cssPerLogical - cursorAnchor * wrap.clientWidth;
-  }, [fit.fits, activeHoleKey, layout, cssPerLogical, cursorAnchor]);
-
-  // le trou désigné change (flèches, réponse juste) : sur une tablature repliée en plusieurs lignes,
-  // il peut sortir de l'écran — on le ramène en vue. Pas au premier trou : la page ne saute pas à l'ouverture.
-  const prevHole = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    const prev = prevHole.current;
-    prevHole.current = activeHoleKey;
-    if (!activeHoleKey || !prev || prev === activeHoleKey) return;
-    const pill = layout.columns.flatMap((c) => c.pills).find((p) => p.active);
-    const stage = stageRef.current;
-    if (!pill || !stage) return;
-    const r = stage.getBoundingClientRect();
-    const top = r.top + pill.y * cssPerLogical;
-    const bottom = r.top + (pill.y + pill.h) * cssPerLogical;
-    // défilement minimal (la pastille arrive juste au-dessus de ce qui la couvre : la barre de réponse fixe
-    // au téléphone, sinon le bas de l'écran) : le pavé, sous la tablature, reste le plus visible possible
-    const delta = scrollToKeepVisible(top, bottom, window.innerHeight, coverTop?.() ?? window.innerHeight);
-    if (delta !== 0) window.scrollTo({ top: window.scrollY + delta, behavior: reduceMotion ? 'auto' : 'smooth' });
-  }, [activeHoleKey, layout, cssPerLogical, reduceMotion, coverTop]);
-
-  // crochet du mode exercice : la seule tablature qui contient des trous et accepte le toucher
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    if (!onPick) return;
-    if (!layout.columns.some((c) => c.pills.some((p) => p.hidden))) return;
-    (window as unknown as { __trainingTab?: unknown }).__trainingTab = {
-      layout,
-      cssPerLogical,
-      viewLogical,
-      /** Centre CSS d'une pastille (repère de la fenêtre), pour piloter un vrai clic souris. */
-      centerOf: (columnIndex: number, string: number) => {
-        const col = layout.columns[columnIndex];
-        const pill = col?.pills.find((p) => p.string === string);
-        const stage = stageRef.current;
-        if (!pill || !stage) return null;
-        const r = stage.getBoundingClientRect();
-        return { x: r.left + (pill.x + pill.w / 2) * cssPerLogical, y: r.top + (pill.y + pill.h / 2) * cssPerLogical, hidden: pill.hidden };
-      },
-      hiddenCount: () => layout.columns.flatMap((c) => c.pills).filter((p) => p.hidden).length,
-    };
-  }, [layout, onPick, cssPerLogical, viewLogical]);
-
-  // --- toucher une pastille (exercice) : conversion CSS → pixels logiques, tolérance tactile
-  const onPointer = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onPick) return;
-    const stage = stageRef.current;
-    if (!stage) return;
-    const r = stage.getBoundingClientRect();
-    const lx = (e.clientX - r.left) / cssPerLogical;
-    const ly = (e.clientY - r.top) / cssPerLogical;
-    // un trou (pastille de 11 px logiques) reçoit une marge plus large : cible tactile ≥ 44 px CSS à S=2
-    const inside = (p: { x: number; y: number; w: number; h: number }, mx: number, my: number) =>
-      lx >= p.x - mx && lx <= p.x + p.w + mx && ly >= p.y - my && ly <= p.y + p.h + my;
-    for (const c of layout.columns) {
-      const p = c.pills.find((q) => inside(q, q.hidden ? 7 : 4, q.hidden ? 6 : 3));
-      if (!p) continue;
-      onPick({
-        fn: p.fn, fret: p.fret, string: p.string, columnIndex: c.index, hidden: p.hidden,
-        x: p.x + p.w / 2, y: p.y + p.h / 2,
-      });
-      return;
-    }
-  };
-
   return (
     <div
       ref={wrapRef}
-      className={`tabview ${mode} ${onPick ? 'pickable' : ''}`}
-      role={onPick ? 'group' : 'img'}
+      className={`tabview ${mode}`}
+      role="img"
       aria-label={describeScore(score, notes)}
       style={narrowScroll ? { height: cssH, width: cssW, marginLeft: 'auto', marginRight: 'auto' } : { height: cssH }}
-      onClick={onPointer}
     >
       <div ref={stageRef} className="tabview-stage" style={{ width: cssW, height: cssH }}>
         <canvas ref={staticRef} className="pix" style={{ width: cssW, height: cssH }} />

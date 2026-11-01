@@ -3,7 +3,6 @@ import { PixelButton } from '../../app/ui';
 import type { LoopBilan } from './sequence';
 
 export interface SavedSession {
-  xp: number;
   verified: boolean;
   loop?: { reps: number; bpm: number; clean: number | null };
 }
@@ -27,7 +26,7 @@ export function SessionSummary(props: {
     ? { value: `${Math.round(bilan.accuracy * 100)}%`, label: 'de notes justes' }
     : saved.loop
       ? { value: plural(saved.loop.reps, 'gamme'), label: `jusqu’à ${saved.loop.bpm} BPM` }
-      : { value: saved.xp > 0 ? `+${saved.xp} XP` : 'Enregistré', label: saved.verified ? 'session vérifiée au micro' : 'non vérifié : sans micro, l’app n’entend rien' };
+      : { value: 'Enregistré', label: saved.verified ? 'session vérifiée au micro' : 'non vérifié : sans micro, l’app n’entend rien' };
   return (
     <dialog
       ref={(d) => { if (d && !d.open) d.showModal(); }}
@@ -68,9 +67,6 @@ export function SessionSummary(props: {
             )}
           </>
         )}
-        <p className="t-small t-dim">
-          {saved.loop ? 'Enregistré comme activité, sans XP.' : saved.xp > 0 ? `Session enregistrée : +${saved.xp} XP.` : 'Session enregistrée.'}
-        </p>
         <div className="seq-summary-actions">
           <PixelButton variant="quiet" onClick={onClose}>Fermer</PixelButton>
           {onProgress && <PixelButton variant="ghost" onClick={onProgress}>Voir la progression</PixelButton>}

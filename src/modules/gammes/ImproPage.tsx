@@ -28,18 +28,14 @@ import { useSettings } from '../../app/settings';
 import { useDesktop } from '../../app/useDesktop';
 import { InstrumentPicker } from '../../app/AudioControls';
 import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
-import { LevelsNav } from './LevelsNav';
+import { ScaleTabs } from './ScaleTabs';
 import { PlaySection } from './PlaySection';
-import { setScaleSelection, setTrainingStart, useScaleSelection } from '../../app/scaleSession';
+import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
 import { navigate } from '../../app/router';
 import { fmtNote, pitchClassOf } from '../../core/theory';
 import { noteNameOf } from '../../core/input/match';
-import { appendAttempt, newAttemptId, readAttempts } from '../../core/progress/journal';
-import { progressStore } from '../../core/progress';
-import type { Attempt } from '../../core/progress/journal';
 import { chordAtMeasure, chordName, backingsFor, IMPRO_BACKINGS, STYLE_LABEL, type BackingMode, type BackingStyle } from './impro';
 import { legendFor, positionLabelPlain, resolveScale } from './resolve';
-import * as clock from '../../core/clock';
 
 const ROLE_CLASS: Record<NoteRole, string> = {
   chord: 'impro-role-chord',
@@ -107,7 +103,6 @@ export function ImproPage() {
   const [infoOpen, setInfoOpen] = useState(false);
 
   const player = useRef<BackingPlayer | null>(null);
-  const startedAt = useRef(0);
   const previous = useRef<PlacedNote | null>(null);
   const flashTimers = useRef<number[]>([]);
   const lastJudged = useRef<{ midi: number; at: number } | null>(null);
@@ -133,28 +128,6 @@ export function ImproPage() {
     }
     const stats = summarizeImpro(takes);
     setSummary(stats);
-    const seconds = startedAt.current ? Math.round((performance.now() - startedAt.current) / 1000) : 0;
-    if (!r.position || takes.length < 6) return; // moins de six notes : rien à conclure, rien au journal
-    const attempt: Attempt = {
-      id: newAttemptId(clock.now(), `${r.def.id}:impro:${r.selection.system}:${r.position.formIndex ?? r.position.index}`, readAttempts(progressStore()).length),
-      ts: clock.now(),
-      kind: 'impro',
-      scaleId: r.def.id,
-      tonic: r.tonic,
-      tuningId: r.tuning.id,
-      system: r.selection.system,
-      positionId: r.position.id,
-      formIndex: r.position.formIndex ?? r.position.index,
-      level: 5,
-      strings: r.tuning.strings.length,
-      correct: stats.byRole.chord,
-      total: stats.notes,
-      seconds,
-      fretMin: r.position.fretMin,
-      missedStrings: [],
-      tempoOk: stats.strongChordRate >= 0.5,
-    };
-    appendAttempt(progressStore(), attempt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [takes, r]);
 
@@ -176,7 +149,6 @@ export function ImproPage() {
         player.current.load(backingPattern(backing, 40), tempo, loopBeatsOf(backing));
       }
       player.current.start();
-      startedAt.current = performance.now();
       setTransport('playing');
       setMeasure(0);
     } catch (e) {
@@ -381,7 +353,6 @@ export function ImproPage() {
               <div>
                 <div className="play-title">
                   <h1 className="page-title">Improviser</h1>
-                  <span className="tag tag-on">Niv5</span>
                 </div>
                 <p className="t-small t-dim">{lane}</p>
               </div>
@@ -433,14 +404,7 @@ export function ImproPage() {
           )}
 
           <div className="play-nav">
-            <LevelsNav
-              current={5}
-              onSelect={(n) => {
-                if (n === 1) navigate('scale');
-                else if (n === 4) navigate('sequences');
-                else if (n === 2 || n === 3) { setTrainingStart({ level: n, segment: 'updown' }); navigate('training'); }
-              }}
-            />
+            <ScaleTabs current="impro" />
             <div className="play-pos">
               <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0 || playing}>‹ Position</PixelButton>
               <span className="play-dots" aria-hidden="true">
@@ -495,7 +459,6 @@ export function ImproPage() {
           <h1 className="page-title">Improviser</h1>
           <p className="t-small t-dim">{lane} · {tempo} BPM</p>
         </div>
-        <span className="tag tag-on">Niv5</span>
       </header>
 
       <Panel className="span-5" accent="magenta" label="Accompagnement">

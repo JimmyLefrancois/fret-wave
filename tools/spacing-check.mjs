@@ -14,8 +14,8 @@
 import { chromium } from 'playwright';
 
 const ROUTES = [
-  'hub', 'gammes', 'gammes/jouer', 'gammes/entrainement', 'gammes/revision',
-  'accords', 'accords/lecon', 'accords/qcm', 'accordeur', 'reglages',
+  'gammes', 'gammes/jouer', 'gammes/revision', 'gammes/sequences', 'gammes/impro',
+  'accords', 'accordeur', 'metronome', 'reglages',
 ];
 const BASE = process.env.BASE ?? 'http://127.0.0.1:5173';
 const JSON_OUT = process.argv.includes('--json');
@@ -26,7 +26,7 @@ const report = {};
 for (const [tag, width, height] of [['phone', 390, 844], ['desk', 1440, 900]]) {
   const ctx = await browser.newContext({ viewport: { width, height }, locale: 'fr-FR' });
   const page = await ctx.newPage();
-  await page.goto(`${BASE}/#/hub`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/#/gammes`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(700);
 
   for (const route of ROUTES) {

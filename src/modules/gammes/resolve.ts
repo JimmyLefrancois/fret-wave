@@ -93,7 +93,7 @@ export interface ResolvedScale {
 
 /**
  * Famille affichée pour une gamme : celle que l'élève a choisie si elle contient la gamme, sinon la
- * première qui la contient (une gamme ouverte depuis l'accueil peut venir d'une autre famille).
+ * première qui la contient (une gamme ouverte depuis la révision peut venir d'une autre famille).
  */
 export function scaleGroupOf(scaleId: string, preferredId?: string): ScaleGroup {
   const preferred = SCALE_GROUPS.find((g) => g.id === preferredId);

@@ -52,8 +52,8 @@ const offline = await page.evaluate(async () => {
 });
 check('hors ligne : app, son, manifeste et worklet', offline.size > 0 && offline.manifest && offline.worklet);
 const fallback = await context.newPage();
-const hub = await fallback.goto(new URL('/#/hub', URL_APP).href).catch(() => null);
-check('hors ligne : ouverture directe du hub', hub?.ok() ?? false);
+const hub = await fallback.goto(new URL('/#/gammes', URL_APP).href).catch(() => null);
+check('hors ligne : ouverture directe de Gammes', hub?.ok() ?? false);
 const api = await fallback.goto(new URL('/api/health-check-pwa', URL_APP).href).then(
   (r) => r?.url(),
   () => null,

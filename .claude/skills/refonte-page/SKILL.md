@@ -1,11 +1,11 @@
 ---
 name: refonte-page
-description: Refonte de la version bureau (PC) d'une page Fretwave en une surface unique, sans toucher au mobile. À utiliser dès que l'utilisateur trouve une page trop orientée mobile, dit qu'il y a « des cases partout », que c'est le chaos, demande d'harmoniser, de refondre, de réorganiser ou de reproduire une maquette sur une page de l'app (Gammes, Accords, Accordeur, Métronome, Réglages, Entraînement, Séquences…), même sans prononcer le mot « refonte ». Pas pour un simple ajustement de marge ou de couleur.
+description: Refonte de la version bureau (PC) d'une page Fretwave en une surface unique, sans toucher au mobile. À utiliser dès que l'utilisateur trouve une page trop orientée mobile, dit qu'il y a « des cases partout », que c'est le chaos, demande d'harmoniser, de refondre, de réorganiser ou de reproduire une maquette sur une page de l'app (Gammes, Accords, Accordeur, Métronome, Réglages, Révision, Séquences…), même sans prononcer le mot « refonte ». Pas pour un simple ajustement de marge ou de couleur.
 ---
 
 # Refonte d'une page au bureau
 
-Références vivantes : `src/modules/gammes/ScaleDiscoveryPage.tsx` (écoute), `src/modules/gammes/ScaleTrainingPage.tsx` (exercice) et les blocs « Page Jouer au bureau » et « Page Entraînement au bureau » en fin de `src/app/app.css`. Lis-les avant de concevoir : la page cible doit y ressembler, pour que l'app reste cohérente d'un écran à l'autre.
+Références vivantes : `src/modules/gammes/ScaleDiscoveryPage.tsx` (écoute), `src/modules/gammes/ScaleReviewPage.tsx` (exercice) et les blocs « Page Jouer au bureau » et « Page Révision au bureau » en fin de `src/app/app.css`. Lis-les avant de concevoir : la page cible doit y ressembler, pour que l'app reste cohérente d'un écran à l'autre.
 
 ## Ce que l'auteur veut
 
@@ -22,10 +22,10 @@ Ces préférences viennent de la refonte de `gammes/jouer`, corrigée demande ap
 - **Au bureau, on répond à la guitare.** Pas de pavé, de clavier physique ni de sélection de case dans la tablature, et aucune case présélectionnée. Le micro seul valide : pas de consigne du type « Corde de Mi · case ? ». Signale qu'un élève sans micro ne peut plus finir.
 - **Le micro s'ouvre seul quand le navigateur le permet** (`canAutoOpenMic` dans `src/core/input/autoOpen.ts`) et se ferme en quittant la page. Le bouton n'apparaît que si un clic est nécessaire, avec la comète `.mic-spark` pour qu'on le voie.
 - **Une couleur par rôle dans l'en-tête.** Le rouge magenta reste à l'action principale. Un mode qu'on oublierait, comme la grille métronome, prend le cyan (`.train-grid`), en aplat quand c'est le geste du moment.
-- **Niveaux écrits en clair :** Niv1 Découvrir, Niv2 Trous, Niv3 Rappel, Niv4 Séquences, Niv5 Improviser, dans cet ordre, du plus simple au plus dur. Jamais « N1 ». Le numéro affiché est aussi celui du code et du journal : pas de numéro d'affichage différent de la valeur interne.
+- **Pas de niveaux (D128) :** Gammes a trois onglets sans numéro, Découvrir, Séquences, Improviser. Ni XP, ni étoiles, ni parcours : une page reste un outil.
 - **Pas de bavardage à l'écran.** Pas de bloc d'écoute du micro (« joue une note », « aucune note stable ») ni de message de confirmation (« grille : 12 temps… ») : le geste et le résultat suffisent. Ces blocs restent seulement là où ils sont le seul repère, comme à l'aveugle.
 - **Pas de place vide réservée.** Une zone sans contenu n'est pas rendue ; l'espacement entre tablature et onglets reste celui de la page Jouer, même si un verdict décale un peu la page quand il apparaît.
-- **Chaque niveau n'expose que ses options.** La grille métronome n'existe qu'en N3 ; les options fines (découpage par cordes) disparaissent au profit d'un choix simple (aller, aller-retour).
+- **Chaque outil n'expose que ses options.** Les options fines disparaissent au profit d'un choix simple.
 - **Rien de perdu quand on range.** Les consignes et textes d'aide vont dans les Détails plutôt que de disparaître, et un terme de réglage peu clair (Travail, Motif, Départ) y est expliqué.
 - **Le titre dit ce qui est joué** : « Position 1 vers 2 · cases 5–10 » plutôt qu'un nom de motif, et sur le manche, toute position jouée s'affiche à pleine intensité.
 - **La barre basse est commune** : Instrument et « ← Changer de gamme », dans `.play-foot`, hors session mélangée.
@@ -46,7 +46,7 @@ Dès que l'ordre des blocs diffère, rends deux mises en page plutôt que d'empi
 - `useDesktop()` depuis `src/app/useDesktop.ts` (seuil 900 px) et `PlaySection` depuis `src/modules/gammes/PlaySection.tsx`. Si le hook sert dans la page, appelle-le avant tout `return` anticipé.
 - Réutilise les classes `.play-*` (`play-surface`, `play-head`, `play-tab`, `play-tab-bar`, `play-nav`, `play-more`, `play-columns`, `play-foot`). N'ajoute un préfixe de page que pour ce qui lui est propre, comme `.train-*`.
 - Des constantes JSX partagées (`tab`, `transportButtons`, `tempoControl`…), assemblées dans `if (desktop) return …` puis le `return` mobile. Le mobile garde son ordre et son JSX d'origine. Une page longue se découpe par plages de lignes avec un script, plus sûr qu'une recopie à la main.
-- Si un composant commun change (`LevelsNav`), ajoute une prop facultative passée seulement au bureau. Si une logique change, conditionne-la à `desktop` : au clavier, à la sélection ou aux options, le mobile ne bouge pas.
+- Si un composant commun change (`ScaleTabs`), ajoute une prop facultative passée seulement au bureau. Si une logique change, conditionne-la à `desktop` : au clavier, à la sélection ou aux options, le mobile ne bouge pas.
 - Une page a souvent plusieurs états (résultat, à froid, session, à l'aveugle). Liste-les avant de composer, et aplatis leurs panneaux dans la surface.
 
 ## Règles du projet à ne pas oublier
@@ -56,7 +56,7 @@ Dès que l'ordre des blocs diffère, rends deux mises en page plutôt que d'empi
 - La tablature canvas n'est pas du ressort d'Impeccable. Une demande explicite de l'auteur peut la toucher : passe alors par `src/core/tab/` avec un test, et garde l'échelle entière ≥ 2.
 - Ne change ni texte factuel, ni règle musicale, ni barème sans demande. Si une refonte fait disparaître un texte, dis lequel.
 - Le rendu mobile ne bouge pas. Exception : un vocabulaire ou une numérotation commune s'applique partout, pour que l'app dise la même chose sur les deux écrans. Annonce alors l'effet sur le mobile.
-- Si une valeur stockée change, normalise l'ancien journal dans `normalizeAttempt`, aligne les générateurs de `src/dev/`, et vérifie par test que XP et maîtrise ne bougent pas.
+- Si une valeur stockée change, normalise l'ancien journal dans `normalizeAttempt`, et vérifie par test que les cartes de révision ne bougent pas.
 - Un effet visuel se montre en deux thèmes et se vérifie aussi avec `prefers-reduced-motion`. Une couleur illisible en Aube passe par un token dédié, comme `--spark`.
 
 ## Vérifier
@@ -70,13 +70,13 @@ Dès que l'ordre des blocs diffère, rends deux mises en page plutôt que d'empi
 
 - Si tu retires un contrôle, vérifie ce qui en dépendait : un message, un état qui continue de tourner (chrono, métronome), un texte d'aide devenu faux dans les Détails.
 - Le micro simulé (`--use-fake-device-for-media-stream`, `grantPermissions`) teste l'ouverture, pas les notes : dis ce qui reste à essayer à la guitare. `window.__sequence.feedPass()` injecte une passe.
-- Pour remplir une série sans micro au test, le clavier est coupé au bureau : passe par `window.__training` (`press`, `validate`) ou teste en largeur mobile.
+- Pour remplir une série sans micro au test, le clavier est coupé au bureau : passe par `window.__review` (`answer`).
 
 ## Avant de supprimer
 
 Toute suppression passe par deux étapes, même quand la demande est claire, et avant de toucher au code :
 
-1. **Analyse l'impact.** Lis ce qui en dépend : logique, journal, maîtrise et XP, états de la page, textes d'aide, autres pages, mobile. Cherche aussi ce que l'élève ne pourra plus faire (par exemple finir une série sans micro).
+1. **Analyse l'impact.** Lis ce qui en dépend : logique, journal, cartes de révision, états de la page, textes d'aide, autres pages, mobile. Cherche aussi ce que l'élève ne pourra plus faire (par exemple finir une série sans micro).
 2. **Pose la question à l'auteur** avec `AskUserQuestion` : ce que la suppression retire, ce que ça casse ou change, et une alternative s'il y en a une, comme masquer ou déplacer. Attends sa réponse avant de supprimer.
 
 Si la demande repose sur une prémisse fausse (« on est forcément à l'aveugle en N3, non ? »), corrige-la dans cette même question.

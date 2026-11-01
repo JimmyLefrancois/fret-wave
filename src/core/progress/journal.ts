@@ -1,14 +1,16 @@
 /**
- * Journal de progression de la phase 2 : une **tentative** = un événement horodaté, jamais un agrégat.
- * Tout le reste (maîtrise, boîtes de révision, XP, séries, badges) se **recalcule** depuis ce journal :
- * on peut donc changer la formule ou l'algorithme sans perdre l'historique.
+ * Journal de l'app : une **tentative** = un événement horodaté, jamais un agrégat. La révision espacée et
+ * l'historique des séquences se **recalculent** depuis ce journal : on peut changer la formule ou
+ * l'algorithme sans perdre l'historique.
+ *
+ * Depuis D128, l'app n'écrit plus que `recall` (révision) et `sequence`. Les autres genres restent lisibles : les tentatives d'avant sont conservées, y compris dans la synchro du compte et l'export.
  *
  * Choix assumé (D25) : localStorage plafonné à 2 000 tentatives, et non IndexedDB.
  * Mesure : une tentative pèse ≈ 190 octets de JSON → 2 000 ≈ 380 ko, très en dessous du quota (~5 Mo)
  * et survivant à la purge iOS qui vise IndexedDB. Le jour où l'entrée audio produira des événements
  * beaucoup plus nombreux (phase 3), un `ProgressBackend` asynchrone prendra le relais.
  */
-import { dayKey, readLog, type PracticeEntry } from './practiceLog';
+import { readLog, type PracticeEntry } from './practiceLog';
 import type { KeyValueStore } from '../audio/mixer';
 import { SEQUENCE_PATTERNS, isLiaison, type MotifPattern, type SequencePattern } from '../tab/generators';
 import { TUNINGS } from '../theory/tunings';
@@ -35,8 +37,8 @@ export const ATTEMPT_CAP = 2000;
  * nœud distinct (`gam:impro:…`) pour ne pas se mêler à la justesse d'une forme jouée note à note.
  *
  * Lot « mémoire et vitesse » : `sequence` — une **session de palier** de séquences (par 3, par 4, tierces,
- * quartes) : une tentative par session, jamais une par passe. Nœud `gam:sequence:…` : la séquence nourrit
- * la **vitesse** d'une forme, jamais « apprise » ni la révision espacée (la tablature y est visible).
+ * quartes) : une tentative par session, jamais une par passe. Nœud `gam:sequence:…` : une séquence ne touche
+ * jamais la révision espacée (la tablature y est visible).
  */
 export type AttemptKind = 'listen' | 'holes' | 'recall' | 'arpeggio' | 'strum' | 'cold' | 'transition' | 'qcm' | 'pluck' | 'impro' | 'sequence';
 export const ATTEMPT_KINDS: readonly AttemptKind[] = ['listen', 'holes', 'recall', 'arpeggio', 'strum', 'cold', 'transition', 'qcm', 'pluck', 'impro', 'sequence'];
@@ -78,7 +80,7 @@ export interface Attempt {
   /** Identité de la forme, indépendante de la tonique (MUSIC_DESIGN §3.1). */
   formIndex: number;
   level: AttemptLevel;
-  /** Nombre de cordes couvertes par le segment (découpage de l'entraînement). */
+  /** Nombre de cordes couvertes par la série. */
   strings: number;
   /** Réponses justes **au premier essai** ; `null` pour une écoute (non vérifiée). */
   correct: number | null;
@@ -119,8 +121,8 @@ export interface Attempt {
   changeMs?: number;
   /**
    * Essai fait **juste après avoir revu la forme** (rattrapage du rappel à froid, « refaire » en révision) :
-   * vérifié, donc compté comme pratique du jour, mais exclu de Leitner, de la maîtrise et de l'XP — un
-   * essai réussi la réponse sous les yeux ne prouve rien (MUSIC_DESIGN §5).
+   * vérifié, donc enregistré, mais exclu de Leitner — un essai réussi la réponse sous les yeux ne prouve
+   * rien (MUSIC_DESIGN §5).
    */
   afterReveal?: true;
   /**
@@ -132,7 +134,7 @@ export interface Attempt {
   fullPosition?: true;
   /**
    * Débit nominal de la grille rythmique lancée pendant la série, en **notes par minute** (tempo ×
-   * notes par temps). Absent sans grille. Sert à juger la vitesse (« maîtrisée »), avec `tempoOk`.
+   * notes par temps). Absent sans grille. Tentatives d'avant D128 seulement.
    */
   gridNpm?: number;
   /** Série jouée **à l'aveugle** : aucune tablature dessinée pendant le jeu, verdict à la fin seulement. */
@@ -145,7 +147,7 @@ export interface Attempt {
   bpmBest?: number;
   /** Séquence : nombre de passes jouées dans la session. */
   passes?: number;
-  /** Gamme en boucle au micro : les séries de la session. Mesure de progression, pas une preuve (ni XP, ni vitesse). */
+  /** Gamme en boucle au micro : les séries de la session. Mesure de progression, pas une preuve. */
   runs?: LoopRun[];
 }
 
@@ -167,9 +169,9 @@ export function nodeIdOf(
   a: Pick<Attempt, 'scaleId' | 'system' | 'formIndex'>
     & { chordId?: string; module?: AttemptModule; kind?: AttemptKind; chordIdB?: string; progressionId?: string },
 ): string {
-  // l'improvisation est une compétence à part : elle ne doit pas doper ni plomber la maîtrise d'une forme
+  // l'improvisation est une compétence à part : elle ne doit pas se mêler à la révision d'une forme
   if (a.kind === 'impro') return `gam:impro:${a.scaleId}:${a.system}:${a.formIndex}`;
-  // une séquence se joue tablature visible : elle prouve la vitesse, pas la mémoire de la forme
+  // une séquence se joue tablature visible : elle ne prouve pas la mémoire de la forme
   if (a.kind === 'sequence') return `gam:sequence:${a.scaleId}:${a.system}:${a.formIndex}`;
   if (a.module === 'accords' || a.chordId || a.progressionId || a.chordIdB) {
     // une progression et une transition sont des compétences à part entière : elles ne se confondent
@@ -183,40 +185,6 @@ export function nodeIdOf(
   return `gam:lecture:${a.scaleId}:${a.system}:${a.formIndex}`;
 }
 
-/** Le nœud appartient-il au module Accords ? (le hub et les écrans de gamme filtrent dessus) */
-export function isChordNode(nodeId: string): boolean {
-  return nodeId.startsWith('acc:');
-}
-
-/** Voicing d'un nœud d'**accord** (forme tenue), ou `null` pour un nœud de transition, de savoir, etc. */
-export function chordIdOfNode(nodeId: string): string | null {
-  return nodeId.startsWith('acc:accord:') ? nodeId.slice('acc:accord:'.length) : null;
-}
-
-/** Voicing dont le nœud décrit le **savoir** (QCM), ou `null`. */
-export function savoirIdOfNode(nodeId: string): string | null {
-  return nodeId.startsWith('acc:savoir:') ? nodeId.slice('acc:savoir:'.length) : null;
-}
-
-/** Paire ordonnée d'un nœud de transition, ou `null`. */
-export function transitionOfNode(nodeId: string): [string, string] | null {
-  if (!nodeId.startsWith('acc:transition:')) return null;
-  const body = nodeId.slice('acc:transition:'.length);
-  const i = body.indexOf('>');
-  if (i <= 0) return null;
-  return [body.slice(0, i), body.slice(i + 1)];
-}
-
-/** Progression d'un nœud `acc:progression:*`, ou `null`. */
-export function progressionIdOfNode(nodeId: string): string | null {
-  return nodeId.startsWith('acc:progression:') ? nodeId.slice('acc:progression:'.length) : null;
-}
-
-/** Part d'un nœud qui reste à expliquer : la tonique (preuve séparée). */
-export function tonicKey(a: Pick<Attempt, 'tonic'>): string {
-  return a.tonic;
-}
-
 export function scoreOf(a: Pick<Attempt, 'correct' | 'total'>): number | null {
   if (a.correct === null || a.total === null || a.total <= 0) return null;
   return Math.max(0, Math.min(1, a.correct / a.total));
@@ -226,11 +194,7 @@ export function isVerified(a: Pick<Attempt, 'correct' | 'total'>): boolean {
   return scoreOf(a) !== null;
 }
 
-/**
- * Tentative qui vaut **preuve** : vérifiée, et pas faite juste après avoir revu la réponse. C'est le filtre
- * de Leitner, de la maîtrise et de l'XP ; la série et l'objectif du jour gardent `isVerified` (un
- * rattrapage est de la pratique réelle, pas une preuve de mémoire).
- */
+/** Tentative qui vaut **preuve** : vérifiée, et pas faite juste après avoir revu la réponse. Filtre de Leitner. */
 export function isProof(a: Pick<Attempt, 'correct' | 'total' | 'afterReveal'>): boolean {
   return isVerified(a) && a.afterReveal !== true;
 }
@@ -407,62 +371,14 @@ export function loadJournal(store: KeyValueStore | null): Attempt[] {
 
 /** Émis sur `window` après chaque tentative ajoutée : la synchro du compte s'y accroche (`app/journalSync`). */
 export const JOURNAL_CHANGED = 'fretwave:journal';
+/** Émis après une synchro : le journal local a pu recevoir des tentatives d'un autre appareil. */
+export const JOURNAL_SYNCED = 'fretwave:journal-synced';
 
 export function appendAttempt(store: KeyValueStore | null, attempt: Attempt): Attempt[] {
   const next = [...readAttempts(store), normalizeAttempt(attempt)].filter((a): a is Attempt => a !== null);
   writeAttempts(store, next);
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(JOURNAL_CHANGED));
   return next;
-}
-
-// ---------------------------------------------------------------------------
-// Résumés de journée (les journées sont locales, comme l'utilisateur)
-// ---------------------------------------------------------------------------
-
-export interface DaySummary {
-  /** Écoutes (non vérifiées) aujourd'hui. */
-  listens: number;
-  /** Exercices vérifiés aujourd'hui (trous + rappel). */
-  exercises: number;
-  /** Trous justes au premier essai aujourd'hui. */
-  correct: number;
-  /** Trous posés aujourd'hui. */
-  holes: number;
-  seconds: number;
-  /** Nœuds distincts travaillés aujourd'hui. */
-  nodes: number;
-  /** Précision du jour (0-1), `null` sans exercice vérifié. */
-  accuracy: number | null;
-  /** Accords plaqués **auto-déclarés** (non vérifiés) : une activité, jamais une preuve. */
-  selfAssessed: number;
-  /** Poses à froid vérifiées aujourd'hui (étape Fixer). */
-  coldPoses: number;
-  /** Changements d'accord mesurés aujourd'hui (étape Enchaîner). */
-  transitions: number;
-}
-
-export function summarizeDay(attempts: readonly Attempt[], now: Date): DaySummary {
-  const today = dayKey(now.getTime());
-  const mine = attempts.filter((a) => dayKey(a.ts) === today);
-  const verified = mine.filter(isVerified);
-  const correct = verified.reduce((s, a) => s + (a.correct ?? 0), 0);
-  const holes = verified.reduce((s, a) => s + (a.total ?? 0), 0);
-  return {
-    listens: mine.filter((a) => a.kind === 'listen').length,
-    exercises: verified.length,
-    correct,
-    holes,
-    seconds: mine.reduce((s, a) => s + a.seconds, 0),
-    nodes: new Set(mine.map(nodeIdOf)).size,
-    accuracy: holes > 0 ? correct / holes : null,
-    selfAssessed: mine.filter((a) => a.kind === 'strum').length,
-    coldPoses: mine.filter((a) => a.kind === 'cold' && isVerified(a)).length,
-    transitions: mine.filter((a) => a.kind === 'transition' && isVerified(a)).length,
-  };
-}
-
-export function lastAttempt(attempts: readonly Attempt[]): Attempt | null {
-  return attempts.length ? attempts[attempts.length - 1]! : null;
 }
 
 /** Accès localStorage tolérant (navigation privée stricte, quota) : null si indisponible. */

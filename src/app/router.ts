@@ -3,19 +3,15 @@
  * Une route = un écran ; l'état fin (gamme choisie, position) vit dans les magasins, pas dans l'URL.
  */
 
-export type RouteName = 'hub' | 'gammes' | 'scale' | 'training' | 'review' | 'sequences' | 'impro' | 'accords' | 'chord' | 'chordquiz' | 'tuner' | 'metronome' | 'settings' | 'tab' | 'audio' | 'theory';
+export type RouteName = 'gammes' | 'scale' | 'review' | 'sequences' | 'impro' | 'accords' | 'tuner' | 'metronome' | 'settings' | 'tab' | 'audio' | 'theory';
 
 export const ROUTE_HREF: Readonly<Record<RouteName, string>> = {
-  hub: '#/hub',
   gammes: '#/gammes',
   scale: '#/gammes/jouer',
-  training: '#/gammes/entrainement',
   review: '#/gammes/revision',
   sequences: '#/gammes/sequences',
   impro: '#/gammes/impro',
   accords: '#/accords',
-  chord: '#/accords/lecon',
-  chordquiz: '#/accords/qcm',
   tuner: '#/accordeur',
   metronome: '#/metronome',
   settings: '#/reglages',
@@ -29,24 +25,18 @@ const LEGACY: Readonly<Record<string, RouteName>> = {
   '#tab': 'tab',
   '#audio': 'audio',
   '#theorie': 'theory',
-  '': 'hub',
-  '#': 'hub',
+  '': 'gammes',
+  '#': 'gammes',
 };
 
+/** L'app s'ouvre sur Gammes ; une page retirée (accueil, entraînement, leçon, QCM) mène à son outil (D128). */
 export function parseRoute(hash: string): RouteName {
   const h = (hash || '').trim();
   if (LEGACY[h] !== undefined) return LEGACY[h]!;
   const clean = h.replace(/^#\/?/, '').replace(/\/+$/, '');
   switch (clean) {
-    case 'hub':
-    case '':
-      return 'hub';
-    case 'gammes':
-      return 'gammes';
     case 'gammes/jouer':
       return 'scale';
-    case 'gammes/entrainement':
-      return 'training';
     case 'gammes/revision':
       return 'review';
     case 'gammes/sequences':
@@ -55,13 +45,11 @@ export function parseRoute(hash: string): RouteName {
     case 'gammes/improvisation':
       return 'impro';
     case 'accords':
-      return 'accords';
     case 'accords/lecon':
     case 'accords/lecon-accord':
-      return 'chord';
     case 'accords/qcm':
     case 'accords/sans-materiel':
-      return 'chordquiz';
+      return 'accords';
     case 'accordeur':
     case 'tuner':
       return 'tuner';
@@ -77,7 +65,7 @@ export function parseRoute(hash: string): RouteName {
     case 'theorie':
       return 'theory';
     default:
-      return 'hub';
+      return 'gammes';
   }
 }
 
@@ -91,7 +79,7 @@ export function hrefOf(route: RouteName): string {
   return ROUTE_HREF[route];
 }
 
-const EXERCISE_ROUTES: readonly RouteName[] = ['training', 'review', 'sequences', 'impro', 'chord'];
+const EXERCISE_ROUTES: readonly RouteName[] = ['review', 'sequences', 'impro'];
 
 /** La route d'exercice d'où l'on arrive, s'il y en a une : c'est là que l'accordeur propose de revenir. */
 export function exerciseOrigin(previous: RouteName | null): RouteName | null {

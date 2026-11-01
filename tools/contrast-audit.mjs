@@ -16,15 +16,11 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 const ROUTES = [
-  ['hub', '#/hub'],
   ['gammes', '#/gammes'],
   ['gammes-jouer', '#/gammes/jouer'],
-  ['gammes-entrainement', '#/gammes/entrainement'],
   ['gammes-revision', '#/gammes/revision'],
   ['gammes-impro', '#/gammes/impro'],
   ['accords', '#/accords'],
-  ['accords-lecon', '#/accords/lecon'],
-  ['accords-qcm', '#/accords/qcm'],
   ['accordeur', '#/accordeur'],
   ['reglages', '#/reglages'],
 ];

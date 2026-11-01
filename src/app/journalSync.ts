@@ -5,7 +5,7 @@
  */
 import { ACCOUNTS_ENABLED, fetchAccount } from '../core/account/client';
 import { syncJournal } from '../core/account/journalSync';
-import { JOURNAL_CHANGED, progressStore } from '../core/progress/journal';
+import { JOURNAL_CHANGED, JOURNAL_SYNCED, progressStore } from '../core/progress/journal';
 
 const DEBOUNCE_MS = 1500;
 
@@ -30,6 +30,7 @@ async function run(): Promise<void> {
         return;
       }
     } while (again);
+    window.dispatchEvent(new Event(JOURNAL_SYNCED));
   })().finally(() => {
     running = null;
   });

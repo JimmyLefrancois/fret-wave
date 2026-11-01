@@ -9,8 +9,6 @@ import type { KeyValueStore } from '../core/audio/mixer';
 import { DEFAULT_THEME, THEMES, getTheme } from '../core/themes/registry';
 import type { ThemeTokens } from '../core/themes/tokens';
 import { DEFAULT_LOOK_SECONDS, LOOK_SECONDS, type LookSeconds } from '../modules/gammes/coldReview';
-import { GRID_TEMPO_MAX, GRID_TEMPO_MIN, type GridSubdivision } from '../modules/gammes/exercise';
-import { SPEED_TARGET_BPM, SPEED_TARGET_MAX, SPEED_TARGET_MIN } from '../core/progress/mastery';
 
 export const SETTINGS_KEY = 'fretwave.settings.v1';
 
@@ -22,41 +20,18 @@ export interface AppSettings {
   reduceMotion: boolean;
   /** Scanlines CRT sur la scène (jamais sur le panneau de tablature). */
   scanlines: boolean;
-  /** Rangée de degrés sous la tablature (niveau 1). */
+  /** Rangée de degrés sous la tablature. */
   showDegreeRow: boolean;
-  /** Part des notes masquées au niveau 2 (20 / 35 / 50 %). */
-  holeRate: HoleRate;
-  /** Tempo de la grille de l'exercice (un clic par temps), en BPM. */
-  trainingTempo: number;
-  /** Notes par temps de la grille : 1 (noires, défaut) ou 2 (croches, pour viser la vitesse). */
-  gridSubdivision: GridSubdivision;
-  /** Tempo cible de la vitesse (« maîtrisée »), en BPM de croches. */
-  speedTargetBpm: number;
-  /**
-   * Boîte d'accord dans les étapes « Découvrir » et « Construire » du module Accords (D1 = B).
-   * Désactivable : la tablature seule reste la règle par défaut du brief.
-   */
-  showChordBox: boolean;
   /**
    * Vue manche sous la tablature, page « Découvrir » du module Gammes (MUSIC_DESIGN §7.1) : la forme de
-   * la position et sa place sur le manche. Jamais aux niveaux 2-4, où elle donnerait les réponses.
+   * la position et sa place sur le manche.
    * Masquée par défaut (la tab reste la règle du brief) : un interrupteur à côté de la tab l'ouvre.
    */
   showNeck: boolean;
-  /**
-   * Rappel à froid en révision : une carte due se révise d'abord en N3 sur la position entière, sans
-   * revoir la forme (MUSIC_DESIGN §5). Désactivable : la révision reprend alors le choix de la phase 2.
-   */
-  coldReview: boolean;
   /** Durée de l'écran « Regarde la forme » après un rappel à froid manqué (s). */
   lookSeconds: LookSeconds;
 }
 
-/** Taux de trous du niveau 2 : trois crans, pas un curseur continu. */
-export type HoleRate = 0.2 | 0.35 | 0.5;
-export const HOLE_RATES: readonly HoleRate[] = [0.2, 0.35, 0.5];
-export const MIN_TEMPO = GRID_TEMPO_MIN;
-export const MAX_TEMPO = GRID_TEMPO_MAX;
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: DEFAULT_THEME,
@@ -65,13 +40,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   reduceMotion: false,
   scanlines: true,
   showDegreeRow: true,
-  holeRate: 0.35,
-  trainingTempo: 50,
-  gridSubdivision: 1,
-  speedTargetBpm: SPEED_TARGET_BPM,
-  showChordBox: true,
   showNeck: false,
-  coldReview: true,
   lookSeconds: DEFAULT_LOOK_SECONDS,
 };
 
@@ -91,18 +60,8 @@ export function loadAppSettings(store: KeyValueStore | null): AppSettings {
     if (typeof o.reduceMotion === 'boolean') out.reduceMotion = o.reduceMotion;
     if (typeof o.scanlines === 'boolean') out.scanlines = o.scanlines;
     if (typeof o.showDegreeRow === 'boolean') out.showDegreeRow = o.showDegreeRow;
-    if (typeof o.showChordBox === 'boolean') out.showChordBox = o.showChordBox;
     if (typeof o.showNeck === 'boolean') out.showNeck = o.showNeck;
-    if (typeof o.coldReview === 'boolean') out.coldReview = o.coldReview;
     if (LOOK_SECONDS.includes(o.lookSeconds as LookSeconds)) out.lookSeconds = o.lookSeconds as LookSeconds;
-    if (HOLE_RATES.includes(o.holeRate as HoleRate)) out.holeRate = o.holeRate as HoleRate;
-    if (typeof o.trainingTempo === 'number' && Number.isFinite(o.trainingTempo)) {
-      out.trainingTempo = Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, Math.round(o.trainingTempo)));
-    }
-    if (o.gridSubdivision === 1 || o.gridSubdivision === 2) out.gridSubdivision = o.gridSubdivision;
-    if (typeof o.speedTargetBpm === 'number' && Number.isFinite(o.speedTargetBpm)) {
-      out.speedTargetBpm = Math.max(SPEED_TARGET_MIN, Math.min(SPEED_TARGET_MAX, Math.round(o.speedTargetBpm)));
-    }
   } catch {
     /* JSON cassé : on garde les défauts */
   }

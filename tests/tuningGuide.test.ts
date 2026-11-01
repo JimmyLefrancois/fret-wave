@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  GUIDE_HOLD_MS, IN_TUNE_CENTS, STATUS_TEXT, TUNING_STORE_KEY, TUNING_STALE_DAYS, guideComplete, guideStatusOf,
-  guideSteps, guideTick, newGuide, readTuningRecord, tuningFreshness, writeTuningRecord, type GuideState,
+  IN_TUNE_CENTS, TUNING_STORE_KEY, TUNING_STALE_DAYS, guideStatusOf, guideSteps, readTuningRecord, tuningFreshness, writeTuningRecord,
 } from '../src/core/input/tuningGuide';
 import { TUNINGS } from '../src/core/theory';
 import type { KeyValueStore } from '../src/core/audio/mixer';
@@ -49,49 +48,6 @@ describe('Accordage guidé — « juste » veut dire juste', () => {
   it('une autre corde n’est pas « un peu faux », c’est une autre note', () => {
     expect(guideStatusOf({ midi: step.midi + 5, cents: 0 }, step).status).toBe('far');
     expect(guideStatusOf(null, step).status).toBe('silent');
-  });
-
-  it('chaque état a un texte pour l’écran', () => {
-    for (const k of ['silent', 'in-tune', 'low', 'high', 'far'] as const) expect(STATUS_TEXT[k].length).toBeGreaterThan(4);
-  });
-});
-
-describe('Accordage guidé — l’enchaînement', () => {
-  const steps = guideSteps(std, 440);
-
-  it('une corde juste doit être tenue 400 ms avant de passer', () => {
-    let state: GuideState = newGuide();
-    const heard = { midi: steps[0]!.midi, cents: 1 };
-    let tick = guideTick(state, steps[0], heard, 0, steps.length);
-    expect(tick.state.index).toBe(0);
-    state = tick.state;
-    tick = guideTick(state, steps[0], heard, GUIDE_HOLD_MS - 100, steps.length);
-    expect(tick.state.index).toBe(0);
-    expect(tick.justValidated).toBe(false);
-    tick = guideTick(tick.state, steps[0], heard, GUIDE_HOLD_MS + 20, steps.length);
-    expect(tick.state.index).toBe(1);
-    expect(tick.justValidated).toBe(true);
-    expect(tick.state.validated).toBe(1);
-  });
-
-  it('une corde qui retombe faux remet la tenue à zéro', () => {
-    let tick = guideTick(newGuide(), steps[0], { midi: steps[0]!.midi, cents: 2 }, 0, steps.length);
-    expect(tick.state.holdSince).toBe(0);
-    tick = guideTick(tick.state, steps[0], { midi: steps[0]!.midi, cents: 30 }, 200, steps.length);
-    expect(tick.state.holdSince).toBeNull();
-    expect(tick.state.index).toBe(0);
-  });
-
-  it('la dernière corde termine l’accordage, et l’état ne recule plus', () => {
-    let state: GuideState = { index: steps.length - 1, holdSince: null, done: false, validated: steps.length - 1 };
-    const last = steps[steps.length - 1]!;
-    const tick = guideTick(state, last, { midi: last.midi, cents: 0 }, 0, steps.length);
-    state = tick.state;
-    const done = guideTick(state, last, { midi: last.midi, cents: 0 }, 1000, steps.length);
-    // la tenue démarre à 0 : à 1000 ms elle est acquise
-    expect(done.state.done).toBe(true);
-    expect(guideComplete(done.state, steps)).toBe(true);
-    expect(guideTick(done.state, last, { midi: last.midi, cents: 0 }, 2000, steps.length).state.done).toBe(true);
   });
 });
 

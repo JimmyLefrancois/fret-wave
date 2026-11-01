@@ -109,7 +109,7 @@ export function matchPitch(heardMidiFloat: number, targets: readonly Target[], o
   if (ad * 100 <= Math.max(tol + 10, 60)) return { kind: 'tuning', target, cents };
   if (ad >= 10.5 && ad <= 13.5) {
     // une octave d'écart : vers le haut sur une cible grave, c'est le détecteur qui se trompe ;
-    // vers le bas, c'est l'élève (mais on ne compte pas l'erreur ici : l'écran décide, voir `ScaleTrainingPage`)
+    // vers le bas, c'est l'élève (mais on ne compte pas l'erreur ici : l'écran décide, voir `ScaleReviewPage`)
     return { kind: 'octave', target, direction: delta > 0 ? 'high' : 'low' };
   }
   if (ad <= maxAttempt) return { kind: 'wrong', target, heardMidi: Math.round(heardMidiFloat), deltaSemitones: delta, cents };

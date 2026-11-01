@@ -1,26 +1,23 @@
 /**
- * Module Gammes — l'écran unique : **choisir, puis voir les positions et agir dessus**.
+ * Module Gammes — l'écran d'ouverture de l'app : **ce qui est à réviser, puis choisir, puis agir**.
  *
- * Avant (phase 1-4), quatre panneaux numérotés (gamme, tonique, système de positions, position) et
- * deux boutons en bas : il fallait comprendre « système de positions » et « CAGED / 3NPS » avant de
- * pouvoir jouer une seule note, et le choix de la position était séparé de l'action.
- *
- * Maintenant : deux rangées de pastilles (la tonique, la gamme), puis **la liste des positions**, chaque
- * ligne portant ses deux gestes — « Découvrir » (niveau 1 : la tablature s'affiche et s'écoute) et
- * « S'exercer » (le micro vérifie chaque note). L'accordage et le système de positions passent dans un
- * repli : ce sont des réglages, pas des étapes.
+ * Deux rangées de pastilles (la tonique, la gamme), puis **la liste des positions**, chaque ligne portant
+ * ses gestes : « Découvrir » et « Séquences ». L'accordage et le système de positions passent dans un repli :
+ * ce sont des réglages, pas des étapes. Au-dessus, le bloc « À réviser » liste les formes dues (D128).
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { navigate } from '../../app/router';
 import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
 import { useSettings } from '../../app/settings';
-import { Chip, Panel, Segmented } from '../../app/ui';
+import { Chip, Panel, PixelButton, Segmented } from '../../app/ui';
+import * as clock from '../../core/clock';
+import { JOURNAL_SYNCED, loadJournal, progressStore } from '../../core/progress';
 import {
   TUNINGS, degreeLabels, fmtNote, getScale, tonicSpellings, type PositionSystem,
 } from '../../core/theory';
 import { SCALE_GROUPS } from './content';
 import { fmtDegree, positionLabelPlain, resolveScale, scaleGroupOf, scaleTitle } from './resolve';
-
+import { reviewDelayText, reviewSummary } from './review';
 
 const SYSTEM_LABEL: Record<PositionSystem, string> = {
   '3nps': '3 notes par corde',
@@ -35,11 +32,20 @@ export function ScaleSelectPage() {
   const selection = useScaleSelection();
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
   const group = scaleGroupOf(selection.scaleId, selection.groupId);
+  // l'app s'ouvre ici : une synchro arrivée après l'affichage peut ajouter des formes dues
+  const [synced, setSynced] = useState(0);
+  useEffect(() => {
+    const on = () => setSynced((n) => n + 1);
+    window.addEventListener(JOURNAL_SYNCED, on);
+    return () => window.removeEventListener(JOURNAL_SYNCED, on);
+  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const review = useMemo(() => reviewSummary(loadJournal(progressStore()), clock.now()), [synced]);
 
   const set = (patch: Parameters<typeof setScaleSelection>[0]) => setScaleSelection(patch);
   const resetPosition = { positionIndex: 0 };
   /** Choisit une position puis ouvre l'écran voulu : un seul geste par ligne. */
-  const open = (index: number, where: 'scale' | 'training') => {
+  const open = (index: number, where: 'scale' | 'sequences') => {
     setScaleSelection({ positionIndex: index });
     navigate(where);
   };
@@ -51,12 +57,29 @@ export function ScaleSelectPage() {
   return (
     <main className="shell">
       <header className="page-head">
-        <button type="button" className="back" onClick={() => navigate('hub')} aria-label="Retour à l’accueil">‹</button>
         <div>
           <h1 className="page-title">Gammes</h1>
           <p className="t-small t-dim">Choisis la gamme, puis la position.</p>
         </div>
       </header>
+
+      {review.forms.length > 0 ? (
+        <Panel className="span-12 review-due" accent="green" active label="À réviser" right={<span className="badge">{review.count}</span>}>
+          <ul className="review-forms">
+            {review.forms.map((t) => (
+              <li key={t.nodeId}>
+                <strong>{t.title}</strong>
+                <span className="t-small t-dim">{t.positionLabel.split(' · ')[0]} · {t.reason}</span>
+              </li>
+            ))}
+          </ul>
+          <PixelButton variant="primary" onClick={() => navigate('review')}>
+            ▶ Réviser {review.forms.length > 1 ? `ces ${review.forms.length} formes` : 'cette forme'}
+          </PixelButton>
+        </Panel>
+      ) : review.nextDue !== null && (
+        <p className="t-small t-dim review-next">Rien à réviser pour l’instant · {reviewDelayText(review.nextDue - clock.now())}.</p>
+      )}
 
       <Panel className="span-5 panel-fill" accent="magenta" label="1 · La gamme">
         <p className="t-label tonics-label">Tonique</p>
@@ -128,8 +151,8 @@ export function ScaleSelectPage() {
                     <span className="t-small t-dim">départ sur le {fmtDegree(p.notes[0]?.degree ?? '1')} · {p.notes.length} notes</span>
                   </span>
                   <span className="pos-acts">
-                    <button type="button" className="pos-act" onClick={() => open(i, 'scale')}>Découvrir</button>
-                    <button type="button" className="pos-act primary" onClick={() => open(i, 'training')}>S’exercer</button>
+                    <button type="button" className="pos-act primary" onClick={() => open(i, 'scale')}>Découvrir</button>
+                    <button type="button" className="pos-act" onClick={() => open(i, 'sequences')}>Séquences</button>
                   </span>
                 </li>
               ))}

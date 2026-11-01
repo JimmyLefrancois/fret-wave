@@ -6,7 +6,6 @@
 import { useSyncExternalStore } from 'react';
 import type { PositionSystem } from '../core/theory';
 import type { KeyValueStore } from '../core/audio/mixer';
-import type { Segment } from '../modules/gammes/exercise';
 
 export const SCALE_SELECTION_KEY = 'fretwave.scale.v1';
 
@@ -26,7 +25,7 @@ export interface ScaleSelection {
   groupId?: string;
 }
 
-/** Le point d'entrée pédagogique du module : La mineur pentatonique, box 1 (MUSIC_DESIGN §3.2). */
+/** La gamme ouverte par défaut : La mineur pentatonique, box 1 (MUSIC_DESIGN §3.2). */
 export const DEFAULT_SELECTION: ScaleSelection = {
   scaleId: 'pentatonic-minor',
   tonic: 'A',
@@ -65,19 +64,19 @@ function safeStorage(): KeyValueStore | null {
 }
 
 /**
- * Départ demandé à l'écran d'entraînement (niveau, découpage) par l'accueil ou le bilan de séance
- * (« Avancer : Position 3, exercice à trous ») : lu à l'ouverture de l'écran, puis effacé.
+ * « Réviser cette forme » : la page Révision ouvre la forme courante au lieu de la file du jour.
+ * Lue à l'ouverture de la page, puis effacée.
  */
-let pendingStart: { level: 2 | 3; segment: Segment } | null = null;
-export function setTrainingStart(start: { level: 2 | 3; segment: Segment } | null): void {
-  pendingStart = start;
+let formReview = false;
+export function requestFormReview(): void {
+  formReview = true;
 }
-/** Lecture sans effacer (React peut appeler deux fois un initialiseur d'état) ; `clearTrainingStart` ensuite. */
-export function peekTrainingStart(): { level: 2 | 3; segment: Segment } | null {
-  return pendingStart;
+/** Lecture sans effacer (React peut appeler deux fois un initialiseur d'état) ; `clearFormReview` ensuite. */
+export function peekFormReview(): boolean {
+  return formReview;
 }
-export function clearTrainingStart(): void {
-  pendingStart = null;
+export function clearFormReview(): void {
+  formReview = false;
 }
 
 let current: ScaleSelection | null = null;

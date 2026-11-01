@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { TUNINGS, generatePositions, midiToCandidates, midiToFreq } from '../src/core/theory';
 import { positionToScore } from '../src/core/tab';
-import { buildExercise, segmentPlan } from '../src/modules/gammes/exercise';
+import { buildExercise } from '../src/modules/gammes/exercise';
 import {
   describeHeard, matchPitch, nearestOpenString, noteNameOf, targetsFor, tuneStatus,
 } from '../src/core/input/match';
@@ -15,8 +15,8 @@ const std = TUNINGS.standard!;
 const box1 = generatePositions('pentatonic-minor', 'A', std, 'boxes')[0]!;
 const up = positionToScore(box1, std, { direction: 'up' });
 const updown = positionToScore(box1, std, { direction: 'updown' });
-const exUp = buildExercise(up, 3);
-const exUpDown = buildExercise(updown, 3);
+const exUp = buildExercise(up);
+const exUpDown = buildExercise(updown);
 const targetsUp = targetsFor(exUp.holes, std);
 const opts = { centsTolerance: 35 };
 
@@ -180,13 +180,3 @@ describe('accordeur : corde la plus proche', () => {
   });
 });
 
-describe('appariement : le plan de segment alimente les cibles', () => {
-  it('les cibles d’un segment de 2 cordes ne contiennent que ces cordes', () => {
-    const plan = segmentPlan(box1, 'strings2');
-    const score = positionToScore(plan.position, std, { direction: plan.direction });
-    const ex = buildExercise(score, 3);
-    const targets = targetsFor(ex.holes, std);
-    expect(targets.length).toBeGreaterThan(0);
-    for (const t of targets) expect(t.string).toBeLessThan(2);
-  });
-});

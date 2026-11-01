@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildReviewQueue, moreDue, reviewCount, sessionFact, REVIEW_MAX } from '../src/modules/gammes/review';
-import { GAP_TEXT } from '../src/modules/gammes/curriculum';
-import { learnedGaps, summarizeNodes, zoneOf } from '../src/core/progress';
+import {
+  buildReviewQueue, formReviewTarget, moreDue, reviewCount, reviewDelayText, reviewSummary, sessionFact, REVIEW_MAX,
+} from '../src/modules/gammes/review';
+import { nodeIdOf, summarizeNodes, zoneOf } from '../src/core/progress';
 import { DUE_CAP } from '../src/core/progress/scheduler';
 import { resolveScale } from '../src/modules/gammes/resolve';
 import type { Attempt } from '../src/core/progress/journal';
@@ -47,27 +48,24 @@ describe('session de révision mélangée', () => {
     expect(buildReviewQueue([attempt({ kind: 'listen', correct: null, total: null })], NOW)).toEqual([]);
   });
 
-  it('les cartes dues passent en premier, par échéance croissante', () => {
+  it('seules les cartes dues entrent, par échéance croissante', () => {
     const list = [
       ionian(at(2), { correct: 4, total: 5 }),                       // boîte 1, due depuis 2 jours
       attempt({ ts: at(6), correct: 5, total: 5 }),                  // boîte 2
       attempt({ ts: at(3), correct: 5, total: 5 }),                  // boîte 3 → due maintenant
-      dorian(NOW, { correct: 3, total: 5 }),                         // échec : due dans 10 min
+      dorian(NOW, { correct: 3, total: 5 }),                         // échec : due dans 10 min, pas encore
     ];
     const due = dueCards(cardsFrom(list), NOW);
     expect(due.length).toBe(2);
-    // rappel à froid désactivé : le choix de niveau de la phase 2
-    const q = buildReviewQueue(list, NOW, REVIEW_MAX, { cold: false });
-    expect(q.length).toBe(3);
-    // les cartes dues ouvrent la file, dans l'ordre du planificateur
-    due.forEach((c, i) => expect(q[i]!.nodeId).toBe(c.nodeId));
-    expect(q[0]!.reason).toContain('à revoir');
-    expect(q.every((t) => t.mode === 'practice' && t.segment === 'updown')).toBe(true);
-    // une carte à boîte ≥ 3 se révise de mémoire (N3), une boîte 1 avec les notes visibles (N2)
-    const pent = q.find((t) => t.nodeId === 'gam:lecture:pentatonic-minor:boxes:0')!;
-    const box = cardsFrom(list).find((c) => c.nodeId === pent.nodeId)!.box;
-    expect(pent.level).toBe(box >= 3 ? 3 : 2);
-    expect(q.find((t) => t.nodeId === 'gam:lecture:ionian:caged:0')!.level).toBe(2);
+    const q = buildReviewQueue(list, NOW);
+    expect(q.map((t) => t.nodeId)).toEqual(due.map((c) => c.nodeId));
+    expect(q.every((t) => /^palier \d sur 6$/.test(t.reason))).toBe(true);
+  });
+
+  it('une carte née d’un ancien exercice à trous reste due et se révise à froid', () => {
+    const q = buildReviewQueue([attempt({ ts: at(6), kind: 'holes', level: 2, correct: 5, total: 5 })], NOW);
+    expect(q).toHaveLength(1);
+    expect(q[0]!.reason).toBe('palier 2 sur 6');
   });
 
   it('deux formes de la même gamme ne se suivent pas quand une alternative existe', () => {
@@ -108,32 +106,9 @@ describe('session de révision mélangée', () => {
   });
 
   it('plafond respecté, et une écoute ne crée pas de cible', () => {
-    const list = Array.from({ length: 8 }, (_, i) => attempt({ ts: at(3), correct: 5, total: 5, formIndex: i % 4 }));
+    const list = Array.from({ length: 8 }, (_, i) => attempt({ ts: at(4), correct: 5, total: 5, formIndex: i % 4 }));
     expect(buildReviewQueue(list, NOW).length).toBeLessThanOrEqual(REVIEW_MAX);
     expect(buildReviewQueue(list, NOW, 2).length).toBe(2);
-  });
-
-  it('rappel à froid (défaut) : une carte due se révise en N3 sur la position entière, en aller-retour', () => {
-    const list = [
-      ionian(at(2), { correct: 4, total: 5 }),           // boîte 1, due
-      attempt({ ts: at(3), correct: 5, total: 5 }),      // due
-      dorian(NOW, { correct: 5, total: 5 }),             // pas due : forme fragile, exercice ordinaire
-    ];
-    const q = buildReviewQueue(list, NOW);
-    const due = dueCards(cardsFrom(list), NOW).map((c) => c.nodeId);
-    expect(due.length).toBe(2);
-    for (const t of q) {
-      if (due.includes(t.nodeId)) {
-        expect(t.mode).toBe('cold');
-        expect(t.level).toBe(3);
-        expect(t.segment).toBe('updown');
-        expect(t.reason).toContain('rappel à froid');
-      } else {
-        expect(t.mode).toBe('practice');
-        expect(t.level).toBe(2);
-        expect(t.segment).toBe('updown');
-      }
-    }
   });
 
   it('une prise d’impro ne sert pas de « dernière tentative » à une forme', () => {
@@ -151,7 +126,7 @@ const recall = (ts: number, patch: Partial<Attempt> = {}) =>
   attempt({ ts, kind: 'recall', level: 3, strings: 6, fullPosition: true, correct: 10, total: 10, ...patch });
 
 describe('révision honnête (D97)', () => {
-  it('une forme maîtrisée non due n’entre jamais en complément', () => {
+  it('une forme maîtrisée non due n’entre pas dans la file', () => {
     // 4 réussites nettes sur 4 jours : palier 5 (16 j), donc maîtrisée et pas due
     const list = [recall(at(30)), recall(at(28)), recall(at(24)), recall(at(16))];
     const node = summarizeNodes(list)[0]!;
@@ -160,23 +135,15 @@ describe('révision honnête (D97)', () => {
     expect(buildReviewQueue(list, NOW)).toEqual([]);
   });
 
-  it('le complément ne prend que des formes en apprentissage, raison tirée de learnedGaps', () => {
+  it('une forme en apprentissage attend son échéance, une forme rappelée à froid attend demain', () => {
     const list = [
-      // apprise, pas due : jamais en complément
-      recall(at(3), { formIndex: 1 }), recall(at(1), { formIndex: 1 }),
-      // en apprentissage, jouée en N2 il y a 2 h : complément
-      attempt({ ts: NOW - 2 * 3_600_000, formIndex: 2, correct: 5, total: 5 }),
-      // en apprentissage, déjà rappelée à froid aujourd'hui : elle sort de la file jusqu'à demain
-      recall(NOW - 2 * 3_600_000, { formIndex: 3 }),
+      // en apprentissage, jouée il y a 2 h, palier 2 : pas due
+      recall(NOW - 2 * 3_600_000, { formIndex: 2 }),
+      // ratée il y a 2 h : Leitner la dit due (10 min), mais elle vient d'être rappelée à froid
+      recall(NOW - 2 * 3_600_000, { formIndex: 3, correct: 2, total: 10 }),
     ];
-    const nodes = new Map(summarizeNodes(list).map((n) => [n.nodeId, n] as const));
-    expect(nodes.get('gam:lecture:pentatonic-minor:boxes:1')!.state).toBe('learned');
-    const q = buildReviewQueue(list, NOW);
-    expect(q.map((t) => t.nodeId)).toEqual(['gam:lecture:pentatonic-minor:boxes:2']);
-    const t = q[0]!;
-    expect(t.mode).toBe('practice');
-    const gaps = learnedGaps(nodes.get(t.nodeId)!).map((g) => GAP_TEXT[g]).join(' et ');
-    expect(t.reason).toBe(`en apprentissage · il manque ${gaps}`);
+    expect(buildReviewQueue(list, NOW)).toEqual([]);
+    expect(dueCards(cardsFrom(list), NOW)).toHaveLength(1);
   });
 
   it('reviewCount plafonne à DUE_CAP, la séance à REVIEW_MAX', () => {
@@ -186,9 +153,9 @@ describe('révision honnête (D97)', () => {
       ...[0, 1, 2].map((formIndex) => ionian(at(2), { kind: 'recall', level: 3, strings: 6, fullPosition: true, formIndex, correct: 10, total: 10 })),
     ];
     expect(reviewCount(eight, NOW)).toBe(8);
-    expect(buildReviewQueue(eight, NOW).filter((t) => t.mode === 'cold')).toHaveLength(REVIEW_MAX);
+    expect(buildReviewQueue(eight, NOW)).toHaveLength(REVIEW_MAX);
     expect(moreDue(eight, NOW)).toBe(8);
-    // 10 dues : l'accueil en annonce 8
+    // 10 dues : la page Gammes en annonce 8
     const ten = [...eight, ...[0, 1].map((formIndex) => dorian(at(2), { kind: 'recall', level: 3, strings: 6, fullPosition: true, formIndex, correct: 10, total: 10 }))];
     expect(reviewCount(ten, NOW)).toBe(DUE_CAP);
     // après une séance de 5 rappels à froid réussis : il en reste 3 sur les 8 du jour
@@ -206,9 +173,8 @@ describe('révision honnête (D97)', () => {
     expect(summarizeNodes(list)[0]!.state).toBe('learned');
     expect(cardsFrom(list)[0]!.reps % 2).toBe(0);
     const [t] = buildReviewQueue(list, NOW);
-    expect(t!.mode).toBe('cold');
     expect(t!.selection.tonic).toBe('A');
-    expect(t!.reason).toContain('rappel à froid');
+    expect(t!.reason).toMatch(/^palier \d sur 6$/);
   });
 
   it('avec 2 toniques travaillées, un rappel sur deux change de zone', () => {
@@ -217,7 +183,6 @@ describe('révision honnête (D97)', () => {
     // rang pair : transposée, dans une zone que la forme n'a jamais vue
     const even = [recall(at(10)), recall(at(8)), mi];
     const [t] = buildReviewQueue(even, NOW).filter((x) => x.nodeId.endsWith(':0'));
-    expect(t!.mode).toBe('cold');
     expect(t!.selection.tonic).not.toBe('A');
     const pos = resolveScale(t!.selection).position!;
     expect(summarizeNodes(even).find((n) => n.nodeId === t!.nodeId)!.zones).not.toContain(zoneOf(pos.fretMin));
@@ -227,7 +192,66 @@ describe('révision honnête (D97)', () => {
     expect(cardsFrom(odd).find((c) => c.nodeId.endsWith(':0'))!.reps % 2).toBe(1);
     const [u] = buildReviewQueue(odd, NOW).filter((x) => x.nodeId.endsWith(':0'));
     expect(u!.selection.tonic).toBe('A');
-    expect(u!.reason).toContain('rappel à froid');
+    expect(u!.reason).toMatch(/^palier \d sur 6$/);
+  });
+});
+
+describe('Réviser cette forme (D128)', () => {
+  const selection = { scaleId: 'pentatonic-minor', tonic: 'A', tuningId: 'standard', system: 'boxes' as const, positionIndex: 2 };
+
+  it('vise la forme ouverte, due ou non', () => {
+    const t = formReviewTarget(selection)!;
+    const r = resolveScale(selection);
+    expect(t.asked).toBe(true);
+    expect(t.selection).toMatchObject({ scaleId: 'pentatonic-minor', tonic: 'A', positionIndex: 2 });
+    expect(t.nodeId).toBe(nodeIdOf({ scaleId: 'pentatonic-minor', system: 'boxes', formIndex: r.position!.formIndex ?? r.position!.index }));
+    expect(t.reason).toBe('à ta demande');
+  });
+
+  it('sa première tentative crée la carte de la forme, sans règle à part', () => {
+    const t = formReviewTarget(selection)!;
+    const r = resolveScale(selection);
+    const first = recall(NOW, { formIndex: r.position!.formIndex ?? r.position!.index });
+    expect(cardsFrom([first]).map((c) => c.nodeId)).toEqual([t.nodeId]);
+  });
+
+  it('un système indisponible retombe sur celui de la gamme, comme à l’écran', () => {
+    expect(formReviewTarget({ ...selection, system: 'symmetric' })!.selection.system).toBe('boxes');
+  });
+});
+
+describe('bloc « À réviser » de la page Gammes', () => {
+  it('journal vide : rien à afficher', () => {
+    expect(reviewSummary([], NOW)).toEqual({ forms: [], count: 0, nextDue: null });
+  });
+
+  it('une forme due : la file, pas d’échéance suivante', () => {
+    const s = reviewSummary([recall(at(10))], NOW);
+    expect(s.forms).toHaveLength(1);
+    expect(s.count).toBe(1);
+    expect(s.nextDue).toBeNull();
+  });
+
+  it('rien de dû : la prochaine échéance', () => {
+    const list = [recall(NOW - 3_600_000)];
+    const s = reviewSummary(list, NOW);
+    expect(s.forms).toEqual([]);
+    expect(s.nextDue).toBe(cardsFrom(list)[0]!.due);
+  });
+
+  it('une forme due déjà rappelée à froid aujourd’hui revient demain', () => {
+    const s = reviewSummary([recall(NOW - 3_600_000, { correct: 2, total: 10 })], NOW);
+    expect(s.forms).toEqual([]);
+    expect(new Date(s.nextDue!).getDate()).toBe(new Date(NOW).getDate() + 1);
+    expect(new Date(s.nextDue!).getHours()).toBe(0);
+  });
+
+  it('délai lisible d’un coup d’œil', () => {
+    expect(reviewDelayText(0)).toBe('à réviser maintenant');
+    expect(reviewDelayText(10 * 60_000)).toBe('révision dans 10 min');
+    expect(reviewDelayText(5 * 3_600_000)).toBe('révision dans 5 h');
+    expect(reviewDelayText(DAY)).toBe('révision dans 1 jour');
+    expect(reviewDelayText(3 * DAY)).toBe('révision dans 3 jours');
   });
 });
 
@@ -236,8 +260,7 @@ describe('sessionFact (panneau « Exercice » en séance, constat 14)', () => {
     const due = [recall(at(10)), recall(at(8))];
     const [cold] = buildReviewQueue(due, NOW);
     expect(sessionFact(1, 5, cold!)).toBe('2 sur 5 · Position 1 · à rafraîchir');
-    const [learning] = buildReviewQueue([attempt({ ts: NOW - 7_200_000, correct: 5, total: 5 })], NOW);
-    expect(sessionFact(0, 1, learning!)).toBe('1 sur 1 · Position 1 · en apprentissage');
+    expect(sessionFact(0, 1, { ...cold!, asked: true })).toBe('1 sur 1 · Position 1 · à ta demande');
     const moved = { ...cold!, reason: 'même dessin, autre case : en Ré m, cases 10–13' };
     expect(sessionFact(0, 3, moved)).toBe('1 sur 3 · Position 1 · même dessin, autre case');
   });

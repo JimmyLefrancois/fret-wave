@@ -3,8 +3,7 @@
  * Une seule couche, dessinée une fois par (mise en page, échelle) : la boîte est statique — l'anneau
  * de l'étape « Construire » fait partie du dessin, il n'a pas besoin d'animation.
  *
- * Composant séparé du reste de la leçon pour la même raison que `MicStrip` : il porte un canvas, et
- * seul son contenu doit changer quand l'accord change.
+ * Composant séparé : il porte un canvas, et seul son contenu doit changer quand l'accord change.
  */
 import { useEffect, useRef, useState } from 'react';
 import { CanvasSurface, drawChordBox, layoutChordBox } from '../core/tab';

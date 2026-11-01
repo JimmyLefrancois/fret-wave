@@ -131,10 +131,3 @@ export function blindGrid(notes: number, tempo: number, perBeat: GridSubdivision
     grid,
   };
 }
-
-/** Temps du décompte restant à afficher (4, 3, 2, 1), ou `null` une fois la série lancée. */
-export function countInBeat(elapsed: number, grid: BlindGrid): number | null {
-  if (elapsed >= grid.countIn) return null;
-  const beat = grid.countIn / 4;
-  return Math.max(1, 4 - Math.floor(Math.max(0, elapsed) / beat));
-}

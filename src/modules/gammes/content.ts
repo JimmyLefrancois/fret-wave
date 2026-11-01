@@ -1,8 +1,7 @@
 /**
- * Contenu éditorial du module Gammes : groupes du catalogue, notes pédagogiques par gamme,
- * et trois points d'entrée recommandés. Aucune logique : c'est du texte relu en tant que prof.
+ * Contenu éditorial du module Gammes : groupes du catalogue et notes par gamme. Aucune logique : c'est du
+ * texte relu en tant que prof.
  */
-import type { PositionSystem } from '../../core/theory';
 
 export interface ScaleGroup {
   id: string;
@@ -97,32 +96,3 @@ export const SCALE_HINTS: Readonly<Record<string, string>> = {
   'bebop-dominant': 'Mixolydien + la 7M de passage : la gamme des boppers sur un V7.',
   'bebop-major': 'Ionien + la ♯5 de passage : sur un Imaj7.',
 };
-
-export interface EntryPoint {
-  scaleId: string;
-  tonic: string;
-  system: PositionSystem;
-  /** Forme CAGED visée, si le système est CAGED. */
-  shape?: 'C' | 'A' | 'G' | 'E' | 'D';
-  title: string;
-  why: string;
-}
-
-/** Trois portes d'entrée : premier succès, couleur de mode, lien avec les accords. */
-export const ENTRY_POINTS: readonly EntryPoint[] = [
-  {
-    scaleId: 'pentatonic-minor', tonic: 'A', system: 'boxes',
-    title: 'La mineure pentatonique · box 1',
-    why: 'Le premier succès : deux notes par corde, cases 5–8, aucune note à éviter.',
-  },
-  {
-    scaleId: 'dorian', tonic: 'D', system: '3nps',
-    title: 'Ré dorien · position 1',
-    why: 'Entendre une note caractéristique : la 6te majeure, seule différence avec la mineure naturelle.',
-  },
-  {
-    scaleId: 'ionian', tonic: 'C', system: 'caged', shape: 'E',
-    title: 'Do majeur · forme de Mi (CAGED)',
-    why: 'Le pont avec les accords : ton Mi barré est là, la gamme l’entoure.',
-  },
-];

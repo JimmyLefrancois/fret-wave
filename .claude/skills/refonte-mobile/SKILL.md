@@ -1,6 +1,6 @@
 ---
 name: refonte-mobile
-description: Refonte de la version téléphone d'une page Fretwave, en cohérence avec la refonte bureau, sans toucher au bureau. À utiliser dès que l'utilisateur veut adapter une page au mobile, trouve une page trop longue ou trop chargée sur téléphone, demande de reprendre sur mobile ce qui a été fait au bureau, ou de traiter la page suivante (Entraînement, Séquences, Improviser, Accords, Accordeur, Métronome, Réglages…). Pas pour un simple ajustement de marge ou de couleur. Pour le bureau, voir `refonte-page`.
+description: Refonte de la version téléphone d'une page Fretwave, en cohérence avec la refonte bureau, sans toucher au bureau. À utiliser dès que l'utilisateur veut adapter une page au mobile, trouve une page trop longue ou trop chargée sur téléphone, demande de reprendre sur mobile ce qui a été fait au bureau, ou de traiter la page suivante (Révision, Séquences, Improviser, Accords, Accordeur, Métronome, Réglages…). Pas pour un simple ajustement de marge ou de couleur. Pour le bureau, voir `refonte-page`.
 ---
 
 # Refonte d'une page sur téléphone
@@ -27,10 +27,10 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 
 ## Ce qui ne se transpose pas du bureau
 
-- **Au téléphone aussi, on répond à la guitare** : l'auteur a retiré pavé, clavier et sélection de case sur Entraînement (D121). Propose la même chose ailleurs, avec la question de `refonte-page`, car un élève sans micro ne peut plus finir. Micro ouvert seul si possible, sinon bouton `.mic-spark`.
+- **Au téléphone aussi, on répond à la guitare** : l'auteur a retiré pavé, clavier et sélection de case de ses exercices (D121). Propose la même chose ailleurs, avec la question de `refonte-page`, car un élève sans micro ne peut plus finir. Micro ouvert seul si possible, sinon bouton `.mic-spark`.
 - **`oneLine` ne s'applique que dans la vue paysage** : passe `oneLine={wide || playing}`, sinon la tablature reste en plusieurs lignes.
 - **Les popups restent possibles pour un outil secondaire**, mais si l'outil devient la vue principale, il passe dans la page.
-- **Tablature d'exercice : à trancher page par page.** Elle est le support de l'exercice (trous, motifs). Ne la remplace pas par le manche : pose la question à l'auteur avec `AskUserQuestion`, en montrant ce qui change. Sur Entraînement, il a choisi le paysage : le portrait règle, lance et rend le résultat (`ScaleTrainingPage.tsx`, D120). Propose ce modèle en premier.
+- **Tablature d'exercice : à trancher page par page.** Elle est le support de l'exercice (trous, motifs). Ne la remplace pas par le manche : pose la question à l'auteur avec `AskUserQuestion`, en montrant ce qui change. Sur la révision, il a choisi le paysage : le portrait lance et rend le résultat (`ScaleReviewPage.tsx`, D120). Propose ce modèle en premier.
 - **Les options suivent le bureau**, avec l'accord de l'auteur : chaque retrait de fonction passe par la question de `refonte-page`.
 
 ## Déroulé
@@ -49,7 +49,7 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 - **Plein écran paysage** : `LandscapeView` et `openLandscape` (`src/app/LandscapeView.tsx`), ce dernier appelé dans le geste. L'iPhone refuse le plein écran et le verrou : `.tab-full` pivote alors en CSS sous `@media (orientation: portrait)`.
 - **Vue paysage d'exercice** : `const desktop = wide && !playing`, sinon un grand téléphone change de rendu au passage de 900 px. Fermer la vue avant la fin remet la série à zéro, sauf à froid, où recommencer fausserait l'essai : pause, micro sans effet, reprise par « Reprendre ». Sur Séquences, fermer termine la session et enregistre les passes (D122). Fin de série : referme la vue, le résultat se lit en portrait, avec un bouton pour revoir la correction.
 - **Page d'exercice** : le portrait ne contient qu'un bloc avec « ▶ Jouer » et, dessous, une phrase qui dit ce qui va se passer, propre à chaque niveau. Tout ce qui règle le jeu (position, sens, motif, tempo, grille, mode à l'aveugle, micro) est dans la barre de la vue paysage (`.tab-full-options`, sur plusieurs rangées si besoin), et disparaît pendant une session. Le geste de départ y reste aussi (Commencer, sur Séquences). Une session mélangée ou à froid garde ses réglages en portrait.
-- Un composant partagé (`LevelsNav`) se restyle par un conteneur (`.mplay-levels`), pas directement : les pages pas encore refaites gardent leur rendu.
+- Un composant partagé (`ScaleTabs`) se restyle par un conteneur (`.mplay-levels`), pas directement : les pages pas encore refaites gardent leur rendu.
 - Le suivi de lecture d'une `TabView` en `wrap` ignore l'en-tête collant et la barre de navigation : vérifie qu'il reste visible.
 
 ## Vérifier
@@ -57,7 +57,7 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 - `npx tsc --noEmit`, un test pour toute logique, `npm test` et `npm run build` à la fin.
 - Captures à **390, 360, 320 et 768 px** dans les deux thèmes : regarde-les, jusqu'en bas de page. 360 px est courant sur Android, et c'est là que les rangées passent à la ligne. Pas de `scrollWidth` supérieur à la fenêtre.
 - Vue paysage : 390 × 844 (pivot CSS), 844 × 390, 932 × 430. Playwright ne redimensionne pas une fenêtre en plein écran : remplace `requestFullscreen` par un refus dans `addInitScript`, et teste la sortie à part avec `document.exitFullscreen()`.
-- Joue une série entière (`window.__training` : `select`, `press`, `validate`) jusqu'au résultat, et vérifie chaque niveau.
+- Joue une série entière (`window.__review` : `answer`) jusqu'au résultat, et vérifie chaque niveau.
 - Dans une vue en portail, cible les boutons par `.tab-full` : ceux de la page existent encore derrière.
 - États ouverts : Détails, popups, Position voisine. Contenus extrêmes : titre long, cases hautes, aller-retour.
 - Bureau : capture à 1440 px, inchangé. Si une constante partagée a bougé, ouvre aussi ses popups.

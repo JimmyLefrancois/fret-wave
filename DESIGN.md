@@ -183,9 +183,7 @@ Fondamentale jaune `#FFD23F`, 2 orange `#FF8A3D`, 3 magenta `#FF3CAC`, 4 vert `#
 - **Body** (système, 400, 16-16,5 px, 1.55) : explications, consignes ; `.t-small` à 14,5 px en atténué.
 - **Control** (système, 650-700, 13,5 px, capitales, interlettrage 0,04em) : texte des boutons ; 12,5-13,5 px pour pastilles et segments.
 - **Label** (Silkscreen, 700, 14 px pour `.t-label`, 11 px pour `.tag`, 0,06em, capitales) : `.t-label`, `.tag`, titres de carte de contrôle (12-13 px).
-- **Label large** (Silkscreen, 700, 13 px, token `--label-lg`) : étiquettes lues à un mètre, celles du héros de l'accueil et l'accroche de l'affiche.
-- **Action du héros** (système, 17 px, bouton de 56 px, tokens `--hero-btn-size` et `--hero-btn-h`) : le seul bouton primaire de l'accueil, la chose à lire depuis le tabouret, guitare en main.
-- **Titre de la tâche** (système, 700, 30 px, 36 px au bureau, token `--hero-title`) : la gamme ou l'accord du héros, **le plus grand mot de l'accueil** ; la marque de l'affiche descend à 22-30 px (D82).
+- **Action de scène** (système, 17 px, bouton de 56 px, tokens `--hero-btn-size` et `--hero-btn-h`) : Démarrer du métronome, la chose à lire depuis le tabouret, guitare en main.
 
 ### Named Rules
 **The Reading-Text Rule.** Tout texte que l'élève doit lire (navigation, consignes, valeurs) est en sans-serif. Silkscreen en capitales tronquait « ACCORDEUR » et perdait les accents : il reste réservé aux étiquettes.
@@ -233,17 +231,17 @@ Angles quasi vifs : un seul rayon, 2 px (`--corner`), qui lit comme un coin « p
 - **Panneau :** fond surface, bordure 2 px, ombre dure, équerres. **Panneau accentué :** bordure et titre en `--accent`, sans halo. **Panneau actif :** accentué plus le halo, réservé au panneau où l'on agit (héros, étape en cours).
 - **Carte de contrôle :** fond surface, bordure 2 px, sans ombre ; titre en Silkscreen cyan ; état « ok » en bordure `--ok`.
 
-### Accueil (lanceur, D78-D82)
-- **Affiche :** marque, accroche, puis (sous un trait `--line-soft`) jauge du jour et série, sur **une seule plaque** légèrement translucide (`--veil-rgb` à 0,85 ; bordure `--line`, ombre dure), alignée sur le bord des cartes ; pas de voile dégradé sur le décor ; la jauge dit « Objectif du jour atteint » à 3 exercices vérifiés.
-- **Héros :** panneau accentué magenta ; titre de la tâche, une ligne de contexte à 16 px, puis la rangée d'actions à **deux poids** : le primaire (56 px, 17 px, touche « Espace » au clavier seulement), l'autre étape en bouton ordinaire à sa taille (44 px), et « changer de gamme / d'accord » en **lien** souligné. Le primaire garde la même place dans tous les états : pleine largeur au téléphone, à gauche et au moins 20 rem au bureau.
-- **Étapes :** liste numérotée en pastilles pixel 28 px ; étape en cours en aplat magenta, étape franchie en ✓ vert estompée (franchie seulement sur un fait observé, D79).
-- **Parcours :** une ligne par module (nom en `--label-lg` cyan, sujet et compte, barre pixel 12 px au trait `--line` remplie de `--green`) ; trois colonnes au bureau, empilées sous 900 px.
+### Bloc « À réviser » (D128)
+En haut de Gammes, l'écran d'ouverture : panneau actif vert, le seul halo de la page, une ligne par forme due (titre en gras, position et palier en atténué), puis un seul bouton primaire. Rien de dû : une phrase atténuée donne la prochaine échéance. Aucune forme suivie : rien n'est rendu.
+
+### Liste d'accords (D128)
+Une surface au bureau (`.chord-surface`), un panneau par type au téléphone. Une rangée : diagramme en canvas, nom, cases et notes, deux pastilles d'écoute. Au bureau, autant de colonnes que la largeur en accepte (290 px au moins) ; au téléphone, le diagramme à gauche, nom et écoute à droite.
 
 ### Actions de l'en-tête de jeu
 Le magenta reste à l'action principale, une seule à l'écran. **Ouvrir le micro**, quand un clic est nécessaire, porte une comète qui tourne sur son cadre (`.mic-spark`, traîne `--cyan`, tête `--spark`) ; avec le mouvement réduit, un simple cadre `--spark`. Un mode à ne pas oublier prend le cyan (`.train-grid`) : contour au repos, aplat quand c'est le geste du moment.
 
 ### Navigation
-Barre opaque (`--bg-deep`, trait 2 px `--line`) à six destinations, icônes pixel pleines 10×10 dessinées à ×2 (20 px). Téléphone : en bas, pleine largeur, icône au-dessus d'un libellé sans-serif de 11,5 px au plus (la taille suit la largeur pour que six onglets tiennent), 56 px de haut. Bureau (≥ 900 px) : en haut, onglets alignés à gauche sur le bord du contenu, icône et libellé de 14 px sur une ligne, 52 px de haut, sans cadre ni mot-symbole (la marque vit dans l'affiche de l'accueil). Repos en `--dim`, survol en `--text`, actif en magenta (icône et libellé), sans halo. Libellé tronqué par ellipse, jamais à la ligne.
+Barre opaque (`--bg-deep`, trait 2 px `--line`) à cinq destinations, icônes pixel pleines 10×10 dessinées à ×2 (20 px). Téléphone : en bas, pleine largeur, icône au-dessus d'un libellé sans-serif de 11,5 px au plus (la taille suit la largeur pour que six onglets tiennent), 56 px de haut. Bureau (≥ 900 px) : en haut, onglets alignés à gauche sur le bord du contenu, icône et libellé de 14 px sur une ligne, 52 px de haut, sans cadre ni mot-symbole (la marque vit dans l'affiche de l'accueil). Repos en `--dim`, survol en `--text`, actif en magenta (icône et libellé), sans halo. Libellé tronqué par ellipse, jamais à la ligne.
 
 ### Tablature (composant signature)
 Panneau de tablature dessiné au canvas : cordes fines, barres de mesure, chiffres sur pastilles colorées par intervalle avec contour qui sépare du fond (sombre en nuit, papier en aube), curseur de lecture magenta à cœur clair. Sur aube, le panneau s'éclaircit (`#FFFBF5`, encre `#2B0B2E`) mais les aplats d'intervalle restent saturés. Le chiffre sur pastille a toujours un contour : jamais de scanlines dessus.

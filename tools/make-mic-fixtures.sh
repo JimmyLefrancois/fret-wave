@@ -8,11 +8,11 @@
 #   tools/make-mic-fixtures.sh
 #   node tools/mic-check.mjs "$(pwd)/.shots/mic/strings2.wav"
 #
-# Prérequis : ffmpeg. Les fichiers vont dans .shots/mic (ignoré par git).
+# Prérequis : ffmpeg. Les fichiers vont dans .shots/mic (ignoré par git), ou dans $OUT.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="$ROOT/.shots/mic"
+OUT="${OUT:-$ROOT/.shots/mic}"
 SR=48000
 NOTE_LEN=1.3
 SILENCE=0.45

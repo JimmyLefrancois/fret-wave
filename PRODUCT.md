@@ -8,28 +8,27 @@ web
 
 ## Users
 
-Guitaristes débutants à intermédiaires, francophones, qui travaillent seuls, guitare en main devant l'écran (ordinateur ou téléphone posé devant eux), avec un micro. Sessions courtes et régulières. Le travail se fait les mains occupées : l'interface doit rester lisible à distance et ne jamais exiger d'interaction fine pendant qu'on joue.
+L'auteur du projet, guitariste francophone, qui joue seul, guitare en main devant l'écran (ordinateur ou téléphone posé devant lui), avec un micro. Le travail se fait les mains occupées : l'interface doit rester lisible à distance et ne jamais exiger d'interaction fine pendant qu'on joue.
 
 ## Product Purpose
 
-Fretwave apprend la guitare par la tablature (gammes, accords, accordeur), avec écoute au micro et répétition espacée (Leitner, journal, maîtrise, XP). Projet solo, sans backend, hébergé sur GitHub Pages. Le succès : l'élève progresse réellement, mesuré par ce qu'il a joué et que l'app a entendu.
+Fretwave est une boîte à outils pour guitariste (D128) : voir et écouter une gamme en tablature, consulter une liste d'accords, s'accorder, jouer au métronome, travailler une gamme en boucle au micro, improviser sur un accompagnement, et revoir à intervalles espacés les formes de gammes qu'on travaille. Ce n'est plus un cours : ni XP, ni niveaux, ni parcours, ni leçons. Le site et le compte facultatif sont servis par un Worker Cloudflare. Le succès : l'outil voulu est à un toucher, et il ne se met pas en travers du jeu.
 
 ## Positioning
 
-- Pédagogie par formes plutôt que catalogue : curriculum pensé par un prof (gammes débutant par la pentatonique mineure, accords par paliers, cycle en 7 étapes), pas 1 248 gammes.
+- Des outils directs plutôt qu'un parcours : on ouvre l'app sur ses gammes, on choisit, on joue.
 - Tablature rendue par un moteur maison en pixel art (canvas, un seul pixel logique à échelle entière), avec deux thèmes : Synthwave Neon et Aube.
 
 ## Operating Context
 
-Navigation par hash : `#/hub`, `#/gammes`, `#/accords`, `#/accordeur`, `#/reglages`. Modules : Gammes, Accords, Accordeur (écran de premier rang). Entrées : micro (hauteur mono via pitchy, accord attendu en polyphonie) ; sortie audio Tone.js avec échantillons CC0. Persistance en localStorage avec export/import JSON.
+Navigation par hash : `#/gammes` (ouverture), `#/accords`, `#/accordeur`, `#/metronome`, `#/reglages`. Gammes regroupe Découvrir, Séquences, Improviser et la séance de révision. Entrées : micro (hauteur mono via pitchy) ; sortie audio Tone.js avec échantillons CC0. Persistance en localStorage avec export/import JSON ; le journal se synchronise avec le compte quand on est connecté. L'app fonctionne entièrement sans compte ni réseau.
 
 ## Capabilities and Constraints
 
 - Interface et textes en français ; notation anglo-saxonne avec affichage solfège.
-- Une déclaration de l'élève (« sans micro ») n'est jamais une preuve : aucun score au journal.
-- Les verdicts d'écoute sont des niveaux de confiance, jamais binaires ; pas de verdict par corde en strum.
-- Pas de backend, pas de nouvelle dépendance sans l'annoncer.
-- Règles musicales, barème d'XP et seuils de maîtrise ne changent que sur demande explicite.
+- Une déclaration (« sans micro ») n'est jamais une preuve : aucun score au journal.
+- Pas de nouvelle dépendance sans l'annoncer.
+- Règles musicales et règles de révision (paliers Leitner, seuils) ne changent que sur demande explicite.
 - Texte courant en sans-serif système ; polices pixel réservées aux étiquettes.
 - Couleurs d'intervalle hors thème ; aucun hex dans `app.css`, tout passe par les tokens.
 
@@ -47,10 +46,10 @@ Docs de référence : `PROJECT.md` (statut), `docs/ARCHITECTURE.md`, `docs/DECIS
 
 ## Product Principles
 
-1. L'honnêteté pédagogique d'abord : ce qui est entendu compte, ce qui est déclaré ne compte pas.
-2. Des formes et des paliers, pas des catalogues.
+1. Un outil, pas un cours : rien ne se met entre l'ouverture de l'app et le jeu.
+2. L'honnêteté d'abord : ce qui est entendu compte, ce qui est déclaré ne compte pas.
 3. La tablature est l'objet central ; l'interface s'efface autour d'elle.
-4. Local, gratuit, sans compte.
+4. Local, gratuit, compte facultatif.
 
 ## Accessibility & Inclusion
 

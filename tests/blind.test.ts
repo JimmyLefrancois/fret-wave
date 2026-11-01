@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blindGrid, countInBeat, scoreBlind, type HeardNote } from '../src/modules/gammes/blind';
-import { insideGrid } from '../src/modules/gammes/exercise';
+import { blindGrid, scoreBlind, type HeardNote } from '../src/modules/gammes/blind';
 import type { Target } from '../src/core/input/match';
 
 // La mineure pentatonique, box 1, deux cordes graves : La2 Do3 | Ré3 Mi3 (cases 5-8)
@@ -68,12 +67,9 @@ describe('série à l’aveugle : notation', () => {
     const g = blindGrid(4, 60, 1);
     expect(g.countIn).toBe(4);
     expect(g.score.measures.length).toBe(1 + g.grid.score.measures.length);
-    expect(countInBeat(0, g)).toBe(4);
-    expect(countInBeat(3.5, g)).toBe(1);
-    expect(countInBeat(4, g)).toBeNull();
     const fast = scoreBlind(T, play(45, 48, 50, 52), OPTS);
-    expect(insideGrid(fast.lastAttack!, g.grid)).toBe(true);
+    expect(fast.lastAttack!).toBeLessThanOrEqual(g.grid.seconds);
     const slow = scoreBlind(T, [45, 48, 50, 52].map((midi, i) => ({ midi, t: 2 * i })), OPTS);
-    expect(insideGrid(slow.lastAttack!, g.grid)).toBe(false);
+    expect(slow.lastAttack!).toBeGreaterThan(g.grid.seconds);
   });
 });

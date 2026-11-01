@@ -10,8 +10,7 @@ import { loopHistory, playerStopped, sessionRuns, type TourRow } from '../src/mo
 import { COUNT_IN_TICKS as LOOP_COUNT_TICKS } from '../src/modules/gammes/blind';
 import { normalizeAttempt, nodeIdOf, type Attempt } from '../src/core/progress/journal';
 import { cardsFrom } from '../src/core/progress/scheduler';
-import { isSpeedProof, summarizeNodes } from '../src/core/progress/mastery';
-import { xpForAttempt } from '../src/core/progress/rewards';
+import { summarizeNodes } from '../src/core/progress/mastery';
 
 const std = TUNINGS.standard!;
 const box = generatePositions('pentatonic-minor', 'A', std, 'boxes')[0]!;
@@ -209,22 +208,6 @@ describe('séquences : journal, vitesse, XP', () => {
     expect(n.passes).toBeUndefined();
     expect(normalizeAttempt(base)).toMatchObject({ pattern: 'g3', bpmStart: 60, bpmBest: 80, passes: 6, kind: 'sequence' });
   });
-
-  it('prouve la vitesse de la forme au tempo cible, au micro seulement', () => {
-    expect(isSpeedProof(base)).toBe(true);
-    expect(isSpeedProof({ ...base, bpmBest: 76 })).toBe(false);
-    expect(isSpeedProof({ ...base, mic: undefined })).toBe(false);
-    expect(isSpeedProof({ ...base, bpmBest: 64 }, 60)).toBe(true);
-    // rattachée à la forme : la lecture N3 de la même forme la voit
-    const recall: Attempt = { ...base, id: 'r', kind: 'recall', level: 3, pattern: undefined, bpmBest: undefined, correct: 12, total: 12, fullPosition: true, mic: undefined };
-    const lecture = summarizeNodes([recall, base]).find((x) => x.nodeId.startsWith('gam:lecture:'))!;
-    expect(lecture.speedVerified).toBe(true);
-  });
-
-  it('XP : barème d’une transition (10 × précision, +5 à ≥ 95 %) ; 0 sans micro (non vérifiée)', () => {
-    expect(xpForAttempt(base)).toBe(Math.round(10 * 39 / 40) + 5);
-    expect(xpForAttempt({ ...base, mic: undefined, correct: null, total: null })).toBe(0);
-  });
 });
 
 describe('séquences : gamme en boucle', () => {
@@ -298,8 +281,6 @@ describe('séquences : gamme en boucle', () => {
       missedStrings: [], tempoOk: false, pattern: 'scale', bpmStart: 60, passes: 20, fullPosition: true,
     };
     expect(normalizeAttempt(a)?.pattern).toBe('scale');
-    expect(xpForAttempt(a)).toBe(0);
-    expect(isSpeedProof(a, 60)).toBe(false);
   });
 });
 
@@ -439,10 +420,6 @@ describe('gamme en boucle : séries, historique, arrêt au silence', () => {
     const run = { from: 60, to: 65, tours: 4, clean: 3, errors: 1, streak: 2 };
     expect(normalizeAttempt({ ...base, runs: [run, { ...run, clean: 9 }, { ...run, to: 500 }] })?.runs).toEqual([run]);
     expect(normalizeAttempt({ ...base, runs: 'x' })).not.toHaveProperty('runs');
-  });
-
-  it('une série mesurée ne rapporte toujours rien', () => {
-    expect(xpForAttempt({ ...base, runs: [{ from: 60, to: 65, tours: 4, clean: 4, errors: 0, streak: 4 }] })).toBe(0);
   });
 
   it('l’historique ne lit que les gammes mesurées de cette forme, dans l’ordre', () => {

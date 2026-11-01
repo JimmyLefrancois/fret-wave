@@ -1,5 +1,5 @@
 /**
- * Métronome (`#/metronome`, D112) : un outil, pas un exercice. Rien ne va au journal ni à l'XP.
+ * Métronome (`#/metronome`, D112) : un outil, pas un exercice. Rien ne va au journal.
  * Un seul panneau, rien à déplier : à l'arrêt, tous les réglages sont là, une ligne chacun ; en jeu sur
  * téléphone, ils s'effacent et les temps lumineux prennent leur place pour se lire de loin.
  * Espace : marche/arrêt, ou pause quand l'automation tourne. Entrée : marche/arrêt, toujours.

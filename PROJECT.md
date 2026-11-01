@@ -1,4 +1,6 @@
-# PROJECT.md — Fretwave (nom de travail) : apprendre la guitare, en tablature, en pixel art
+# PROJECT.md — Fretwave (nom de travail) : des outils pour guitariste, en tablature, en pixel art
+
+**Depuis D128, Fretwave est une boîte à outils, plus un cours** (`docs/DECISIONS.md`, branche `refonte/outils`). Ce qui suit dans ce fichier sur le parcours, les niveaux, l'XP, les leçons d'accord, l'accueil et le simulateur décrit l'historique du projet, pas l'app actuelle.
 
 **Statut : phases 0, 1a, 1b, 1c, 1d, 2, 3, 4a et 4b terminées, **refonte d'interface terminée et mergée sur `master`**, déploiement sur Cloudflare Workers (D109), **phase 5 : écoute polyphonique livrée** (accord plaqué écouté, matrice publiée), **phase 7 : improvisation livrée** (accompagnements synthwave et lo-fi, classification harmonique, notes allumées sur la position), **lot « mémoire et vitesse » (module Gammes) livré et mergé sur `master`** (avec sa passe de design) (rappel à froid, « apprise » sur la position entière, série à l'aveugle, séquences au palier, aller-retour par défaut) · 4b = module Accords, partie B : les **sept étapes** du cycle du brief sont là (Découvrir → Construire → Vérifier → Plaquer → **Fixer** (pose à froid chronométrée) → **Enchaîner** (changement mesuré entre deux notes repères) → **Intégrer** (progression + strum)), plus le **QCM sans matériel**, l'**accordage guidé corde par corde** et les paliers **P5-P7** (couleurs, slash, Fa et Si m) · « appris » exige enfin une pose à froid · **tour complet des pages** (19 écrans, largeurs et alignements mesurés) · D1-D77 tranchées (D13 écartée, D7 remplacée par D14) · aucune décision en attente · **606 tests (605 verts, 1 ignoré)**.**
 Documents liés : `BRIEF.md` (cahier des charges), `MUSIC_DESIGN.md` (conventions musicales, curriculum, avis de prof).
@@ -8,6 +10,13 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 **Correspondance des sections déplacées** : §1-7 → [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · §8 et §8 bis → [`docs/HYPOTHESES.md`](docs/HYPOTHESES.md) · §10 → [`docs/DECISIONS.md`](docs/DECISIONS.md) · §11 → [`docs/archive/JOURNAL.md`](docs/archive/JOURNAL.md) · états exacts des phases 1c à 4a et de la refonte d'interface → [`docs/archive/PHASES.md`](docs/archive/PHASES.md) · §9 et §12 restent ici.
 ---
 
+
+## État exact de la boîte à outils (D128)
+
+- **Fait, testé** : app ouverte sur Gammes, cinq onglets. Gammes : Découvrir, Séquences, Improviser, bloc « À réviser », séance de révision à froid, « Réviser cette forme ». Accords : liste de 40 formes avec écoute. Journal, Leitner, compte et synchro conservés.
+- **Vérifié au navigateur** : parcours complet à 1440 et 390 px (`tools/outils-check.mjs`), largeurs 320 à 1920 px dans les deux thèmes, séance de révision au micro simulé avec un timbre de synthèse (`tools/mic-check.mjs`).
+- **Non vérifié** : la révision à la vraie guitare, le tout sur un vrai téléphone, la synchro entre deux navigateurs réels.
+- **Non déployé** : part avec `npm run deploy`. Aucune migration D1 nouvelle.
 
 ## État exact de la refonte téléphone (D119, D120)
 `gammes/jouer` (blocs, manche en vue principale, tablature en plein écran paysage) , `gammes/entrainement` (série jouée en paysage) et `gammes/sequences` (session jouée en paysage, D122) sont refaites ; sur ces exercices, le portrait ne garde que Jouer, les options sont dans la vue paysage (D123). Les autres pages restent à faire avec le skill `refonte-mobile`, une à la fois. Non essayé sur un vrai téléphone. À décider : retrait de l'interrupteur « Vue manche » des Réglages.

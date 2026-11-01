@@ -23,13 +23,11 @@ const arg = (name, fallback) => {
 };
 const BASE = arg('base', 'http://127.0.0.1:5173');
 const JSON_OUT = args.includes('--json');
-const PERSONA = arg('persona', null);
-const DAY = Number(arg('day', 14));
 const MIN_GAP = Number(arg('min', 4));
 
 const ROUTES = [
-  'hub', 'gammes', 'gammes/jouer', 'gammes/entrainement', 'gammes/revision', 'gammes/sequences', 'gammes/impro',
-  'accords', 'accords/lecon', 'accords/qcm', 'accordeur', 'reglages',
+  'gammes', 'gammes/jouer', 'gammes/revision', 'gammes/sequences', 'gammes/impro',
+  'accords', 'accordeur', 'metronome', 'reglages',
 ];
 
 const browser = await chromium.launch();
@@ -38,22 +36,8 @@ const report = {};
 for (const [tag, width, height] of [['phone', 390, 844], ['desk', 1440, 900]]) {
   const ctx = await browser.newContext({ viewport: { width, height }, locale: 'fr-FR' });
   const page = await ctx.newPage();
-  await page.goto(`${BASE}/#/hub`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/#/gammes`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(600);
-  if (PERSONA) {
-    await page.evaluate(() => {
-      const target = new Date();
-      target.setHours(23, 30, 0, 0);
-      localStorage.setItem('fretwave.dev.clockOffset', String(target.getTime() - Date.now()));
-    });
-    await page.reload({ waitUntil: 'networkidle' });
-    await page.waitForFunction(() => window.__sim);
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: 'networkidle' }),
-      page.evaluate(([p, d]) => window.__sim.load(p, d), [PERSONA, DAY]).catch(() => {}),
-    ]);
-    await page.waitForTimeout(600);
-  }
 
   for (const route of ROUTES) {
     await page.evaluate((r) => { location.hash = `#/${r}`; }, route);

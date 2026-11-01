@@ -6,8 +6,8 @@
  *     └──(< 80 %)──► look (« Regarde la forme », N s) ──► retry (N3, `afterReveal`) ──► next
  *
  * Principe de prof : **un essai fait juste après avoir vu la réponse ne prouve rien**. Seul le premier
- * essai, à froid, compte pour Leitner, la maîtrise et l'XP ; le rattrapage est journalisé (c'est de la
- * pratique réelle) avec `afterReveal: true`, et exclu de toute preuve.
+ * essai, à froid, compte pour Leitner ; le rattrapage est journalisé (c'est de la pratique réelle) avec
+ * `afterReveal: true`, et exclu de toute preuve.
  *
  * « Passer » existe à chaque étape : jamais de blocage.
  */
@@ -51,12 +51,9 @@ export function lookRemaining(startedAt: number, now: number, seconds: LookSecon
   return Math.max(0, Math.ceil(seconds - (now - startedAt) / 1000));
 }
 
-/**
- * Ligne du bilan de séance sur les rattrapages (constat 5) : ils comptent pour la journée (série, objectif)
- * mais pas pour la mémoire (Leitner, maîtrise, XP) ; rien à dire sans rattrapage.
- */
+/** Ligne du bilan de séance sur les rattrapages (constat 5) : rien à dire sans rattrapage. */
 export function retryLine(n: number): string | null {
   if (n <= 0) return null;
   const s = n > 1 ? 's' : '';
-  return `${n} rattrapage${s} après « Regarde la forme » : compté${s} pour la journée, pas pour la mémoire.`;
+  return `${n} rattrapage${s} après « Regarde la forme » : enregistré${s}, sans effet sur la révision.`;
 }

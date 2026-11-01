@@ -57,13 +57,9 @@
   --gap-block: 12px;
   --gap-inside: 8px;
   --gap-tight: 4px;
-  /* étiquette pixel lue à un mètre (héros et accroche de l'accueil) : 11 px ne passe pas la distance */
-  --label-lg: 13px;
-  /* bouton du héros de l'accueil : la seule chose à lire depuis le tabouret, guitare en main */
+  /* bouton principal : la seule chose à lire depuis le tabouret, guitare en main */
   --hero-btn-size: 17px;
   --hero-btn-h: 56px;
-  /* titre de la tâche (gamme, accord) : le plus grand mot de l'accueil, lu à un mètre */
-  --hero-title: 30px;
 }
 @media (min-width: 900px) { :root { --hero-title: 36px; } }
 
@@ -211,21 +207,9 @@ a { color: var(--cyan); }
 .panel-right { flex: none; }
 
 .section { margin: 20px 0 0; }
-.section-title {
-  color: var(--cyan);
-  margin-bottom: 2px;
-}
+
 .section > .t-small { margin-bottom: 8px; }
 
-.card-title {
-  font-family: var(--font-body);
-  font-weight: 650;
-  font-size: 17px;
-  line-height: 1.35;
-  color: var(--text);
-  margin: 2px 0 4px;
-  overflow-wrap: anywhere;
-}
 /* compteur de progression (« 3 / 8 ») : un nombre lu en jouant, pas une étiquette */
 .badge.badge-count { font-family: var(--font-body); font-size: 15px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
 .badge {
@@ -386,8 +370,7 @@ a { color: var(--cyan); }
   position: relative;
 }
 .switch.on .switch-box { background: var(--cyan); border-color: var(--cyan); }
-/* série à l'aveugle : le décompte se lit de loin, la guitare dans les mains (police d'étiquette : un chiffre) */
-.blind-count { font-family: var(--font-display); font-size: 56px; line-height: 1.2; text-align: center; color: var(--cyan); margin: 12px 0; }
+
 /* indisponible : la case et le libellé s'effacent, la raison (hint) reste lisible */
 .switch:disabled { cursor: default; }
 .switch:disabled .switch-box, .switch:disabled .switch-label { opacity: 0.45; }
@@ -431,6 +414,9 @@ a { color: var(--cyan); }
   .page-head { grid-template-columns: 44px minmax(0, 1fr); align-items: start; row-gap: 4px; }
   .page-head > .tag { grid-column: 2; justify-self: start; }
 }
+/* page de premier niveau, sans bouton retour : le titre prend toute la largeur */
+.page-head > :only-child { grid-column: 1 / -1; }
+.page-head:not(:has(.back)):has(> .btn) { display: flex; justify-content: space-between; align-items: center; }
 .back {
   width: 44px;
   height: 44px;
@@ -457,56 +443,12 @@ a { color: var(--cyan); }
   overflow-wrap: anywhere;
 }
 
-/* --- hub -------------------------------------------------------------------- */
-
-.hero {
-  position: relative;
-  min-height: min(48vh, 430px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 40px 0 16px;
-  text-align: center;
-}
-.hero-kicker { color: var(--cyan); margin-bottom: 14px; }
-.hero-title {
-  font-family: var(--font-display);
-  font-size: clamp(24px, 7.6vw, 34px);
-  line-height: 1.1;
-  letter-spacing: 0.01em;
-  color: var(--text);
-  text-shadow: 0 0 18px var(--magenta), 3px 3px 0 var(--shadow-ink);
-}
-.hero-sub {
-  margin-top: 18px;
-  font-family: var(--font-label);
-  font-size: 11px;
-  line-height: 1.7;
-  letter-spacing: 0.22em;
-  color: var(--text);
-}
-.hero-sub span {
-  display: inline-block;
-  padding: 6px 10px 7px;
-  background: rgba(var(--veil-rgb), 0.72);
-  border: 1px solid var(--line);
-  box-shadow: 0 0 14px -4px var(--magenta);
-}
-.hero-hint {
-  margin-top: auto;
-  color: var(--cyan);
-  font-size: 11px;
-  padding: 5px 8px;
-  background: rgba(var(--veil-rgb), 0.66);
-  border: 1px solid var(--line);
-}
 .stat-line { font-size: 19px; color: var(--muted); margin-bottom: 2px; }
 .stat-line strong { font-family: var(--font-body); font-weight: 700; font-size: 19px; color: var(--cyan); }
 /* un score raté n'emprunte pas la couleur du succès */
 .stat-line.miss strong { color: var(--orange); }
 /* le score reçoit le focus par programme (annonce du résultat) : ce n'est pas un contrôle, pas d'anneau */
 .stat-line[tabindex='-1']:focus { outline: none; }
-.result-links { margin-top: var(--gap-inside); }
 
 .entries { display: grid; gap: 8px; }
 .entry {
@@ -522,11 +464,6 @@ a { color: var(--cyan); }
   cursor: pointer;
 }
 .entry:hover, .entry:focus-visible { border-color: var(--magenta); outline: none; }
-.entry-num { font-family: var(--font-label); font-weight: 700; font-size: 12px; color: var(--magenta); }
-.entry-body { display: grid; gap: 3px; }
-.entry-title { font-family: var(--font-body); font-weight: 600; font-size: 15.5px; line-height: 1.35; color: var(--text); }
-.entry-why { font-size: 13.5px; color: var(--dim); line-height: 1.4; }
-.entry-go { color: var(--cyan); font-size: 14px; }
 
 .modules { display: grid; gap: 10px; }
 .module {
@@ -540,30 +477,12 @@ a { color: var(--cyan); }
   border-left: 4px solid var(--accent, var(--line));
   box-shadow: 3px 3px 0 var(--shadow-ink);
 }
-.module.planned { border-style: dashed; border-color: var(--line-soft); background: var(--bg); }
-.module.planned h3 { color: var(--muted); }
-.module-body { display: grid; gap: 4px; min-width: 0; }
-.module-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+
 .module h3 { font-family: var(--font-body); font-weight: 650; font-size: 15.5px; color: var(--text); }
 /* un élément sur deux lignes se lisait comme la suite du précédent à 1 px : l'écart serré les sépare */
-/* liste à puces : un carré pixel de 6 px à la couleur du panneau, et un retrait suspendu (la deuxième
-   ligne d'un point s'aligne sur le texte, plus sous la puce) ; mesure bornée, lisible au bureau */
-.module-facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-inline-size: 72ch; }
-.module-facts > li { position: relative; padding-left: 16px; }
-.module-facts > li::before {
-  content: '';
-  position: absolute;
-  left: 1px;
-  top: calc(0.75em - 3px);
-  width: 6px;
-  height: 6px;
-  background: var(--accent, var(--cyan));
-}
+
 .module .btn { margin-top: 6px; }
 
-/* --- sélection de gamme ----------------------------------------------------- */
-
-.group-note { margin: 6px 0 8px; }
 .scale-list { display: grid; gap: 4px; }
 .scale-row {
   display: grid;
@@ -581,16 +500,9 @@ a { color: var(--cyan); }
 .scale-name { grid-area: name; font-size: 15.5px; font-weight: 500; color: var(--text); }
 /* formule de la gamme : texte lu (♭ et ♯ compris), pas une étiquette — sans-serif, chiffres tabulaires */
 .scale-deg { grid-area: deg; font-size: 13.5px; font-weight: 500; color: var(--dim); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
-.scale-n { grid-area: n; font-family: var(--font-label); font-weight: 400; font-size: 11px; color: var(--dim); }
-.scale-row.on .scale-n { color: var(--magenta); }
 
 .tonics { display: flex; flex-wrap: wrap; gap: 6px; }
-.context-box {
-  margin-top: 10px;
-  padding: 8px 10px;
-  border-left: 3px solid var(--cyan);
-  background: rgba(5, 217, 232, 0.06);
-}
+
 .hint { margin-top: 6px; color: var(--muted); }
 
 .field { margin: 8px 0; display: grid; gap: 4px; }
@@ -634,15 +546,7 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 .system-note { font-size: 13px; color: var(--dim); line-height: 1.4; }
 
 .positions { display: flex; flex-wrap: wrap; gap: 6px; }
-.cta-block {
-  padding: 10px 0 6px;
-  margin-top: 12px;
-  border-top: 1px solid var(--line-soft);
-}
 
-/* --- niveau 1 (découverte) --------------------------------------------------- */
-
-.transport-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 /* tempo à droite du transport (écoute / pause / stop) ; sur téléphone il passe à la ligne mais reste
    collé au bord droit plutôt que de comprimer les boutons de lecture */
 .tempo-group { display: flex; align-items: center; gap: 8px; margin-left: auto; }
@@ -675,13 +579,6 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
 .toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-inside); margin-top: 8px; }
 .status { margin-top: 6px; }
 
-.pos-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 10px 0 4px;
-}
 .pos-count { color: var(--dim); }
 
 .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-block-end: var(--gap-inside); }
@@ -828,18 +725,6 @@ main.wide h1 { font-family: var(--font-display); font-size: 15px; color: var(--m
 label { display: block; margin: 8px 0 2px; color: var(--muted); }
 .small { color: var(--muted); font-size: 15px; }
 
-.topnav { display: flex; gap: 8px; padding: 8px 16px 0; max-width: 1100px; margin: 0 auto; }
-.topnav button {
-  font-family: var(--font-label);
-  font-weight: 600;
-  font-size: 11px;
-  background: var(--surface);
-  color: var(--muted);
-  border: var(--bw) solid var(--line);
-  padding: 8px 12px;
-  cursor: pointer;
-}
-.topnav button.on { color: var(--text); border-color: var(--magenta); }
 .controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px 12px; }
 .controls select, .controls input { max-width: 100%; box-sizing: border-box; width: 100%; }
 .transport { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
@@ -904,7 +789,7 @@ table.kv td:first-child { color: var(--muted); }
 .instrument select { width: 100%; max-width: 420px; }
 
 @media (max-width: 520px) {
-  .mix-row { grid-template-columns: 96px minmax(60px, 1fr) 62px; }
+  .mixer .mix-row { grid-template-columns: 96px minmax(60px, 1fr) 62px; }
   .meter-row { grid-template-columns: 78px 1fr 70px; }
   .mixer.compact .mix-row { grid-template-columns: 96px minmax(60px, 1fr) 62px; }
 }
@@ -928,22 +813,12 @@ table.kv td:first-child { color: var(--muted); }
     align-items: stretch;
   }
   .shell > * { margin: 0; min-width: 0; }
-  .shell > .hero,
+
   .shell > .page-head,
-  .shell > .home-hero,
-  .shell > .home-foot,
   .shell > .tab-legend,
   .shell > .tabview,
   .shell > .verdict,
-  .shell > .seq-stage,
-  .shell > .how-scored,
-  .shell > .quiz-strip,
-  .shell > .pos-nav,
-  .shell > .cta-block,
-  .shell > .levels,
-  .shell > .step-nav,
-  .shell > .step-nav-compact,
-  .shell > .step-goal { grid-column: 1 / -1; }
+  .shell > .levels { grid-column: 1 / -1; }
 
   /* largeurs : 3 crans seulement, pour que les rangées s'alignent toujours */
   .span-4 { grid-column: span 4; }
@@ -951,7 +826,7 @@ table.kv td:first-child { color: var(--muted); }
   .span-6 { grid-column: span 6; }
   .span-7 { grid-column: span 7; }
   .span-8 { grid-column: span 8; }
-  /* pleine largeur : une section seule sur sa rangée (module Accords, leçon d'accord) */
+  /* pleine largeur : une section seule sur sa rangée */
   .span-12 { grid-column: 1 / -1; }
 
   .panel { padding: 16px 18px; }
@@ -968,14 +843,6 @@ table.kv td:first-child { color: var(--muted); }
   }
   .panel-foot .btn { min-height: 36px; font-size: 11px; }
 
-  .hero { min-height: min(46vh, 420px); padding: 8px 0 0; }
-  .hero-title { font-size: clamp(40px, 3.4vw, 58px); }
-  .hero-sub { font-size: 13px; letter-spacing: 0.3em; margin-top: 22px; }
-  .hero-kicker { font-size: 12px; }
-  .hero-sub span { padding: 9px 14px 10px; }
-  /* sur grand écran le repère est redondant avec la carte « Gammes » : on le retire */
-  .hero-hint { display: none; }
-
   .page-head { grid-template-columns: 44px auto 1fr; padding: 0 0 4px; }
   .page-head > .tag { grid-column: 3; justify-self: start; margin-left: 4px; }
   .btn.play { flex: 0 1 300px; }
@@ -983,27 +850,22 @@ table.kv td:first-child { color: var(--muted); }
   .tempo-row { justify-content: flex-start; gap: 14px; }
   .shell > .row { align-self: center; justify-content: flex-end; }
   .page-title { font-size: 20px; }
-  .card-title { font-size: 15px; }
+
   .t-body { font-size: 21px; }
   .t-small { font-size: 17px; }
 
   /* la tablature et la barre de positions occupent la largeur de leur contenant : le plafond de
      1 040 px les laissait plus étroites que le panneau qui les porte, ce qui se voit tout de suite
      (le panneau fait 1 256 px, la tab 1 040). La largeur de lecture est désormais celle du panneau. */
-  .tabview,
-  .quiz-strip,
-  .pos-nav { width: 100%; max-width: none; margin-left: 0; margin-right: 0; }
+  .tabview { width: 100%; max-width: none; margin-left: 0; margin-right: 0; }
 
   .entry { padding: 13px 16px; }
   .scale-row { padding: 11px 14px; }
   .system-row { padding: 11px 14px; }
-  .cta-block { border-top: 0; padding: 0; }
-  .cta-block .btn { min-height: 52px; }
 
   /* ---- barre de navigation en haut, comme une application de bureau ---- */
   /* les onglets partent de la gauche, alignés sur le bord des cartes : même largeur que .shell
-     (90 vw plafonnés, centrés), moins le retrait de 12 px de l'onglet ; la marque vit dans
-     l'affiche de l'accueil, pas dans la barre */
+     (90 vw plafonnés, centrés), moins le retrait de 12 px de l'onglet */
   .bottombar {
     top: 0;
     bottom: auto;
@@ -1034,31 +896,9 @@ table.kv td:first-child { color: var(--muted); }
   .btn:active { transform: none; }
 }
 
-/* --- exercice « montre-moi la note » --------------------------------------- */
-
-.tabview.pickable { cursor: crosshair; }
-.quiz-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px 8px;
-  margin: 8px 0;
-  padding: 8px 10px;
-  border: var(--bw) solid var(--green);
-  background: rgba(124, 255, 107, 0.08);
-}
-.quiz-strip.ok { background: rgba(124, 255, 107, 0.2); }
-.quiz-strip.no { border-color: var(--danger); background: rgba(255, 92, 122, 0.14); }
-/* la question du quiz est tout l'exercice : lisible de loin, en texte courant */
-.quiz-q { font-size: 20px; font-weight: 650; line-height: 1.3; }
-.quiz-q strong { color: var(--green); }
-.quiz-strip.no .quiz-q strong { color: var(--danger); }
-.quiz-q em { font-style: normal; font-size: 16px; font-weight: 500; color: var(--muted); }
-.quiz-score { font-family: var(--font-body); font-size: 14.5px; color: var(--text); margin-left: auto; }
 .comp-label { margin: 10px 0 2px; color: var(--cyan); }
 
-/* --- options repliées (le niveau 1 doit tenir sur un écran) ---------------- */
+/* --- options repliées (la page Découvrir doit tenir sur un écran) ---------- */
 
 .more-opts { margin-top: 10px; border-top: 1px solid var(--line-soft); padding-top: 8px; }
 .more-opts > summary {
@@ -1076,43 +916,10 @@ table.kv td:first-child { color: var(--muted); }
 .tuning-foot { display: grid; gap: 4px; justify-items: start; }
 .tuning-foot select { width: 100%; }
 .tuning-foot p { margin: 0; }
-.position-note { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
-
-/* clé des couleurs sur le hub */
-.key-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 6px; }
-.key-pill {
-  width: 34px;
-  height: 34px;
-  display: inline-grid;
-  place-items: center;
-  font-family: var(--font-label);
-  font-size: 13px;
-  border: 2px solid var(--bg-deep);
-  box-shadow: 0 0 12px -3px currentColor;
-}
-
-/* colonne de gauche du hub : deux blocs empilés, hauteur libre */
-@media (min-width: 900px) {
-  /* une seule colonne ici : la carte se tend à la hauteur de la rangée, comme sa voisine */
-  .col-5 { grid-column: span 5; display: grid; gap: 20px; align-content: stretch; min-width: 0; }
-  .col-5 > .section { margin: 0; }
-  .col-5 > .panel { margin: 0; }
-}
 
 /* ===========================================================================
-   Phase 2 — entraînement (trous / rappel), pavé numérique, badges, révision
+   Révision : tablature vide, verdict, résultat
    =========================================================================== */
-
-/* --- pavé numérique : cibles ≥ 44 px, comme un pavé de téléphone --- */
-
-/* consigne du pavé (« Corde de Mi grave · case ? ») : la corde visée se lit de loin, en texte courant */
-
-.numpad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-}
-/* désactivée mais lisible (en Aube, l'opacité 0,35 effaçait le pavé) : couleurs de repos, pas de transparence */
 
 /* verdict de l'exercice : juste sous la tablature, lisible à 1-2 m (texte courant, pas de police pixel).
    Vide, il ne prend aucune place mais reste une région annoncée au lecteur d'écran. */
@@ -1130,8 +937,7 @@ table.kv td:first-child { color: var(--muted); }
   text-wrap: pretty;
 }
 .verdict:empty { height: 0; min-height: 0; padding: 0; border: 0; overflow: hidden; }
-/* série en cours : la place du verdict est réservée, le pavé ne saute plus à la première réponse */
-.shell > .verdict.reserve:empty { position: static; height: auto; min-height: 51px; border: var(--bw) solid var(--line-soft); }
+
 .verdict.ok { border-color: var(--ok); }
 .verdict.no { border-color: var(--danger); }
 /* consigne de l'exercice (pas de verdict) : la corde visée, en grand */
@@ -1158,16 +964,6 @@ table.kv td:first-child { color: var(--muted); }
 /* vide, il sort du flux (grille du bureau comme colonne du téléphone) : pas d'écart fantôme */
 .shell > .verdict:empty { position: absolute; }
 
-/* --- résultat d'une série --- */
-.result-stars {
-  font-family: var(--font-display);
-  font-size: 20px;
-  letter-spacing: 0.12em;
-  color: var(--yellow);
-  text-shadow: 0 0 12px var(--yellow);
-  margin-bottom: 6px;
-}
-
 .linkish {
   background: none;
   border: 0;
@@ -1177,40 +973,6 @@ table.kv td:first-child { color: var(--muted); }
   cursor: pointer;
 }
 
-/* --- badges (hub) --- */
-.badges {
-  display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-}
-.badge-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 8px 10px;
-  border: var(--bw) dashed var(--line-soft);
-  background: var(--bg);
-}
-.badge-item.on {
-  border-style: solid;
-  border-color: var(--yellow);
-  background: var(--surface-hi);
-}
-.badge-item-dot {
-  flex: none;
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-display);
-  font-size: 12px;
-  color: var(--dim);
-  border: 2px solid var(--line-soft);
-}
-.badge-item.on .badge-item-dot { color: var(--yellow); border-color: var(--yellow); }
-.badge-item-body { display: grid; gap: 1px; min-width: 0; }
-.badge-item-title { font-family: var(--font-body); font-weight: 600; font-size: 14.5px; color: var(--text); }
-
 /* --- export / import des données locales --- */
 .data-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
 .data-msg { margin-top: 6px; color: var(--cyan); }
@@ -1219,56 +981,7 @@ table.kv td:first-child { color: var(--muted); }
 
 /* --- grille rythmique de l'exercice --- */
 
-
-/* ===========================================================================
-   Entrée audio (phase 3) : bandeau d'écoute, jauge de niveau, accordeur.
-   Tout vit sur des surfaces OPAQUES (D34) : le décor ne passe jamais derrière un texte.
-   =========================================================================== */
-
-.mic-strip {
-  display: grid;
-  gap: 6px;
-  padding: 8px;
-  margin-bottom: 10px;
-  background: var(--bg);
-  border: 2px solid var(--line-soft);
-}
-.mic-top { display: flex; align-items: center; gap: 8px; }
-.mic-dot { flex: none; width: 8px; height: 8px; background: var(--line); }
-.mic-dot.on { background: var(--ok); box-shadow: 0 0 6px var(--ok); animation: mic-pulse 1.6s steps(2, end) infinite; }
 @keyframes mic-pulse { 50% { opacity: 0.3; } }
-.mic-state { flex: 1; min-width: 0; color: var(--muted); }
-.mic-db { flex: none; font-family: var(--font-label); font-size: 11px; color: var(--dim); }
-
-.mic-meter { position: relative; height: 10px; background: var(--surface); border: 2px solid var(--line-soft); }
-.mic-meter i { display: block; height: 100%; width: 0; background: var(--ok); transition: width 70ms linear; }
-.mic-meter b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text); opacity: 0.8; }
-
-.mic-note { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; min-height: 26px; }
-.mic-pill {
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 1.2;
-  padding: 2px 8px;
-  color: var(--on-accent);
-  background: var(--muted);
-  border: 2px solid var(--line);
-}
-.mic-pill.in { background: var(--ok); }
-.mic-pill.low, .mic-pill.high { background: var(--yellow); }
-.mic-pill.far { background: var(--orange); }
-.mic-cents { font-family: var(--font-label); font-size: 12px; color: var(--dim); }
-.mic-cents.in { color: var(--ok); }
-.mic-cents.low, .mic-cents.high { color: var(--yellow); }
-.mic-cents.far { color: var(--orange); }
-.mic-string { font-size: 12.5px; color: var(--dim); }
-.mic-strip.big .mic-pill { font-size: 22px; padding: 4px 10px; }
-.mic-strip.big .mic-state { font-size: 15px; }
-
-.mic-tol { position: relative; height: 6px; background: var(--surface); border: 2px solid var(--line-soft); }
-.mic-tol span { position: absolute; top: 0; bottom: 0; background: var(--surface-hi); border-left: 1px solid var(--ok); border-right: 1px solid var(--ok); }
-.mic-tol b { position: absolute; top: -3px; bottom: -3px; width: 3px; background: var(--text); transform: translateX(-1px); }
 
 /* --- accordeur --- */
 .tuner-list { display: grid; gap: 4px; margin: 8px 0; }
@@ -1307,12 +1020,49 @@ table.kv td:first-child { color: var(--muted); }
   .tuner-status { display: none; }
 }
 
-
 /* ===========================================================================
-   Module Accords (phase 4a) — parcours, boîte d'accord, leçon
+   Module Accords : la liste des formes
    Mêmes tokens que le reste : aucune couleur en dur ici.
    =========================================================================== */
 
+.chord-fold { display: inline-flex; align-items: center; gap: 8px; min-width: 44px; min-height: 44px; justify-content: flex-end; padding: 0; color: var(--text); background: none; border: 0; cursor: pointer; }
+/* le bouton s'étend à tout l'en-tête : un seul contrôle, toute la rangée se touche */
+.panel-head:has(.chord-fold) { position: relative; }
+.chord-fold .badge { box-sizing: border-box; min-width: 12ch; text-align: center; }
+/* « Replier tout » tombe pile sur la colonne des compteurs et de leurs flèches */
+.chord-surface .page-head .btn { flex: none; box-sizing: border-box; width: 148px; padding-inline: 4px; white-space: nowrap; }
+@media (max-width: 899px) { .chord-surface .page-head .btn { margin-inline-end: 2px; } }
+/* dictionnaire : mêmes largeurs de pastilles dans chaque rangée, le résultat dessous */
+.dict-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); align-items: center; gap: 6px; margin-block-end: var(--gap-inside); }
+.dict-more {
+  min-height: 38px;
+  padding: 0 10px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--cyan);
+  background: var(--surface-hi);
+  border: var(--bw) dashed var(--cyan);
+  cursor: pointer;
+}
+.dict-more:hover { border-style: solid; }
+.dict-more[aria-expanded='true'] { border-style: solid; }
+.dict-families { display: grid; margin-block-end: var(--gap-inside); border-block-start: 1px solid var(--line-soft); }
+.dict-family { display: grid; gap: 6px; padding-block: 8px; border-block-end: 1px solid var(--line-soft); }
+.dict-family .dict-chips { margin: 0; }
+@media (min-width: 900px) {
+  .dict-family { grid-template-columns: 180px minmax(0, 1fr); align-items: center; gap: 12px; }
+}
+.dict-result { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin-block-start: var(--gap-inside); }
+.dict-info { display: grid; gap: var(--gap-tight); flex: 1 1 150px; min-width: 0; }
+.dict-info p { margin: 0; }
+.dict-info .chord-side { flex-direction: row; margin-block-start: var(--gap-inside); }
+.dict-info .chord-side { flex-wrap: wrap; }
+.dict-info .chord-side .chip { flex: 0 0 84px; min-width: 0; }
+/* la précision passe sous le diagramme, sur toute la largeur de la rangée */
+.chord-note { flex: 0 0 100%; grid-column: 1 / -1; margin: 0; }
+.chord-fold::after { content: ''; position: absolute; inset: 0; }
 .chord-list { display: grid; gap: 8px; margin-top: 10px; }
 /* au bureau, deux accords par rangée : 11 lignes de « Septièmes » tenaient toute une page */
 @media (min-width: 900px) {
@@ -1328,10 +1078,8 @@ table.kv td:first-child { color: var(--muted); }
   background: var(--surface-hi);
   border: 2px solid var(--line-soft);
 }
-.chord-row.learned { border-color: var(--green); }
 .chord-row > .chordbox { flex: none; }
-/* « plus tard » : trait pointillé plutôt qu'une opacité de 0,82 qu'on ne distinguait pas d'une ligne ouverte */
-.chord-row.locked { border-style: dashed; }
+
 .chord-main { min-width: 0; flex: 1 1 220px; display: grid; gap: 1px; }
 /* le nom et ses notes vont ensemble ; la phrase de prof qui suit est un autre bloc */
 .chord-main > p + p { margin-block-start: var(--gap-tight); }
@@ -1345,326 +1093,17 @@ table.kv td:first-child { color: var(--muted); }
   color: var(--text);
   margin: 0;
 }
-.chord-frets {
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 12.5px;
-  letter-spacing: 0.1em;
-  color: var(--dim);
-}
-.prof-note { margin: 4px 0 2px; }
-.prof-note > summary {
-  display: flex;
-  align-items: center;
-  min-height: 38px;
-  color: var(--cyan);
-  cursor: pointer;
-  list-style: none;
-}
-.prof-note > summary::-webkit-details-marker { display: none; }
-.prof-note > summary::before { content: '▸ '; color: var(--magenta); white-space: pre; }
-.prof-note[open] > summary::before { content: '▾ '; }
-.prof-note > p { margin-top: 2px; }
-.chord-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
+.chord-side { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+/* mêmes largeurs et texte centré : les deux écoutes se lisent comme une colonne */
+.chord-side .chip { min-width: 84px; }
 .chord-side .tag { white-space: nowrap; }
 
 .chordbox { display: block; line-height: 0; }
 .chordbox canvas { display: block; image-rendering: pixelated; }
 
-/* héros de l'index : la forme dessinée à côté de son nom */
-.chord-hero { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-block) 16px; }
-.chord-hero-text { flex: 1 1 140px; min-width: 0; display: grid; gap: var(--gap-tight); }
-.chord-hero-text .home-title { margin: 0; }
-.chord-hero-text .t-body { margin: 0; color: var(--muted); }
-.chord-progress { display: grid; gap: var(--gap-tight); margin-top: var(--gap-inside); }
-
-/* palier replié : une ligne d'objectif et un bouton pour déplier */
-.palier-actions { margin-top: var(--gap-inside); }
-.row.palier-actions { align-items: center; }
-.palier-toggle {
-  display: inline-flex;
-  align-items: center;
-  min-height: 38px;
-  padding: 0 12px;
-  font: inherit;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--cyan);
-  background: var(--bg);
-  border: var(--bw) solid var(--line-soft);
-  cursor: pointer;
-}
-.palier-toggle:hover { border-color: var(--cyan); }
-.palier-toggle::before { content: '▸ '; color: var(--magenta); white-space: pre; }
-.palier-toggle[aria-expanded='true']::before { content: '▴ '; }
-.chord-box-wrap { display: grid; gap: 6px; justify-items: start; }
-
-.finger-steps { list-style: none; display: grid; gap: 8px; }
-.finger-step {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 12px;
-  background: var(--surface-hi);
-  border: 2px solid var(--line-soft);
-}
-/* sur téléphone, l'étiquette d'état prenait la place du texte : le contenu passe au-dessus d'elle */
-@media (max-width: 520px) {
-  .finger-step { flex-wrap: wrap; row-gap: 6px; }
-  /* Le numéro ne part jamais seul sur sa ligne : c'est le texte qui décide du retour à la ligne.
-     Sélecteurs à deux classes, sinon `.finger-body { flex: 1 1 auto }` plus bas dans le fichier gagne. */
-  .finger-step .finger-num { flex: 0 0 auto; }
-  .finger-step .finger-body { flex: 1 1 180px; }
-  .finger-step .tag { margin-left: auto; }
-}
-.finger-step.now { border-color: var(--cyan); }
-.finger-step.done { border-color: var(--green); }
-.finger-num { font-family: var(--font-label); font-size: 16px; color: var(--cyan); min-width: 22px; }
-.finger-body { flex: 1 1 auto; min-width: 0; font-size: 13.5px; color: var(--muted); }
-
-.check-list { display: grid; gap: 8px; }
-.check-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 12px;
-  background: var(--surface-hi);
-  border: 2px solid var(--line-soft);
-}
-.check-row.now { border-color: var(--cyan); }
-.check-row.ok { border-color: var(--green); }
-.check-row.wrong { border-color: var(--danger); }
-.check-row.tuning { border-color: var(--yellow); }
-.check-string {
-  font-family: var(--font-label);
-  font-size: 13px;
-  color: var(--text);
-  min-width: 34px;
-  text-align: center;
-  padding: 2px 4px;
-  border: 1px solid var(--line);
-  background: var(--bg);
-}
-.check-body { flex: 1 1 auto; min-width: 0; font-size: 13.5px; color: var(--muted); }
-
-/* la réponse reste sous le pouce pendant qu'on lit les six cordes */
-@media (max-width: 899px) {
-  .check-actions {
-    position: sticky;
-    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-    z-index: 3;
-    margin: 8px -4px 0;
-    padding: 8px 4px;
-    background: var(--surface);
-    border-top: 2px solid var(--line-soft);
-  }
-}
-
-.linklike {
-  font: inherit;
-  color: var(--cyan);
-  background: none;
-  border: 0;
-  padding: 0;
-  min-height: 38px;
-  cursor: pointer;
-  /* fond opaque gardé (D75) : seul le libellé en minuscules le distingue des actions */
-}
 .t-small.ok { color: var(--ok); }
 .t-small.ko { color: var(--orange); }
-
-@media (max-width: 520px) {
-  .chord-row { align-items: stretch; }
-  .chord-side { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
-  .check-row { flex-wrap: wrap; }
-}
-
-/* --- leçon d'accord : navigation d'étapes et en-tête de contenu (4a, reprise après revue) -------- */
-
-.step-nav {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 5px;
-  margin: 6px 0 2px;
-}
-.step-btn {
-  display: grid;
-  gap: 2px;
-  justify-items: center;
-  align-content: center;
-  min-height: 50px;
-  padding: 5px 3px;
-  background: var(--surface-hi);
-  border: 2px solid var(--line-soft);
-  color: var(--muted);
-  font: inherit;
-  cursor: pointer;
-}
-/* le numéro et le libellé sont du texte qu'on lit. Silkscreen en capitales à 9,5 px perdait les
-   accents et la hauteur d'x (D24) ; et ses chiffres, très larges, faisaient lire « 0 2 » au lieu de
-   « 02 ». L'identité pixel reste dans le décor, la tablature et le mot-symbole. */
-.step-btn .step-num {
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-  color: var(--dim);
-  line-height: 1;
-}
-.step-btn .step-label {
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0;
-  line-height: 1.15;
-  color: var(--muted);
-  text-align: center;
-}
-.step-btn.on { border-color: var(--cyan); background: var(--surface); }
-.step-btn.on .step-num { color: var(--cyan); }
-.step-btn.on .step-label { color: var(--text); }
-
-/* Objectif de l'étape : une bande pleine, pas du texte posé sur le ciel étoilé. Le réglage « boîte
-   d'accord » est un contrôle, il va à droite (et passe à la ligne sous 520 px). */
-.step-goal {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 14px;
-  padding: 10px 12px;
-  background: var(--surface);
-  border: 2px solid var(--line-soft);
-}
-.step-goal-text { margin: 0; flex: 1 1 0; min-width: 0; }
-/* micro et boîte d'accord : deux réglages de toute la leçon, côte à côte, à droite de l'objectif */
-.step-toggles { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 100%; }
-.step-toggles .switch { width: auto; flex: 1 1 140px; margin: 0; min-height: 40px; padding: 4px 10px; }
-@media (min-width: 520px) {
-  .step-toggles { flex: 0 0 auto; margin-left: auto; }
-  .step-toggles .switch { flex: 0 0 auto; }
-}
-
-.chord-intro { display: grid; gap: 10px; margin-bottom: 8px; }
-.chord-facts { display: grid; gap: 8px; align-content: start; }
-@media (min-width: 720px) {
-  .chord-intro { grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 16px; }
-}
-
-/* --- phase 4b : Fixer, Enchaîner, Intégrer, QCM, accordage guidé ------------------------------- */
-
-/* sept étapes : la grille de 4 place les trois dernières sur une seconde rangée */
-.step-nav-7 { row-gap: 6px; }
-
-/* téléphone : la grille de sept cède la place à une ligne « ‹ 02/07 Construire › » */
-.step-nav-compact { display: none; }
-@media (max-width: 519px) {
-  .step-nav-7 { display: none; }
-  .step-nav-compact {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) 44px;
-    align-items: center;
-    gap: 6px;
-    margin: 6px 0 2px;
-  }
-}
-.step-arrow {
-  min-height: 44px;
-  font: inherit;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--cyan);
-  background: var(--surface-hi);
-  border: var(--bw) solid var(--line-soft);
-  cursor: pointer;
-}
-.step-arrow:hover { border-color: var(--cyan); }
-.step-arrow:disabled { opacity: 0.4; cursor: default; }
-.step-compact-label {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 8px;
-  background: var(--surface);
-  border: var(--bw) solid var(--cyan);
-  font-size: 15px;
-  font-weight: 650;
-  color: var(--text);
-}
-.step-compact-label .step-num { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--cyan); }
-
-/* pose à froid : le chrono est la seule chose qu'on regarde */
-.cold-line {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 6px 0 2px;
-}
-.cold-chrono {
-  font-family: var(--font-label);
-  font-size: 26px;
-  line-height: 1;
-  color: var(--yellow);
-}
-.cold-chrono.ko { color: var(--danger); }
-
-/* paires d'accords (Enchaîner) et progressions (Intégrer) : des puces, une seule ligne qui défile */
-.pair-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 6px 0;
-}
-.drill-result {
-  margin-top: 8px;
-  padding: 8px;
-  background: var(--bg);
-  border: 2px solid var(--line-soft);
-}
-
-/* QCM sans matériel : une réponse = une grande cible tactile, lisible seule */
-/* relancer la série : en bas du panneau, loin des réponses, avec une seconde touche en cours de série */
-.row.quiz-reset { align-items: center; margin-top: var(--gap-inside); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
-.quiz-tab { margin: 8px 0; }
-.quiz-options { display: grid; gap: 8px; margin: 10px 0; }
-.quiz-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 8px 10px;
-  background: var(--surface-hi);
-  border: 2px solid var(--line-soft);
-  color: var(--text);
-  font: inherit;
-  font-size: 15px;
-  text-align: left;
-  cursor: pointer;
-}
-.quiz-option:hover:not(:disabled) { border-color: var(--cyan); }
-.quiz-option.right { border-color: var(--ok); }
-.quiz-option.wrong { border-color: var(--danger); }
-.quiz-option.muted { opacity: 0.5; }
-.quiz-letter {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
-  border: 2px solid var(--line-soft);
-  color: var(--dim);
-  font-family: var(--font-label);
-  font-size: 11px;
-}
-.quiz-option.right .quiz-letter { color: var(--ok); border-color: var(--ok); }
-.quiz-option.wrong .quiz-letter { color: var(--danger); border-color: var(--danger); }
-.quiz-label { min-width: 0; }
-
-/* accordage guidé : la corde en cours se lit de loin */
 
 /* --- la tablature prend la largeur de son panneau, padding compris (téléphone) --------------------- */
 @media (max-width: 899px) {
@@ -1699,105 +1138,19 @@ table.kv td:first-child { color: var(--muted); }
   text-transform: none;
 }
 
-/* ---- accueil simplifié et liste des positions (branche ui/simplification) ------------------------- */
-/* affiche d'accueil : le soleil du décor passe DERRIÈRE le titre, comme dans la 1re version */
-.home-hero {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 8px;
-  min-height: 258px;
-  padding: 0 0 10px;
-}
-.home-hero-bottom {
-  /* une seule plaque porte la marque, l'accroche et la jauge : l'affiche ne superpose plus trois
-     aplats de bords différents. Légèrement translucide (demande de l'auteur) : le décor transparaît,
-     mais à 0,85 le voile reste assez dense pour que le contraste ne dépende pas de ce qui passe dessous */
-  align-self: flex-start;
-  max-inline-size: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 18px 12px;
-  background: rgba(var(--veil-rgb), 0.85);
-  border: var(--bw) solid var(--line);
-  box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink);
-}
-.home-tagline {
-  font-size: var(--label-lg);
-  letter-spacing: 0.02em;
-  text-wrap: balance;
-  color: var(--cyan);
-}
-.home-hero-title {
-  margin: 0;
-  font-family: var(--font-display);
-  /* la marque cède le premier rang au titre de la tâche (--hero-title) : on lit ce qu'on joue, pas le logo */
-  font-size: clamp(22px, 7vw, 28px);
-  line-height: 1.12;
-  color: var(--text);
-}
-/* jauge du jour : trois crans pixel, lisibles à un mètre (le texte courant est à 16 px) */
-.home-day { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap-inside); margin-block-start: var(--gap-inside); font-size: 16px; color: var(--text); }
-.day-cells { display: inline-flex; gap: var(--gap-tight); }
-/* chaque morceau reste entier : la série passe à la ligne d'un bloc, jamais « d'affilée » seul */
-.day-text { white-space: nowrap; }
-.home-status { margin-block-start: var(--gap-inside); padding-block-start: 10px; border-top: var(--bw) solid var(--line-soft); }
-.home-status .home-day { margin-block-start: 0; }
-.day-done { color: var(--green); font-weight: 700; }
-.day-streak { margin: 2px 0 0; font-size: 15px; color: var(--muted); }
-.day-next { color: var(--dim); }
-.day-cell { width: 16px; height: 16px; border: var(--bw) solid var(--line); background: var(--bg); }
-.day-cell.on { border-color: var(--green); background: var(--green); }
-@media (min-width: 900px) {
-  .home-hero { min-height: 300px; }
-  .home-hero-title { font-size: 30px; }
-}
-/* grand écran : l'affiche cède de la hauteur pour que le héros entre sans défiler ; le soleil passe
-   derrière le titre, comme prévu par l'affiche */
-@media (min-width: 1024px) {
-  .home-hero { min-height: 220px; }
-}
+/* --- bloc « À réviser » de la page Gammes : les formes dues, puis une seule action --- */
+.review-forms { display: grid; gap: var(--gap-tight); margin: 0 0 var(--gap-inside); padding: 0; list-style: none; }
+.review-forms li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.review-next { margin: 0; }
 @media (max-width: 899px) {
-  /* téléphone : l'affiche se réduit à son contenu (titre, accroche, jauge) ; le héros monte d'autant */
-  .home-hero { min-height: 150px; }
+  .review-forms li { flex-direction: column; gap: 0; }
 }
-.home-title { overflow-wrap: anywhere; text-wrap: balance; margin: 2px 0 4px; font-family: var(--font-body); font-size: var(--hero-title); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; }
-.home-actions { margin: 12px 0 10px; }
-/* `.row` étire ses enfants (règle globale plus bas) : ici l'autre étape et le lien gardent leur hauteur */
-.row.home-actions { align-items: center; }
-.home-actions .btn { flex: 1 1 150px; }
-/* une seule règle de placement, quel que soit l'état : le primaire ouvre la rangée à gauche, à largeur
-   fixe, le secondaire à sa droite. L'œil et la main le retrouvent au même endroit chaque jour. */
 @media (min-width: 900px) {
-  .row.home-actions > .btn-primary { flex: 0 0 auto; min-inline-size: 20rem; }
+  .shell > .review-next { grid-column: 1 / -1; }
 }
-/* révision en héros : la reprise reste à portée, en ligne secondaire sous l'action principale */
-.home-resume { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
-/* premier lancement : deux étapes numérotées, une seule action primaire */
-.home-steps { list-style: none; display: grid; gap: var(--gap-inside); padding: 0; margin-block: var(--gap-inside) 0; }
-.home-steps > li { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: var(--gap-inside); }
-/* une étape dépliée (« et 3 autres ») : la pastille reste en face de sa première ligne, pas au milieu de la liste */
-.home-steps > li:has(details[open]) { align-items: start; }
-.home-step-n { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-family: var(--font-label); font-weight: 700; color: var(--magenta); border: var(--bw) solid var(--magenta); }
-.home-step-text { font-size: 16px; font-weight: 600; color: var(--text); }
-/* pourquoi cette étape (séance du jour) : sous le titre de l'étape, plus discret que lui */
-.home-step-why { display: block; font-size: 14.5px; font-weight: 400; line-height: 1.45; color: var(--muted); text-wrap: pretty; }
-.home-step-why strong { font-weight: 600; color: var(--text); }
-/* les autres formes dues, repliées sous la première (carte de révision, lot 3) */
-.home-step-more { margin-top: 4px; }
-.home-step-more > summary { cursor: pointer; color: var(--cyan); list-style: none; }
-.home-step-more > summary::-webkit-details-marker { display: none; }
-.home-step-more > summary::before { content: '▸ '; color: var(--magenta); }
-.home-step-more[open] > summary::before { content: '▾ '; }
-.home-step-more ul { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 6px; }
-/* retour après une absence : la première chose que lit l'élève, sans alerte ni reproche */
-.home-welcome { display: grid; gap: 2px; margin-bottom: var(--gap-inside); }
-.home-welcome .t-body { color: var(--text); font-weight: 600; }
-/* étape franchie : cochée et estompée ; étape en cours : son numéro s'allume, c'est elle que porte le primaire */
-.home-steps > li.done .home-step-n { color: var(--green); border-color: var(--green); }
-.home-steps > li.done .home-step-text { color: var(--muted); font-weight: 400; }
-.home-steps > li.current .home-step-n { color: var(--on-accent); background: var(--magenta); }
+
+/* ---- liste des positions (branche ui/simplification) ---------------------------------------------- */
+
 /* touche du raccourci, dans le bouton primaire : un clavier physique seulement (rien au tactile) */
 .home-key {
   margin-inline-start: 10px;
@@ -1811,67 +1164,13 @@ table.kv td:first-child { color: var(--muted); }
 }
 @media (hover: none), (pointer: coarse) { .home-key { display: none; } }
 /* le héros se lit à un mètre : action en 17 px sur 56 px de haut, lignes d'explication à 16 px */
-/* deux poids, pas trois : l'action (56 px, 17 px) ; les autres actions de la carte, des boutons ordinaires
-   à la même taille, opaques (D75 : aucun bouton transparent). Changer de sujet n'est pas un lien à part. */
-.home-actions .btn { white-space: nowrap; }
-.row.home-actions > .btn:not(.btn-primary) { flex: 0 1 auto; padding-inline: 18px; }
-.home-actions .btn-primary { min-height: var(--hero-btn-h); font-size: var(--hero-btn-size); }
-.home-go > .t-small { font-size: 16px; color: var(--muted); }
-.home-blocked { margin-block-start: var(--gap-inside); padding: 8px 10px; font-size: 15px; color: var(--text); background: var(--surface-hi); border-inline-start: 4px solid var(--orange); }
+
 /* la barre fixe ne cache jamais l'élément qui a le focus (WCAG 2.4.11) : en bas au téléphone, en haut au bureau */
 @media (max-width: 899px) { html { scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); } }
 @media (min-width: 900px) { html { scroll-padding-top: 72px; } }
-/* invite micro (tant que le micro n'a jamais entendu l'élève) : sous les actions, en retrait, jamais primaire */
-.home-mic { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside); padding-top: var(--gap-inside); border-top: var(--bw) solid var(--line-soft); }
-.home-mic p { flex: 1 1 32ch; text-wrap: pretty; }
+
 /* compte du héros : lu à un mètre, il ne peut pas rester le plus petit texte du panneau */
 /* chiffre en sans-serif : en Silkscreen 14 px le « 1 » se lisait comme une tache */
-/* texte replié de l'accueil : une mesure de lecture, pas la largeur du panneau (150 caractères au bureau) */
-.home-acc p { max-inline-size: 68ch; text-wrap: pretty; }
-.home-acc details > p + p { margin-block-start: var(--gap-inside); }
-
-/* bande « Parcours » : une ligne par module, sa progression réelle, et elle ouvre le module */
-.path-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gap-inside); }
-.path-row {
-  display: grid;
-  grid-template-columns: 7.5rem minmax(0, 1fr) minmax(6rem, 12rem);
-  align-items: center;
-  gap: var(--gap-inside) 16px;
-  width: 100%;
-  min-height: 56px;
-  padding: 8px 12px;
-  text-align: left;
-  font-family: var(--font-body);
-  font-size: 16px;
-  color: var(--text);
-  background: var(--surface-hi);
-  border: var(--bw) solid var(--line-soft);
-  cursor: pointer;
-}
-.path-row:hover { border-color: var(--cyan); }
-.path-name.t-label { color: var(--cyan); }
-.path-what { display: flex; flex-direction: column; gap: 2px; font-weight: 600; }
-.path-count { font-size: 15px; font-weight: 400; color: var(--muted); }
-/* barre pixel : cadre au trait, remplissage en aplat vert, pas de coin arrondi */
-.path-bar { display: block; height: 12px; background: var(--bg); border: var(--bw) solid var(--line); }
-.path-fill { display: block; height: 100%; background: var(--green); }
-/* sous 900 px la colonne fait 560 px au plus : nom, texte et barre s'empilent */
-@media (max-width: 899px) {
-  .path-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
-}
-
-.home-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 0 8px; }
-.home-foot button {
-  min-height: 38px;
-  padding: 0 2px;
-  font: inherit;
-  color: var(--dim);
-  background: none;
-  border: 0;
-  text-decoration: underline;
-  cursor: pointer;
-}
-.home-foot button:hover { color: var(--cyan); }
 
 .chosen-line { margin: 10px 0 2px; font-size: 14px; }
 .tonics-label { margin: 12px 0 0; color: var(--cyan); }
@@ -1924,28 +1223,11 @@ table.kv td:first-child { color: var(--muted); }
   .pos-item { grid-template-columns: 32px minmax(0, 1fr); row-gap: 8px; }
   .pos-acts { grid-column: 2; }
   .pos-act { flex: 1 1 auto; }
-  /* `.row.home-actions` : plus spécifique que l'appariement global `.row > .btn` (44 %), qui coupait
-     « S'EXERCER AU MICRO » sur deux lignes à côté de l'action principale */
-  .row.home-actions > .btn-primary { flex: 1 1 100%; }
+
 }
 
 /* geste suivant sur l'écran de découverte, et bandeau micro de l'exercice */
 
-/* trois gestes sur une ligne, à largeur égale ; un libellé trop long passe à la ligne dans son bouton */
-
-.mic-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  margin: 4px 0 10px;
-  border: var(--bw) solid var(--line);
-  background: rgba(5, 217, 232, 0.06);
-}
-.mic-line.on { border-color: var(--green); background: rgba(124, 255, 107, 0.08); }
-.mic-line-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
-.mic-line-title { font-size: 14px; font-weight: 600; }
 .mic-line-error { color: var(--danger); }
 
 /* barre de réponse du téléphone : au bureau, le pavé est déjà à côté de la tablature */
@@ -1961,61 +1243,21 @@ table.kv td:first-child { color: var(--muted); }
 
 }
 
-/* « Comment c'est noté ? » : tout le barème d'un écran, replié en un seul endroit */
-.how-scored {
-  padding: 0 14px;
-  background: var(--surface);
-  border: var(--bw) solid var(--line-soft);
-}
-.how-scored > summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  cursor: pointer;
-  list-style: none;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-}
-.how-scored > summary::-webkit-details-marker { display: none; }
-.how-scored > summary::before { content: '▸'; color: var(--cyan); }
-.how-scored[open] > summary::before { content: '▾'; }
-.how-scored > summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
-.how-scored[open] { padding-bottom: 12px; }
-.how-scored > p { max-width: 75ch; margin: 0; }
-.how-scored > p + p { margin-top: var(--gap-inside); }
 /* dans la colonne étroite du panneau Réponse : le texte au-dessus, le bouton sur toute la largeur */
 
 /* aide « clavier physique » : sans objet sur un écran tactile */
 
-/* Séquences : la « scène » au-dessus de la tablature — tempo, décompte, verdict de passe, bouton.
-   Le seul bloc en accent de l'écran : c'est lui qu'on lit de loin pendant qu'on joue. */
-.seq-stage {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 20px;
-  padding: 14px;
-  background: var(--surface);
-  border: var(--bw) solid var(--magenta);
-  box-shadow: 0 0 16px -6px var(--magenta), var(--shadow) var(--shadow) 0 var(--shadow-ink);
-}
 .seq-tempo { display: flex; align-items: baseline; gap: 12px; flex: none; }
 .seq-bpm { font-family: var(--font-display); font-size: 28px; line-height: 1.2; color: var(--text); }
 .seq-shift { font-size: 20px; font-weight: 700; }
 .seq-shift.up { color: var(--ok); }
 .seq-shift.down { color: var(--orange); }
-.seq-now { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
 .seq-line { display: flex; align-items: baseline; gap: 8px; font-size: 20px; font-weight: 650; line-height: 1.35; text-wrap: pretty; }
 .seq-line.ok .verdict-mark { color: var(--ok); }
 .seq-line.no .verdict-mark { color: var(--danger); }
 .seq-idle { font-size: 17px; font-weight: 500; color: var(--muted); }
 .seq-count { font-family: var(--font-display); font-size: 48px; line-height: 1.1; color: var(--cyan); }
-@media (max-width: 519px) { .seq-stage .btn { flex: 1 1 100%; } }
-.exercise-start { margin: 12px 0 8px; }
-.exercise-start .btn { flex: 1 1 140px; }
-@media (max-width: 519px) { .exercise-start .btn { flex: 1 1 100%; } }
 
 /* ombre portée derrière les en-têtes de page : le décor occupe tout l'écran, le titre reste lisible
    au-dessus du soleil et des montagnes */
@@ -2078,199 +1320,19 @@ table.kv td:first-child { color: var(--muted); }
 .tab-legend-title { font-size: 13px; font-weight: 700; }
 .tab-legend-note { font-size: 12.5px; line-height: 1.4; color: var(--muted); }
 
-/* ---- panneau de réussite (animation synthwave, CSS pur) -------------------------------------------- */
-.celebrate {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(var(--veil-rgb), 0.82);
-  animation: celebrate-in 0.18s ease-out both;
-}
 @keyframes celebrate-in { from { opacity: 0; } to { opacity: 1; } }
 
-.celebrate-scene { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.celebrate-sun {
-  position: absolute;
-  left: 50%;
-  bottom: 46%;
-  width: min(78vw, 420px);
-  aspect-ratio: 2 / 1;
-  transform: translate(-50%, 30%);
-  border-radius: 999px 999px 0 0;
-  background:
-    repeating-linear-gradient(180deg, rgba(var(--veil-rgb), 0) 0 10px, rgba(var(--veil-rgb), 0.92) 10px 15px),
-    linear-gradient(180deg, var(--yellow) 0%, var(--orange) 46%, var(--magenta) 100%);
-  opacity: 0;
-  animation: celebrate-rise 0.75s cubic-bezier(0.2, 0.9, 0.2, 1) 0.06s both;
-}
 @keyframes celebrate-rise {
   from { opacity: 0; transform: translate(-50%, 40%) scale(0.9); }
   to { opacity: 0.95; transform: translate(-50%, 0) scale(1); }
 }
-.celebrate-grid {
-  position: absolute;
-  inset: 54% 0 -10% 0;
-  background-image:
-    repeating-linear-gradient(90deg, rgba(255, 42, 109, 0.55) 0 2px, rgba(255, 42, 109, 0) 2px 64px),
-    repeating-linear-gradient(180deg, rgba(255, 42, 109, 0.55) 0 2px, rgba(255, 42, 109, 0) 2px 34px);
-  transform: perspective(320px) rotateX(66deg);
-  transform-origin: top center;
-  animation: celebrate-scroll 1.6s linear infinite, celebrate-fade 0.5s ease-out both;
-}
+
 @keyframes celebrate-scroll { from { background-position: 0 0, 0 0; } to { background-position: 0 0, 0 34px; } }
 @keyframes celebrate-fade { from { opacity: 0; } to { opacity: 0.5; } }
 
-.celebrate-card {
-  position: relative;
-  width: min(440px, 100%);
-  max-height: calc(100dvh - 32px);
-  overflow: auto;
-  padding: 18px 16px 16px;
-  text-align: center;
-  background: rgba(var(--veil-rgb), 0.94);
-  border: var(--bw) solid var(--magenta);
-  box-shadow: 0 0 0 2px rgba(255, 42, 109, 0.25), 0 0 40px rgba(255, 42, 109, 0.35), var(--shadow) var(--shadow) 0 rgba(0, 0, 0, 0.6);
-  animation: celebrate-pop 0.34s cubic-bezier(0.2, 1.35, 0.4, 1) both;
-}
 @keyframes celebrate-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
 
-.celebrate-kicker {
-  margin: 0;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--cyan);
-}
-.celebrate-title {
-  margin: 4px 0 2px;
-  font-family: var(--font-display);
-  font-size: clamp(22px, 7vw, 30px);
-  line-height: 1.2;
-  color: var(--text);
-  text-shadow: 0 3px 0 rgba(var(--veil-rgb), 0.7), 0 0 22px rgba(255, 42, 109, 0.45);
-}
-.celebrate-sub { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
-
-.celebrate-stars { margin: 6px 0 2px; font-size: 30px; line-height: 1; letter-spacing: 0.16em; color: rgba(246, 238, 255, 0.18); }
-.celebrate-stars .on { color: var(--yellow); text-shadow: 0 0 12px rgba(255, 210, 63, 0.8); }
-.celebrate:not(.still) .celebrate-stars span { animation: celebrate-star 0.42s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
 @keyframes celebrate-star { from { opacity: 0; transform: scale(0.4) rotate(-24deg); } to { opacity: 1; transform: none; } }
-
-.celebrate-xp {
-  margin: 8px 0 0;
-  font-family: var(--font-display);
-  font-size: clamp(20px, 6.5vw, 26px);
-  color: var(--yellow);
-  text-shadow: 0 0 18px rgba(255, 210, 63, 0.55);
-}
-.celebrate-xp-value { font-variant-numeric: tabular-nums; }
-.celebrate-total { margin: 4px 0 6px; font-size: 12.5px; color: var(--muted); }
-.celebrate-total strong { color: var(--text); }
-
-.celebrate-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin: 12px 0 10px;
-  padding: 8px 0;
-  border-top: 1px solid var(--line-soft);
-  border-bottom: 1px solid var(--line-soft);
-}
-.celebrate-stats div { display: flex; flex-direction: column; gap: 2px; }
-.celebrate-stats dt { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); }
-.celebrate-stats dd { margin: 0; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
-
-.celebrate-seal {
-  margin: 0 0 10px;
-  padding: 6px 8px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--green);
-  border: var(--bw) solid rgba(124, 255, 107, 0.5);
-  background: rgba(124, 255, 107, 0.08);
-}
-.celebrate-note { margin: 10px 0 0; font-size: 11.5px; color: var(--dim); line-height: 1.45; }
-.celebrate-detail { margin: 4px 0 10px; font-size: 16px; font-weight: 600; color: var(--text); }
-.celebrate-actions { display: grid; gap: 8px; margin-top: 4px; }
-/* échec : même cadre, lumière baissée — pas de fête, mais une fin visible */
-.celebrate.calm .celebrate-sun { opacity: 0.35; }
-.celebrate.calm .celebrate-grid { opacity: 0.5; }
-.celebrate.calm .celebrate-card { border-color: var(--orange); }
-
-/* animations réduites : rien ne bouge, tout reste lisible */
-.celebrate.still .celebrate-sun { animation: none; opacity: 0.9; transform: translate(-50%, 0); }
-.celebrate.still .celebrate-grid { animation: none; opacity: 0.4; }
-.celebrate.still .celebrate-card { animation: none; }
-@media (prefers-reduced-motion: reduce) {
-  .celebrate, .celebrate-sun, .celebrate-grid, .celebrate-card, .celebrate-stars span { animation: none !important; }
-  .celebrate-sun { opacity: 0.9; transform: translate(-50%, 0); }
-  .celebrate-grid { opacity: 0.4; }
-}
-.celebrate-meta { margin: -2px 0 0; font-size: 11.5px; letter-spacing: 0.04em; color: var(--cyan); }
-
-/* ---- derniers accomplissements (accueil) ---------------------------------------------------------- */
-.acc-list { list-style: none; margin: 6px 0 4px; padding: 0; }
-.acc-row {
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 10px;
-  padding: 9px 0;
-  border-top: 1px solid var(--line-soft);
-}
-.acc-row:first-child { border-top: 0; }
-/* pastille au trait, pas en aplat : la couleur dit le genre sans faire un arc-en-ciel quand la liste est
-   dépliée (le seul aplat saturé de l'accueil reste le bouton principal) */
-.acc-glyph {
-  --acc: var(--green);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  font-size: 13px;
-  line-height: 1;
-  color: var(--acc);
-  background: var(--surface-hi);
-  border: var(--bw) solid var(--acc);
-}
-.acc-yellow .acc-glyph { --acc: var(--yellow); }
-.acc-magenta .acc-glyph { --acc: var(--magenta); }
-.acc-cyan .acc-glyph { --acc: var(--cyan); }
-.acc-violet .acc-glyph { --acc: var(--violet); }
-.acc-extra { font-size: 13px; color: var(--dim); }
-.acc-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.acc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.acc-title { font-size: 15.5px; font-weight: 700; }
-.acc-when { font-size: 13px; color: var(--dim); white-space: nowrap; }
-.acc-line { font-size: 14.5px; line-height: 1.5; color: var(--text); text-wrap: pretty; }
-.acc-detail { color: var(--muted); }
-.acc-open {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 0 6px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  background: transparent;
-  border: var(--bw) solid var(--line);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.acc-open:hover { border-color: var(--cyan); }
-@media (max-width: 519px) {
-  /* la ligne reste sur trois colonnes : le bouton « rejouer » tient à droite, la ligne ne double pas
-     de hauteur (10 entrées × 3 lignes faisaient une page de 2 200 px) */
-  .acc-row { grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; }
-  .acc-glyph { width: 20px; height: 20px; font-size: 11px; }
-  .acc-when { font-size: 12.5px; }
-}
 
 /* --- rythme vertical (dernier bloc du fichier : il tranche sur les marges locales) -----------------
    Trois valeurs seulement — `--gap-block` entre deux blocs, `--gap-inside` entre deux sous-blocs d'un
@@ -2282,28 +1344,19 @@ table.kv td:first-child { color: var(--muted); }
   .shell { display: flex; flex-direction: column; gap: var(--gap-block); }
 }
 .panel,
-.home-hero,
-.home-foot,
 .tabview,
 .tab-legend,
-.pos-nav,
 .adv-settings,
 .chosen-line,
 .tonics-label,
-.acc-list,
 .panel-foot,
 .row,
 .toggle-grid,
 .status,
-.positions,
-.cta-block,
-.step-nav,
-.step-nav-compact,
-.hero,
-.quiz-strip { margin-block: 0; }
+.positions { margin-block: 0; }
 
 /* 1. remises à zéro : les composants qui portaient leur propre marge suivent le rythme, ils ne le décident pas */
-.mic-strip,
+
 .t-small,
 .t-body,
 .t-label,
@@ -2313,19 +1366,12 @@ table.kv td:first-child { color: var(--muted); }
 .more-opts,
 .field,
 .panel-head,
-.group-note,
-.card-title,
 .stat-line,
-.acc-list,
 .positions,
 .scale-list,
 .switch,
 .tuner-needle { margin-block: 0; }
-.home-foot { margin-block-start: 0; }
-.position-note { margin-block-start: var(--gap-inside); }
-.exercise-start { margin-block: var(--gap-inside) 0; }
-.hero-kicker { margin-block: 0 var(--gap-inside); }
-.mic-line { margin-block: 0 var(--gap-inside); }
+
 .field + .field { margin-block-start: var(--gap-inside); }
 
 /* 2. puis le rythme, **après** les remises à zéro : à spécificité égale, la dernière règle gagne. Quand il
@@ -2333,64 +1379,15 @@ table.kv td:first-child { color: var(--muted); }
    bloc d'au-dessus (« le texte touche les boutons »). `tools/tight-check.mjs` le mesure. */
 .panel > * + * { margin-block-start: var(--gap-inside); }
 /* les paires qui vont ensemble restent serrées : une étiquette et ce qu'elle annonce, un titre et sa ligne */
-.panel > .t-label + *,
-.panel > .card-title + * { margin-block-start: var(--gap-tight); }
+.panel > .t-label + * { margin-block-start: var(--gap-tight); }
 /* un intertitre au milieu d'un panneau : plus d'air au-dessus qu'en dessous */
 .panel > * + .t-label { margin-block-start: var(--gap-block); }
 /* un repli ouvert (« Plus d'options », « Avis de prof », « Comment c'est noté ? ») suit le même rythme */
 details[open] > * + * { margin-block-start: var(--gap-inside); }
 
-/* --- écoute d'un accord plaqué (phase 5) ----------------------------------------------------------
-   Une ligne par corde : nom, barre de confiance, pourcentage. Une corde non entendue passe à l'orange
-   et le dit en mots (« pas entendue ») — un pourcentage seul laisserait croire à une nuance. --------- */
-.pluck-report { display: grid; gap: var(--gap-inside); margin-block-start: var(--gap-inside); }
-.pluck-strings { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gap-tight); }
-.pluck-strings li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 96px 66px;
-  align-items: center;
-  gap: var(--gap-inside);
-  font-size: 12.5px;
-  color: var(--text);
-}
-.pluck-strings li.missing .pluck-string { color: var(--orange); }
-.pluck-bar {
-  display: block;
-  height: 8px;
-  background: var(--surface-hi);
-  border: 1px solid var(--line-soft);
-  overflow: hidden;
-}
-.pluck-bar i { display: block; height: 100%; background: var(--green); }
-.pluck-strings li.missing .pluck-bar i { background: var(--orange); }
-.pluck-pct {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  font-size: 11.5px;
-  color: var(--dim);
-  white-space: nowrap;
-}
-/* Téléphone : la même ligne, resserrée. Deux lignes par corde (nom puis barre) donnaient 44 px par
-   corde et repoussaient le résultat sous le pli. */
-@media (max-width: 520px) {
-  .pluck-strings li { grid-template-columns: minmax(0, 1fr) 60px 66px; gap: 6px; }
-  .pluck-pct { font-size: 11px; }
-}
-
-/* --- bande d'introduction (pages qui n'ont pas d'objectif d'étape) ---------------------------------
-   Une phrase seule écrite à même le décor passe sous le soleil de l'affiche et les étoiles : elle a le
-   même fond que les panneaux, comme la bande d'objectif des étapes (D66). --------------------------- */
-.lead-band {
-  padding: 10px 12px;
-  background: var(--surface);
-  border: 2px solid var(--line-soft);
-}
-.lead-band p { margin: 0; }
-
 /* --- rangées de boutons sur téléphone ---------------------------------------------------------------
-   Cinq boutons de largeurs différentes empilés (156, 250, 218, 272, 172 px mesurés sur l'étape
-   « Plaquer ») font un escalier : sur téléphone ils s'apparient deux par deux à largeur égale, et un
-   bouton seul occupe la ligne. Les pastilles (chips) gardent leur largeur de texte. ------------------ */
+   Des boutons de largeurs différentes empilés font un escalier : sur téléphone ils s'apparient deux par
+   deux à largeur égale, et un bouton seul occupe la ligne. Les pastilles (chips) gardent leur largeur de texte. ------------------ */
 @media (max-width: 520px) {
   .row { gap: 8px; }
   .row > .btn { flex: 1 1 44%; }
@@ -2403,11 +1400,6 @@ details[open] > * + * { margin-block-start: var(--gap-inside); }
 .row > .chip,
 .row > .tag,
 .row > .switch { align-self: center; }
-
-/* La tablature du QCM est dans un conteneur intermédiaire (`.quiz-tab`) : elle n'héritait donc pas des
-   marges négatives de `.panel > .tabview` et débordait du panneau de 28 px, puis de la fenêtre de 8 px
-   dès qu'elle prenait sa marge gauche. Elle prend la largeur du panneau, comme les autres. */
-.quiz-tab { margin-inline: -14px; }
 
 /* --- improvisation (phase 7) ----------------------------------------------------------------------
    Une grille d'accords qui s'allume sur la mesure en cours, et les notes jouées classées par rôle.
@@ -2460,13 +1452,11 @@ details[open] > * + * { margin-block-start: var(--gap-inside); }
 
 /* commutateur : piste 44 × 24 et curseur carré, à l'échelle des pixels de la tablature */
 
-
 /* Réglage de tempo : deux boutons carrés et une valeur, sur une seule ligne. */
 .impro-tempo-row { display: flex; align-items: center; gap: 8px; }
 .impro-tempo-row .impro-step { flex: 0 0 44px; padding: 0; }
 /* Le nom d'accord se lit en clair : dans la police pixel, « Am » s'écrit « AM » et le mineur disparaît. */
 .impro-chord-name { font-family: var(--font-body); font-weight: 700; letter-spacing: 0; }
-
 
 /* --- rien de transparent sur le décor (D75) --------------------------------------------------------
    La scène (soleil, grille, étoiles) est un canvas derrière l'application : un bouton ou un texte sans
@@ -2507,17 +1497,11 @@ details[open] > * + * { margin-block-start: var(--gap-inside); }
   .page-head { row-gap: 6px; }
 }
 
-.home-hero-title { text-shadow: 2px 2px 0 var(--shadow-ink); }
-
-/* Chemin en cinq niveaux (page Jouer) : quatre étapes de même gabarit, la courante cerclée de cyan.
-   Chaque étape est une tuile entière à toucher ; 4 sur une ligne au bureau, 2 × 2 sur téléphone. */
-.row.page-exit { justify-content: flex-start; }
 .levels {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
-@media (min-width: 720px) { .levels { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 .level {
   display: grid;
   align-content: start;
@@ -2535,35 +1519,9 @@ button.level { cursor: pointer; }
 button.level:hover { border-color: var(--cyan); }
 button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .level.here { border-color: var(--cyan); background: var(--surface); }
-.level-n { font-family: var(--font-label); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--muted); }
-.level.here .level-n { color: var(--cyan); }
+
 .level-t { font-size: 17px; font-weight: 700; line-height: 1.25; }
 .level-s { font-size: 13.5px; line-height: 1.4; color: var(--muted); }
-.level-here { white-space: nowrap; }
-
-/* pied d'accueil et pieds de page : une bande, et des boutons qui se voient */
-.home-foot {
-  padding: 8px 12px;
-  background: var(--surface);
-  border: 2px solid var(--line-soft);
-}
-.home-foot button {
-  min-height: 38px;
-  padding: 6px 10px;
-  background: var(--surface-hi);
-  border: 2px solid var(--line-soft);
-  color: var(--text);
-  font-family: var(--font-body);
-  font-size: 14px;
-}
-.home-foot button:hover { border-color: var(--cyan); }
-
-/* barre de positions et bloc « étape suivante » : bandes, comme les autres */
-.pos-nav {
-  padding: 8px 12px;
-  background: var(--surface);
-  border: 2px solid var(--line-soft);
-}
 
 /* En-tête en bande : l'étiquette va à droite au bureau (elle se collait au titre, et la bande pleine
    largeur avait l'air à moitié vide). Sur téléphone elle reste sous le titre (règle de D51). */
@@ -2571,18 +1529,6 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .page-head { grid-template-columns: 44px minmax(0, 1fr) auto; }
   .page-head > .tag { justify-self: end; margin-left: 0; }
 }
-
-/* pied d'accueil : une ligne, pas un bouton encadré ; la bande reste (D75), le lien s'efface */
-.home-foot { padding-block: 4px; }
-.home-foot button {
-  padding: 0 2px;
-  background: none;
-  border: 0;
-  color: var(--muted);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.home-foot button:hover { color: var(--cyan); }
 
 /* Vue manche (module Gammes, Découvrir) : canvas à échelle entière ; trop large pour un téléphone à
    l'échelle 2, il défile dans son panneau plutôt que de rapetisser ses pastilles. */
@@ -2592,103 +1538,6 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .neck-stage { position: relative; margin-inline: auto; }
 .neck-overlay { position: absolute; inset: 0; pointer-events: none; }
 .neck-link { display: grid; gap: var(--gap-inside); justify-items: start; margin-block-start: var(--gap-inside); }
-
-/* replis de l'index des accords : la ligne entière est une cible tactile, pas seulement ses 22 px de texte */
-.chord-more > summary { display: flex; align-items: center; min-height: 38px; }
-
-/* verdict du QCM : zone annoncée (role=status), toujours présente pour que le lecteur d’écran la suive */
-.quiz-verdict { display: grid; gap: var(--gap-inside); }
-
-/* « Mes premiers accords » (D105) : une tuile par accord, la boîte au-dessus du nom */
-.first-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: var(--gap-inside); }
-@media (min-width: 900px) { .first-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.first-tile {
-  display: grid;
-  justify-items: center;
-  align-content: start;
-  gap: var(--gap-tight);
-  padding: 10px 8px;
-  font: inherit;
-  color: var(--text);
-  text-align: center;
-  background: var(--surface-hi);
-  border: var(--bw) solid var(--line-soft);
-  cursor: pointer;
-}
-.first-tile:hover { border-color: var(--magenta); }
-.first-tile.learned { border-color: var(--green); }
-.first-name { font-family: var(--font-body); font-size: 18px; font-weight: 700; line-height: 1.25; }
-.first-note { font-size: 13.5px; line-height: 1.35; color: var(--muted); text-wrap: balance; }
-/* téléphone : la phrase de chaque tuile reste dans son nom accessible ; affichée, elle doublait la
-   hauteur du panneau (huit tuiles sur quatre rangées) */
-@media (max-width: 519px) {
-  .first-note { display: none; }
-}
-/* doigt pivot (Enchaîner) : la consigne du changement, juste sous la paire */
-.pivot-line { color: var(--text); }
-
-/* --- listes numérotées : le chiffre dans une pastille pixel, comme les étapes de l'accueil -------- */
-.pix-steps {
-  list-style: none;
-  counter-reset: pix;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-  max-inline-size: 72ch;
-  font-size: 14.5px;
-  line-height: 1.45;
-  color: var(--text);
-}
-.pix-steps > li { counter-increment: pix; position: relative; min-height: 24px; padding: 2px 0 0 34px; }
-.pix-steps > li::before {
-  content: counter(pix);
-  position: absolute;
-  left: 0;
-  top: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  /* chiffre en sans-serif : en Silkscreen à 11 px, le « 4 » ne se lisait pas (même constat que D24) */
-  font-family: var(--font-body);
-  font-size: 12.5px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--accent, var(--cyan));
-  border: var(--bw) solid currentColor;
-}
-.pix-steps strong { font-weight: 650; }
-/* nom d'étape et description sur la même ligne : la colonne des noms se parcourt d'un coup d'œil */
-.pix-steps-tight { gap: 6px; }
-.pix-steps-tight span { color: var(--muted); }
-/* les règles du changement : le texte qu'on retient, à 16 px ; côte à côte au bureau */
-.pix-steps-rules { font-size: 16px; gap: var(--gap-block); max-inline-size: none; }
-@media (min-width: 900px) {
-  .pix-steps-rules { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 24px; }
-  /* six étapes en deux colonnes, lues de haut en bas */
-  .pix-steps-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(3, auto); grid-auto-flow: column; column-gap: 32px; max-inline-size: none; }
-  .module-facts-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; max-inline-size: none; }
-}
-
-/* --- compléments d'un panneau : une rangée de pastilles, un seul contenu ouvert (Reveal) --------- */
-.reveal { display: grid; gap: var(--gap-inside); margin-top: var(--gap-block); }
-.reveal-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
-.reveal-tabs .chip::after { content: ' ▸'; white-space: pre; }
-.reveal-tabs .chip.on::after { content: ' ▾'; }
-.reveal-body { display: grid; gap: var(--gap-inside); padding: 12px 14px; background: var(--bg); border: var(--bw) solid var(--line-soft); }
-.reveal-body[hidden] { display: none; }
-.reveal-body > p { margin: 0; }
-
-/* pied de « Changer d'accord » : la phrase et l'action sur une ligne au bureau */
-.change-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gap-inside) 16px; margin-top: var(--gap-block); padding-top: var(--gap-block); border-top: var(--bw) solid var(--line-soft); }
-.change-foot > p { margin: 0; flex: 1 1 280px; max-inline-size: 72ch; }
-
-/* Enchaîner, accord cible (D107) : les premiers accords en pastilles, le reste du parcours en liste */
-.target-field > p { margin: 0; }
-.field .target-other { display: grid; gap: var(--gap-tight); max-inline-size: 420px; margin-top: var(--gap-tight); }
-.field .target-other select { width: 100%; }
 
 /* ---- page Métronome (D112) : à l'arrêt tout est là, en jeu les temps prennent la place ----------------- */
 /* min-height : le panneau va jusqu'à la barre du bas, les temps absorbent la hauteur libre. Démarrer reste
@@ -2857,7 +1706,7 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .tuner-summary strong:last-child { padding: 2px 8px; }
 
 /* Page Jouer au bureau : une seule surface, comme la maquette « Page Gamme ». En-tête collant (identité
-   et écoute), tablature, onglets de niveaux et positions, deux colonnes de sections séparées par un
+   et écoute), tablature, onglets et positions, deux colonnes de sections séparées par un
    filet pointillé, barre basse. Le téléphone garde sa colonne de panneaux, rendue à part. */
 @media (min-width: 900px) {
   /* un peu plus large que les autres pages : un aller-retour en cases hautes doit tenir sur une ligne */
@@ -2907,18 +1756,7 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .play-tab-bar .segmented { flex-wrap: nowrap; padding: 0; }
   .play-tab-bar .switch-hint { display: none; }
   .play-surface .tabview { border: 0; scrollbar-color: var(--line) transparent; }
-  .play-neck-switch { display: block; }
-  .play-shell .play-neck-switch .switch {
-    display: flex;
-    flex-direction: row-reverse;
-    gap: 12px;
-    min-height: 44px;
-    padding: 0;
-    background: none;
-    border: 0;
-    box-shadow: none;
-  }
-  .play-shell .play-neck-switch .switch-label { font-size: 14px; }
+
   .play-tab .panel,
   .play-tab .tab-legend { padding: 16px 0 0; background: none; border: 0; border-block-start: var(--bw) solid var(--line-soft); box-shadow: none; }
   .play-tab .panel::before,
@@ -2951,15 +1789,14 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .play-nav .level.here { border-block-end-color: var(--cyan); }
   .play-nav .level-t { font-size: 16px; font-weight: 500; }
   .play-nav .level.here .level-t { font-weight: 700; color: var(--cyan); }
-  .play-nav .level-n { padding: 3px 6px; font-size: 11px; color: var(--muted); background: var(--surface-hi); }
-  .play-nav .level.here .level-n { color: var(--on-accent); background: var(--cyan); }
+
   .play-nav .level-s { display: none; }
   .play-pos { display: flex; align-items: center; gap: 14px; padding-block-end: 6px; }
   .play-dots { display: flex; gap: 4px; }
   .play-dots > span { width: 10px; height: 10px; border: var(--bw) solid var(--line); }
   .play-dots > .on { background: var(--magenta); border-color: var(--magenta); }
 
-  .play-more { display: flex; justify-content: center; padding: 14px 28px; }
+  .play-more { display: flex; justify-content: center; gap: 10px; padding: 14px 28px; }
   .play-more + .play-columns { padding-block-start: 8px; }
   .play-columns { display: flex; flex-wrap: wrap; gap: 36px 56px; padding: 32px 28px 36px; }
   .play-col { display: flex; flex-direction: column; gap: 32px; flex: 1 1 460px; min-width: 0; }
@@ -3004,7 +1841,16 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .play-foot .instrument select { min-width: 260px; }
 }
 
-/* Page Entraînement au bureau : la même surface que Jouer, la réponse en une rangée sous la tablature */
+/* Liste d'accords au téléphone : le diagramme à gauche, nom et écoute à droite. Empilés, 40 formes
+   faisaient treize mille pixels de page. */
+@media (max-width: 899px) {
+  .chord-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 6px 12px; }
+  .chord-row > .chordbox { grid-row: span 2; }
+  .chord-side { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .chord-side .chip { flex: 1 1 72px; min-width: 0; padding-inline: 6px; }
+}
+
+/* Page Révision au bureau : la même surface que Jouer, le verdict en une rangée sous la tablature */
 @media (min-width: 900px) {
   .train-answer { display: grid; gap: var(--gap-inside); padding: 12px 28px; border-block-start: var(--bw) solid var(--line-soft); }
   .train-answer > * { min-width: 0; margin: 0; }
@@ -3089,40 +1935,20 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .chord-surface > .panel .panel-head h2 { display: flex; align-items: center; gap: 12px; color: var(--text); }
   .chord-surface > .panel .panel-head h2::before { content: ''; flex: none; width: 10px; height: 10px; background: var(--accent, var(--line)); }
 
-  /* étapes de la leçon : des onglets sur une ligne, comme les niveaux des gammes */
-  .chord-surface > .step-nav {
-    display: flex;
-    gap: 0;
-    padding: 0 28px;
-    border-block-end: var(--bw) solid var(--line-soft);
-  }
-  .chord-surface .step-btn {
-    flex: 1 1 0;
-    flex-direction: row;
-    justify-content: center;
-    gap: 8px;
-    min-height: 52px;
-    margin-block-end: calc(-1 * var(--bw));
-    background: none;
-    border: 0;
-    border-block-end: 3px solid transparent;
-    box-shadow: none;
-  }
-  .chord-surface .step-btn:hover { border-block-end-color: var(--line); }
-  .chord-surface .step-btn.on { background: none; border-block-end-color: var(--cyan); }
-  .chord-surface .step-btn .step-label { font-size: 15px; }
-  .chord-surface .step-btn.on .step-label { color: var(--cyan); }
-  .chord-surface > .step-goal { padding: 8px 28px; background: none; border: 0; border-block-end: var(--bw) solid var(--line-soft); }
-
-  .chord-surface .first-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-  .chord-surface .first-tile,
+  /* une liste à consulter : autant de formes que la largeur en accepte, sans retour à la ligne dans une rangée */
+  .chord-surface .chord-list { grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
   .chord-surface .chord-row { background: none; }
-  .chord-surface .first-tile:not(:hover),
-  .chord-surface .chord-row { border-color: transparent; }
-  .chord-surface .step-toggles { gap: 16px; }
-  /* QCM : pas de guitare ici, les réponses restent au clic, sur deux colonnes pour tenir à l'écran */
+  .chord-surface .chord-main { flex: 1 1 0; }
+  /* le canvas réserve à gauche la place du numéro de case : la droite reçoit le même vide */
+  .chord-surface .chord-row { padding-inline-end: 34px; }
+  .chord-surface .chord-row > .chordbox { margin-inline-start: -10px; }
+
+  /* filet entre deux accords : celui de la première colonne sort du cadre et se trouve coupé */
+  .chord-surface .chord-list { column-gap: 0; overflow: hidden; }
+  .chord-surface .chord-row { margin-inline-start: -2px; border-color: transparent; border-inline-start-color: var(--line-soft); }
+
   .chord-surface > .play-tab-bar { justify-content: flex-start; padding: 8px 28px; border-block-end: var(--bw) solid var(--line-soft); }
-  .chord-surface .quiz-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap-inside); }
+
 }
 
 /* Page Réglages : sur téléphone, la surface ne se voit pas (ses enfants gardent la colonne du shell).
@@ -3183,7 +2009,7 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .play-neck-close { display: flex; justify-content: flex-end; padding: 0 18px 16px; }
 
 /* Page Jouer au téléphone : mêmes choix que la surface du bureau, mais les blocs restent. L'écoute est
-   collée en haut, positions et réglages au-dessus de la tablature, niveaux en une rangée d'onglets,
+   collée en haut, positions et réglages au-dessus de la tablature, outils en une rangée d'onglets,
    théorie derrière « Détails ». */
 @media (max-width: 899px) {
   .play-neck-dialog { width: calc(100vw - 16px); max-width: 560px; }
@@ -3221,7 +2047,7 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .mplay-play { width: 100%; }
   .mplay-play-note { margin: 0; text-align: center; }
   .mplay-hint { margin: 0; padding-block: 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.3; text-align: center; text-transform: uppercase; color: var(--cyan); background: none; }
-  .mplay-grid { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+
   .mplay-pos { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .mplay-pos .btn { min-width: 40px; padding-inline: 8px; }
   .mplay-pos .t-label { margin: 0; font-size: 11px; letter-spacing: 0.06em; }
@@ -3240,20 +2066,20 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .mplay-tab .panel::after { content: none; }
 
   /* cinq onglets sur une rangée : le numéro, le titre ; les précisions sont dans les Détails */
-  .mplay-levels .levels { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: 0; background: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
+  .mplay-levels .levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 0; background: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
   .mplay-levels .level { display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 52px; padding: 6px 1px; text-align: center; }
-  .mplay-levels .level-n { font-size: 11px; }
-  .mplay-levels .level-t { font-size: clamp(10.5px, 3vw, 12px); line-height: 1.15; }
+
+  .mplay-levels .level-t { font-size: 13px; line-height: 1.15; }
   .mplay-levels .level-s { display: none; }
   /* sur le décor : la surface, seule valeur qui s'en détache dans les deux thèmes (en Aube, surface haute et fond se confondent) */
-  /* une seule barre d'onglets, pas cinq tuiles : un filet entre deux niveaux */
+  /* une seule barre d'onglets, pas trois tuiles : un filet entre deux onglets */
   .mplay-levels .level { background: none; border: 0; border-inline-start: 1px solid var(--line-soft); box-shadow: none; }
   .mplay-levels .level:first-child { border-inline-start: 0; }
   .mplay-levels .level.here { background: var(--cyan); }
-  .mplay-levels .level.here .level-n,
+
   .mplay-levels .level.here .level-t { color: var(--on-accent); }
 
-  .mplay-more { display: flex; justify-content: center; }
+  .mplay-more { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap-inside); }
   /* dépliés, les détails partent du bouton : pas d'écart, un seul trait entre les deux */
   .mplay-more:has(+ .mplay-details) { margin-block-end: calc(-1 * (var(--gap-block) + var(--bw))); }
   .mplay-more:has(+ .mplay-details) .btn { box-shadow: none; }
@@ -3266,9 +2092,6 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .mplay-details > .panel::before,
   .mplay-details > .panel::after { content: none; }
   .mplay-details > :is(.panel, .tab-legend) + :is(.panel, .tab-legend) { border-block-start: var(--bw) solid var(--line-soft); }
-  .mplay-levels-help { display: grid; gap: var(--gap-inside); margin: 0; }
-  .mplay-levels-help dt { font-weight: 700; }
-  .mplay-levels-help dd { margin: 0; color: var(--muted); }
 
   .mplay-foot { display: grid; gap: var(--gap-inside); padding: 12px; background: var(--surface); border: var(--bw) solid var(--line); }
   .mplay-foot .instrument { margin: 0; }
@@ -3387,8 +2210,6 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   border: 1px solid var(--line);
 }
 
-/* Bilan d'une gamme en boucle au micro : les chiffres, puis un carré par tour. */
-.loop-bilan { display: flex; flex-direction: column; gap: 12px; padding: 16px; min-width: 0; border-top: 1px solid var(--line-soft); }
 .loop-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 12px; margin: 0; }
 .loop-stats dt { font-size: 13px; color: var(--muted); }
 .loop-stats dd { margin: 0; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }

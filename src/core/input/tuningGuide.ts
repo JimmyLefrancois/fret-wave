@@ -16,7 +16,7 @@ import type { Tuning } from '../theory/tunings';
 
 /** Écart accepté pendant l'accordage (cents). Serré exprès. */
 export const IN_TUNE_CENTS = 5;
-/** Durée pendant laquelle la corde doit rester juste avant de passer à la suivante. */
+/** Durée pendant laquelle la corde doit rester juste avant de compter. */
 export const GUIDE_HOLD_MS = 400;
 /** Au-delà de cet écart, ce n'est plus la corde qu'on accorde (on ignore). */
 export const GUIDE_MAX_DETUNE = 90;
@@ -59,67 +59,6 @@ export function guideStatusOf(
   if (Math.abs(cents) > GUIDE_MAX_DETUNE) return { status: 'far', cents };
   if (Math.abs(cents) <= tolerance) return { status: 'in-tune', cents };
   return { status: cents < 0 ? 'low' : 'high', cents };
-}
-
-export const STATUS_TEXT: Readonly<Record<GuideStatus, string>> = {
-  silent: 'joue la corde',
-  'in-tune': 'juste — tiens-la',
-  low: 'trop basse',
-  high: 'trop haute',
-  far: 'ce n’est pas cette corde',
-};
-
-export interface GuideState {
-  /** Rang de la corde en cours dans `guideSteps`. */
-  index: number;
-  /** Instant depuis lequel la corde est juste (null : pas juste en ce moment). */
-  holdSince: number | null;
-  done: boolean;
-  /** Cordes validées dans cette session. */
-  validated: number;
-}
-
-export function newGuide(): GuideState {
-  return { index: 0, holdSince: null, done: false, validated: 0 };
-}
-
-export interface GuideTick {
-  state: GuideState;
-  status: GuideStatus;
-  cents: number | null;
-  /** Vient de valider une corde (pour un retour visuel / sonore). */
-  justValidated: boolean;
-}
-
-/**
- * Avance l'état d'un cran. Fonction **pure** : elle reçoit l'instant, jamais l'horloge interne, donc un
- * test peut simuler une corde tenue juste. `total` = nombre de cordes de l'accordage.
- */
-export function guideTick(
-  state: GuideState, step: GuideStep | undefined, heard: { midi: number; cents: number } | null, now: number, total: number,
-): GuideTick {
-  if (!step || state.done) return { state, status: 'silent', cents: null, justValidated: false };
-  const { status, cents } = guideStatusOf(heard, step);
-  if (status !== 'in-tune') {
-    return { state: { ...state, holdSince: null }, status, cents, justValidated: false };
-  }
-  const holdSince = state.holdSince ?? now;
-  if (now - holdSince < GUIDE_HOLD_MS) {
-    return { state: { ...state, holdSince }, status, cents, justValidated: false };
-  }
-  const index = state.index + 1;
-  const done = index >= total;
-  return {
-    state: { index, holdSince: null, done, validated: state.validated + 1 },
-    status,
-    cents,
-    justValidated: true,
-  };
-}
-
-/** Nombre de cordes d'un état d'accordage guidé (le total vient de l'accordage, pas de l'état). */
-export function guideComplete(state: GuideState, steps: readonly GuideStep[]): boolean {
-  return state.index >= steps.length;
 }
 
 // ---------------------------------------------------------------------------

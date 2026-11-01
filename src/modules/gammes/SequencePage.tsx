@@ -5,21 +5,21 @@
  * tour depuis un degré, sur la position choisie). Au micro, chaque passe est précédée d'une mesure de décompte, jouée sur le métronome et jugée
  * note à note (justesse et mise en place) ; le tempo monte de 4 BPM après deux passes propres et en place,
  * redescend de 5 après deux échecs, jamais sous le départ (`sequence.ts`). Sans micro : tempo manuel,
- * rien n'est vérifié, ni palier ni XP.
+ * rien n'est vérifié, pas de palier.
  *
  * Une **seule tentative par session** (motif, tempo de départ, meilleur tempo validé, passes, précision) :
- * le journal plafonné à 2 000 entrées ne doit pas se remplir de passes. Elle nourrit la **vitesse** de la
- * forme (« maîtrisée »), jamais « apprise » ni la révision.
+ * le journal plafonné à 2 000 entrées ne doit pas se remplir de passes. Elle donne le tempo de départ de la
+ * session suivante et l'onglet Progression, jamais la révision.
  *
  * **Gamme en boucle** (D125, travail par défaut) : la gamme tourne sur le métronome, au tempo choisi, sans
  * pause ; avec l'option +5 BPM toutes les N répétitions, un décompte précède chaque hausse de tempo.
  * Sans micro, rien n'est écouté ni noté. Au micro, mode tolérant (D126) : chaque tour est jugé, la gamme ne
  * s'arrête pas, et le tempo ne monte qu'après N tours propres d'affilée. Dans les deux cas, une activité au
- * journal, sans XP ; au micro, elle porte ses séries (D127). Au micro, 2 s de silence terminent la session.
+ * journal ; au micro, elle porte ses séries (D127). Au micro, 2 s de silence terminent la session.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
-import { setScaleSelection, setTrainingStart, takeLiaisonRequest, useScaleSelection } from '../../app/scaleSession';
+import { setScaleSelection, takeLiaisonRequest, useScaleSelection } from '../../app/scaleSession';
 import { useSettings } from '../../app/settings';
 import { TabView } from '../../app/TabView';
 import { NeckView } from '../../app/NeckView';
@@ -28,7 +28,7 @@ import { InstrumentPicker } from '../../app/AudioControls';
 import { useDesktop } from '../../app/useDesktop';
 import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
-import { LevelsNav } from './LevelsNav';
+import { ScaleTabs } from './ScaleTabs';
 import { SequenceProgress } from './SequenceProgress';
 import { SessionSummary, type SavedSession } from './SessionSummary';
 import { PlaySection } from './PlaySection';
@@ -44,7 +44,7 @@ import {
 } from '../../core/tab';
 import { extendedPosition, linkedPair, positionsOnNeck } from '../../core/theory';
 import {
-  appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, xpForAttempt, type Attempt,
+  appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, type Attempt,
 } from '../../core/progress';
 import { COUNT_IN_TICKS, blindGrid, scoreBlind, type BlindGrid, type HeardNote } from './blind';
 import { clickMasked } from './exercise';
@@ -466,7 +466,7 @@ export function SequencePage() {
       ...(verified ? { mic: true as const } : {}),
     };
     appendAttempt(progressStore(), attempt);
-    setSaved({ xp: xpForAttempt(attempt), verified, ...(loopMode ? { loop: { reps: lad.passes, bpm: lad.bpm, clean: scored.current ? played.filter((t) => t.result.clean).length : null } } : {}) });
+    setSaved({ verified, ...(loopMode ? { loop: { reps: lad.passes, bpm: lad.bpm, clean: scored.current ? played.filter((t) => t.result.clean).length : null } } : {}) });
     setSummaryOpen(true);
   };
 
@@ -478,7 +478,7 @@ export function SequencePage() {
     inputEngineIfAny()?.stop();
   }, []);
 
-  // --- micro : ouverture à la demande (même chaîne que l'entraînement)
+  // --- micro : ouverture à la demande (même chaîne que la révision)
   useEffect(() => {
     if (!micOn) {
       engine?.stop();
@@ -758,17 +758,17 @@ export function SequencePage() {
   const subtitle = loopMode ? 'gamme en boucle' : `séquence ${SEQUENCE_LABEL[pattern]}${pattern === 'cycle' ? ` depuis la ${fmtDegree(start)}` : ''}`;
   const tempoHint = loopMode
     ? 'Gamme : la position monte et descend sans s’arrêter sur le métronome, au tempo de base choisi. En option, le tempo monte de 5 BPM toutes les quelques répétitions, avec un décompte avant chaque hausse. Tolérant : le micro juge chaque tour sans couper la gamme, et seuls les tours propres d’affilée font monter le tempo. Sinon, on relance au même tempo.'
-    : listening ? 'Palier automatique : +4 après deux passes propres, −5 après deux échecs.' : 'Sans micro : ni palier, ni XP — la tablature et le métronome seulement.';
+    : listening ? 'Palier automatique : +4 après deux passes propres, −5 après deux échecs.' : 'Sans micro : pas de palier, la tablature et le métronome seulement.';
   const pauseNote = ladder && pauseDue(sessionMs) && (
       <p className="t-small" role="status">Dix minutes de séquences : une pause de deux minutes, main relâchée, et la précision revient.</p>
     );
   const savedNote = saved && (
       <p className="t-small" role="status">
         {saved.loop
-          ? `${saved.loop.reps} ${saved.loop.reps > 1 ? 'gammes' : 'gamme'}${saved.loop.clean !== null ? ` dont ${saved.loop.clean} ${saved.loop.clean > 1 ? 'propres' : 'propre'}` : ''}, jusqu’à ${saved.loop.bpm} BPM. Enregistré comme activité, sans XP.`
+          ? `${saved.loop.reps} ${saved.loop.reps > 1 ? 'gammes' : 'gamme'}${saved.loop.clean !== null ? ` dont ${saved.loop.clean} ${saved.loop.clean > 1 ? 'propres' : 'propre'}` : ''}, jusqu’à ${saved.loop.bpm} BPM.`
           : saved.verified
-          ? `Session enregistrée${saved.xp > 0 ? ` : +${saved.xp} XP` : ''}.${isLiaison(pattern) ? '' : ' Le meilleur tempo validé compte pour la vitesse de la forme.'}`
-          : 'Session enregistrée comme activité, non vérifiée : sans micro, l’app n’entend rien.'}
+          ? 'Session enregistrée.'
+          : 'Session enregistrée, non vérifiée : sans micro, l’app n’entend rien.'}
       </p>
     );
   const copyLog = () => {
@@ -816,11 +816,9 @@ export function SequencePage() {
     <>
       <p className="t-small">
         Une passe est réussie à ≥ 95 % de notes justes <strong>et</strong> en place : neuf notes sur dix à moins d’une
-        demi-croche de leur temps (un retard constant ne compte pas, c’est la latence). C’est un exercice de technique,
-        tablature visible : il prouve la <strong>vitesse</strong> d’une forme, pas qu’on la sait par cœur. Les liaisons
-        travaillent le passage d’une forme à l’autre : elles ne comptent pas pour la vitesse d’une forme.
+        demi-croche de leur temps (un retard constant ne compte pas, c’est la latence).
       </p>
-      <p className="t-small">La gamme en boucle ne rapporte ni XP ni preuve de vitesse. En tolérant, un tour est propre sans note fausse, manquée ou nettement hors tempo.</p>
+      <p className="t-small">En tolérant, un tour de gamme est propre sans note fausse, manquée ou nettement hors tempo.</p>
       <p className="t-small t-dim">
         Une seule tentative par session au journal. Le tempo validé le plus haut sert de départ la fois suivante.
       </p>
@@ -846,11 +844,10 @@ export function SequencePage() {
         <div className="play-surface">
           <header className="play-head">
             <div className="play-id">
-              <button type="button" className="back" onClick={() => navigate('training')} aria-label="Retour à l’entraînement">‹</button>
+              <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour à Gammes">‹</button>
               <div>
                 <div className="play-title">
                   <h1 className="page-title">{r.title}</h1>
-                  <span className="tag tag-on">Niv4</span>
                 </div>
                 <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {subtitle}</p>
               </div>
@@ -936,14 +933,7 @@ export function SequencePage() {
           {summaryDialog}
 
           <div className="play-nav">
-            <LevelsNav
-              current={4}
-              onSelect={(n) => {
-                if (n === 1) navigate('scale');
-                else if (n === 5) navigate('impro');
-                else if (n === 2 || n === 3) { setTrainingStart({ level: n, segment: 'updown' }); navigate('training'); }
-              }}
-            />
+            <ScaleTabs current="sequences" />
             <div className="play-pos">
               {prevPosition}
               <span className="play-dots" aria-hidden="true">
@@ -997,7 +987,7 @@ export function SequencePage() {
     );
   }
 
-  // Téléphone : comme l'entraînement, le portrait règle et lance, la session se joue en paysage sur une ligne
+  // Téléphone : comme la révision, le portrait règle et lance, la session se joue en paysage sur une ligne
   const micFirst = !micOn && !ladder && !loopMode;
   const openPlay = () => {
     setPlaying(true);
@@ -1013,12 +1003,11 @@ export function SequencePage() {
     <main className="shell mplay">
       <header className="mplay-head">
         <div className="mplay-id">
-          <button type="button" className="back" onClick={() => navigate('training')} aria-label="Retour à l’entraînement">‹</button>
+          <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour à Gammes">‹</button>
           <div className="mplay-title">
             <h1 className="page-title">{r.title}</h1>
             <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {subtitle}</p>
           </div>
-          <span className="tag tag-on">Niv4</span>
         </div>
       </header>
 
@@ -1044,14 +1033,7 @@ export function SequencePage() {
       {summaryDialog}
 
       <div className="mplay-levels">
-        <LevelsNav
-          current={4}
-          onSelect={(n) => {
-            if (n === 1) navigate('scale');
-            else if (n === 5) navigate('impro');
-            else if (n === 2 || n === 3) { setTrainingStart({ level: n, segment: 'updown' }); navigate('training'); }
-          }}
-        />
+        <ScaleTabs current="sequences" />
       </div>
 
       <div className="mplay-more">

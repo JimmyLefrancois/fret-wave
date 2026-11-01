@@ -23,10 +23,9 @@ const WIDTH = Number(arg('width', 1440));
 const HEIGHT = Number(arg('height', 900));
 
 const PAGES = [
-  { id: 'hub', hash: '#/hub' },
   { id: 'gammes', hash: '#/gammes' },
   { id: 'n1', hash: '#/gammes/jouer' },
-  { id: 'entrainement', hash: '#/gammes/entrainement' },
+  { id: 'accords', hash: '#/accords' },
   { id: 'revision', hash: '#/gammes/revision' },
   { id: 'reglages', hash: '#/reglages' },
 ];

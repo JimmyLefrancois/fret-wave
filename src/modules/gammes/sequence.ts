@@ -3,7 +3,7 @@
  * logique pure : jugement d'une passe, règles du palier, tempo de reprise, rappel de pause.
  *
  * C'est un exercice de **technique** : la tablature est visible. Il ne prouve donc pas qu'on sait la
- * forme (« apprise »), il prouve qu'on la **joue à tempo** — l'axe vitesse de « maîtrisée ».
+ * forme, il prouve qu'on la **joue à tempo**.
  *
  * Règles du palier (demandées, pas inventées) :
  *  - départ au dernier tempo validé pour cette forme et ce motif, sinon 60 BPM (croches) ;

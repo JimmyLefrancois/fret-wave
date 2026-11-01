@@ -7,14 +7,12 @@ import { useEffect, useState } from 'react';
 import { navigate } from './router';
 import { ACCOUNTS_ENABLED, fetchAccount } from '../core/account/client';
 import { SCALE_SELECTION_KEY, DEFAULT_SELECTION, setScaleSelection } from './scaleSession';
-import { DEFAULT_SETTINGS, HOLE_RATES, MAX_TEMPO, MIN_TEMPO, setSettings, useSettings, type HoleRate } from './settings';
+import { DEFAULT_SETTINGS, setSettings, useSettings } from './settings';
 import { AccountPanel } from './AccountPanel';
 import { Panel, PixelButton, Segmented, Switch } from './ui';
 import { Mixer, InstrumentPicker } from './AudioControls';
 import { useInputSettings } from '../core/input/settings';
 import { LOOK_SECONDS, type LookSeconds } from '../modules/gammes/coldReview';
-import { SPEED_TARGET_MAX, SPEED_TARGET_MIN } from '../core/progress/mastery';
-
 import { PRACTICE_KEY } from '../core/progress/practiceLog';
 import {
   ATTEMPTS_KEY, exportFilename, exportText, loadJournal, mergeAttempts, parseImport, progressStore, writeAttempts,
@@ -89,8 +87,7 @@ export function SettingsPage() {
       setDataMsg(
         `${parsed.attempts.length} tentative${parsed.attempts.length > 1 ? 's' : ''} lue${parsed.attempts.length > 1 ? 's' : ''}, `
         + `${merged.length - current.length} ajoutée${merged.length - current.length > 1 ? 's' : ''}`
-        + (parsed.rejected ? ` · ${parsed.rejected} entrée${parsed.rejected > 1 ? 's' : ''} refusée${parsed.rejected > 1 ? 's' : ''}` : '')
-        + '. Rouvre le hub pour voir les chiffres à jour.',
+        + (parsed.rejected ? ` · ${parsed.rejected} entrée${parsed.rejected > 1 ? 's' : ''} refusée${parsed.rejected > 1 ? 's' : ''}` : ''),
       );
     });
   };
@@ -99,7 +96,6 @@ export function SettingsPage() {
     <main className="shell">
       <div className="set-surface">
         <header className="page-head">
-          <button type="button" className="back" onClick={() => navigate('hub')} aria-label="Retour au hub">‹</button>
           <div>
             <h1 className="page-title">Réglages</h1>
             <p className="t-small t-dim">Mémorisés sur cet appareil</p>
@@ -157,62 +153,13 @@ export function SettingsPage() {
             })}
           </div>
           <p className="t-small t-dim">
-            Les couleurs d’intervalles ne changent jamais avec l’ambiance : elles portent l’apprentissage.
+            Les couleurs d’intervalles ne changent jamais avec l’ambiance : elles portent le sens des notes.
             Seul le décor et l’encre changent — les deux ambiances disent la même chose.
           </p>
         </Panel>
 
-        <Panel className="span-6" accent="violet" label="Exercices">
+        <Panel className="span-6" accent="violet" label="Révision">
           <div className="field">
-            <span className="t-label">Trous au niveau 2</span>
-            <Segmented<HoleRate>
-              value={settings.holeRate}
-              onChange={(v) => setSettings({ holeRate: v })}
-              label="Part des notes masquées"
-              options={HOLE_RATES.map((r) => ({ value: r, label: `${Math.round(r * 100)} %` }))}
-            />
-            <p className="t-small t-dim">
-              Au moins 2 trous et jamais toute la position, quel que soit le pourcentage. Plus de trous = plus dur,
-              pas plus utile pour un débutant.
-            </p>
-          </div>
-          <div className="field">
-            <span className="t-label">Grille rythmique</span>
-            <div className="tempo-row">
-              <div className="tempo">
-                <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.max(MIN_TEMPO, settings.trainingTempo - 5) })} aria-label="Moins vite">−</button>
-                <span className="tempo-val">♩ {settings.trainingTempo}</span>
-                <button type="button" className="tempo-btn" onClick={() => setSettings({ trainingTempo: Math.min(MAX_TEMPO, settings.trainingTempo + 5) })} aria-label="Plus vite">+</button>
-              </div>
-              <span className="t-small t-dim">{settings.gridSubdivision === 2 ? 'deux trous par temps (croches)' : 'un temps par trou'}</span>
-            </div>
-            <p className="t-small t-dim">
-              Le métronome ne joue aucune note. Au pavé, ce tempo mesure la rapidité à écrire une case ; avec le micro
-              (bouton « Ouvrir le micro » de l’écran d’exercice), il mesure le moment où la note est jouée, latence retranchée.
-            </p>
-          </div>
-          <div className="field">
-            <span className="t-label">Tempo cible de la vitesse</span>
-            <div className="tempo-row">
-              <div className="tempo">
-                <button type="button" className="tempo-btn" onClick={() => setSettings({ speedTargetBpm: Math.max(SPEED_TARGET_MIN, settings.speedTargetBpm - 4) })} aria-label="Tempo cible plus lent">−</button>
-                <span className="tempo-val">♪ {settings.speedTargetBpm}</span>
-                <button type="button" className="tempo-btn" onClick={() => setSettings({ speedTargetBpm: Math.min(SPEED_TARGET_MAX, settings.speedTargetBpm + 4) })} aria-label="Tempo cible plus rapide">+</button>
-              </div>
-              <span className="t-small t-dim">BPM en croches · {settings.speedTargetBpm * 2} notes/min</span>
-            </div>
-            <p className="t-small t-dim">
-              Une forme « maîtrisée » dit sa vitesse vérifiée quand tu l’as jouée de mémoire, au micro, propre (≥ 95 %), à ce
-              tempo : grille Niv3 en croches tenue, ou séquence validée. 80 par défaut : le tempo où une gamme devient un geste.
-            </p>
-          </div>
-          <div className="field">
-            <Switch
-              checked={settings.coldReview}
-              onChange={(v) => setSettings({ coldReview: v })}
-              label="Rappel à froid en révision"
-              hint="une forme due se joue d’abord de mémoire, position entière, sans la revoir"
-            />
             <span className="t-label">Regarder la forme après un rappel manqué</span>
             <Segmented<LookSeconds>
               value={settings.lookSeconds}
@@ -221,8 +168,8 @@ export function SettingsPage() {
               options={LOOK_SECONDS.map((s) => ({ value: s, label: `${s} s` }))}
             />
             <p className="t-small t-dim">
-              Seul l’essai à froid compte : celui qui suit l’observation est enregistré comme pratique, sans effet sur la
-              révision, la maîtrise ni l’XP. Un essai réussi la réponse sous les yeux ne prouve rien.
+              Seul l’essai à froid compte : celui qui suit l’observation est enregistré, sans effet sur la révision. Un
+              essai réussi la réponse sous les yeux ne prouve rien.
             </p>
           </div>
         </Panel>
@@ -245,12 +192,6 @@ export function SettingsPage() {
             onChange={(v) => setSettings({ showDegreeRow: v })}
             label="Rangée de degrés"
             hint="aide à la lecture (daltonisme)"
-          />
-          <Switch
-            checked={settings.showChordBox}
-            onChange={(v) => setSettings({ showChordBox: v })}
-            label="Boîte d’accord"
-            hint="module Accords, étapes Découvrir et Construire"
           />
           <Switch
             checked={settings.showNeck}
@@ -297,7 +238,8 @@ export function SettingsPage() {
 
         <Panel className="span-12" accent="orange" label="Données locales">
           <p className="t-small">
-            Ta progression et ta gamme en cours, conservées dans ce navigateur. Rien n’est envoyé sur un serveur.
+            Tes révisions, ton historique de séquences et ta gamme en cours, conservés dans ce navigateur. Sans compte,
+            rien n’est envoyé sur un serveur.
           </p>
           <p className="t-small">
             <strong>{count}</strong> tentative{count > 1 ? 's' : ''} enregistrée{count > 1 ? 's' : ''} (plafond 2 000).

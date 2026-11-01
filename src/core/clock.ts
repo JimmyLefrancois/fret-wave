@@ -2,7 +2,7 @@
  * Horloge de l'app : `Date.now()` plus un **décalage de développement** (voyage dans le temps du
  * simulateur, `src/dev/`). En production le décalage vaut toujours 0 : la clé n'est même pas lue.
  *
- * Tout ce qui horodate une tentative ou juge « aujourd'hui » (journal, révisions dues, série, XP du jour)
+ * Tout ce qui horodate une tentative ou juge « aujourd'hui » (journal, révisions dues)
  * lit l'heure ici ; les chronos internes (`performance.now`, durées d'écoute) n'en ont pas besoin.
  */
 import type { KeyValueStore } from './audio/mixer';

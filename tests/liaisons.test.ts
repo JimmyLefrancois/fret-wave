@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   TUNINGS, extendedPosition, generatePositions, linkedPair, positionsOnNeck, sharedNotes,
 } from '../src/core/theory';
-import { PPQ, isLiaison, layoutNeck, liaisonToScore, liaisonsFor, linkNeckNotes, validateScore, type TabScore } from '../src/core/tab';
-import { isSpeedProof, type Attempt } from '../src/core/progress';
+import { PPQ, layoutNeck, liaisonToScore, liaisonsFor, linkNeckNotes, validateScore, type TabScore } from '../src/core/tab';
 
 const std = TUNINGS.standard!;
 const boxes = generatePositions('pentatonic-minor', 'A', std, 'boxes');
@@ -108,21 +107,5 @@ describe('vue manche de deux positions', () => {
     const pills = layoutNeck(std, notes, { range: { from: 0, to: 15 } }).pills;
     expect(pills.filter((p) => p.dim).every((p) => !p.highlight)).toBe(true);
     expect(pills.filter((p) => p.shared)).toHaveLength(6);
-  });
-});
-
-describe('liaison et preuve de vitesse', () => {
-  const attempt = (pattern: Attempt['pattern']): Attempt => ({
-    id: 'x', ts: 1, kind: 'sequence', scaleId: 'pentatonic-minor', tonic: 'A', tuningId: 'standard', system: 'boxes',
-    positionId: 'p', formIndex: 0, level: 2, strings: 6, correct: 30, total: 30, seconds: 60, fretMin: 5, missedStrings: [],
-    tempoOk: true, pattern, bpmBest: 120, mic: true,
-  });
-
-  it('une séquence à tempo prouve la vitesse, une liaison non', () => {
-    expect(isSpeedProof(attempt('thirds'))).toBe(true);
-    for (const p of ['link', 'traverse', 'extended'] as const) {
-      expect(isLiaison(p)).toBe(true);
-      expect(isSpeedProof(attempt(p))).toBe(false);
-    }
   });
 });

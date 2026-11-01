@@ -1,42 +1,15 @@
 /**
- * Niveaux 2 « Mémorisation » et 3 « Rappel » (MUSIC_DESIGN §3.4) : un exercice = le **même TabScore** que
- * le niveau 1, dont certaines notes sont des **trous** à compléter. Le score musical reste inchangé
- * (mêmes positions, mêmes hauteurs) : seule la lisibilité d'une note est retirée, jamais sa vérité.
- *
- * Découpage (chunking) : 1 corde → 2 → 3 → position entière (montée) → aller-retour. Une position
- * complète en 3 notes par corde fait 18 notes : les demander d'un bloc au pavé numérique est un abandon
- * assuré (MUSIC_DESIGN §3.4), d'où les segments.
+ * Rappel de mémoire (MUSIC_DESIGN §3.4) : le **même TabScore** que la page Découvrir, dont toutes les notes
+ * sont masquées. Le score musical reste inchangé (mêmes positions, mêmes hauteurs) : seule la lisibilité
+ * d'une note est retirée, jamais sa vérité. La révision porte toujours sur la position entière, en
+ * aller-retour.
  */
-import { TUNINGS, filterPosition, type NoteName, type Position } from '../../core/theory';
-import { PPQ, type Direction, type TabScore } from '../../core/tab';
+import { TUNINGS, type NoteName, type Position } from '../../core/theory';
+import { PPQ, type TabScore } from '../../core/tab';
 
-export type Segment = 'string1' | 'strings2' | 'strings3' | 'all' | 'updown';
-
-export const SEGMENTS: readonly { value: Segment; label: string; hint: string }[] = [
-  { value: 'string1', label: '1 corde', hint: 'la corde grave seule : 2 ou 3 notes' },
-  { value: 'strings2', label: '2 cordes', hint: 'les deux cordes graves' },
-  { value: 'strings3', label: '3 cordes', hint: 'les trois cordes graves' },
-  { value: 'all', label: 'montée', hint: 'la position entière, en montant' },
-  { value: 'updown', label: 'aller-retour', hint: 'la position entière, montée et descente' },
-];
-
-export interface SegmentPlan {
-  position: Position;
-  direction: Direction;
-  /** Cordes couvertes (journalisées avec la tentative). */
-  strings: number;
-  label: string;
-}
-
-export function segmentPlan(pos: Position, seg: Segment): SegmentPlan {
-  const dir: Direction = seg === 'updown' ? 'updown' : 'up';
-  switch (seg) {
-    case 'string1': return { position: filterPosition(pos, (n) => n.string === 0), direction: dir, strings: 1, label: 'corde grave' };
-    case 'strings2': return { position: filterPosition(pos, (n) => n.string < 2), direction: dir, strings: 2, label: '2 cordes graves' };
-    case 'strings3': return { position: filterPosition(pos, (n) => n.string < 3), direction: dir, strings: 3, label: '3 cordes graves' };
-    case 'all': return { position: pos, direction: dir, strings: pos.notes.length ? new Set(pos.notes.map((n) => n.string)).size : 0, label: 'position entière' };
-    case 'updown': return { position: pos, direction: dir, strings: pos.notes.length ? new Set(pos.notes.map((n) => n.string)).size : 0, label: 'position entière, aller-retour' };
-  }
+/** Cordes couvertes par une position (journalisées avec la tentative). */
+export function stringsOf(pos: Position): number {
+  return pos.notes.length ? new Set(pos.notes.map((n) => n.string)).size : 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -57,73 +30,27 @@ export interface Hole {
 }
 
 export interface Exercise {
-  level: 2 | 3;
   /** Score dont les trous sont marqués `hidden` (le modèle garde la case : c'est la réponse). */
   score: TabScore;
   holes: Hole[];
   total: number;
-  /** Nombre total de notes du segment (trous + notes lisibles). */
-  notes: number;
-  /** Part des notes masquées (0-1). */
-  ratio: number;
 }
 
-/** Générateur pseudo-aléatoire reproductible (les tests et une « nouvelle série » veulent le même outil). */
-export function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/** Part de trous au niveau 2 : assez pour obliger à lire, assez peu pour ne pas décourager. */
-export const HOLES_RATIO = 0.35;
-/** En dessous de deux trous, l'exercice ne teste rien : on en pose deux (et jamais tous). */
-export const MIN_HOLES = 2;
-
-/**
- * Marque les trous. Niveau 3 : **toutes** les notes (tablature vide, on écrit de mémoire).
- * Niveau 2 : ~35 % des notes, tirées au hasard reproductible, au moins une.
- */
-export function buildExercise(
-  score: TabScore,
-  level: 2 | 3,
-  opts: { ratio?: number; rng?: () => number } = {},
-): Exercise {
-  const rng = opts.rng ?? mulberry32(0x5eed);
-  const candidates: Hole[] = [];
+/** Masque **toutes** les notes jouées : la tablature ne garde que les cordes, les mesures et le rythme. */
+export function buildExercise(score: TabScore): Exercise {
+  const holes: Hole[] = [];
   let column = 0;
   score.measures.forEach((m) => {
     m.events.forEach((ev) => {
       if (ev.notes.length === 1 && !ev.notes[0]!.muted) {
         const n = ev.notes[0]!;
         // la colonne est l'ordre d'événement global, identique à `layout.columns`
-        candidates.push({ key: `${column}:${n.string}`, columnIndex: column, string: n.string, fret: n.fret, fn: n.fn, note: n.note });
+        holes.push({ key: `${column}:${n.string}`, columnIndex: column, string: n.string, fret: n.fret, fn: n.fn, note: n.note });
       }
       column++;
     });
   });
-  const ratio = level === 3 ? 1 : Math.max(0, Math.min(1, opts.ratio ?? HOLES_RATIO));
-  let chosen: Hole[];
-  if (level === 3 || ratio >= 1) chosen = candidates;
-  else {
-    // au moins deux trous, jamais toute la position : un exercice à un trou ne prouve rien
-    const wanted = Math.max(MIN_HOLES, Math.round(candidates.length * ratio));
-    const count = Math.min(Math.max(1, candidates.length - 1), wanted);
-    // tirage sans remise, puis remise en ordre de lecture
-    const pool = [...candidates];
-    chosen = [];
-    for (let i = 0; i < count && pool.length > 0; i++) {
-      const k = Math.floor(rng() * pool.length);
-      chosen.push(pool.splice(k, 1)[0]!);
-    }
-    chosen.sort((a, b) => a.columnIndex - b.columnIndex);
-  }
-  const keys = new Set(chosen.map((h) => h.key));
+  const keys = new Set(holes.map((h) => h.key));
   let col = 0;
   const measures = score.measures.map((m) => ({
     ...m,
@@ -133,7 +60,7 @@ export function buildExercise(
       return { ...ev, notes };
     }),
   }));
-  return { level, score: { ...score, measures }, holes: chosen, total: chosen.length, notes: candidates.length, ratio };
+  return { score: { ...score, measures }, holes, total: holes.length };
 }
 
 /**
@@ -191,69 +118,6 @@ export function stepOpen(order: readonly string[], isOpen: (key: string) => bool
   return null;
 }
 
-/**
- * Écran de fin d'une série : la fête pour une réussite (≥ ★), un écran calme pour un échec, rien pour
- * un rattrapage (la réponse venait d'être montrée). En session mélangée, un échec ne bloque pas
- * l'enchaînement : le panneau de résultat suffit.
- */
-export function endScreenFor(stars: number, proof: boolean, mixed: boolean): 'celebrate' | 'calm' | null {
-  if (!proof) return null;
-  if (stars > 0) return 'celebrate';
-  return mixed ? null : 'calm';
-}
-
-export type StepKind = 'review' | 'upgrade' | 'replay' | 'downgrade';
-
-export const STEP_LABEL: Readonly<Record<StepKind, string>> = {
-  review: 'Revoir la forme (Niv1)',
-  upgrade: 'Passer au rappel (Niv3)',
-  replay: 'Rejouer',
-  downgrade: 'Revenir aux trous (Niv2)',
-};
-
-/**
- * Suite proposée après une série, une seule action principale par issue — la même sur l'écran de fin
- * et sur le panneau de résultat :
- *  - échec (0 ★) : revoir la forme d'abord, rejouer ensuite ;
- *  - N2 réussi : monter au rappel (N3), rejouer ensuite ;
- *  - N3 réussi : rejouer, ou redescendre aux trous ;
- *  - rattrapage (la réponse venait d'être montrée) : rejouer.
- */
-export function nextStepFor(level: 2 | 3, stars: number, proof: boolean): { primary: StepKind; secondary: StepKind } {
-  if (!proof) return { primary: 'replay', secondary: level === 2 ? 'upgrade' : 'downgrade' };
-  if (stars === 0) return { primary: 'review', secondary: 'replay' };
-  if (level === 2) return { primary: 'upgrade', secondary: 'replay' };
-  return { primary: 'replay', secondary: 'downgrade' };
-}
-
-/** Pastille désignée par un toucher (`columnIndex:string`). */
-export function holeKey(columnIndex: number, string: number): string {
-  return `${columnIndex}:${string}`;
-}
-
-/** Réponse juste ? Compare la case saisie à celle que porte le modèle. */
-export function checkAnswer(hole: Hole, entry: number): boolean {
-  return Number.isInteger(entry) && entry >= 0 && entry <= 24 && entry === hole.fret;
-}
-
-/** Résultat vis-à-vis de la grille rythmique (absente, tenue, manquée). */
-export type GridOutcome = 'off' | 'kept' | 'missed';
-
-/**
- * Étoiles : ★ précision (≥ 80 %), ★★ ≥ 95 %, ★★★ sans une erreur ni révélation.
- * Si une grille a été lancée, elle doit être **tenue** pour prétendre à ★★ ou ★★★ : la précision seule
- * ne suffit plus (MUSIC_DESIGN §3.4). Hors grille, une série juste reste à ★ : on ne punit pas, on ne certifie pas.
- */
-export function starsFor(accuracy: number, revealed: number, errors: number, grid: GridOutcome = 'off'): 0 | 1 | 2 | 3 {
-  if (accuracy < 0.8) return 0;
-  if (grid === 'missed') return 1;
-  const perfect = accuracy === 1 && revealed === 0 && errors === 0;
-  if (grid === 'kept') return perfect ? 3 : accuracy >= 0.95 ? 2 : 1;
-  if (perfect) return 3;
-  if (accuracy >= 0.95) return 2;
-  return 1;
-}
-
 // ---------------------------------------------------------------------------
 // Grille rythmique (métronome)
 // ---------------------------------------------------------------------------
@@ -285,8 +149,6 @@ export const GRID_TEMPO_MAX = 200;
  * les clics (aucune note : le score ne contient que des silences), donc l'élève entend la grille sans
  * que l'app lui donne les réponses.
  *
- * Limite assumée : tant que la validation passe par le pavé, ce temps mesure la **rapidité à écrire**
- * une case, pas à la jouer. La phase 3 (entrée audio) rendra la mesure honnête.
  */
 export function tempoGrid(holes: number, tempo: number, perBeat: GridSubdivision = 1): TempoGrid {
   // en croches, deux trous par temps : la grille est deux fois plus courte au même tempo
@@ -306,11 +168,6 @@ export function tempoGrid(holes: number, tempo: number, perBeat: GridSubdivision
     measures,
   };
   return { score, beats, seconds: (beats * 60) / score.tempo, perBeat, npm: score.tempo * perBeat };
-}
-
-/** Le trou a-t-il été posé dans la grille ? (tolérance : la dernière case sur le dernier temps) */
-export function insideGrid(seconds: number, grid: TempoGrid, tolerance = 0.3): boolean {
-  return seconds <= grid.seconds + tolerance;
 }
 
 /**
@@ -346,19 +203,6 @@ export function isClickPitch(midi: number): boolean {
  */
 export function clickMasked(elapsedSeconds: number, bpm: number, heardMidi: number, windowMs = 90): boolean {
   return nearClick(elapsedSeconds, bpm, windowMs) && isClickPitch(heardMidi);
-}
-
-/**
- * Défilement (px, positif vers le bas) qui garde la case active entière au-dessus d'une barre fixe
- * (constat 19 : au téléphone, la barre de réponse couvre le bas de l'écran). Repère de la fenêtre :
- * `holeTop` / `holeBottom` de la case, `coverTop` haut de la barre (ou `viewportH` sans barre). Case
- * visible → 0 ; place trop courte → le haut de la case reste à l'écran.
- */
-export function scrollToKeepVisible(holeTop: number, holeBottom: number, viewportH: number, coverTop: number, margin = 16): number {
-  const limit = Math.min(viewportH, coverTop);
-  if (holeTop - margin < 0) return holeTop - margin;
-  if (holeBottom + margin > limit) return Math.min(holeBottom + margin - limit, holeTop - margin);
-  return 0;
 }
 
 /** Début du chrono à la reprise d'une série en pause : décalé de la durée de la pause, qui ne compte pas. */

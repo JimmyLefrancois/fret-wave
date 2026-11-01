@@ -1,16 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   ATTEMPTS_KEY, ATTEMPT_CAP, appendAttempt, isFullPosition, loadJournal, newAttemptId, nodeIdOf, normalizeAttempt, readAttempts,
-  scoreOf, summarizeDay, writeAttempts, zoneOf, type Attempt,
+  scoreOf, writeAttempts, zoneOf, type Attempt,
 } from '../src/core/progress/journal';
 import { PRACTICE_KEY, logPractice } from '../src/core/progress/practiceLog';
 import { BOX_INTERVALS_MS, cardsFrom, dueNow, leitner, outcomeFor } from '../src/core/progress/scheduler';
-import {
-  isSpeedProof, isStrongSuccess, learnedGaps, masteryOf, regressedForms, stateLabel, stateOf, stringWeakness,
-  summarizeNodes, weakTonics,
-} from '../src/core/progress/mastery';
-import { DAILY_XP_CAP, badgeStatus, streak, weekStreak, xpForAttempt, xpSummary } from '../src/core/progress/rewards';
-import { FIXED_END, getPersona, simulate } from '../src/dev/simulate';
+import { isStrongSuccess, stateOf, summarizeNodes } from '../src/core/progress/mastery';
 import { exportFilename, exportText, mergeAttempts, parseImport } from '../src/core/progress/exportData';
 
 function fakeStore(initial: Record<string, string> = {}) {
@@ -100,41 +95,6 @@ describe('journal de tentatives', () => {
     expect(s.data[PRACTICE_KEY]).toBeTruthy();
   });
 
-  it('résumé du jour : écoutes, exercices, précision', () => {
-    const list = [
-      attempt({ ts: at(1), kind: 'listen', correct: null, total: null }),
-      attempt({ ts: at(0, 9), correct: 3, total: 4 }),
-      attempt({ ts: at(0, 10), kind: 'recall', level: 3, correct: 2, total: 2 }),
-      attempt({ ts: at(0, 11), kind: 'listen', correct: null, total: null, seconds: 10 }),
-    ];
-    const d = summarizeDay(list, new Date(today));
-    expect(d.listens).toBe(1);
-    expect(d.exercises).toBe(2);
-    expect(d.correct).toBe(5);
-    expect(d.holes).toBe(6);
-    expect(d.accuracy).toBeCloseTo(5 / 6, 6);
-    expect(d.seconds).toBe(42 + 42 + 10);
-    expect(d.nodes).toBe(1); // même forme, même mode
-  });
-
-  it('le rappel (N3) pèse plus que les trous (N2) dans la maîtrise', () => {
-    // même journal sauf le niveau de la meilleure tentative : le poids 1,5 du N3 doit tirer la moyenne
-    const asHoles = [
-      attempt({ ts: at(4), correct: 3, total: 5, level: 2 }),
-      attempt({ ts: at(1), correct: 5, total: 5, level: 2 }),
-    ];
-    const asRecall = [
-      attempt({ ts: at(4), correct: 3, total: 5, level: 2 }),
-      attempt({ ts: at(1), correct: 5, total: 5, level: 3, kind: 'recall' }),
-    ];
-    const a = summarizeNodes(asHoles)[0]!;
-    const b = summarizeNodes(asRecall)[0]!;
-    expect(b.recent).toBeGreaterThan(a.recent);
-    expect(b.mastery).toBeGreaterThan(a.mastery);
-    // à scores égaux, la pondération ne change rien
-    expect(masteryOf([0.8, 0.8], 2, [1, 1.5])).toBeCloseTo(masteryOf([0.8, 0.8], 2), 6);
-  });
-
   it('tempoOk survit à la normalisation, faux par défaut', () => {
     expect(normalizeAttempt(attempt())!.tempoOk).toBe(false);
     expect(normalizeAttempt({ ...attempt(), tempoOk: true })!.tempoOk).toBe(true);
@@ -145,32 +105,6 @@ describe('journal de tentatives', () => {
     const a = normalizeAttempt({ ...attempt(), missedStrings: [3, 3, 9, -1, 1.5] });
     expect(a!.missedStrings).toEqual([3]);
     expect(normalizeAttempt(attempt())!.missedStrings).toEqual([]);
-    const list = [
-      attempt({ missedStrings: [1, 1] }),
-      attempt({ missedStrings: [1, 4] }),
-      attempt({ kind: 'listen', correct: null, total: null, missedStrings: [0] }),
-    ];
-    expect(stringWeakness(list)).toEqual([
-      { string: 1, attempts: 2, misses: 3, exposure: 2 },
-      { string: 4, attempts: 1, misses: 1, exposure: 2 },
-    ]);
-  });
-
-  it('corde la plus ratée : rapportée aux séries où elle était jouée (exposition)', () => {
-    // trois échauffements sur les 3 cordes graves (ratés sur la corde 0), une position entière ratée sur la corde 4
-    const list = [
-      attempt({ strings: 3, missedStrings: [0] }),
-      attempt({ strings: 3, missedStrings: [0] }),
-      attempt({ strings: 3, missedStrings: [0, 2] }),
-      attempt({ strings: 6, fullPosition: true, missedStrings: [4] }),
-    ];
-    const w = stringWeakness(list);
-    // les cordes aiguës ne sont exposées que par la position entière
-    expect(w.find((x) => x.string === 4)).toEqual({ string: 4, attempts: 1, misses: 1, exposure: 1 });
-    expect(w.find((x) => x.string === 0)).toEqual({ string: 0, attempts: 3, misses: 3, exposure: 4 });
-    // 1 sur 1 pour la corde 4, 3 sur 4 pour la corde 0 : la plus ratée est la 4
-    expect(w[0]!.string).toBe(4);
-    expect(w.every((x) => x.exposure >= x.attempts)).toBe(true);
   });
 
   it('zone du manche : 5 cases par zone, bornée à la 5e', () => {
@@ -287,24 +221,15 @@ describe('répétition espacée (Leitner)', () => {
   });
 });
 
-describe('maîtrise', () => {
-  it('formule bornée, 0 sans tentative', () => {
-    expect(masteryOf([], 0)).toBe(0);
-    expect(masteryOf([1], 3)).toBe(1);
-    expect(masteryOf([0], 0)).toBeLessThan(0.2);
-    const m = masteryOf([1, 0.6], 1);
-    expect(m).toBeGreaterThan(0.3);
-    expect(m).toBeLessThan(1);
-  });
-
-  it('états : disponible → en apprentissage → apprise → maîtrisée', () => {
-    expect(stateOf({ attempts: 0, successes: 0, successDays: 0, last: 0, box: null })).toBe('available');
-    expect(stateOf({ attempts: 2, successes: 0, successDays: 0, last: 0.5, box: 1 })).toBe('learning');
-    expect(stateOf({ attempts: 2, successes: 2, successDays: 1, last: 1, box: 3 })).toBe('learning');
-    expect(stateOf({ attempts: 3, successes: 2, successDays: 2, last: 0.9, box: 3 })).toBe('learned');
-    expect(stateOf({ attempts: 3, successes: 2, successDays: 2, last: 0.9, box: 5 })).toBe('mastered');
+describe('état d’une forme (sert à la révision, D97)', () => {
+  it('états : en apprentissage → apprise → maîtrisée', () => {
+    const base = { strongSuccesses: 1, last: 0.9, box: 3 };
+    expect(stateOf({ ...base, successes: 0, successDays: 0, last: 0.5, box: 1 })).toBe('learning');
+    expect(stateOf({ ...base, successes: 2, successDays: 1 })).toBe('learning');
+    expect(stateOf({ ...base, successes: 2, successDays: 2 })).toBe('learned');
+    expect(stateOf({ ...base, successes: 2, successDays: 2, box: 5 })).toBe('mastered');
     // apprise mais dernière tentative ratée : pas maîtrisée
-    expect(stateOf({ attempts: 4, successes: 2, successDays: 2, last: 0.4, box: 5 })).toBe('learned');
+    expect(stateOf({ ...base, successes: 2, successDays: 2, last: 0.4, box: 5 })).toBe('learned');
   });
 
   it('agrège par nœud, ignore les écoutes et garde les toniques', () => {
@@ -317,78 +242,16 @@ describe('maîtrise', () => {
     const nodes = summarizeNodes(list);
     expect(nodes.length).toBe(1);
     const n = nodes[0]!;
-    expect(n.attempts).toBe(3);
-    expect(n.successes).toBe(3);
     expect(n.tonics.sort()).toEqual(['A', 'C']);
     expect(n.zones).toEqual([1, 2]);
     expect(n.state).toBe('learned');
-    expect(n.box).toBe(3); // 1 réussite nette (palier 2) puis 2 réussites « lentes » d'affilée : +1 palier (D101)
-    expect(n.mastery).toBeGreaterThan(0.8);
   });
 
-  it('weakTonics : les formes vues dans une seule zone du manche', () => {
-    const a = attempt({ ts: at(1), correct: 5, total: 5, fretMin: 5 });
-    const nodes = summarizeNodes([a]);
-    expect(weakTonics(nodes).length).toBe(1);
-  });
-});
-
-describe('XP, série et badges', () => {
-  it('seuls les exercices vérifiés rapportent de l’XP', () => {
-    expect(xpForAttempt(attempt({ kind: 'listen', correct: null, total: null }))).toBe(0);
-    expect(xpForAttempt(attempt({ kind: 'holes', correct: 5, total: 5 }))).toBe(10 + 5);
-    expect(xpForAttempt(attempt({ kind: 'holes', correct: 4, total: 5 }))).toBe(8);
-    expect(xpForAttempt(attempt({ kind: 'holes', correct: 3, total: 5 }))).toBe(6);
-    expect(xpForAttempt(attempt({ kind: 'recall', level: 3, correct: 5, total: 5 }))).toBe(15 + 5);
-    expect(xpForAttempt(attempt({ kind: 'recall', level: 3, correct: 1, total: 5 }))).toBe(3);
-  });
-
-  it('l’XP est plafonnée par jour', () => {
-    const list: Attempt[] = [];
-    for (let i = 0; i < 20; i++) list.push(attempt({ ts: at(0, 10) + i * 1000, correct: 5, total: 5 }));
-    const xp = xpSummary(list, new Date(today));
-    expect(xp.today).toBe(DAILY_XP_CAP);
-    expect(xp.total).toBe(DAILY_XP_CAP);
-  });
-
-  it('série : jours consécutifs, vivante tant que la veille compte', () => {
-    expect(streak([], new Date(today)).days).toBe(0);
-    expect(streak([attempt({ ts: at(0) })], new Date(today))).toEqual({ days: 1, today: true });
-    const two = [attempt({ ts: at(0) }), attempt({ ts: at(1) }), attempt({ ts: at(2) })];
-    expect(streak(two, new Date(today)).days).toBe(3);
-    // rien aujourd'hui, mais hier : la série tient encore
-    expect(streak([attempt({ ts: at(1) }), attempt({ ts: at(2) })], new Date(today))).toEqual({ days: 2, today: false });
-    // trou : la série casse
-    expect(streak([attempt({ ts: at(2) }), attempt({ ts: at(3) })], new Date(today)).days).toBe(0);
-  });
-
-  it('série : une écoute ou un grattage déclaré ne fait pas un jour joué', () => {
-    const listen = attempt({ ts: at(1), kind: 'listen', correct: null, total: null });
-    const strum = attempt({ ts: at(1), module: 'accords', kind: 'strum', chordId: 'Em-022000', correct: null, total: null });
-    expect(streak([attempt({ ts: at(0) }), listen, strum, attempt({ ts: at(2) })], new Date(today)).days).toBe(1);
-    expect(streak([listen], new Date(today))).toEqual({ days: 0, today: false });
-  });
-
-  it('badges : chacun dérivé du journal, avec sa raison', () => {
-    const empty = badgeStatus([], new Date(today));
-    expect(empty.length).toBeGreaterThanOrEqual(8);
-    expect(empty.every((b) => !b.earned)).toBe(true);
-
-    const list = [
-      attempt({ ts: at(2), kind: 'listen', correct: null, total: null }),
-      attempt({ ts: at(2), correct: 5, total: 5 }),
-      attempt({ ts: at(1), correct: 5, total: 5, tonic: 'C' }),
-      attempt({ ts: at(0), kind: 'recall', level: 3, correct: 4, total: 4 }),
-    ];
-    const got = badgeStatus(list, new Date(today)).filter((b) => b.earned).map((b) => b.id);
-    expect(got).toContain('first-listen');
-    expect(got).toContain('first-holes');
-    expect(got).toContain('holes-clean');
-    expect(got).toContain('first-recall');
-    expect(got).toContain('clean-recall');
-    expect(got).toContain('two-tonics');
-    expect(got).toContain('three-days');
-    expect(got).not.toContain('week');
+  it('les tentatives d’accord de l’ancien journal ne font pas une forme, et restent lisibles', () => {
+    const chord = attempt({ ts: at(1), module: 'accords', chordId: 'Em-022000', kind: 'arpeggio', correct: 6, total: 6 });
+    expect(summarizeNodes([chord])).toEqual([]);
+    expect(normalizeAttempt(chord)).toMatchObject({ module: 'accords', chordId: 'Em-022000', kind: 'arpeggio' });
+    expect(nodeIdOf(chord)).toBe('acc:accord:Em-022000');
   });
 });
 
@@ -436,40 +299,26 @@ describe('essai après révélation (rattrapage du rappel à froid)', () => {
     expect('afterReveal' in normalizeAttempt(cold)!).toBe(false);
   });
 
-  it('ne bouge ni la carte Leitner, ni la maîtrise, ni l’XP', () => {
+  it('ne bouge ni la carte Leitner, ni l’état de la forme', () => {
     const before = cardsFrom([cold]);
     const after = cardsFrom([cold, retry]);
     expect(after).toEqual(before);
-    const n = summarizeNodes([cold, retry])[0]!;
-    expect(n.attempts).toBe(1);
-    expect(n.successes).toBe(0);
-    expect(n.best).toBeCloseTo(0.2);
-    expect(xpForAttempt(retry)).toBe(0);
-  });
-
-  it('compte pourtant comme pratique du jour (série, objectif)', () => {
-    expect(streak([retry], new Date(at(2, 12))).days).toBe(1);
-    expect(summarizeDay([retry], new Date(at(2, 12))).exercises).toBe(1);
+    expect(summarizeNodes([cold, retry])).toEqual(summarizeNodes([cold]));
   });
 });
 
 describe('« apprise » et « maîtrisée » plus exigeantes (lot mémoire et vitesse)', () => {
-  const lecture = (list: Attempt[], opts?: { speedTargetBpm?: number }) =>
-    summarizeNodes(list, opts).find((n) => n.nodeId.startsWith('gam:lecture:'))!;
+  const lecture = (list: Attempt[]) => summarizeNodes(list).find((n) => n.nodeId.startsWith('gam:lecture:'))!;
   const n2 = (daysAgo: number, patch: Partial<Attempt> = {}) => attempt({ ts: at(daysAgo), correct: 5, total: 5, ...patch });
   const full = { strings: 6, fullPosition: true as const };
   const n3 = (daysAgo: number, patch: Partial<Attempt> = {}) => n2(daysAgo, { level: 3, kind: 'recall', ...full, ...patch });
 
   it('2 jours de N2 au pavé, même sur la position entière : en apprentissage', () => {
     expect(lecture([n2(1, full), n2(0, full)]).state).toBe('learning');
-    expect(learnedGaps(lecture([n2(1, full), n2(0, full)]))).toEqual(['strong']);
   });
 
   it('une réussite N3 au pavé sur la position entière suffit (un élève sans guitare peut apprendre)', () => {
-    const n = lecture([n2(1), n3(0)]);
-    expect(n.strongSuccesses).toBe(1);
-    expect(n.state).toBe('learned');
-    expect(learnedGaps(n)).toEqual([]);
+    expect(lecture([n2(1), n3(0)]).state).toBe('learned');
   });
 
   it('un N3 sur 2 cordes ne suffit pas : il faut la position entière', () => {
@@ -502,86 +351,8 @@ describe('« apprise » et « maîtrisée » plus exigeantes (lot mémoire et vi
     expect(fresh).toMatchObject({ mic: true, gridNpm: 160, blind: true, fullPosition: true });
   });
 
-  it('maîtrisée sans preuve de vitesse : l’état reste, l’étiquette le dit', () => {
-    // 4 réussites nettes → boîte 5 ; une forte au milieu
-    const list = [n2(30), n3(20), n2(10), n2(0)];
-    const n = lecture(list);
-    expect(n.box).toBe(5);
-    expect(n.state).toBe('mastered');
-    expect(n.speedVerified).toBe(false);
-    expect(stateLabel(n)).toBe('maîtrisée (vitesse non vérifiée)');
-  });
-
-  it('vitesse : N3 au micro, propre, grille tenue à 160 notes/min (80 BPM en croches)', () => {
-    const fast = n3(0, { mic: true, tempoOk: true, gridNpm: 160 });
-    const list = [n2(30), n3(20), n2(10), fast];
-    const n = lecture(list);
-    expect(n.state).toBe('mastered');
-    expect(n.speedVerified).toBe(true);
-    expect(stateLabel(n)).toBe('maîtrisée');
-    expect(isSpeedProof(fast)).toBe(true);
-    // trop lent, grille manquée, pavé, ou pas propre : non
-    expect(isSpeedProof({ ...fast, gridNpm: 150 })).toBe(false);
-    expect(isSpeedProof({ ...fast, tempoOk: false })).toBe(false);
-    expect(isSpeedProof({ ...fast, mic: undefined })).toBe(false);
-    expect(isSpeedProof({ ...fast, correct: 9, total: 10 })).toBe(false);
-    // le tempo cible est un réglage : à 60 BPM en croches, 120 notes/min suffisent
-    expect(isSpeedProof({ ...fast, gridNpm: 120 }, 60)).toBe(true);
-    expect(lecture([n2(30), n3(20), n2(10), { ...fast, gridNpm: 120 }], { speedTargetBpm: 60 }).speedVerified).toBe(true);
-  });
-
-  it('les accords ne changent pas de règle', () => {
-    const chord = (daysAgo: number, kind: Attempt['kind'] = 'arpeggio') =>
-      attempt({ ts: at(daysAgo), module: 'accords', chordId: 'Em-022000', kind, correct: 6, total: 6, level: 2, strings: 6, seconds: 3, limitSec: 8 });
-    const n = summarizeNodes([chord(2), chord(1), chord(0), chord(0, 'cold')]).find((x) => x.nodeKind === 'accord')!;
-    expect(n.state).not.toBe('learning');
-  });
-
-  it('formes repassées en apprentissage : apprises hier, plus aujourd’hui', () => {
-    const nodes = summarizeNodes([n2(1), n2(0)]);
-    expect(regressedForms(nodes).map((n) => n.nodeId)).toEqual(['gam:lecture:pentatonic-minor:boxes:0']);
-    expect(regressedForms(summarizeNodes([n2(1), n3(0)]))).toEqual([]);
-  });
-});
-
-describe('série de semaines (D99)', () => {
-  // octobre 2026 : lundis 5, 12, 19 et 26 ; le 25 (dimanche) est le passage à l'heure d'hiver
-  const on = (day: number, hour = 18) => attempt({ ts: new Date(2026, 9, day, hour, 0).getTime() });
-
-  it('journal vide : 0', () => {
-    expect(weekStreak([], new Date(2026, 9, 28))).toEqual({ weeks: 0, thisWeek: 0 });
-  });
-
-  it('une semaine à un seul jour casse la série', () => {
-    const j = [on(10), on(11), on(17), on(24), on(25)];
-    // semaine du 19 : 2 jours ; semaine du 12 : 1 seul jour, cassée ; semaine en cours vide
-    expect(weekStreak(j, new Date(2026, 9, 28, 12))).toEqual({ weeks: 1, thisWeek: 0 });
-  });
-
-  it('la semaine en cours ne casse rien avant d’être finie, et compte dès qu’elle a ses 2 jours', () => {
-    const j = [on(10), on(11), on(17), on(18), on(24), on(25)];
-    expect(weekStreak([...j, on(26)], new Date(2026, 9, 26, 20))).toEqual({ weeks: 3, thisWeek: 1 });
-    expect(weekStreak([...j, on(26), on(28)], new Date(2026, 9, 28, 20))).toEqual({ weeks: 4, thisWeek: 2 });
-  });
-
-  it('passage à l’heure d’hiver : le dimanche 25 octobre reste dans sa semaine', () => {
-    const j = [on(19), on(24, 23), on(25, 23)];
-    expect(weekStreak(j, new Date(2026, 9, 25, 23, 59))).toEqual({ weeks: 1, thisWeek: 3 });
-    expect(weekStreak(j, new Date(2026, 9, 26, 0, 30))).toEqual({ weeks: 1, thisWeek: 0 });
-  });
-
-  it('une écoute seule ne compte pas (même filtre que la série de jours)', () => {
-    const j = [on(24), attempt({ ts: new Date(2026, 9, 25, 18).getTime(), kind: 'listen', correct: null, total: null })];
-    expect(weekStreak(j, new Date(2026, 9, 25, 20))).toEqual({ weeks: 0, thisWeek: 1 });
-  });
-
-  it('joueur du week-end simulé (42 j) : aucune semaine cassée', () => {
-    const weeks: number[] = [];
-    simulate(getPersona('week-end')!, { end: FIXED_END, onDay: (_d, dayEnd, j) => { weeks.push(weekStreak(j, new Date(dayEnd)).weeks); } });
-    const first = weeks.findIndex((w) => w > 0);
-    expect(first).toBeGreaterThanOrEqual(0);
-    expect(weeks.slice(first).every((w) => w > 0)).toBe(true);
-    expect(weeks[weeks.length - 1]).toBeGreaterThanOrEqual(5);
+  it('maîtrisée : 4 réussites nettes, dont une forte', () => {
+    expect(lecture([n2(30), n3(20), n2(10), n2(0)]).state).toBe('mastered');
   });
 });
 
@@ -594,11 +365,5 @@ describe('numérotation des niveaux', () => {
   it('un journal écrit avant la renumérotation passe à Niv4 séquences et Niv5 impro', () => {
     expect(normalizeAttempt(attempt('impro', 4))!.level).toBe(5);
     expect(normalizeAttempt(attempt('sequence', 2))!.level).toBe(4);
-  });
-
-  it('la renumérotation ne change pas l’XP', () => {
-    for (const [kind, before] of [['impro', 4], ['sequence', 2]] as const) {
-      expect(xpForAttempt(normalizeAttempt(attempt(kind, before))!)).toBe(xpForAttempt(attempt(kind, before) as never));
-    }
   });
 });

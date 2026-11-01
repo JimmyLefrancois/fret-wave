@@ -1,5 +1,5 @@
 /**
- * Module Gammes — niveau 1 « Découverte » (BRIEF.md §2, docs/ARCHITECTURE.md §6.3).
+ * Module Gammes — « Découvrir » (BRIEF.md §2, docs/ARCHITECTURE.md §6.3).
  * La gamme est écrite en tablature (montée / descente / aller-retour) avec :
  *  - les couleurs de fonction d'intervalle et le glow des notes caractéristiques du mode ;
  *  - quatre annotations au choix (note, degré, intervalle, doigté) ;
@@ -7,11 +7,11 @@
  *  - le mode « fondamentales d'abord » et le découpage par nombre de cordes (chunking) ;
  *  - la comparaison de deux modes voisins ;
  *  - le son final de la 1c (échantillons CC0), un drone de fondamentale, un métronome.
- * Chaque écoute complète est écrite dans le journal local : le hub affiche des chiffres vrais.
+ * Une écoute n'est écrite nulle part : c'est un outil. « Réviser cette forme » ouvre le rappel à froid.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
-import { requestLiaison, setScaleSelection, useScaleSelection } from '../../app/scaleSession';
+import { requestFormReview, requestLiaison, setScaleSelection, useScaleSelection } from '../../app/scaleSession';
 import { useSettings } from '../../app/settings';
 import { TabView } from '../../app/TabView';
 import { NeckView } from '../../app/NeckView';
@@ -20,18 +20,16 @@ import { Panel, PixelButton, PixelIcon, Segmented, Switch } from '../../app/ui';
 import { filterPosition, fmtNote, linkedPair, relabelPosition, stepFormula } from '../../core/theory';
 import { type AnnotationKind, type Direction, defaultChordForScale, linkNeckNotes, neckNotes, positionToScore } from '../../core/tab';
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
-import { appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts } from '../../core/progress';
 import { fmtDegree, legendFor, positionLabelPlain, resolveScale, scaleTitle } from './resolve';
 import { ScaleRuler } from './ScaleRuler';
 import { TabLegend } from './TabLegend';
-import { LEVELS, LevelsNav } from './LevelsNav';
+import { ScaleTabs } from './ScaleTabs';
 import { PlaySection } from './PlaySection';
 import { useDesktop } from '../../app/useDesktop';
 import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import {
   compareChoices, counterpartPosition, differingDegrees, markDegrees, neighbourPositions, relativeDegrees, samePlaceIndex,
 } from './compare';
-import * as clock from '../../core/clock';
 
 const DIRECTION_LABEL: Record<Direction, string> = { up: 'Montée', down: 'Descente', updown: 'Aller-retour' };
 
@@ -162,14 +160,10 @@ export function ScaleDiscoveryPage() {
   const player = useRef<TabPlayer | null>(null);
   if (player.current === null) player.current = new TabPlayer();
   const loaded = useRef<{ score: unknown; loop: boolean } | null>(null);
-  const startedAt = useRef(0);
-  const playedMs = useRef(0);
 
   useEffect(() => {
     player.current?.stop();
     loaded.current = null;
-    playedMs.current = 0;
-    startedAt.current = 0;
     setTransport('stopped');
     setStatus('');
   }, [scoreTab]);
@@ -183,42 +177,6 @@ export function ScaleDiscoveryPage() {
 
   const droneAvailable = scoreTab !== null && scoreTonic(scoreTab) !== null;
 
-  const consume = (): number => {
-    if (startedAt.current) {
-      playedMs.current += performance.now() - startedAt.current;
-      startedAt.current = 0;
-    }
-    return playedMs.current;
-  };
-  const logPlayed = () => {
-    const seconds = Math.round(consume() / 1000);
-    playedMs.current = 0;
-    if (seconds >= 3 && r.position) {
-      // une écoute est une tentative non vérifiée : elle compte pour la série et la durée, jamais pour l'XP
-      const formIndex = r.position.formIndex ?? r.position.index;
-      const node = nodeIdOf({ scaleId: r.def.id, system: r.selection.system, formIndex });
-      appendAttempt(progressStore(), {
-        id: newAttemptId(clock.now(), node, readAttempts(progressStore()).length),
-        ts: clock.now(),
-        kind: 'listen',
-        scaleId: r.def.id,
-        tonic: r.tonic,
-        tuningId: r.tuning.id,
-        system: r.selection.system,
-        positionId: r.position.id,
-        formIndex,
-        level: 1,
-        strings: r.tuning.strings.length,
-        correct: null,
-        total: null,
-        seconds,
-        fretMin: r.position.fretMin,
-        missedStrings: [],
-        tempoOk: false,
-      });
-    }
-  };
-
   const onPlay = async () => {
     if (!scoreTab) return;
     const p = player.current!;
@@ -229,12 +187,10 @@ export function ScaleDiscoveryPage() {
         loaded.current = { score: scoreTab, loop };
       }
       p.onEnded = () => {
-        logPlayed();
         setTransport('stopped');
         setStatus('terminé');
       };
       await p.play();
-      startedAt.current = performance.now();
       setTransport('playing');
       setStatus('');
     } catch (e) {
@@ -244,13 +200,11 @@ export function ScaleDiscoveryPage() {
   };
   const onPause = () => {
     player.current?.pause();
-    consume();
     setTransport('paused');
     setStatus('pause');
   };
   const onStop = () => {
     player.current?.stop();
-    logPlayed();
     setTransport('stopped');
     setStatus('arrêté');
   };
@@ -347,12 +301,17 @@ export function ScaleDiscoveryPage() {
     </dialog>
   );
   const tabLegend = <TabLegend def={r.def} readonly={settings.reduceMotion} />;
-  // le chemin d'une forme en cinq niveaux : on est au 1, les suivants sont à un toucher
-  const levels = (
-    <LevelsNav
-      current={1}
-      onSelect={(n) => navigate(n === 5 ? 'impro' : n === 4 ? 'sequences' : 'training')}
-    />
+  const levels = <ScaleTabs current="scale" />;
+  const reviewForm = () => {
+    requestFormReview();
+    navigate('review');
+  };
+  const reviewButton = r.position && <PixelButton onClick={reviewForm}>Réviser cette forme</PixelButton>;
+  const reviewNote = (
+    <p className="t-small t-dim">
+      « Réviser cette forme » lance un rappel de mémoire au micro, sur toute la position. La forme entre alors dans ta
+      file de révision et revient à intervalles croissants, en haut de la page Gammes.
+    </p>
   );
   const prevPosition = <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>‹ Position</PixelButton>;
   const nextPosition = <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2}>Position ›</PixelButton>;
@@ -554,7 +513,6 @@ export function ScaleDiscoveryPage() {
               <div>
                 <div className="play-title">
                   <h1 className="page-title">{r.title}</h1>
-                  <span className="tag tag-on">Niv1</span>
                 </div>
                 {subtitle}
               </div>
@@ -603,6 +561,7 @@ export function ScaleDiscoveryPage() {
             <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
               {infoOpen ? '▾ Masquer les détails' : '▸ Détails de la gamme'}
             </PixelButton>
+            {reviewButton}
           </div>
 
           {infoOpen && (
@@ -625,6 +584,7 @@ export function ScaleDiscoveryPage() {
                   {structureOpen && structure}
                 </PlaySection>
                 <PlaySection title="Lecture">{parentNote}{moreOptions}</PlaySection>
+                <PlaySection title="Révision">{reviewNote}</PlaySection>
               </div>
 
               <div className="play-col">
@@ -670,7 +630,6 @@ export function ScaleDiscoveryPage() {
             <h1 className="page-title">{r.title}</h1>
             {subtitle}
           </div>
-          <span className="tag tag-on">Niv1</span>
         </div>
         <div className="mplay-transport">
           {transportButtons}
@@ -705,6 +664,7 @@ export function ScaleDiscoveryPage() {
         <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
           {infoOpen ? '▾ Masquer les détails' : '▸ Détails de la gamme'}
         </PixelButton>
+        {reviewButton}
       </div>
 
       {infoOpen && (
@@ -740,20 +700,7 @@ export function ScaleDiscoveryPage() {
             </Panel>
           )}
 
-          <Panel className="span-12" label="Les niveaux">
-            <dl className="mplay-levels-help">
-              {LEVELS.map((l) => (
-                <div key={l.n}>
-                  <dt>Niv{l.n} {l.title}</dt>
-                  <dd>{l.hint}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="t-small t-dim">
-              S’exercer : le micro valide chaque note, la case se remplit. Le niveau 2 masque une partie des notes, le niveau 3 toute la tablature : seule une
-              tentative de l’exercice sert à la révision, une écoute ici ne prouve rien.
-            </p>
-          </Panel>
+          <Panel className="span-12" label="Révision">{reviewNote}</Panel>
         </div>
       )}
 

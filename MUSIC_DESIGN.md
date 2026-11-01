@@ -1,5 +1,7 @@
 # MUSIC_DESIGN.md — choix musicaux et pédagogiques
 
+**Depuis D128, l'app n'est plus un cours.** Restent en vigueur : les conventions musicales, les formes d'accord, les séquences, l'improvisation et la révision espacée des gammes (§5, sans XP ni états affichés). Le curriculum, les niveaux, les leçons d'accord et le barème d'XP décrivent l'ancien parcours, gardés pour mémoire.
+
 Statut : **phases 0, 1a, 1b, 1c, 1d, 2, 3, 4a et 4b terminées** (4b = module Accords, partie B : cycle complet en sept étapes, QCM sans matériel, accordage guidé corde par corde, paliers P5-P7). Ce document fixe les conventions et le plan pédagogique ; il est mis à jour à chaque phase. Nouveautés de la phase 4b : **§4.6** (le critère « appris » tient enfin sa promesse : pose à froid comprise), **§4.7** (l'axe *transition* est mesuré), **§5** (trois nouveaux types de nœuds), **§16** (bilan de la 4b, avis de prof et propositions).
 Auteur du raisonnement : rôle « dev + prof de guitare » du BRIEF.md. Les avis de prof sont marqués **[AVIS PROF]**, les hypothèses **[HYP]**, les points à trancher par toi **[À TRANCHER]**.
 
