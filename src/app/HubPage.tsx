@@ -21,13 +21,15 @@ export function HubPage() {
     window.addEventListener(JOURNAL_SYNCED, on);
     return () => window.removeEventListener(JOURNAL_SYNCED, on);
   }, []);
-  const { scales, chords } = useMemo(() => {
+  const { scales, chords, hasKnownChords } = useMemo(() => {
     const store = progressStore();
     const attempts = readAttempts(store);
+    const chordMarks = readChordMarks(store);
     const now = clock.now();
     return {
       scales: reviewSummary(attempts, now),
-      chords: chordReviewSummary(VOICINGS, attempts, readChordMarks(store), now),
+      chords: chordReviewSummary(VOICINGS, attempts, chordMarks, now),
+      hasKnownChords: chordMarks.known.length > 0,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [synced]);
@@ -39,13 +41,13 @@ export function HubPage() {
     <main className="shell"><div className="hub-surface">
       <header className="page-head">
         <div>
-          <h1 className="page-title">Accueil</h1>
-          <p className="t-small t-dim">{nothingDue ? 'Rien n’est dû aujourd’hui.' : 'Ce qui est dû aujourd’hui.'}</p>
+          <h1 className="page-title"><span className="hub-mobile-title">Accueil</span><span className="hub-desktop-title">Fretwave</span></h1>
+          <p className="t-small t-dim hub-summary">{nothingDue ? 'Rien n’est dû aujourd’hui.' : 'Ce qui est dû aujourd’hui.'}</p>
         </div>
       </header>
 
       {scales.forms.length > 0 && (
-        <Panel className="span-12 review-due" accent="green" active label="Gammes à réviser" right={<span className="badge">{scales.count}</span>}>
+        <Panel className="span-12 review-due hub-scale-review" accent="green" active label="Gammes à réviser" right={<span className="badge">{scales.count}</span>}>
           <ul className="review-forms">
             {scales.forms.map((t) => (
               <li key={t.nodeId}>
@@ -54,14 +56,14 @@ export function HubPage() {
               </li>
             ))}
           </ul>
-          <PixelButton variant="primary" onClick={() => navigate('review')}>
+          <PixelButton variant="primary" className="mic-spark" onClick={() => navigate('review')}>
             ▶ Réviser {scales.forms.length > 1 ? `ces ${scales.forms.length} formes` : 'cette forme'}
           </PixelButton>
         </Panel>
       )}
 
-      {chords.chords.length > 0 && (
-        <Panel className="span-12 review-due" accent="green" active label="Accords à réviser" right={<span className="badge">{chords.count}</span>}>
+        <Panel className="span-12 review-due hub-chord-review" accent="green" active={chords.chords.length > 0} label="Accords à réviser" right={<span className="badge">{chords.count}</span>}>
+          {chords.chords.length > 0 ? <>
           <ul className="review-forms">
             {chords.chords.map((t) => (
               <li key={t.nodeId}>
@@ -70,11 +72,17 @@ export function HubPage() {
               </li>
             ))}
           </ul>
-          <PixelButton variant="primary" onClick={() => navigate('chordReview')}>
+          <PixelButton variant="primary" className="mic-spark" onClick={() => navigate('chordReview')}>
             ▶ Réviser {chords.chords.length > 1 ? `ces ${chords.chords.length} accords` : 'cet accord'}
           </PixelButton>
+          </> : <p className="t-body t-dim">Aucun accord à réviser aujourd’hui.</p>}
+          {!hasKnownChords && (
+            <p className="t-body">Pour avoir des accords à réviser, va sur la page Accords et coche « Je connais cet accord » pour les accords que tu connais déjà.</p>
+          )}
+          <div className="hub-chord-learn">
+            <PixelButton className="mic-spark" onClick={() => navigate('chordLearn')}>Apprendre un nouvel accord</PixelButton>
+          </div>
         </Panel>
-      )}
 
       {nothingDue && (
         <Panel className="span-12" label="Révision">

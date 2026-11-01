@@ -51,6 +51,7 @@ function Page({ route }: { route: RouteName }) {
     case 'sequences': return <SequencePage />;
     case 'impro': return <ImproPage />;
     case 'accords': return <ChordsPage />;
+    case 'chordLearn': return <ChordsPage learning />;
     case 'dictionary': return <ChordDictionaryPage />;
     case 'chordReview': return <ChordReviewPage />;
     case 'tuner': return <TunerPage />;

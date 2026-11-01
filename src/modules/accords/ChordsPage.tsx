@@ -3,7 +3,7 @@
  * plaquée ou arpégée. Le dictionnaire a sa page (D130). Deux coches discrètes décident de la révision (D139) :
  * ce sont des déclarations, seul le rappel au micro compte au journal.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
 import { useSettings } from '../../app/settings';
 import { ChordBoxView } from '../../app/ChordBoxView';
@@ -15,13 +15,24 @@ import type { Voicing } from '../../core/theory/voicings';
 import { VOICINGS } from '../../data/voicings';
 import { chordGroups } from './list';
 import { useChordListen, type ChordStyle } from './useChordListen';
+import { ChordLearnDialog } from './ChordLearnDialog';
 
-export function ChordsPage() {
+export function ChordsPage({ learning = false }: { learning?: boolean }) {
   const settings = useSettings();
   const groups = useMemo(() => chordGroups(VOICINGS), []);
   const count = groups.reduce((n, g) => n + g.voicings.length, 0);
   const { sounding, error, listen } = useChordListen();
   const [marks, setMarks] = useState(() => readChordMarks(progressStore()));
+  const heading = useRef<HTMLHeadingElement>(null);
+  const [learned, setLearned] = useState<string | null>(null);
+  const learn = (id: string) => {
+    const store = progressStore();
+    const current = readChordMarks(store);
+    // Relire au clic : une synchronisation ne doit pas transformer l'ajout en décochage.
+    setMarks(current.known.includes(id) ? current : toggleChordMark(store, 'known', id, clock.now()));
+    const voicing = VOICINGS.find(v => v.id === id);
+    if (voicing) setLearned(fmtChord(voicing.chord, settings.chordNotation));
+  };
   const mark = (kind: ChordMarkKind, id: string) => setMarks(toggleChordMark(progressStore(), kind, id, clock.now()));
   // une coche posée sur un autre appareil arrive avec la synchro
   useEffect(() => {
@@ -68,7 +79,7 @@ export function ChordsPage() {
       <div className="play-surface chord-surface">
         <header className="page-head">
           <div>
-            <h1 className="page-title">Accords</h1>
+            <h1 ref={heading} tabIndex={-1} className="page-title">Accords</h1>
             <p className="t-small t-dim">{count} formes, en accordage standard</p>
           </div>
           <div className="chord-head-actions">
@@ -78,6 +89,7 @@ export function ChordsPage() {
             <PixelButton onClick={() => navigate('dictionary')}>Dictionnaire</PixelButton>
           </div>
         </header>
+        {learned && <p role="status" className="t-small">{learned} fait maintenant partie de tes accords connus.</p>}
         {error && <p className="t-small mic-line-error" role="alert">{error}</p>}
         {groups.map((g) => (
           <Panel
@@ -99,6 +111,10 @@ export function ChordsPage() {
             {!folded.has(g.id) && <div className="chord-list">{g.voicings.map(row)}</div>}
           </Panel>
         ))}
+        {learning && <ChordLearnDialog marks={marks} onKnown={learn} onClose={() => {
+          navigate('accords');
+          heading.current?.focus();
+        }} />}
       </div>
     </main>
   );

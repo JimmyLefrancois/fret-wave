@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { ACTIVE_ROUTE, parseRoute, ROUTE_HREF } from '../src/app/router';
 
 describe('routes des accords', () => {
+  it('ouvre la découverte sur la page Accords', () => {
+    expect(ROUTE_HREF.chordLearn).toBe('#/accords/apprendre');
+    expect(parseRoute(ROUTE_HREF.chordLearn)).toBe('chordLearn');
+    expect(ACTIVE_ROUTE.chordLearn).toBe('accords');
+  });
   it('le dictionnaire a sa propre page', () => {
     expect(ROUTE_HREF.dictionary).toBe('#/accords/dictionnaire');
     expect(parseRoute('#/accords/dictionnaire')).toBe('dictionary');

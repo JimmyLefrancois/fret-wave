@@ -3,7 +3,7 @@
  * Une route = un écran ; l'état fin (gamme choisie, position) vit dans les magasins, pas dans l'URL.
  */
 
-export type RouteName = 'hub' | 'gammes' | 'scale' | 'review' | 'sequences' | 'impro' | 'accords' | 'dictionary' | 'chordReview' | 'tuner' | 'metronome' | 'settings' | 'tab' | 'audio' | 'theory';
+export type RouteName = 'hub' | 'gammes' | 'scale' | 'review' | 'sequences' | 'impro' | 'accords' | 'chordLearn' | 'dictionary' | 'chordReview' | 'tuner' | 'metronome' | 'settings' | 'tab' | 'audio' | 'theory';
 
 export const ROUTE_HREF: Readonly<Record<RouteName, string>> = {
   hub: '#/accueil',
@@ -13,6 +13,7 @@ export const ROUTE_HREF: Readonly<Record<RouteName, string>> = {
   sequences: '#/gammes/sequences',
   impro: '#/gammes/impro',
   accords: '#/accords',
+  chordLearn: '#/accords/apprendre',
   dictionary: '#/accords/dictionnaire',
   chordReview: '#/accords/revision',
   tuner: '#/accordeur',
@@ -52,6 +53,8 @@ export function parseRoute(hash: string): RouteName {
       return 'impro';
     case 'accords/dictionnaire':
       return 'dictionary';
+    case 'accords/apprendre':
+      return 'chordLearn';
     case 'accords/revision':
       return 'chordReview';
     case 'accords':
@@ -82,7 +85,7 @@ export function parseRoute(hash: string): RouteName {
 /** L'onglet de navigation allumé pour chaque page. */
 export const ACTIVE_ROUTE: Readonly<Record<RouteName, RouteName>> = {
   hub: 'hub', gammes: 'gammes', scale: 'gammes', review: 'gammes', sequences: 'gammes', impro: 'gammes',
-  accords: 'accords', dictionary: 'accords', chordReview: 'accords',
+  accords: 'accords', chordLearn: 'accords', dictionary: 'accords', chordReview: 'accords',
   tuner: 'tuner', metronome: 'metronome', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
 };
 

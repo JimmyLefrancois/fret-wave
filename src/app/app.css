@@ -1099,8 +1099,42 @@ table.kv td:first-child { color: var(--muted); }
 .chord-review-title { flex: 1 1 200px; min-width: 0; }
 .hub-surface { grid-column: 1 / -1; min-width: 0; display: grid; gap: 16px; }
 .hub-surface .review-forms { margin-block-end: 12px; }
+.hub-desktop-title { display: none; }
+.hub-chord-review { display: flex; flex-direction: column; }
+.hub-chord-review > .btn { align-self: flex-start; }
+.hub-chord-review > .hub-chord-learn { margin-top: auto; padding-top: var(--gap-inside); }
+@media (min-width: 900px) {
+  .workspace.route-hub .shell { padding-top: 0; }
+  .hub-surface { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Le titre occupe toute la bande jusqu'à l'horizon (34 %, SceneBackground).
+     La marge absorbe le gap de la grille pour garder les blocs sur cet horizon. */
+  .workspace .hub-surface > .page-head { grid-column: 1 / -1; display: flex; min-height: max(126px, 34vh); margin: 0 0 -16px; padding: 0; justify-content: center; align-items: center; text-align: center; background: none; border: 0; box-shadow: none; }
+  .hub-surface > .page-head::before, .hub-surface > .page-head::after { content: none; }
+  .hub-mobile-title, .hub-summary { display: none; }
+  .hub-desktop-title { display: inline; font-family: var(--font-display); font-size: clamp(24px, 3vw, 40px); line-height: 1.4; }
+  .hub-surface > .hub-scale-review { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; }
+  .hub-scale-review > .btn { margin-top: auto; align-self: flex-start; }
+  .hub-chord-learn { display: flex; }
+  .hub-surface > .hub-chord-review { grid-column: 2; grid-row: 2; }
+}
 
 .chordbox { display: block; line-height: 0; }
+.chord-learn-dialog { width: min(720px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; color: var(--text); background: var(--surface); border: var(--bw) solid var(--green); box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
+.chord-learn-dialog::backdrop { background: var(--bg-deep); opacity: 0.85; }
+.chord-learn-head { display: flex; align-items: center; justify-content: space-between; gap: var(--gap-inside); padding: var(--gap-inside); border-bottom: var(--bw) solid var(--line-soft); }
+.chord-learn-head .page-title { color: var(--green); }
+.chord-learn-body { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--gap-block); padding: var(--gap-block); }
+.chord-learn-diagram { display: flex; justify-content: center; }
+.chord-learn-guide { display: grid; gap: var(--gap-inside); min-width: 0; }
+.chord-learn-dialog > .chord-learn-guide { padding: var(--gap-block); }
+.chord-learn-guide p, .chord-learn-actions p { margin: 0; }
+.chord-learn-actions { display: grid; gap: var(--gap-inside); padding: var(--gap-inside) var(--gap-block); border-top: var(--bw) solid var(--line-soft); }
+@media (max-width: 599px) {
+  .chord-learn-body { grid-template-columns: minmax(0, 1fr); padding: var(--gap-inside); gap: var(--gap-inside); }
+  .chord-learn-actions { padding: var(--gap-inside); }
+  .chord-learn-actions .btn { width: 100%; white-space: normal; }
+  .chord-learn-head .page-title { font-size: 22px; }
+}
 .chordbox canvas { display: block; image-rendering: pixelated; }
 
 .t-small.ok { color: var(--ok); }
