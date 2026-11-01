@@ -25,26 +25,9 @@
   font-display: swap;
 }
 
-/* --- palette de secours (identique au thème Synthwave, avant le premier script) --- */
+/* --- dimensions partagées ; palette appliquée depuis les tokens avant React --- */
 :root {
   color-scheme: dark;
-  --bg-deep: #06000f;
-  --bg: #0d0221;
-  --surface: #150a33;
-  --surface-hi: #201048;
-  --line: #5b2fa8;
-  --line-soft: #3a1c71;
-  --text: #f6eeff;
-  --muted: #c4b6e4;
-  --dim: #a99bcf;
-  --magenta: #ff2a6d;
-  --cyan: #05d9e8;
-  --orange: #ff9e3d;
-  --yellow: #ffd23f;
-  --violet: #a86bff;
-  --green: #7cff6b;
-  --danger: #ff5c7a;
-  --ok: #4cff9a;
   --font-display: 'Press Start 2P', monospace;
   --font-label: 'Silkscreen', 'Press Start 2P', monospace;
   --font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -306,6 +289,7 @@ a { color: var(--cyan); }
 }
 .seg.on { background: var(--accent, var(--magenta)); border-color: var(--accent, var(--magenta)); color: var(--on-accent); font-weight: 700; }
 .seg:disabled { opacity: 0.35; cursor: default; }
+.seg .seg-icon { margin-right: 6px; vertical-align: middle; }
 .segmented-sm .seg { min-height: 38px; font-size: 12.5px; padding: 0 10px; }
 
 .chip {
@@ -1419,7 +1403,6 @@ details[open] > * + * { margin-block-start: var(--gap-inside); }
 .impro-chord-roman { font-size: 11.5px; color: var(--dim); }
 .impro-chord.on .impro-chord-roman { color: var(--magenta); }
 
-.impro-tempo { font-variant-numeric: tabular-nums; min-width: 72px; text-align: center; }
 
 .impro-notes { display: flex; flex-wrap: wrap; gap: 6px; }
 .impro-note {
@@ -1453,8 +1436,6 @@ details[open] > * + * { margin-block-start: var(--gap-inside); }
 /* commutateur : piste 44 × 24 et curseur carré, à l'échelle des pixels de la tablature */
 
 /* Réglage de tempo : deux boutons carrés et une valeur, sur une seule ligne. */
-.impro-tempo-row { display: flex; align-items: center; gap: 8px; }
-.impro-tempo-row .impro-step { flex: 0 0 44px; padding: 0; }
 /* Le nom d'accord se lit en clair : dans la police pixel, « Am » s'écrit « AM » et le mineur disparaît. */
 .impro-chord-name { font-family: var(--font-body); font-weight: 700; letter-spacing: 0; }
 
@@ -1699,7 +1680,6 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 }
 .tuner-dialog-head { padding-bottom: var(--gap-inside); border-bottom: var(--bw) solid var(--yellow); }
 .tuner-dialog-head .t-label { margin: 0; font-size: 16px; color: var(--yellow); }
-.tuner-title { margin: 0; font-size: 30px; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; }
 .tuner-summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--gap-tight) var(--gap-block); }
 .tuner-summary { margin-block: 16px 8px; }
 .tuner-summary strong:last-child:not(.ko) { color: var(--cyan); }
@@ -1827,18 +1807,6 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .play-compare { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
   .play-hint { font-size: 20px; font-weight: 500; line-height: 1.5; color: var(--text); max-width: 56ch; }
 
-  .play-foot {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px 24px;
-    padding: 14px 28px;
-    background: var(--surface-hi);
-    border-block-start: var(--bw) solid var(--line-soft);
-  }
-  .play-foot .instrument { flex: 0 1 auto; flex-direction: row; align-items: center; gap: 12px; margin: 0; }
-  .play-foot .instrument select { min-width: 260px; }
 }
 
 /* Liste d'accords au téléphone : le diagramme à gauche, nom et écoute à droite. Empilés, 40 formes
@@ -2046,7 +2014,6 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .mplay-bar .field > .t-label { display: none; }
   .mplay-play { width: 100%; }
   .mplay-play-note { margin: 0; text-align: center; }
-  .mplay-hint { margin: 0; padding-block: 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.3; text-align: center; text-transform: uppercase; color: var(--cyan); background: none; }
 
   .mplay-pos { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .mplay-pos .btn { min-width: 40px; padding-inline: 8px; }
@@ -2083,8 +2050,7 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   /* dépliés, les détails partent du bouton : pas d'écart, un seul trait entre les deux */
   .mplay-more:has(+ .mplay-details) { margin-block-end: calc(-1 * (var(--gap-block) + var(--bw))); }
   .mplay-more:has(+ .mplay-details) .btn { box-shadow: none; }
-  .mplay-more .btn,
-  .mplay-foot .btn { width: 100%; color: var(--text); background: var(--surface); border-color: var(--line); }
+  .mplay-more .btn { width: 100%; color: var(--text); background: var(--surface); border-color: var(--line); }
   /* un seul bloc de détails : chaque catégorie garde son titre, un trait la sépare de la précédente */
   .mplay-details { min-width: 0; background: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
   .mplay-details > .panel,
@@ -2093,20 +2059,14 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .mplay-details > .panel::after { content: none; }
   .mplay-details > :is(.panel, .tab-legend) + :is(.panel, .tab-legend) { border-block-start: var(--bw) solid var(--line-soft); }
 
-  .mplay-foot { display: grid; gap: var(--gap-inside); padding: 12px; background: var(--surface); border: var(--bw) solid var(--line); }
-  .mplay-foot .instrument { margin: 0; }
 }
 @media (max-width: 389px) {
   .mplay-bar .segmented .seg { padding-inline: 6px; font-size: 12px; }
-  .mplay-hint { font-size: 12px; letter-spacing: 0; }
   .mplay-transport .btn { padding-inline: 6px; font-size: 12px; white-space: nowrap; }
-  .mplay-transport .badge { font-size: 10px; padding-inline: 4px; }
 }
 /* trop étroit pour une rangée : collé, l'en-tête prendrait un tiers de l'écran */
 @media (max-width: 359px) {
   .mplay-head { position: static; }
-  .mplay-transport { flex-wrap: wrap; }
-  .mplay-transport .tempo-group { margin-left: auto; }
 }
 
 /* Tablature en plein écran paysage. Sans verrou d'orientation (iPhone), la vue pivote tant que l'écran reste
@@ -2157,6 +2117,9 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .tab-full-options .switch-hint { display: none; }
 .tab-full-options .segmented { flex-wrap: nowrap; }
 .tab-full-options .tab-full-title:empty { display: none; }
+.land-chords { display: flex; flex: none; align-items: center; gap: 12px; padding: 6px 12px; border-block-end: var(--bw) solid var(--line-soft); }
+.land-chords .impro-grid { flex: 1; min-width: 0; }
+.land-chords .t-small { flex: 0 1 auto; margin: 0; }
 .land-pos { display: flex; flex: none; align-items: center; gap: 6px; }
 .land-pos .t-label { margin: 0; }
 .land-body .tabview { flex: 1; min-width: 0; }

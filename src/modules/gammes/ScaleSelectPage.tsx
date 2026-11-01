@@ -55,7 +55,7 @@ export function ScaleSelectPage() {
     .flatMap((names) => names.map((name) => ({ name, names })));
 
   return (
-    <main className="shell">
+    <main className="shell"><div className="catalog-surface">
       <header className="page-head">
         <div>
           <h1 className="page-title">Gammes</h1>
@@ -208,6 +208,6 @@ export function ScaleSelectPage() {
           </p>
         </details>
       </Panel>
-    </main>
+    </div></main>
   );
 }

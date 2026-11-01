@@ -1,0 +1,174 @@
+/* Atelier Fretwave : structure de la maquette, couleurs et caractères des thèmes existants. */
+.workspace { --rail-width: 220px; --workspace-pad: clamp(20px, 2.6vw, 48px); }
+.skip-link { position: fixed; top: -80px; left: 12px; z-index: 100; padding: 12px; background: var(--surface); }
+.skip-link:focus { top: 12px; }
+.brand { font-family: var(--font-display); color: var(--text); font-size: 20px; line-height: 1.6; text-decoration: none; }
+.mobile-brand { display: none; }
+.workspace .page-title { color: var(--text); font-family: var(--font-body); font-size: clamp(28px, 3.1vw, 44px); font-weight: 750; line-height: 1.15; text-wrap: balance; }
+.workspace .page-head { gap: 16px; margin-bottom: 12px; }
+.workspace select { max-width: 100%; min-height: 46px; }
+.workspace :is(button, a, select, input, summary):focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.practice-head { min-width: 0; padding: 28px 0 0; }
+.practice-head .page-title { margin: 0 0 24px; }
+.practice-selectors { display: grid; grid-template-columns: minmax(90px, .6fr) minmax(180px, 1.3fr) minmax(180px, 1fr); gap: 16px; max-width: 900px; margin: 0 0 20px; padding: 0; border: 0; }
+.practice-selectors label { min-width: 0; }
+.practice-selectors select { width: 100%; background: var(--bg); border: var(--bw) solid var(--line); }
+.practice-head .levels { display: flex; gap: 0; margin: 0; border-bottom: var(--bw) solid var(--line); }
+.practice-head .level { display: flex; align-items: center; justify-content: center; min-height: 56px; padding: 12px 24px; border: 0; border-bottom: 4px solid transparent; background: none; box-shadow: none; color: var(--muted); margin-bottom: -2px; }
+.practice-head .level.here { color: var(--magenta); border-bottom-color: var(--magenta); }
+.practice-head .level-t { font: 600 16px var(--font-body); }
+.practice-head .level-s { display: none; }
+.practice-score { display: grid; grid-template-columns: 66px minmax(0, 1fr); gap: 22px; align-items: stretch; }
+.practice-score-body { min-width: 0; }
+.practice-position { font-size: 22px; font-weight: 700; margin: 6px 0 16px; }
+.position-stepper { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.position-rail { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding-right: 14px; border-right: var(--bw) solid var(--line-soft); }
+.position-rail button { height: 44px; min-height: 44px; min-width: 44px; flex: none; padding: 6px; font-family: var(--font-label); font-size: 20px; line-height: 1; color: var(--muted); border: var(--bw) solid var(--line); background: var(--bg); cursor: pointer; }
+.position-rail button.on { color: var(--magenta); border-color: var(--magenta); }
+.position-rail button:disabled { cursor: default; opacity: .5; }
+.practice-transport { align-items: center; }
+.nav-offline { color: var(--muted); font-size: 13px; padding: 18px 20px; border-top: var(--bw) solid var(--line-soft); }
+.workspace .controls > *, .workspace .transport > * { min-width: 0; max-width: 100%; }
+.workspace .controls label { overflow-wrap: anywhere; }
+.workspace .controls select, .workspace .controls input { min-width: 0; width: 100%; }
+.workspace main.wide .card { background: var(--surface); }
+.tool-surface { display: contents; }
+.workspace .chord-surface > .page-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 16px; }
+.chord-head-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+@media (min-width: 900px) {
+  .workspace .app-content { margin-left: var(--rail-width); padding: 0 var(--workspace-pad) 36px; }
+  .workspace .scene { left: var(--rail-width); }
+  .workspace .bottombar { inset: 0 auto 0 0; width: var(--rail-width); display: flex; flex-direction: column; align-items: stretch; padding: 28px 14px 12px; border: var(--bw) solid var(--line); }
+  .workspace .bottombar .brand { padding: 0 8px 42px; font-size: 17px; }
+  .workspace .navbtn { flex: none; flex-direction: row; justify-content: flex-start; gap: 16px; height: 66px; padding: 0 14px; font-size: 17px; border: var(--bw) solid transparent; }
+  .workspace .navbtn.on { background: var(--surface); border-color: var(--line-soft); }
+  .workspace .navbtn svg { flex: none; }
+  .workspace .nav-settings { margin-top: auto; }
+  .workspace .shell, .workspace main.wide { width: 100%; max-width: 1600px; padding: 30px 0 12px; }
+  .workspace .shell { gap: 20px; }
+  .workspace .play-head { top: 0; }
+  .workspace .play-surface.practice-surface { border: 0; box-shadow: none; background: none; }
+  /* l'en-tête ouvre la surface : le titre à gauche, la gamme à régler à droite, les outils en onglets dessous */
+  .practice-surface > :not(dialog) { background: var(--surface); border-inline: var(--bw) solid var(--line); }
+  .practice-surface > .practice-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 24px; padding: 16px 20px 0; border-top: var(--bw) solid var(--line); }
+  .practice-surface .practice-head .page-title { margin: 0; font-size: 28px; }
+  /* chaque liste prend la largeur de sa plus longue option : rien n'est coupé, le titre passe à la ligne s'il le faut */
+  .practice-surface .practice-selectors { grid-template-columns: 96px auto auto; gap: 12px; margin: 0; }
+  .practice-surface .practice-head .levels { grid-column: 1 / -1; margin-inline: -20px; padding-inline: 20px; }
+  .practice-surface .practice-head .level { min-height: 48px; padding-block: 8px; }
+  .practice-surface > .practice-tab { padding: 20px; }
+  .practice-tab .play-tab-bar { justify-content: flex-start; gap: 12px 22px; padding-bottom: 18px; margin: 0 0 18px; }
+  .play-tab-bar .position-stepper { margin-left: auto; }
+  .practice-tab .practice-score { margin: 0; }
+  .workspace .practice-transport { position: sticky; top: auto; bottom: 0; z-index: 4; padding: 14px 20px; border-block: var(--bw) solid var(--line); gap: 12px 20px; }
+  /* deux côtés de même largeur : les commandes restent au centre exact de la barre */
+  .practice-transport .transport-side { display: flex; flex: 1 1 0; flex-wrap: nowrap; align-items: center; gap: 0 18px; }
+  .practice-transport .transport-side:last-child { justify-content: flex-end; }
+  .practice-transport .play-transport { margin-inline: auto; }
+  .practice-transport .btn-primary { min-height: 52px; }
+  .practice-transport .tempo-val { font-size: 22px; }
+  .practice-surface .play-more { padding: 10px 20px; }
+  .practice-surface > :last-child { border-bottom: var(--bw) solid var(--line); }
+  .practice-surface .seq-view { padding: 10px 20px; border-bottom: var(--bw) solid var(--line-soft); }
+  .workspace .catalog-surface { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); background: var(--surface); border: var(--bw) solid var(--line); }
+  .catalog-surface > .page-head { grid-column: 1 / -1; padding: 28px; margin: 0; border: 0; border-bottom: var(--bw) solid var(--line); }
+  /* Accordeur, Métronome : en-tête de Gammes, le panneau devient le corps de la même carte */
+  .workspace .tool-surface { grid-column: 1 / -1; display: block; min-width: 0; background: var(--surface); border: var(--bw) solid var(--line); }
+  .tool-surface > .page-head { padding: 28px; margin: 0; border: 0; border-bottom: var(--bw) solid var(--line); }
+  .tool-surface > .panel { border: 0; box-shadow: none; padding: 24px 28px; margin: 0; }
+  .tool-surface > .panel::before, .tool-surface > .panel::after { content: none; }
+  .catalog-surface > .panel { grid-column: auto; border: 0; box-shadow: none; padding: 24px 28px; margin: 0; }
+  .catalog-surface > .panel::before, .catalog-surface > .panel::after { content: none; }
+  .catalog-surface > .span-7 { border-left: var(--bw) solid var(--line-soft); }
+  .catalog-surface > .review-due, .catalog-surface > .review-next { grid-column: 1 / -1; padding: 20px 28px; border-bottom: var(--bw) solid var(--line-soft); }
+  .workspace .set-surface > .page-head { padding: 28px; background: var(--surface); }
+  /* même en-tête que Gammes : ni collant, ni fond à part */
+  .workspace .chord-surface > .page-head { position: relative; top: auto; margin: 0; padding: 28px; background: var(--surface); border: 0; border-bottom: var(--bw) solid var(--line); }
+  .workspace .chord-surface > .page-head .t-small { font-size: 17px; }
+  .workspace .shell > .page-head { margin-top: 0; padding: 28px; }
+  .workspace .play-surface:not(.practice-surface):not(.chord-surface) > .play-head { padding-block: 28px; }
+  .workspace .tool-surface > .dict > .dict-chips { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+  .workspace .set-surface, .workspace .chord-surface { width: 100%; }
+  .workspace .set-surface > .panel { border-bottom-style: solid; }
+  .workspace .panel { box-shadow: none; }
+  .workspace .metro { max-width: none; }
+}
+/* titre et listes ne tiennent plus sur une ligne : le titre garde la sienne */
+@media (min-width: 900px) and (max-width: 1399px) {
+  .practice-surface > .practice-head { grid-template-columns: minmax(0, 1fr); padding-top: 28px; }
+  .practice-surface .practice-selectors { grid-template-columns: 96px minmax(0, 1.3fr) minmax(0, 1fr); max-width: none; }
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  .workspace { --rail-width: 184px; --workspace-pad: 20px; }
+  .workspace .bottombar { padding-inline: 8px; }
+  .workspace .bottombar .brand { font-size: 14px; }
+  .workspace .navbtn { font-size: 15px; gap: 12px; padding-inline: 8px; }
+  .practice-score { grid-template-columns: 54px minmax(0, 1fr); gap: 12px; }
+  /* trop étroit pour trois colonnes : les commandes prennent leur rangée, centrées */
+  .practice-transport .play-transport { order: -1; flex: 1 0 100%; justify-content: center; }
+  .workspace .catalog-surface { grid-template-columns: minmax(0, 1fr); }
+  .catalog-surface > .span-7 { border-left: 0; border-top: var(--bw) solid var(--line-soft); }
+  .workspace .set-surface { grid-template-columns: minmax(0, 1fr); background-image: none; }
+  .workspace .tuner-card { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 899px) {
+  .mobile-brand { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 16px; background: var(--bg-deep); border-bottom: var(--bw) solid var(--line); position: relative; z-index: 2; }
+  .mobile-brand .brand { font-size: 18px; }
+  .mobile-brand button { display: grid; place-items: center; width: 44px; height: 44px; color: var(--muted); background: var(--surface); border: var(--bw) solid var(--line); }
+  .workspace .shell { max-width: 768px; padding: 18px 12px 0; }
+  .workspace .app-content { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+  .workspace .bottombar { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .workspace .navbtn { height: 64px; font-size: 12px; }
+  .workspace .page-title { font-size: clamp(25px, 6.8vw, 36px); }
+  /* le bas de page ne dépend pas du dernier bloc : pas de marge en plus au-dessus de la navigation */
+  .workspace .shell > .panel:last-child { margin-bottom: 0; }
+  /* surfaces dépliées dans la grille de la page : l'écart vient de la grille seule, 16 px, marges de blocs retirées */
+  .workspace .shell:has(> :is(.tool-surface, .set-surface, .chord-surface)) { gap: 16px; }
+  .workspace .shell > :is(.tool-surface, .set-surface, .chord-surface) > :is(.page-head, .panel) { margin-block: 0; }
+  .practice-head { padding: 14px 14px 0; margin-bottom: 16px; background: var(--surface); border: var(--bw) solid var(--line); }
+  .practice-head .page-title { margin-bottom: 20px; }
+  .practice-selectors { grid-template-columns: 80px minmax(0, 1fr); gap: 10px; margin-bottom: 12px; }
+  .practice-selectors label:last-child { grid-column: 1 / -1; }
+  .practice-selectors select { padding-inline: 10px; font-size: 14px; }
+  .practice-head .level { flex: 1; min-width: 0; padding: 12px 6px; }
+  .practice-head .level-t { font-size: 14px; }
+  .position-rail { flex-direction: row; flex-wrap: wrap; padding: 0 0 14px; border-right: 0; border-bottom: var(--bw) solid var(--line-soft); gap: 8px; }
+  .position-rail button { flex: 1 0 44px; max-width: 70px; font-size: 19px; }
+  .workspace .mplay-play { width: 100%; min-height: 56px; }
+  /* Découvrir : un seul bloc, de l'en-tête aux détails ; des traits, plus de cases */
+  .mplay-surface { min-width: 0; background: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
+  .workspace .mplay-surface .practice-head { margin: 0; background: none; border: 0; }
+  .workspace .mplay-surface .mplay-tab { margin: 0; background: none; border: 0; box-shadow: none; }
+  .workspace .mplay-surface .panel { margin-block: 0; }
+  .mplay-surface .mplay-transport { justify-content: center; padding: 10px 12px; border-block-start: var(--bw) solid var(--line-soft); }
+  .mplay-surface .mplay-transport .tempo-group { margin-left: 0; }
+  .mplay-surface .mplay-more { padding: 10px 12px; border-block-start: var(--bw) solid var(--line-soft); }
+  .workspace .mplay-surface .mplay-more:has(+ .mplay-details) { margin-block-end: 0; padding-block-end: 0; }
+  .mplay-surface .mplay-bar:last-child { border-block-end: 0; }
+  .mplay .mplay-surface .seq-view { justify-content: center; padding: 10px 12px; border-block-end: var(--bw) solid var(--line-soft); }
+  .mplay .mplay-surface .seq-progress { background: none; border: 0; box-shadow: none; }
+  .workspace .mplay-surface .mplay-head { position: static; margin: 0; padding: 14px; background: none; border: 0; }
+  .workspace .mplay-surface .mplay-title .page-title { font-size: 24px; }
+  .mplay-surface .mplay-head + .mplay-details, .mplay-surface .mplay-head + .mplay-tab { border-block-start: var(--bw) solid var(--line-soft); }
+  .mplay-surface .mplay-details { border: 0; border-block-start: var(--bw) solid var(--line-soft); box-shadow: none; }
+  /* toutes les pages : même haut de page, même marge dans l'en-tête, même écart avec le bloc suivant */
+  .workspace .page-head, .workspace .catalog-surface > .page-head { margin: 0 0 16px; padding: 14px; }
+  .workspace .panel, .workspace .mplay-tab { margin-block: 16px; }
+  .workspace .chord-surface .page-head { flex-wrap: wrap; }
+  .workspace main.wide { padding: 18px 12px; }
+}
+/* trop étroit pour un libellé : l'icône suffit à garder la rangée sur une ligne */
+@media (max-width: 379px) {
+  .mplay-surface .transport-label { display: none; }
+  .workspace .mplay-surface .mplay-title .page-title { font-size: 20px; overflow-wrap: normal; }
+  .mplay-surface .mplay-bar { grid-template-columns: minmax(0, 1fr); padding-inline: 8px; }
+  .mplay-surface .mplay-bar .segmented { gap: 4px; }
+  .mplay-surface .mplay-bar .segmented .seg { padding-inline: 4px; font-size: 11px; }
+  .mplay-surface .mplay-toggles { gap: 0 4px; }
+  .mplay-surface .mplay-toggles .switch { gap: 4px; font-size: 13px; }
+  .mplay-surface .mplay-transport .tempo-val { min-width: 44px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .workspace .navbtn, .practice-head .level { transition: color 120ms ease-out, background-color 120ms ease-out; }
+}

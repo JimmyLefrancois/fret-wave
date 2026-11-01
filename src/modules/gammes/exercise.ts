@@ -204,8 +204,3 @@ export function isClickPitch(midi: number): boolean {
 export function clickMasked(elapsedSeconds: number, bpm: number, heardMidi: number, windowMs = 90): boolean {
   return nearClick(elapsedSeconds, bpm, windowMs) && isClickPitch(heardMidi);
 }
-
-/** Début du chrono à la reprise d'une série en pause : décalé de la durée de la pause, qui ne compte pas. */
-export function resumedStart(startedAt: number, pausedAt: number, now: number): number {
-  return startedAt + Math.max(0, now - pausedAt);
-}

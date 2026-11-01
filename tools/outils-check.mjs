@@ -54,7 +54,7 @@ for (const [tag, width, height, mobile] of [['bureau', 1440, 900, false], ['tele
   await page.waitForSelector('.bottombar');
   check('l’app s’ouvre sur Gammes', (await page.evaluate(() => location.hash)) === '#/gammes');
   const tabs = await page.locator('.navbtn').allInnerTexts();
-  check('cinq onglets, sans Accueil', tabs.length === 5 && !tabs.includes('Accueil'), tabs.join(', '));
+  check('navigation des outils, sans Accueil', tabs.length === (mobile ? 4 : 5) && !tabs.includes('Accueil'), tabs.join(', '));
   const home = await text();
   check('le bloc À réviser annonce 2 formes', /À réviser/i.test(home) && /ces 2 formes/i.test(home));
   await shot('gammes');
@@ -67,8 +67,16 @@ for (const [tag, width, height, mobile] of [['bureau', 1440, 900, false], ['tele
     await page.getByRole('button', { name: '▶ Jouer' }).first().click();
     await page.waitForTimeout(300);
     await shot('revision-paysage');
-    await page.getByRole('button', { name: 'Fermer' }).first().click();
+    const before = await page.evaluate(() => window.__review.journalLength);
+    for (const ok of [true, false, true]) {
+      await page.evaluate((v) => window.__review.answer(v), ok);
+      await page.waitForTimeout(30);
+    }
+    check('la série avance en paysage', await page.evaluate(() => window.__review.done > 0));
+    await page.locator('.tab-full').getByRole('button', { name: 'Fermer' }).click();
     await page.waitForTimeout(200);
+    check('fermer le jeu remet la série à zéro', await page.evaluate(() => window.__review.done === 0 && Object.keys(window.__review.errors).length === 0 && !window.__review.result));
+    check('fermer le jeu n’écrit rien au journal', await page.evaluate((n) => window.__review.journalLength === n, before));
   } else {
     await shot('revision');
   }
@@ -145,7 +153,7 @@ for (const [tag, width, height, mobile] of [['bureau', 1440, 900, false], ['tele
   const rows = await page.locator('.chord-row').count();
   check('40 formes d’accords', rows === 40, String(rows));
   const heads = await page.locator('.chord-surface .panel-head h2').allInnerTexts();
-  check('six groupes et le dictionnaire', heads.length === 7, heads.join(', '));
+  check('six groupes', heads.length === 6, heads.join(', '));
   const chords = await text();
   check('aucune trace du parcours', !/Apprendre|appris|palier|QCM|sept étapes/i.test(chords));
   await shot('accords');
@@ -170,6 +178,7 @@ for (const [tag, width, height, mobile] of [['bureau', 1440, 900, false], ['tele
   await page.getByRole('button', { name: 'Déplier tout' }).click();
   check('Déplier tout', (await page.locator('.chord-row').count()) === 40);
 
+  await page.getByRole('button', { name: 'Dictionnaire' }).click();
   const dict = page.locator('.dict');
   await dict.getByRole('button', { name: 'Fa♯', exact: true }).click();
   await dict.getByRole('button', { name: 'Mineur' }).click();

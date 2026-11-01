@@ -8,13 +8,14 @@ import { applyTheme, getTheme } from '../core/themes';
 import { AudioPage } from './AudioPage';
 import { LoadingScreen } from './LoadingScreen';
 import { MetronomePage } from './MetronomePage';
-import { navigate, parseRoute, ROUTE_HREF, type RouteName } from './router';
+import { ACTIVE_ROUTE, navigate, parseRoute, ROUTE_HREF, type RouteName } from './router';
 import { SceneBackground } from './SceneBackground';
 import { SettingsPage } from './SettingsPage';
 import { useSettings } from './settings';
 import { TabPage } from './TabPage';
 import { TheoryPage } from './TheoryPage';
 import { TunerPage } from './TunerPage';
+import { useDesktop } from './useDesktop';
 import { PixelIcon, type IconName } from './ui';
 import { installDevHooks } from './devHooks';
 import { startJournalSync } from './journalSync';
@@ -23,6 +24,7 @@ import { ScaleSelectPage } from '../modules/gammes/ScaleSelectPage';
 import { ScaleReviewPage } from '../modules/gammes/ScaleReviewPage';
 import { ImproPage } from '../modules/gammes/ImproPage';
 import { SequencePage } from '../modules/gammes/SequencePage';
+import { ChordDictionaryPage } from '../modules/accords/ChordDictionaryPage';
 import { ChordsPage } from '../modules/accords/ChordsPage';
 
 const SHORT_NAME: Record<string, string> = { nylon: 'GUITARE NYLON', electric: 'GUITARE ÉLECTRIQUE' };
@@ -37,12 +39,6 @@ const NAV: { route: RouteName; label: string; icon: IconName }[] = [
   { route: 'settings', label: 'Réglages', icon: 'navSliders' },
 ];
 
-const ACTIVE: Record<RouteName, RouteName> = {
-  gammes: 'gammes', scale: 'gammes', review: 'gammes', sequences: 'gammes', impro: 'gammes',
-  accords: 'accords',
-  tuner: 'tuner', metronome: 'metronome', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
-};
-
 function Page({ route }: { route: RouteName }) {
   switch (route) {
     case 'gammes': return <ScaleSelectPage />;
@@ -51,6 +47,7 @@ function Page({ route }: { route: RouteName }) {
     case 'sequences': return <SequencePage />;
     case 'impro': return <ImproPage />;
     case 'accords': return <ChordsPage />;
+    case 'dictionary': return <ChordDictionaryPage />;
     case 'tuner': return <TunerPage />;
     case 'metronome': return <MetronomePage />;
     case 'settings': return <SettingsPage />;
@@ -61,6 +58,7 @@ function Page({ route }: { route: RouteName }) {
 }
 
 export function App() {
+  const desktop = useDesktop();
   const engine = AudioEngine.get();
   // rendu réactif à l'état du moteur (chargement, erreur, progression)
   useSyncExternalStore((cb) => engine.subscribe(cb), () => engine.version);
@@ -112,7 +110,8 @@ export function App() {
   const isDevPage = route === 'tab' || route === 'audio' || route === 'theory';
 
   return (
-    <div className="app">
+    <div className={`app workspace route-${route}`}>
+      <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); document.getElementById('main-content')?.focus(); }}>Aller au contenu</a>
       <SceneBackground
         theme={theme}
         reduceMotion={settings.reduceMotion}
@@ -120,22 +119,25 @@ export function App() {
         variant="poster"
         sunX={0.82}
       />
-      <div className={`app-content ${isDevPage ? 'dev' : ''}`}>
+      <header className="mobile-brand"><a href={ROUTE_HREF.gammes} className="brand">Fretwave</a><button type="button" aria-label="Réglages" onClick={() => navigate('settings')}><PixelIcon name="navSliders" size={24} /></button></header>
+      <div id="main-content" tabIndex={-1} className={`app-content ${isDevPage ? 'dev' : ''}`}>
         <Page route={route} />
       </div>
       <nav className="bottombar" aria-label="Navigation principale">
-        {NAV.map((n) => (
+        {desktop && <a className="brand" href={ROUTE_HREF.gammes}>Fretwave</a>}
+        {NAV.filter(n => desktop || n.route !== 'settings').map((n) => (
           <button
             key={n.route}
             type="button"
-            className={`navbtn ${ACTIVE[route] === n.route ? 'on' : ''}`}
-            aria-current={ACTIVE[route] === n.route ? 'page' : undefined}
+            className={`navbtn nav-${n.route} ${ACTIVE_ROUTE[route] === n.route ? 'on' : ''}`}
+            aria-current={ACTIVE_ROUTE[route] === n.route ? 'page' : undefined}
             onClick={() => navigate(n.route)}
           >
             <PixelIcon name={n.icon} size={20} />
             <span>{n.label}</span>
           </button>
         ))}
+        {desktop && <p className="nav-offline">Disponible hors ligne</p>}
       </nav>
     </div>
   );

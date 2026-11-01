@@ -1,6 +1,7 @@
+import { PracticeHeader, PositionRail, PositionStepper } from './PracticeHeader';
 /**
  * Module Gammes — « Découvrir » (BRIEF.md §2, docs/ARCHITECTURE.md §6.3).
- * La gamme est écrite en tablature (montée / descente / aller-retour) avec :
+ * La gamme est écrite en tablature, en aller-retour, avec :
  *  - les couleurs de fonction d'intervalle et le glow des notes caractéristiques du mode ;
  *  - quatre annotations au choix (note, degré, intervalle, doigté) ;
  *  - un calque « notes de l'accord » qui estompe les notes étrangères ;
@@ -15,23 +16,19 @@ import { requestFormReview, requestLiaison, setScaleSelection, useScaleSelection
 import { useSettings } from '../../app/settings';
 import { TabView } from '../../app/TabView';
 import { NeckView } from '../../app/NeckView';
-import { InstrumentPicker } from '../../app/AudioControls';
 import { Panel, PixelButton, PixelIcon, Segmented, Switch } from '../../app/ui';
 import { filterPosition, fmtNote, linkedPair, relabelPosition, stepFormula } from '../../core/theory';
-import { type AnnotationKind, type Direction, defaultChordForScale, linkNeckNotes, neckNotes, positionToScore } from '../../core/tab';
+import { type AnnotationKind, defaultChordForScale, linkNeckNotes, neckNotes, positionToScore } from '../../core/tab';
 import { TabPlayer, scoreTonic } from '../../core/audio/tabPlayer';
 import { fmtDegree, legendFor, positionLabelPlain, resolveScale, scaleTitle } from './resolve';
 import { ScaleRuler } from './ScaleRuler';
 import { TabLegend } from './TabLegend';
-import { ScaleTabs } from './ScaleTabs';
 import { PlaySection } from './PlaySection';
 import { useDesktop } from '../../app/useDesktop';
 import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import {
   compareChoices, counterpartPosition, differingDegrees, markDegrees, neighbourPositions, relativeDegrees, samePlaceIndex,
 } from './compare';
-
-const DIRECTION_LABEL: Record<Direction, string> = { up: 'Montée', down: 'Descente', updown: 'Aller-retour' };
 
 const ANNOTATIONS: { value: AnnotationKind; label: string }[] = [
   { value: 'note', label: 'Notes' },
@@ -50,7 +47,6 @@ export function ScaleDiscoveryPage() {
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
   const legend = useMemo(() => legendFor(r.def), [r.def]);
 
-  const [direction, setDirection] = useState<Direction>('updown');
   const [annotation, setAnnotation] = useState<AnnotationKind>('degree');
   const [tempo, setTempo] = useState(70);
   const [loop, setLoop] = useState(false);
@@ -105,7 +101,7 @@ export function ScaleDiscoveryPage() {
     if (!shownPos) return null;
     try {
       return positionToScore(shownPos, r.tuning, {
-        direction,
+        direction: 'updown',
         tempo,
         fingers: true,
         markChordTones: true,
@@ -115,7 +111,7 @@ export function ScaleDiscoveryPage() {
     } catch {
       return null;
     }
-  }, [shownPos, r.tuning, direction, tempo, r.chord, settings.noteNotation]);
+  }, [shownPos, r.tuning, tempo, r.chord, settings.noteNotation]);
 
   // --- comparaison : une gamme voisine (même tonique, même forme) ou les mêmes notes lues depuis une autre tonique
   const choices = useMemo(
@@ -135,18 +131,18 @@ export function ScaleDiscoveryPage() {
       const diff = relative ? relativeDegrees(r.def, r.tonic, choice.def, choice.tonic) : differingDegrees(r.def, choice.def);
       const otherChord = defaultChordForScale(choice.def.id, choice.tonic);
       const other = positionToScore(pos, r.tuning, {
-        direction, tempo, fingers: true,
+        direction: 'updown', tempo, fingers: true,
         ...(otherChord ? { chord: otherChord } : {}),
       });
       const mine = positionToScore(base, r.tuning, {
-        direction, tempo, fingers: true,
+        direction: 'updown', tempo, fingers: true,
         ...(r.chord ? { chord: r.chord } : {}),
       });
       return { diff, score: markDegrees(other, diff.onlyB), mine: markDegrees(mine, diff.onlyA) };
     } catch {
       return null;
     }
-  }, [compare, choice, r.position, r.tonic, r.tuning, r.selection.system, r.def, r.chord, direction, tempo, shownPos]);
+  }, [compare, choice, r.position, r.tonic, r.tuning, r.selection.system, r.def, r.chord, tempo, shownPos]);
   const otherTitle = choice ? scaleTitle(choice.def, choice.tonic, settings.noteNotation) : '';
 
   const openRelative = () => {
@@ -225,8 +221,6 @@ export function ScaleDiscoveryPage() {
   const steps = stepFormula(r.def);
 
   // --- pièces communes aux deux mises en page : téléphone (colonne) et bureau (surface unique)
-  const back = <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour à la sélection">‹</button>;
-  const subtitle = <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {r.tuning.strings.length} cordes</p>;
   const tab = scoreTab ? (
     <TabView
       score={scoreTab}
@@ -301,7 +295,6 @@ export function ScaleDiscoveryPage() {
     </dialog>
   );
   const tabLegend = <TabLegend def={r.def} readonly={settings.reduceMotion} />;
-  const levels = <ScaleTabs current="scale" />;
   const reviewForm = () => {
     requestFormReview();
     navigate('review');
@@ -313,13 +306,10 @@ export function ScaleDiscoveryPage() {
       file de révision et revient à intervalles croissants, en haut de la page Gammes.
     </p>
   );
-  const prevPosition = <PixelButton variant="quiet" onClick={() => gotoPosition(-1)} disabled={r.positions.length < 2}>‹ Position</PixelButton>;
-  const nextPosition = <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2}>Position ›</PixelButton>;
-  const positionCount = <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>;
   const transportButtons = (
     <>
       <PixelButton variant="primary" onClick={onPlay} disabled={!scoreTab || playing} ariaLabel="Lecture" className="play">
-        <PixelIcon name="play" size={18} /> {transport === 'paused' ? 'Reprendre' : 'Écouter'}
+        <PixelIcon name="play" size={18} /> <span className="transport-label">{transport === 'paused' ? 'Reprendre' : 'Écouter'}</span>
       </PixelButton>
       <PixelButton variant="quiet" onClick={onPause} disabled={!playing} ariaLabel="Pause">
         <PixelIcon name="pause" size={14} />
@@ -350,15 +340,6 @@ export function ScaleDiscoveryPage() {
   // Une phrase sur la gamme elle-même (« mêmes notes que Do majeur ») : elle ouvre le panneau,
   // au lieu de traîner en bas après les options, où elle n'avait ni sujet ni étiquette.
   const parentNote = r.parent && <p className="t-small t-dim">{r.parent}</p>;
-  const directionOptions = (
-    <Segmented
-      size="sm"
-      label="Sens de lecture"
-      value={direction}
-      onChange={setDirection}
-      options={(Object.keys(DIRECTION_LABEL) as Direction[]).map((d) => ({ value: d, label: DIRECTION_LABEL[d] }))}
-    />
-  );
   const annotationOptions = (
     <Segmented
       size="sm"
@@ -505,24 +486,11 @@ export function ScaleDiscoveryPage() {
   if (desktop) {
     return (
       <main className="shell play-shell">
-        <div className="play-surface">
+        <div className="play-surface practice-surface">
           {/* l'identité et l'écoute restent à portée pendant tout le défilement */}
-          <header className="play-head">
-            <div className="play-id">
-              {back}
-              <div>
-                <div className="play-title">
-                  <h1 className="page-title">{r.title}</h1>
-                </div>
-                {subtitle}
-              </div>
-            </div>
-            <div className="play-transport">{transportButtons}</div>
-            {tempoControl}
-            <div className="play-toggles">{audioSwitches(false)}</div>
-          </header>
+          <PracticeHeader scale={r} current="scale" disabled={transport !== 'stopped'} />
 
-          <section className="play-tab">
+          <section className="play-tab practice-tab">
             <div className="play-tab-bar">
               <div className="play-degrees" role="img" aria-label={`Couleurs des degrés : ${legend.map((it) => it.name).join(', ')}`}>
                 {legend.map((it) => (
@@ -530,31 +498,22 @@ export function ScaleDiscoveryPage() {
                 ))}
               </div>
               <div className="field">
-                <span className="t-label">Sens</span>
-                {directionOptions}
-              </div>
-              <div className="field">
                 <span className="t-label">Annotation</span>
                 {annotationOptions}
               </div>
               {neckButton}
+              <PositionStepper scale={r} onStep={gotoPosition} />
             </div>
-            {tab}
+            <div className="practice-score"><PositionRail scale={r} disabled={transport !== 'stopped'} onSelect={i => gotoPosition(i - r.selection.positionIndex)} /><div className="practice-score-body"><p className="practice-position">{positionLabelPlain(r.position!, settings.noteNotation)}</p>{tab}</div></div>
             {tabLegend}
           </section>
 
           {neckDialog}
 
-          <div className="play-nav">
-            {levels}
-            <div className="play-pos">
-              {prevPosition}
-              <span className="play-dots" aria-hidden="true">
-                {r.positions.map((p, i) => <span key={p.id} className={i === r.selection.positionIndex ? 'on' : ''} />)}
-              </span>
-              {positionCount}
-              {nextPosition}
-            </div>
+          <div className="practice-transport play-head">
+            <div className="transport-side">{tempoControl}</div>
+            <div className="play-transport">{transportButtons}</div>
+            <div className="transport-side play-toggles">{audioSwitches(false)}</div>
           </div>
 
           <div className="play-more">
@@ -607,35 +566,19 @@ export function ScaleDiscoveryPage() {
               </div>
             </div>
           )}
-
-          <footer className="play-foot">
-            <InstrumentPicker />
-            <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
-          </footer>
         </div>
         {tabFullView}
       </main>
     );
   }
 
-  // Téléphone : les mêmes choix que la surface du bureau, en gardant les blocs. Une tablature à la verticale
-  // se lit mal (plusieurs écrans pour une position) : le manche la remplace, la note jouée s'y cadre, et la
-  // tablature reste à un geste. L'écoute reste collée en haut ; le reste attend derrière « Détails ».
+  // Téléphone : un seul bloc, comme la surface du bureau. Une tablature à la verticale se lit mal (plusieurs
+  // écrans pour une position) : le manche la remplace, la note jouée s'y cadre, et la tablature reste à un
+  // geste. Les commandes suivent le manche ; la théorie s'ouvre juste sous « Détails », en bas du bloc.
   return (
     <main className="shell mplay">
-      <header className="mplay-head">
-        <div className="mplay-id">
-          {back}
-          <div className="mplay-title">
-            <h1 className="page-title">{r.title}</h1>
-            {subtitle}
-          </div>
-        </div>
-        <div className="mplay-transport">
-          {transportButtons}
-          {tempoControl}
-        </div>
-      </header>
+      <div className="mplay-surface">
+      <PracticeHeader scale={r} current="scale" disabled={transport !== 'stopped'} />
 
       <section className="mplay-tab">
         <div className="mplay-bar">
@@ -644,11 +587,11 @@ export function ScaleDiscoveryPage() {
             <span className="t-label">Position {r.selection.positionIndex + 1} / {r.positions.length}</span>
             <PixelButton variant="quiet" onClick={() => gotoPosition(1)} disabled={r.positions.length < 2} ariaLabel="Position suivante">›</PixelButton>
           </div>
-          {directionOptions}
           {annotationOptions}
           <div className="mplay-toggles">{audioSwitches(false)}</div>
         </div>
         {neckPanel}
+        <div className="mplay-transport">{transportButtons}{tempoControl}</div>
         {tabLegend}
         {scoreTab && (
           <div className="mplay-tab-toggle">
@@ -658,13 +601,11 @@ export function ScaleDiscoveryPage() {
         {!scoreTab && tab}
       </section>
 
-      <div className="mplay-levels">{levels}</div>
-
       <div className="mplay-more">
+        {reviewButton}
         <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
           {infoOpen ? '▾ Masquer les détails' : '▸ Détails de la gamme'}
         </PixelButton>
-        {reviewButton}
       </div>
 
       {infoOpen && (
@@ -703,11 +644,8 @@ export function ScaleDiscoveryPage() {
           <Panel className="span-12" label="Révision">{reviewNote}</Panel>
         </div>
       )}
+      </div>
 
-      <footer className="mplay-foot">
-        <InstrumentPicker />
-        <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
-      </footer>
       {tabFullView}
     </main>
   );

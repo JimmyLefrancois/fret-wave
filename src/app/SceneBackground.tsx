@@ -72,7 +72,7 @@ export function SceneBackground(props: {
       // le décor couvre tout l'écran : horizon bas, soleil dans la bande haute (l'affiche du hub, puis
       // les en-têtes), grille en perspective jusqu'en bas — c'est l'image « synthwave » de la 1re version
       geo = variant === 'poster'
-        ? sceneGeometry(lw, lh, wide ? { horizonRatio: 0.34, sunRatio: 0.19, sunCx: sunX } : { horizonRatio: 0.33, sunRatio: 0.24, sunCx: sunX })
+        ? sceneGeometry(lw, lh, wide ? { horizonRatio: 0.34, sunRatio: 0.1, sunCx: sunX } : { horizonRatio: 0.33, sunRatio: 0.12, sunCx: sunX })
         : sceneGeometry(lw, lh, { horizonRatio: wide ? 0.34 : 0.3 });
       stars = makeStars(geo, variant === 'poster' ? 110 : 70);
 

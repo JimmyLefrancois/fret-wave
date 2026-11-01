@@ -3,7 +3,7 @@
  * Une route = un écran ; l'état fin (gamme choisie, position) vit dans les magasins, pas dans l'URL.
  */
 
-export type RouteName = 'gammes' | 'scale' | 'review' | 'sequences' | 'impro' | 'accords' | 'tuner' | 'metronome' | 'settings' | 'tab' | 'audio' | 'theory';
+export type RouteName = 'gammes' | 'scale' | 'review' | 'sequences' | 'impro' | 'accords' | 'dictionary' | 'tuner' | 'metronome' | 'settings' | 'tab' | 'audio' | 'theory';
 
 export const ROUTE_HREF: Readonly<Record<RouteName, string>> = {
   gammes: '#/gammes',
@@ -12,6 +12,7 @@ export const ROUTE_HREF: Readonly<Record<RouteName, string>> = {
   sequences: '#/gammes/sequences',
   impro: '#/gammes/impro',
   accords: '#/accords',
+  dictionary: '#/accords/dictionnaire',
   tuner: '#/accordeur',
   metronome: '#/metronome',
   settings: '#/reglages',
@@ -44,6 +45,8 @@ export function parseRoute(hash: string): RouteName {
     case 'gammes/impro':
     case 'gammes/improvisation':
       return 'impro';
+    case 'accords/dictionnaire':
+      return 'dictionary';
     case 'accords':
     case 'accords/lecon':
     case 'accords/lecon-accord':
@@ -68,6 +71,13 @@ export function parseRoute(hash: string): RouteName {
       return 'gammes';
   }
 }
+
+/** L'onglet de navigation allumé pour chaque page. */
+export const ACTIVE_ROUTE: Readonly<Record<RouteName, RouteName>> = {
+  gammes: 'gammes', scale: 'gammes', review: 'gammes', sequences: 'gammes', impro: 'gammes',
+  accords: 'accords', dictionary: 'accords',
+  tuner: 'tuner', metronome: 'metronome', settings: 'settings', tab: 'settings', audio: 'audio', theory: 'settings',
+};
 
 export function navigate(route: RouteName): void {
   const href = ROUTE_HREF[route];

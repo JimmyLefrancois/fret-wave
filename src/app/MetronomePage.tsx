@@ -204,8 +204,13 @@ export function MetronomePage() {
   const stored = slots[slot] ?? null;
 
   return (
-    <main className="shell">
-      <h1 className="sr-only">Métronome</h1>
+    <main className="shell"><div className="tool-surface">
+      <header className="page-head">
+        <div>
+          <h1 className="page-title">Métronome</h1>
+          <p className="t-small t-dim">Règle le tempo, puis démarre.</p>
+        </div>
+      </header>
       <Panel className="span-12" accent="magenta">
         <div ref={frame} className={`metro ${running ? 'running' : ''}`}>
           <div className="metro-player">
@@ -348,6 +353,6 @@ export function MetronomePage() {
           </div>
         </div>
       </Panel>
-    </main>
+    </div></main>
   );
 }

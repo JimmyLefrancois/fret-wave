@@ -32,7 +32,7 @@ import { PlaySection } from './PlaySection';
 import { useDesktop } from '../../app/useDesktop';
 import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
-import { buildExercise, missedSummary, resumedStart, stepOpen, stringsOf, withRevealed } from './exercise';
+import { buildExercise, missedSummary, stepOpen, stringsOf, withRevealed } from './exercise';
 import {
   REVIEW_MAX, buildReviewQueue, formReviewTarget, moreDue, reviewDelayText, sessionFact, type ReviewTarget,
 } from './review';
@@ -213,19 +213,12 @@ export function ScaleReviewPage() {
 
   const restart = () => setRound((n) => n + 1);
 
-  // fermer la vue de jeu avant la fin remet la série à zéro. Exception : à froid, recommencer effacerait les
-  // cases révélées et fausserait le seul essai qui compte ; la série se met en pause, chrono compris.
-  const pausedAt = useRef<number | null>(null);
+  // fermer la vue de jeu avant la fin remet la série à zéro, à froid compris (D137) : rien n'est écrit au journal
   const wasPlaying = useRef(false);
   useEffect(() => {
     const closed = wasPlaying.current && !playing;
     wasPlaying.current = playing;
-    if (!closed || result) return;
-    if (!coldActive) {
-      restart();
-      return;
-    }
-    if (startedAt !== null) pausedAt.current = clock.now();
+    if (closed && !result) restart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing]);
 
@@ -610,11 +603,6 @@ export function ScaleReviewPage() {
     `${fmtNote(pitch.replace(/-?\d+$/, ''), settings.noteNotation)}${i === 0 ? ' grave' : i === all.length - 1 ? ' aigu' : ''}`);
   const missedLine = result ? missedSummary(exercise.holes, missed, stringNames) : null;
   const openPlay = () => {
-    if (startedAt !== null && pausedAt.current !== null && !result) {
-      setStartedAt(resumedStart(startedAt, pausedAt.current, clock.now()));
-      setNow(clock.now());
-    }
-    pausedAt.current = null;
     setPlaying(true);
     openLandscape();
   };
@@ -858,58 +846,63 @@ export function ScaleReviewPage() {
   }
 
   // Téléphone : la tablature se lit mal à la verticale, la série se joue donc en paysage, tablature sur une
-  // ligne. Le portrait lance, et rend le résultat.
+  // ligne. Le portrait, en un seul bloc, lance et rend le résultat.
   const canPlay = coldStep !== 'look' && !sessionDone;
+  const outcome = sessionPanel || resultPanel;
   return (
     <main className="shell mplay">
-      <header className="mplay-head">
-        <div className="mplay-id">
-          {back}
-          <div className="mplay-title">
-            <h1 className="page-title">{r.title}</h1>
-            {subtitle}
+      <div className="mplay-surface">
+        <header className="mplay-head">
+          <div className="mplay-id">
+            {back}
+            <div className="mplay-title">
+              <h1 className="page-title">{r.title}</h1>
+              {subtitle}
+            </div>
+            {/* l'étiquette complète écrasait le titre sur une colonne de 90 px */}
+            {queue.length > 1 && <span className="tag tag-on">{qIndex + 1} / {queue.length}</span>}
           </div>
-          {/* l'étiquette complète écrasait le titre sur une colonne de 90 px */}
-          {queue.length > 1 && <span className="tag tag-on">{qIndex + 1} / {queue.length}</span>}
-        </div>
-        {canPlay && (
-          <div className="mplay-transport">
-            {!result && !micOn && micAction}
-            <PixelButton variant={micOn || result ? 'primary' : 'ghost'} className="play" onClick={openPlay}>
-              {result ? 'Voir la correction' : done > 0 ? '▶ Reprendre' : '▶ Jouer'}
-            </PixelButton>
-            <span className="badge badge-count">{done} / {total} notes</span>
+        </header>
+
+        {(outcome || lookPanel) && (
+          <div className="mplay-details">
+            {outcome}
+            {lookPanel}
           </div>
         )}
-      </header>
 
-      {sessionPanel || resultPanel || (
-        <section className="mplay-tab">
-          <div className="mplay-bar">
-            {sessionFacts}
-            {coldStep !== 'look' && <p className="mplay-hint">Touche Jouer pour afficher la tablature.</p>}
-            {skip}
-            {micError && <p className="t-small mic-line-error" role="alert">{micError}</p>}
-            {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+        {(canPlay || micError || micBusy) && (
+          <section className="mplay-tab">
+            <div className="mplay-bar">
+              {canPlay && (
+                <PixelButton variant={result ? 'quiet' : 'primary'} className={`mplay-play ${result ? '' : 'mic-spark'}`} onClick={openPlay}>
+                  {result ? 'Voir la correction' : '▶ Jouer'}
+                </PixelButton>
+              )}
+              {canPlay && !result && <p className="t-small t-dim mplay-play-note">Touche Jouer : l’écran passe automatiquement en paysage, avec la tablature et le micro.</p>}
+              {skip}
+              {micError && <p className="t-small mic-line-error" role="alert">{micError}</p>}
+              {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+            </div>
+          </section>
+        )}
+
+        {!sessionDone && (
+          <div className="mplay-more">
+            <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
+              {infoOpen ? '▾ Masquer les détails' : '▸ Détails de la série'}
+            </PixelButton>
           </div>
-          {lookPanel}
-        </section>
-      )}
+        )}
 
-      {!sessionDone && (
-        <div className="mplay-more">
-          <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
-            {infoOpen ? '▾ Masquer les détails' : '▸ Détails de la série'}
-          </PixelButton>
-        </div>
-      )}
-
-      {infoOpen && !sessionDone && (
-        <div className="mplay-details">
-          {tabLegend}
-          <Panel className="span-12" label="Comment c’est noté ?">{howScoredBody}</Panel>
-        </div>
-      )}
+        {infoOpen && !sessionDone && (
+          <div className="mplay-details">
+            {sessionFacts && <Panel className="span-12" label="Exercice">{sessionFacts}</Panel>}
+            {tabLegend}
+            <Panel className="span-12" label="Comment c’est noté ?">{howScoredBody}</Panel>
+          </div>
+        )}
+      </div>
 
       {playing && (
         <LandscapeView label={`Exercice : ${r.title}`} onClose={closePlay}>

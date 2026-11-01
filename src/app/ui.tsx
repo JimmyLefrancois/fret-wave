@@ -71,6 +71,8 @@ export function PixelButton(props: {
 export interface Option<T extends string | number> {
   value: T;
   label: string;
+  /** Picto placé devant le libellé. */
+  icon?: IconName;
   /** Raison affichée quand l'option est indisponible. */
   note?: string;
   disabled?: boolean;
@@ -97,6 +99,7 @@ export function Segmented<T extends string | number>(props: {
           title={o.note ?? o.label}
           onClick={() => onChange(o.value)}
         >
+          {o.icon && <PixelIcon name={o.icon} size={20} className="seg-icon" />}
           {o.label}
         </button>
       ))}
@@ -358,6 +361,8 @@ const ICONS = {
   navChords: ['##########', '#..#..#..#', '#..#.##..#', '##########', '#.##..#..#', '#.##..#..#', '##########', '#..#..#.##', '#..#..#.##', '##########'],
   navTuner: ['.##....##.', '.##....##.', '.##....##.', '.##....##.', '.##....##.', '.###..###.', '..######..', '....##....', '....##....', '...####...'],
   navMetronome: ['....##....', '....##..##', '...###.##.', '...###.#..', '..######..', '..#.##.#..', '..#.#..#..', '.##...###.', '.########.', '##########'],
+  // podium : la deuxième marche à gauche, la première au centre, la troisième à droite
+  ranking: ['..........', '...####...', '...####...', '...####...', '#######...', '#######...', '##########', '##########', '##########', '##########'],
   navSliders: ['...##.....', '##########', '...##.....', '..........', '......##..', '##########', '......##..', '..........', '.##.......', '##########'],
 } as const;
 

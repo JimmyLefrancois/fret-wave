@@ -1,3 +1,4 @@
+import { PracticeHeader, PositionRail, PositionStepper } from './PracticeHeader';
 /**
  * Improvisation (phase 7) — **jouer sur un accompagnement, et comprendre ce qu'on joue**.
  *
@@ -22,16 +23,14 @@ import { ensureInputEngine, windowFor } from '../../app/inputSession';
 import { CHORD_INTERVALS, judgeNote, ROLE_LABEL, summarizeImpro, type ImproNote, type ImproStats, type NoteRole } from '../../core/impro/classify';
 import { locateInScore, scoreNotes, type PlacedNote } from '../../core/impro/locate';
 import { positionToScore } from '../../core/tab/generators';
-import { Chip, Panel, PixelButton, Switch } from '../../app/ui';
+import { Chip, Panel, PixelButton } from '../../app/ui';
 import { TabView } from '../../app/TabView';
 import { useSettings } from '../../app/settings';
 import { useDesktop } from '../../app/useDesktop';
-import { InstrumentPicker } from '../../app/AudioControls';
+import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
-import { ScaleTabs } from './ScaleTabs';
 import { PlaySection } from './PlaySection';
 import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
-import { navigate } from '../../app/router';
 import { fmtNote, pitchClassOf } from '../../core/theory';
 import { noteNameOf } from '../../core/input/match';
 import { chordAtMeasure, chordName, backingsFor, IMPRO_BACKINGS, STYLE_LABEL, type BackingMode, type BackingStyle } from './impro';
@@ -51,7 +50,10 @@ const pct = (v: number): string => `${Math.round(v * 100)} %`;
 const count = (n: number, one: string, many: string): string => `${n} ${n > 1 ? many : one}`;
 
 export function ImproPage() {
-  const desktop = useDesktop();
+  const wide = useDesktop();
+  const [landscape, setLandscape] = useState(false);
+  // un grand téléphone dépasse 900 px en paysage : la vue de jeu garde le rendu téléphone
+  const desktop = wide && !landscape;
   const settings = useSettings();
   const selection = useScaleSelection();
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
@@ -130,6 +132,14 @@ export function ImproPage() {
     setSummary(stats);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [takes, r]);
+
+  // identité stable : un changement de `onClose` ferait quitter le plein écran à `LandscapeView`
+  const stopRef = useRef(stop);
+  stopRef.current = stop;
+  const closePlay = useCallback(() => {
+    stopRef.current();
+    setLandscape(false);
+  }, []);
 
   const start = async (): Promise<void> => {
     setStatus('');
@@ -274,7 +284,7 @@ export function ImproPage() {
       player={null}
       transport="stopped"
       hideRhythm
-      oneLine={desktop}
+      oneLine={wide || landscape}
       {...(flash.length > 0 ? { flash } : {})}
     />
   );
@@ -297,6 +307,28 @@ export function ImproPage() {
         );
       })}
     </div>
+  );
+  const tempoControl = (
+    <div className="tempo-group">
+      <span className="t-label">Tempo</span>
+      <div className="tempo">
+        <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.max(60, t - 4))} aria-label="Moins vite">−</button>
+        <span className="tempo-val">♩ {tempo}</span>
+        <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.min(140, t + 4))} aria-label="Plus vite">+</button>
+      </div>
+    </div>
+  );
+  const accompaniment = (
+    <>
+      <p className="t-small">{lane} · {tempo} BPM</p>
+      <p className="t-small t-dim">{backing.why}</p>
+    </>
+  );
+  const howToPlay = (
+    <>
+      <p className="t-small t-dim">Ouvre le micro, démarre l’accompagnement, et joue ce que tu entends : tes notes s’inscrivent sur la tablature.</p>
+      <p className="t-small t-dim">La grille tourne, l’accord courant s’allume : joue ses notes sur les temps forts, le reste en passage.</p>
+    </>
   );
   const chordNotes = (
     <p className="t-small t-dim">
@@ -346,37 +378,10 @@ export function ImproPage() {
     const degrees = legendFor(r.def);
     return (
       <main className="shell play-shell">
-        <div className="play-surface">
-          <header className="play-head">
-            <div className="play-id">
-              <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour">‹</button>
-              <div>
-                <div className="play-title">
-                  <h1 className="page-title">Improviser</h1>
-                </div>
-                <p className="t-small t-dim">{lane}</p>
-              </div>
-            </div>
-            {!micOn && (
-              <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>▶ Ouvrir le micro</PixelButton>
-            )}
-            <div className="tempo-group">
-              <span className="t-label">Tempo</span>
-              <div className="tempo">
-                <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.max(60, t - 4))} aria-label="Moins vite">−</button>
-                <span className="tempo-val">♩ {tempo}</span>
-                <button type="button" className="tempo-btn" onClick={() => setTempo((t) => Math.min(140, t + 4))} aria-label="Plus vite">+</button>
-              </div>
-            </div>
-            {playing ? (
-              <PixelButton variant="primary" onClick={stop}>■ Arrêter</PixelButton>
-            ) : (
-              <PixelButton variant={micFirst ? 'ghost' : 'primary'} className={micFirst ? 'train-grid' : ''} onClick={() => void start()} disabled={!score}>▶ Démarrer</PixelButton>
-            )}
-            {live && <span className="badge badge-count">{live.notes} notes</span>}
-          </header>
+        <div className="play-surface practice-surface">
+          <PracticeHeader scale={r} current="impro" disabled={transport === 'playing'} />
 
-          <section className="play-tab">
+          <section className="play-tab practice-tab">
             <div className="play-tab-bar">
               <div className="play-degrees" role="img" aria-label={`Couleurs des degrés : ${degrees.map((it) => it.name).join(', ')}`}>
                 {degrees.map((it) => (
@@ -387,12 +392,13 @@ export function ImproPage() {
                 <span className="t-label">Style</span>
                 <div className="row">{styleChips}</div>
               </div>
+              <PositionStepper scale={r} disabled={transport === 'playing'} />
             </div>
             <div className="impro-live">
               {chordGrid}
               {chordNotes}
             </div>
-            {tab}
+            <div className="practice-score"><PositionRail scale={r} disabled={transport === 'playing'} /><div className="practice-score-body"><p className="practice-position">{positionLabelPlain(r.position!, settings.noteNotation)}</p>{tab}</div></div>
           </section>
 
           {(recent.length > 0 || summary || micBusy || status) && (
@@ -403,15 +409,22 @@ export function ImproPage() {
             </section>
           )}
 
-          <div className="play-nav">
-            <ScaleTabs current="impro" />
-            <div className="play-pos">
-              <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0 || playing}>‹ Position</PixelButton>
-              <span className="play-dots" aria-hidden="true">
-                {r.positions.map((p, i) => <span key={p.id} className={i === r.selection.positionIndex ? 'on' : ''} />)}
-              </span>
-              <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>
-              <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1 || playing}>Position ›</PixelButton>
+          <div className="practice-transport play-head">
+            <div className="transport-side">
+              {tempoControl}
+            </div>
+            <div className="play-transport">
+              {!micOn && (
+                <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>▶ Ouvrir le micro</PixelButton>
+              )}
+              {playing ? (
+                <PixelButton variant="primary" onClick={stop}>■ Arrêter</PixelButton>
+              ) : (
+                <PixelButton variant={micFirst ? 'ghost' : 'primary'} className={micFirst ? 'train-grid' : ''} onClick={() => void start()} disabled={!score}>▶ Démarrer</PixelButton>
+              )}
+            </div>
+            <div className="transport-side">
+              {live && <span className="badge badge-count">{live.notes} notes</span>}
             </div>
           </div>
 
@@ -425,7 +438,7 @@ export function ImproPage() {
             <div className="play-columns">
               <div className="play-col">
                 <PlaySection title="Accompagnement">
-                  <p className="t-small t-dim">{backing.why}</p>
+                  {accompaniment}
                   {micOn && (
                     <div className="row">
                       <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer le micro</PixelButton>
@@ -435,69 +448,90 @@ export function ImproPage() {
               </div>
               <div className="play-col">
                 <PlaySection title="Comment jouer" tone="cyan">
-                  <p className="t-small t-dim">Ouvre le micro, démarre l’accompagnement, et joue ce que tu entends : tes notes s’inscrivent sur la tablature.</p>
-                  <p className="t-small t-dim">La grille tourne, l’accord courant s’allume : joue ses notes sur les temps forts, le reste en passage.</p>
+                  {howToPlay}
                 </PlaySection>
               </div>
             </div>
           )}
-
-          <footer className="play-foot">
-            <InstrumentPicker />
-            <PixelButton variant="quiet" onClick={() => navigate('gammes')} disabled={playing}>← Changer de gamme</PixelButton>
-          </footer>
         </div>
       </main>
     );
   }
 
+  // Téléphone : comme Séquences, le portrait lance et rend la prise ; le jeu et ses réglages sont en paysage
+  const running = transport === 'playing';
+  const micFirst = !micOn && !running;
+  const openPlay = () => {
+    setLandscape(true);
+    openLandscape();
+  };
   return (
-    <main className="shell">
-      <header className="page-head">
-        <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour">‹</button>
-        <div>
-          <h1 className="page-title">Improviser</h1>
-          <p className="t-small t-dim">{lane} · {tempo} BPM</p>
-        </div>
-      </header>
+    <main className="shell mplay">
+      <div className="mplay-surface">
+        <PracticeHeader scale={r} current="impro" disabled={running} />
 
-      <Panel className="span-5" accent="magenta" label="Accompagnement">
-        <div className="row">{styleChips}</div>
-        <p className="t-small t-dim">{backing.why}</p>
-        {/* trois éléments, trois largeurs : les boutons font 44 px, la valeur prend le reste. Dans une
-            `.row`, chacun demandait 44 % et le « − » occupait la moitié de l'écran. */}
-        <div className="impro-tempo-row">
-          <PixelButton variant="quiet" className="impro-step" onClick={() => setTempo((t) => Math.max(60, t - 4))} aria-label="Moins vite">−</PixelButton>
-          <span className="t-body impro-tempo">{tempo} BPM</span>
-          <PixelButton variant="quiet" className="impro-step" onClick={() => setTempo((t) => Math.min(140, t + 4))} aria-label="Plus vite">+</PixelButton>
-        </div>
-        <Switch checked={micOn} onChange={setMicOn} label={micBusy ? 'Micro…' : 'Micro'} hint="tes notes s’inscrivent sur la tablature" />
-        <div className="row">
-          {transport === 'stopped' ? (
-            <PixelButton variant="primary" onClick={() => void start()} disabled={!score}>▶ Démarrer</PixelButton>
-          ) : (
-            <PixelButton variant="primary" onClick={stop}>■ Arrêter</PixelButton>
-          )}
-        </div>
-        {status && <p className="t-small ko">{status}</p>}
-      </Panel>
+        <section className="mplay-tab">
+          <div className="mplay-bar">
+            <PixelButton variant="primary" className="mplay-play mic-spark" onClick={openPlay} disabled={!score}>▶ Jouer</PixelButton>
+            <p className="t-small t-dim mplay-play-note">Touche Jouer : l’écran passe automatiquement en paysage, avec tous les réglages.</p>
+            {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+            {status && <p className="t-small ko">{status}</p>}
+          </div>
+        </section>
 
-      <Panel className="span-7" label="La grille">
-        {chordGrid}
-        <p className="t-small">{transport === 'playing' ? <>Accord en cours : <strong>{chordName(chord.root, chord.quality)}</strong> — joue ses notes sur les temps forts, le reste en passage.</> : 'Démarre l’accompagnement : la grille tourne, l’accord courant s’allume.'}</p>
-        {/* Les notes à viser, écrites en clair : c'est la seule information qui sert *pendant* qu'on joue. */}
-        {chordNotes}
-      </Panel>
+        {(recent.length > 0 || summary) && (
+          <div className="mplay-details">
+            <Panel className="span-12" label="Ta prise" right={live ? <span className="badge">{live.notes} notes</span> : undefined}>
+              {take}
+            </Panel>
+          </div>
+        )}
 
-      {score && (
-        <Panel className="span-12" label="Ta position">
-          {tab}
-        </Panel>
+        <div className="mplay-more">
+          <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
+            {infoOpen ? '▾ Masquer les détails' : '▸ Détails de l’impro'}
+          </PixelButton>
+        </div>
+
+        {infoOpen && (
+          <div className="mplay-details">
+            <Panel className="span-12" label="Accompagnement">
+              {accompaniment}
+              {micOn && <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer le micro</PixelButton>}
+            </Panel>
+            <Panel className="span-12" label="Comment jouer">{howToPlay}</Panel>
+          </div>
+        )}
+      </div>
+
+      {landscape && (
+        <LandscapeView label={`Improvisation : ${r.title}`} onClose={closePlay}>
+          <div className="tab-full-bar tab-full-options">
+            <PixelButton variant="quiet" onClick={closePlay}>{running ? 'Terminer' : 'Fermer'}</PixelButton>
+            {!running && (
+              <>
+                <div className="land-pos">
+                  <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0} ariaLabel="Position précédente">‹</PixelButton>
+                  <span className="t-label">{r.selection.positionIndex + 1} / {r.positions.length}</span>
+                  <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1} ariaLabel="Position suivante">›</PixelButton>
+                </div>
+                <div className="row">{styleChips}</div>
+              </>
+            )}
+            {tempoControl}
+            {!micOn && <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>▶ Ouvrir le micro</PixelButton>}
+            {running ? (
+              <PixelButton variant="primary" onClick={stop}>■ Arrêter</PixelButton>
+            ) : (
+              <PixelButton variant={micFirst ? 'ghost' : 'primary'} className={micFirst ? 'train-grid' : ''} onClick={() => void start()} disabled={!score}>▶ Démarrer</PixelButton>
+            )}
+            {live && <span className="badge badge-count">{live.notes} notes</span>}
+          </div>
+          <div className="land-chords">{chordGrid}{chordNotes}</div>
+          <div className="land-body">{tab}</div>
+          {status && <div className="land-status"><p className="t-small ko">{status}</p></div>}
+        </LandscapeView>
       )}
-
-      <Panel className="span-12" label="Ta prise" right={live ? <span className="badge">{live.notes} notes</span> : undefined}>
-        {take}
-      </Panel>
     </main>
   );
 }

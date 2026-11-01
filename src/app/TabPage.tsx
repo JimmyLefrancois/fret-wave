@@ -10,12 +10,12 @@ import {
 } from '../core/theory';
 import {
   arpeggioToScore, chordToScore, defaultChordForScale, positionToScore, progressionToScore, scaleToScore, validateScore,
-  STRUM_PATTERNS, type AnnotationKind, type Direction, type StrumPatternId, type TabScore,
+  STRUM_PATTERNS, type AnnotationKind, type StrumPatternId, type TabScore,
 } from '../core/tab';
 import { TabPlayer, scoreTonic } from '../core/audio/tabPlayer';
 import { verifyTriggered } from '../core/audio/verify';
 import { VOICINGS } from '../data/voicings';
-import { InstrumentPicker, Mixer } from './AudioControls';
+import { Mixer } from './AudioControls';
 import { TabView } from './TabView';
 import { DOWN, UP, PATTERN_LABEL, arrowsOf } from './strumLabel';
 
@@ -45,7 +45,6 @@ export function TabPage() {
   const [system, setSystem] = useState<PositionSystem>('boxes');
   const [posIndex, setPosIndex] = useState(0);
   const [register, setRegister] = useState(0);
-  const [direction, setDirection] = useState<Direction>('updown');
   const [chordQ, setChordQ] = useState('m7');
   const [voicingId, setVoicingId] = useState('Em-022000');
   const [style, setStyle] = useState<'strum' | 'arpeggio' | 'both'>('both');
@@ -87,15 +86,15 @@ export function TabPage() {
       let score: TabScore;
       switch (kind) {
         case 'scale':
-          score = scaleToScore(scaleId, activeTonic, tuning, { direction, system: activeSystem });
+          score = scaleToScore(scaleId, activeTonic, tuning, { direction: 'updown', system: activeSystem });
           break;
         case 'position':
           if (!pos) throw new Error('aucune position pour ce système / cet accordage');
-          score = positionToScore(pos, tuning, { direction, chord: defaultChordForScale(scaleId, activeTonic) ?? undefined });
+          score = positionToScore(pos, tuning, { direction: 'updown', chord: defaultChordForScale(scaleId, activeTonic) ?? undefined });
           break;
         case 'arpeggio':
           if (!pos) throw new Error('aucune position pour ce système / cet accordage');
-          score = arpeggioToScore(pos, chordSymbol, tuning, { direction });
+          score = arpeggioToScore(pos, chordSymbol, tuning, { direction: 'updown' });
           break;
         case 'chord':
           score = chordToScore(VOICINGS.find((v) => v.id === voicingId)!, { style, pattern });
@@ -110,7 +109,7 @@ export function TabPage() {
     } catch (e) {
       return { error: (e as Error).message };
     }
-  }, [kind, scaleId, activeTonic, tuning, direction, activeSystem, pos, chordSymbol, voicingId, style, pattern, presetId]);
+  }, [kind, scaleId, activeTonic, tuning, activeSystem, pos, chordSymbol, voicingId, style, pattern, presetId]);
 
   // --- lecture
   const player = useRef<TabPlayer | null>(null);
@@ -203,7 +202,6 @@ export function TabPage() {
         <label className="inline">
           <input type="checkbox" checked={metroOn} onChange={(e) => setMetroOn(e.target.checked)} data-testid="metronome" /> métronome
         </label>
-        <InstrumentPicker />
         <Mixer channels={['master', 'guitar', 'drone', 'metronome']} compact />
         <p className="small">Son : guitare échantillonnée (CC0, voir la page Audio pour les licences). Le son joué est généré depuis les mêmes notes que celles de la tablature.</p>
       </div>
@@ -296,14 +294,6 @@ export function TabPage() {
                 </select>
               </div>
             )}
-            <div>
-              <label>Sens</label>
-              <select value={direction} onChange={(e) => setDirection(e.target.value as Direction)}>
-                <option value="up">Montée</option>
-                <option value="down">Descente</option>
-                <option value="updown">Montée + descente</option>
-              </select>
-            </div>
           </>
         )}
 

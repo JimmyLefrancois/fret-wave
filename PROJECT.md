@@ -15,6 +15,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 
 - **Fait, testé** : app ouverte sur Gammes, cinq onglets. Gammes : Découvrir, Séquences, Improviser, bloc « À réviser », séance de révision à froid, « Réviser cette forme ». Accords : liste de 40 formes avec écoute. Journal, Leitner, compte et synchro conservés.
 - **Vérifié au navigateur** : parcours complet à 1440 et 390 px (`tools/outils-check.mjs`), largeurs 320 à 1920 px dans les deux thèmes, séance de révision au micro simulé avec un timbre de synthèse (`tools/mic-check.mjs`).
+- **Pages de gamme allégées (D131, D132)** : aller-retour seul, instrument dans Réglages, plus de pied de page ; au bureau, en-tête dans la surface, position au-dessus du trait, commandes centrées. Téléphone, Découvrir : un seul bloc, commandes sur une ligne sous le manche (D133) ; Séquences et Improviser aussi, portrait réduit à Jouer, réglages en paysage (D134, D135) ; Révision en un seul bloc (D136).
 - **Non vérifié** : la révision à la vraie guitare, le tout sur un vrai téléphone, la synchro entre deux navigateurs réels.
 - **Non déployé** : part avec `npm run deploy`. Aucune migration D1 nouvelle.
 

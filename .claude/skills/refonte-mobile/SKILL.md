@@ -9,7 +9,7 @@ Référence vivante : le rendu téléphone de `src/modules/gammes/ScaleDiscovery
 
 ## Le principe
 
-Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux à une colonne. Reprends suppressions, mises en valeur et repositionnements du bureau, pas sa surface unique. Le bureau ne bouge pas.
+Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux à une colonne. Exception, demandée par l'auteur : Découvrir, Séquences, Improviser et Révision tiennent en un seul bloc (`.mplay-surface`, D133 à D136). Reprends suppressions, mises en valeur et repositionnements du bureau, pas sa surface unique. Le bureau ne bouge pas.
 
 ## Ce que l'auteur veut
 
@@ -22,7 +22,7 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 - **Pas de doublon.** Un bouton qui mène au même endroit qu'un onglet disparaît (S'exercer, Improviser, Séquences sur Jouer). Son texte d'aide va dans les Détails.
 - **Une série de boutons de même nature a une seule taille** : une grille à colonnes égales, pas une rangée fluide, même si la dernière rangée reste incomplète. Des groupes logiques (toniques naturelles, puis altérées) partagent la même grille et sont séparés par un trait léger (`--line-soft`). Sur `/gammes`, 7 colonnes font 32 px de large à 320 px : surveille la zone tactile.
 - **Un séparateur a le même espace dessus et dessous.** Mesure-le : la marge automatique entre enfants d'un `.panel` s'ajoute souvent d'un seul côté.
-- **Barre basse commune** : Instrument et « ← Changer de gamme » dans un seul bloc (`.mplay-foot`).
+- **Pas de barre basse** (D131) : la gamme se change dans l'en-tête, l'instrument dans Réglages.
 - **Ce qui repose sur le décor se détache du fond dans les deux thèmes** : fond `--surface`, bordure `--line`, texte `--text`. En Aube, `--surface-hi` et un fond transparent se confondent avec le décor.
 
 ## Ce qui ne se transpose pas du bureau
@@ -47,7 +47,7 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 - Réutilise les classes `.mplay-*` : renomme ce qui n'est propre à aucune page plutôt que de dupliquer. Styles sous `@media (max-width: 899px)`, sauf ce qui doit survivre au paysage.
 - **Un grand téléphone dépasse 900 px en paysage** : `useDesktop` bascule et la page passe en rendu bureau. Toute vue paysage est rendue dans les deux `return` par `createPortal`, avec son CSS hors des media queries de largeur.
 - **Plein écran paysage** : `LandscapeView` et `openLandscape` (`src/app/LandscapeView.tsx`), ce dernier appelé dans le geste. L'iPhone refuse le plein écran et le verrou : `.tab-full` pivote alors en CSS sous `@media (orientation: portrait)`.
-- **Vue paysage d'exercice** : `const desktop = wide && !playing`, sinon un grand téléphone change de rendu au passage de 900 px. Fermer la vue avant la fin remet la série à zéro, sauf à froid, où recommencer fausserait l'essai : pause, micro sans effet, reprise par « Reprendre ». Sur Séquences, fermer termine la session et enregistre les passes (D122). Fin de série : referme la vue, le résultat se lit en portrait, avec un bouton pour revoir la correction.
+- **Vue paysage d'exercice** : `const desktop = wide && !playing`, sinon un grand téléphone change de rendu au passage de 900 px. Fermer la vue avant la fin remet la série à zéro, à froid compris (D137). Sur Séquences, fermer termine la session et enregistre les passes (D122). Fin de série : referme la vue, le résultat se lit en portrait, avec un bouton pour revoir la correction.
 - **Page d'exercice** : le portrait ne contient qu'un bloc avec « ▶ Jouer » et, dessous, une phrase qui dit ce qui va se passer, propre à chaque niveau. Tout ce qui règle le jeu (position, sens, motif, tempo, grille, mode à l'aveugle, micro) est dans la barre de la vue paysage (`.tab-full-options`, sur plusieurs rangées si besoin), et disparaît pendant une session. Le geste de départ y reste aussi (Commencer, sur Séquences). Une session mélangée ou à froid garde ses réglages en portrait.
 - Un composant partagé (`ScaleTabs`) se restyle par un conteneur (`.mplay-levels`), pas directement : les pages pas encore refaites gardent leur rendu.
 - Le suivi de lecture d'une `TabView` en `wrap` ignore l'en-tête collant et la barre de navigation : vérifie qu'il reste visible.

@@ -183,8 +183,13 @@ export function TunerPage() {
   const latencyMs = input.latencies[input.source];
 
   return (
-    <main className="shell">
-      <h1 className="page-title tuner-title span-12">Accordeur</h1>
+    <main className="shell"><div className="tool-surface">
+      <header className="page-head">
+        <div>
+          <h1 className="page-title">Accordeur</h1>
+          <p className="t-small t-dim">Joue une corde à vide et suis l’écart.</p>
+        </div>
+      </header>
       {tuned && (
         <dialog
           ref={(d) => { if (d && !d.open) d.showModal(); }}
@@ -360,7 +365,7 @@ export function TunerPage() {
           </div>
         </div>
       </Panel>
-    </main>
+    </div></main>
   );
 }
 

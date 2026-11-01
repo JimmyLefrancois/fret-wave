@@ -28,7 +28,7 @@ Ces préférences viennent de la refonte de `gammes/jouer`, corrigée demande ap
 - **Chaque outil n'expose que ses options.** Les options fines disparaissent au profit d'un choix simple.
 - **Rien de perdu quand on range.** Les consignes et textes d'aide vont dans les Détails plutôt que de disparaître, et un terme de réglage peu clair (Travail, Motif, Départ) y est expliqué.
 - **Le titre dit ce qui est joué** : « Position 1 vers 2 · cases 5–10 » plutôt qu'un nom de motif, et sur le manche, toute position jouée s'affiche à pleine intensité.
-- **La barre basse est commune** : Instrument et « ← Changer de gamme », dans `.play-foot`, hors session mélangée.
+- **Pas de barre basse** sur Découvrir, Séquences et Improviser (D131) : la gamme se change dans l'en-tête, l'instrument dans Réglages.
 - **Un compteur dit ce qu'il compte** (« 0 / 35 notes », pas « 0 / 35 ») **et s'arrête avec ce qu'il mesure.**
 
 ## Déroulé

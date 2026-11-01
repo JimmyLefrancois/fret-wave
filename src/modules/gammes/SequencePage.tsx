@@ -1,3 +1,4 @@
+import { PracticeHeader, PositionRail, PositionStepper } from './PracticeHeader';
 /**
  * Module Gammes — **séquences avec palier de tempo** (lot « mémoire et vitesse », MUSIC_DESIGN §3.5).
  *
@@ -24,11 +25,9 @@ import { useSettings } from '../../app/settings';
 import { TabView } from '../../app/TabView';
 import { NeckView } from '../../app/NeckView';
 import { Panel, PixelButton, Segmented } from '../../app/ui';
-import { InstrumentPicker } from '../../app/AudioControls';
 import { useDesktop } from '../../app/useDesktop';
 import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
-import { ScaleTabs } from './ScaleTabs';
 import { SequenceProgress } from './SequenceProgress';
 import { SessionSummary, type SavedSession } from './SessionSummary';
 import { PlaySection } from './PlaySection';
@@ -647,13 +646,13 @@ export function SequencePage() {
       annotation="finger"
       mode="wrap"
       scale="auto"
-      minScale={3}
+      minScale={2}
       reduceMotion={settings.reduceMotion}
       player={null}
       transport="stopped"
       hideRhythm
       // bureau : plusieurs lignes, les motifs sont longs ; téléphone en paysage : une ligne qui suit la note
-      oneLine={playing}
+      oneLine={playing || loopMode}
       {...(cursor ? { activeHoleKey: cursor } : {})}
     />
   );
@@ -678,7 +677,7 @@ export function SequencePage() {
           value={loopMode ? 'gamme' : inLiaisons ? 'liaisons' : 'motifs'}
           onChange={(v) => { if (!ladder) setWork(v); }}
           options={[
-            { value: 'gamme', label: 'Gamme' },
+            { value: 'gamme', label: 'Gamme en boucle' },
             { value: 'motifs', label: 'Motifs' },
             ...(liaisons.length > 0 ? [{ value: 'liaisons' as const, label: 'Liaisons' }] : []),
           ]}
@@ -806,7 +805,10 @@ export function SequencePage() {
       label="Vue de la page"
       value={ladder ? 'jeu' : view}
       onChange={(v) => { if (!ladder) setView(v); }}
-      options={[{ value: 'jeu', label: 'Exercice' }, { value: 'progression', label: 'Progression' }]}
+      options={[
+        { value: 'jeu', label: 'Exercice', ...(desktop ? {} : { icon: 'navMetronome' as const }) },
+        { value: 'progression', label: 'Progression', ...(desktop ? {} : { icon: 'ranking' as const }) },
+      ]}
     />
   );
   const progressView = view === 'progression' && !ladder;
@@ -824,13 +826,6 @@ export function SequencePage() {
       </p>
     </>
   );
-  const prevPosition = (
-    <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.max(0, r.selection.positionIndex - 1) })} disabled={r.selection.positionIndex === 0 || !!ladder}>‹ Position</PixelButton>
-  );
-  const positionCount = <span className="t-label pos-count">{r.selection.positionIndex + 1} / {r.positions.length}</span>;
-  const nextPosition = (
-    <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1 || !!ladder}>Position ›</PixelButton>
-  );
   const degrees = legendFor(r.def);
   const beginLabel = `▶ Commencer ${listening && !loopMode ? `(${startTempo(readAttempts(progressStore()), form, pattern)} BPM)` : `à ${manualBpm} BPM`}`;
 
@@ -841,42 +836,12 @@ export function SequencePage() {
     const hasNews = countLeft !== null || (lastPass && !loopMode) || (!micOn && !loopMode) || ladder?.best || loopNews || (ladder && pauseDue(sessionMs)) || saved || status;
     return (
       <main className="shell play-shell">
-        <div className="play-surface">
-          <header className="play-head">
-            <div className="play-id">
-              <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour à Gammes">‹</button>
-              <div>
-                <div className="play-title">
-                  <h1 className="page-title">{r.title}</h1>
-                </div>
-                <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {subtitle}</p>
-              </div>
-            </div>
-            {micFirst && (
-              <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>▶ Ouvrir le micro</PixelButton>
-            )}
-            {(loopMode || !listening) && !ladder ? manualTempo : (
-              <div className="seq-tempo">
-                <span className="seq-bpm">♪ {bpm}</span>
-                {shift !== 0 && (
-                  <span className={`seq-shift ${shift > 0 ? 'up' : 'down'}`} role="status">
-                    {shift > 0 ? `↑ +${shift}` : `↓ ${shift}`} BPM
-                  </span>
-                )}
-              </div>
-            )}
-            {ladder ? (
-              <PixelButton variant="primary" onClick={stopSession}>Terminer la session</PixelButton>
-            ) : (
-              <PixelButton variant={micFirst ? 'ghost' : 'primary'} className={micFirst ? 'train-grid' : ''} onClick={begin} disabled={loopMode && loopListen && !listening}>{beginLabel}</PixelButton>
-            )}
-            {!ladder && rampField}
-            <span className="badge badge-count">{countBadge}</span>
-          </header>
+        <div className="play-surface practice-surface">
+          <PracticeHeader scale={r} current="sequences" disabled={!!ladder} />
 
           <div className="seq-view">{viewField}</div>
           {progressView ? progressPanel : (
-          <section className="play-tab">
+          <section className="play-tab practice-tab">
             <div className="play-tab-bar">
               <div className="play-degrees" role="img" aria-label={`Couleurs des degrés : ${degrees.map((it) => it.name).join(', ')}`}>
                 {degrees.map((it) => (
@@ -888,8 +853,9 @@ export function SequencePage() {
               {patternField}
               {startField}
               {neckPanel && <PixelButton variant="quiet" onClick={() => setNeckOpen(true)}>Vue manche</PixelButton>}
+              <PositionStepper scale={r} disabled={!!ladder} />
             </div>
-            {tab}
+            <div className="practice-score"><PositionRail scale={r} disabled={!!ladder} /><div className="practice-score-body"><p className="practice-position">{positionLabelPlain(r.position!, settings.noteNotation)}</p>{tab}</div></div>
           </section>
           )}
 
@@ -932,15 +898,32 @@ export function SequencePage() {
           {tourLogPanel}
           {summaryDialog}
 
-          <div className="play-nav">
-            <ScaleTabs current="sequences" />
-            <div className="play-pos">
-              {prevPosition}
-              <span className="play-dots" aria-hidden="true">
-                {r.positions.map((p, i) => <span key={p.id} className={i === r.selection.positionIndex ? 'on' : ''} />)}
-              </span>
-              {positionCount}
-              {nextPosition}
+          <div className="practice-transport play-head">
+            <div className="transport-side">
+              {(loopMode || !listening) && !ladder ? manualTempo : (
+                <div className="seq-tempo">
+                  <span className="seq-bpm">♪ {bpm}</span>
+                  {shift !== 0 && (
+                    <span className={`seq-shift ${shift > 0 ? 'up' : 'down'}`} role="status">
+                      {shift > 0 ? `↑ +${shift}` : `↓ ${shift}`} BPM
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="play-transport">
+              {micFirst && (
+                <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>▶ Ouvrir le micro</PixelButton>
+              )}
+              {ladder ? (
+                <PixelButton variant="primary" onClick={stopSession}>Terminer la session</PixelButton>
+              ) : (
+                <PixelButton variant={micFirst ? 'ghost' : 'primary'} className={micFirst ? 'train-grid' : ''} onClick={begin} disabled={loopMode && loopListen && !listening}>{beginLabel}</PixelButton>
+              )}
+            </div>
+            <div className="transport-side">
+              {!ladder && rampField}
+              <span className="badge badge-count">{countBadge}</span>
             </div>
           </div>
 
@@ -977,11 +960,6 @@ export function SequencePage() {
               </div>
             </div>
           )}
-
-          <footer className="play-foot">
-            <InstrumentPicker />
-            <PixelButton variant="quiet" onClick={() => navigate('gammes')} disabled={!!ladder}>← Changer de gamme</PixelButton>
-          </footer>
         </div>
       </main>
     );
@@ -1001,26 +979,15 @@ export function SequencePage() {
   );
   return (
     <main className="shell mplay">
-      <header className="mplay-head">
-        <div className="mplay-id">
-          <button type="button" className="back" onClick={() => navigate('gammes')} aria-label="Retour à Gammes">‹</button>
-          <div className="mplay-title">
-            <h1 className="page-title">{r.title}</h1>
-            <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {subtitle}</p>
-          </div>
-        </div>
-      </header>
+      <div className="mplay-surface">
+      <PracticeHeader scale={r} current="sequences" disabled={!!ladder} />
 
       <div className="seq-view">{viewField}</div>
       {progressView ? progressPanel : (
       <section className="mplay-tab">
         <div className="mplay-bar">
-          <PixelButton variant="primary" className="mplay-play" onClick={openPlay}>▶ Jouer</PixelButton>
-          <p className="t-small t-dim mplay-play-note">
-            {loopMode
-              ? 'La tablature s’ouvre en paysage. Règle la position, le tempo de base et la hausse de tempo, puis touche Commencer : la gamme tourne jusqu’à ce que tu t’arrêtes.'
-              : 'La tablature s’ouvre en paysage. Règle le motif, la position et le tempo, puis touche Commencer : elle défile sur la note attendue, et le tempo monte tout seul au micro.'}
-          </p>
+          <PixelButton variant="primary" className="mplay-play mic-spark" onClick={openPlay}>▶ Jouer</PixelButton>
+          <p className="t-small t-dim mplay-play-note">Touche Jouer : l’écran passe automatiquement en paysage, avec tous les réglages.</p>
           {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
           {passLine}
           {savedNote}
@@ -1031,10 +998,6 @@ export function SequencePage() {
       </section>
       )}
       {summaryDialog}
-
-      <div className="mplay-levels">
-        <ScaleTabs current="sequences" />
-      </div>
 
       <div className="mplay-more">
         <PixelButton variant="quiet" onClick={() => setInfoOpen((o) => !o)}>
@@ -1061,11 +1024,7 @@ export function SequencePage() {
           <Panel className="span-12" label="Comment c’est noté ?">{howScoredBody}</Panel>
         </div>
       )}
-
-      <footer className="mplay-foot">
-        <InstrumentPicker />
-        <PixelButton variant="quiet" onClick={() => navigate('gammes')}>← Changer de gamme</PixelButton>
-      </footer>
+      </div>
 
       {playing && (
         <LandscapeView label={`Séquence : ${r.title}`} onClose={closePlay}>

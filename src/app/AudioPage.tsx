@@ -12,7 +12,7 @@ import { verifyTriggered, type VerifyResult } from '../core/audio/verify';
 import { chordToScore, scaleToScore, type TabScore } from '../core/tab';
 import { TUNINGS, fretToMidi, tonicSpellings, getScale, fmtNote } from '../core/theory';
 import { VOICINGS } from '../data/voicings';
-import { INSTRUMENT_LABEL, InstrumentPicker, Mixer, fmtDb, useEngine } from './AudioControls';
+import { INSTRUMENT_LABEL, Mixer, fmtDb, useEngine } from './AudioControls';
 import { arrowsOf } from './strumLabel';
 
 const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -231,7 +231,6 @@ export function AudioPage() {
 
       <div className="card">
         <h2>Mixeur et chaîne master</h2>
-        <InstrumentPicker />
         <Mixer />
         <label className="inline mix-row">
           <span className="mix-name">Réverbération</span>
