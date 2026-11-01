@@ -245,9 +245,9 @@ Les cinq propositions du bilan de la phase 5 sont **placées**, pas notées. Tro
 
 **Chantier en cours : gamme en boucle de Séquences (D125, D126, plan du 2026-11-01)**
 1. Écoute continue et mode tolérant : **fait**, validé sur guitare à 80 BPM (USB, 88 notes sur 88). Reste un log à tempo rapide avant le lot 3, et un contrôle du bilan sur téléphone.
-2. Journal : une ligne par session (plafond de 2 000 lignes), liste compacte des séries `{bpm départ, bpm arrivée, tours, tours propres, erreurs}`. Vérifier que ces champs passent dans la synchro du compte.
+2. Journal : **fait** (D127), champ `runs` de la tentative, conservé par la synchro. S'y ajoutent l'arrêt après 2 s de silence au micro et la synthèse en popup.
 3. Strict et records : une erreur coupe la série, écran « Série / Record », « Rejouer » au BPM de base. Records par gamme, système et position : BPM fixe (plus longue série à ce BPM) et évolutif (BPM le plus haut sans erreur). Avant : traiter les attaques parasites (log : midi 47,70 entre Do et Ré, ignorée de justesse) et rendre la tolérance hors tempo réglable.
-4. Onglet « Progression » sur la page Séquences : courbes de BPM et de séries.
+4. Onglet « Progression » sur la page Séquences : **fait** (D127), courbes de tempo et de meilleure suite. Les records viennent au lot 3.
 
 Décisions : erreur = note fausse, manquée ou nettement hors tempo ; évolutif au micro : seuls N tours propres d'affilée font monter ; mode sans micro conservé ; pas d'XP pour l'instant. **[À TRANCHER]** preuve de vitesse (proposition : strict seulement). Le « Détail technique » est à retirer à la fin.
 

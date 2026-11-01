@@ -19,7 +19,7 @@
  * qu'après N tours propres d'affilée ; sinon on relance au même tempo jusqu'à ce que ça passe.
  */
 import type { Target } from '../../core/input/match';
-import type { Attempt } from '../../core/progress';
+import type { Attempt, LoopRun } from '../../core/progress';
 import { PPQ, type SequencePattern } from '../../core/tab';
 import { COUNT_IN_TICKS, scoreBlind, type BlindMark, type HeardNote } from './blind';
 
@@ -263,6 +263,49 @@ export function loopBilan(rows: readonly TourRow[]): LoopBilan | null {
     byBpm: [...byBpm.values()],
     weak: [...weak.values()].sort((a, b) => b.count - a.count).slice(0, 3),
   };
+}
+
+/** Les séries d'une session à écrire au journal. En tolérant, rien ne coupe la gamme : une seule série. */
+export function sessionRuns(rows: readonly TourRow[]): LoopRun[] {
+  const b = loopBilan(rows);
+  if (!b) return [];
+  return [{ from: b.bpmStart, to: b.bpmEnd, tours: b.tours, clean: b.clean, errors: b.errors + b.offTime, streak: b.bestStreak }];
+}
+
+/** Une session de gamme au micro, telle que la lit l'onglet Progression. */
+export interface LoopSession {
+  ts: number;
+  /** Tempo le plus haut atteint. */
+  bpm: number;
+  /** Plus longue suite de tours propres. */
+  streak: number;
+  tours: number;
+  clean: number;
+}
+
+/** Historique de la gamme en boucle au micro sur une forme, du plus ancien au plus récent. */
+export function loopHistory(
+  journal: readonly Attempt[], form: { scaleId: string; system: string; formIndex: number },
+): LoopSession[] {
+  return journal
+    .filter((a) => a.kind === 'sequence' && a.pattern === 'scale' && a.runs !== undefined
+      && a.scaleId === form.scaleId && a.system === form.system && a.formIndex === form.formIndex)
+    .map((a) => ({
+      ts: a.ts,
+      bpm: Math.max(...a.runs!.map((r) => r.to)),
+      streak: Math.max(...a.runs!.map((r) => r.streak)),
+      tours: a.runs!.reduce((n, r) => n + r.tours, 0),
+      clean: a.runs!.reduce((n, r) => n + r.clean, 0),
+    }))
+    .sort((a, b) => a.ts - b.ts);
+}
+
+/** Silence au bout duquel on considère que le joueur a posé la guitare. */
+export const SILENCE_STOP_MS = 2000;
+
+/** Le joueur s'est-il arrêté ? Le silence se compte depuis la dernière attaque, ou le premier temps s'il n'a rien joué. */
+export function playerStopped(nowMs: number, passStartMs: number, lastAttackMs: number): boolean {
+  return nowMs - Math.max(passStartMs, lastAttackMs) >= SILENCE_STOP_MS;
 }
 
 /** Un tour tel qu'il a été jugé, avec tout ce que le micro a entendu dans sa fenêtre. */

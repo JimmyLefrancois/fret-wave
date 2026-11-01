@@ -3348,6 +3348,27 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .tuned-actions { display: grid; gap: var(--gap-inside); }
 .tuned-actions form { display: grid; margin: 0; }
 
+/* Séquences : vue de la page, synthèse de session, progression */
+.seq-view { display: flex; justify-content: flex-start; min-width: 0; padding: 8px 16px; }
+.play-neck-dialog.seq-summary { width: min(560px, calc(100vw - 32px)); margin: auto; padding: 0; border-color: var(--cyan); }
+.seq-summary-body { display: flex; flex-direction: column; gap: 16px; padding: 20px; }
+.seq-summary-title { margin: 0; font-size: 22px; font-weight: 700; color: var(--text); }
+.seq-summary-hero { display: flex; align-items: baseline; gap: 10px; padding-block: 12px; border-block: var(--bw) solid var(--line-soft); }
+.seq-summary-hero strong { font-family: var(--font-display); font-size: 40px; line-height: 1.1; color: var(--cyan); }
+.seq-summary-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--gap-inside); }
+.seq-summary-actions form { display: contents; }
+.seq-progress { display: flex; flex-direction: column; gap: 20px; padding: 16px; min-width: 0; }
+.seq-chart { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 480px; min-width: 0; margin: 0; }
+.seq-chart figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; color: var(--muted); font-size: 14px; }
+.seq-chart figcaption strong { color: var(--text); }
+.seq-chart svg { display: block; width: 100%; height: auto; }
+.seq-chart-axis { display: flex; justify-content: space-between; margin: 0; font-size: 13px; color: var(--muted); }
+.mplay .seq-view { padding: 0; }
+.mplay .seq-progress { background: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
+.seq-chart .grid { stroke: var(--line-soft); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.seq-chart .line { fill: none; stroke: var(--cyan); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.seq-chart .dot { fill: var(--cyan); stroke: var(--surface); stroke-width: 2; }
+
 /* Détail des gammes au micro : un journal à lire et à copier, en chasse fixe pour aligner les notes. */
 .tour-log { padding: 12px 16px; min-width: 0; }
 .tour-log summary { cursor: pointer; margin-bottom: 8px; }

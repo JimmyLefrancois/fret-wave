@@ -15,7 +15,7 @@
  * pause ; avec l'option +5 BPM toutes les N répétitions, un décompte précède chaque hausse de tempo.
  * Sans micro, rien n'est écouté ni noté. Au micro, mode tolérant (D126) : chaque tour est jugé, la gamme ne
  * s'arrête pas, et le tempo ne monte qu'après N tours propres d'affilée. Dans les deux cas, une activité au
- * journal, sans XP (le détail des séries viendra au journal avec le lot suivant).
+ * journal, sans XP ; au micro, elle porte ses séries (D127). Au micro, 2 s de silence terminent la session.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
@@ -29,6 +29,8 @@ import { useDesktop } from '../../app/useDesktop';
 import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import { canAutoOpenMic, micPermission } from '../../core/input/autoOpen';
 import { LevelsNav } from './LevelsNav';
+import { SequenceProgress } from './SequenceProgress';
+import { SessionSummary, type SavedSession } from './SessionSummary';
 import { PlaySection } from './PlaySection';
 import { ensureInputEngine, inputEngineIfAny, windowFor } from '../../app/inputSession';
 import { AudioEngine } from '../../core/audio/engine';
@@ -49,7 +51,7 @@ import { clickMasked } from './exercise';
 import { degreesOf, fmtDegree, legendFor, positionLabelPlain, resolveScale } from './resolve';
 import {
   LADDER_MAX, LADDER_MIN, LOOP_EVERY_MAX, LOOP_STEP, judgePass, ladderStart, ladderStep, loopCountBeat, loopLeft, loopNoteIndex, loopRises, loopStep,
-  formatTourLog, heardInTour, judgeTour, loopBilan, pauseDue, playedTours, startTempo, TOURS_START, tourDecides, tourRaise, tourRecord,
+  formatTourLog, heardInTour, judgeTour, loopBilan, pauseDue, playedTours, playerStopped, sessionRuns, startTempo, TOURS_START, tourDecides, tourRaise, tourRecord,
   type LadderState, type LoopBilan, type PassResult, type TourLog, type TourResult, type TourRow, type TourStats,
 } from './sequence';
 import * as clock from '../../core/clock';
@@ -129,7 +131,11 @@ export function SequencePage() {
   const [bilan, setBilan] = useState<LoopBilan | null>(null);
   const [tourLog, setTourLog] = useState(readTourLog);
   const [logCopied, setLogCopied] = useState(false);
-  const [saved, setSaved] = useState<{ xp: number; verified: boolean; loop?: { reps: number; bpm: number; clean: number | null } } | null>(null);
+  const [saved, setSaved] = useState<SavedSession | null>(null);
+  // la synthèse de fin de session, et ce qui l'a provoquée
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [autoStopped, setAutoStopped] = useState(false);
+  const [view, setView] = useState<'jeu' | 'progression'>('jeu');
   const [status, setStatus] = useState<string | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const [neckOpen, setNeckOpen] = useState(false);
@@ -151,6 +157,7 @@ export function SequencePage() {
   const passStartPerf = useRef(0);
   const heard = useRef<HeardNote[]>([]);
   const acted = useRef<{ midi: number; at: number } | null>(null);
+  const lastAttack = useRef(0);
   const [consumed, setConsumed] = useState(0);
   /** Cumul de la session : précision, cordes fautives, durée. */
   const session = useRef({ startedAt: 0, correct: 0, total: 0, missed: new Set<number>(), verified: false });
@@ -310,6 +317,7 @@ export function SequencePage() {
       masked.current = [];
       judged.current = 0;
       acted.current = null;
+      lastAttack.current = 0;
       setConsumed(0);
       setPhase('countin');
       setNow(clock.now());
@@ -344,6 +352,7 @@ export function SequencePage() {
     setPhase('between');
   };
 
+  const stopRef = useRef<() => void>(() => {});
   // horloge : décompte → passe → fin de passe (toutes les notes jouées, ou grille finie + un temps)
   useEffect(() => {
     if (!running) return;
@@ -354,6 +363,13 @@ export function SequencePage() {
       const perf = performance.now();
       if (phase === 'countin' && perf >= passStartPerf.current) setPhase('pass');
       settleTours();
+      // au micro, le silence termine la session : les clics du métronome ne comptent pas comme du jeu
+      if (phase === 'pass' && (scored.current || listening) && playerStopped(perf, passStartPerf.current, lastAttack.current)) {
+        setAutoStopped(true);
+        stopRef.current();
+        setPlaying(false);
+        return;
+      }
       if (phase === 'pass' && !loopMode && perf >= passStartPerf.current + (g.grid.seconds + 60 / g.grid.score.tempo) * 1000) endPass();
     }, 80);
     return () => window.clearInterval(t);
@@ -381,6 +397,10 @@ export function SequencePage() {
     setTours(TOURS_START);
     setLastTour(null);
     setSaved(null);
+    setSummaryOpen(false);
+    setAutoStopped(false);
+    setStatus(null);
+    setView('jeu');
     setLastPass(null);
     setShift(0);
     const lad = ladderStart(start);
@@ -413,7 +433,10 @@ export function SequencePage() {
       setLogCopied(false);
       saveTourLog(text);
     }
-    if (lad.passes === 0) return;
+    if (lad.passes === 0) {
+      if (listening) setStatus('Rien à enregistrer : aucune répétition complète n’a été entendue.');
+      return;
+    }
     const verified = s.verified && s.total > 0;
     const attempt: Attempt = {
       id: newAttemptId(clock.now(), nodeIdOf({ ...form, kind: 'sequence' }), readAttempts(progressStore()).length),
@@ -438,15 +461,16 @@ export function SequencePage() {
       bpmStart: lad.start,
       ...(lad.best !== null && verified ? { bpmBest: lad.best } : {}),
       passes: lad.passes,
+      ...(scored.current ? { runs: sessionRuns(played) } : {}),
       fullPosition: true,
       ...(verified ? { mic: true as const } : {}),
     };
     appendAttempt(progressStore(), attempt);
     setSaved({ xp: xpForAttempt(attempt), verified, ...(loopMode ? { loop: { reps: lad.passes, bpm: lad.bpm, clean: scored.current ? played.filter((t) => t.result.clean).length : null } } : {}) });
+    setSummaryOpen(true);
   };
 
   // quitter la page écrit la session en cours (sinon une demi-heure de travail disparaîtrait)
-  const stopRef = useRef(stopSession);
   stopRef.current = stopSession;
   useEffect(() => () => {
     if (ladderRef.current) stopRef.current();
@@ -537,6 +561,7 @@ export function SequencePage() {
       return;
     }
     acted.current = { midi: f.stable.midi, at: perf };
+    lastAttack.current = perf;
     const latency = inputRef.current.latencies[inputRef.current.source] ?? 0;
     heard.current.push({ midi, t: (perf - latency - passStartPerf.current) / 1000 });
     if (scored.current) return; // jugée tour par tour (`settleTours`)
@@ -568,6 +593,7 @@ export function SequencePage() {
         const g = gridRef.current;
         if (!g) return;
         const eighth = 30 / g.grid.score.tempo;
+        lastAttack.current = performance.now();
         heard.current.push(...targets.map((t, i) => ({ midi: wrong.includes(i) ? t.midi + 1 : t.midi, t: shift + (tour * targets.length + i) * eighth })));
       },
       setBpm: (b: number) => setManualBpm(b),
@@ -578,6 +604,7 @@ export function SequencePage() {
         const g = gridRef.current;
         if (!g) return;
         const eighth = 30 / g.grid.score.tempo;
+        lastAttack.current = performance.now();
         heard.current = targets.map((t, i) => ({ midi: wrong.includes(i) ? t.midi + 1 : t.midi, t: shift + i * eighth * stretch }));
         endPass();
       },
@@ -747,35 +774,6 @@ export function SequencePage() {
   const copyLog = () => {
     void navigator.clipboard?.writeText(tourLog).then(() => setLogCopied(true), () => {});
   };
-  const bilanPanel = loopMode && !ladder && bilan && (
-    <section className="loop-bilan" aria-label="Bilan de la session">
-      <h2 className="t-label">Bilan</h2>
-      <dl className="loop-stats">
-        <div><dt>Gammes</dt><dd>{bilan.tours}</dd></div>
-        <div><dt>Propres</dt><dd>{bilan.clean}</dd></div>
-        <div><dt>Meilleure série</dt><dd>{bilan.bestStreak}</dd></div>
-        <div><dt>Précision</dt><dd>{Math.round(bilan.accuracy * 100)} %</dd></div>
-        <div><dt>Hors tempo</dt><dd>{bilan.offTime}</dd></div>
-        <div><dt>Tempo</dt><dd>{bilan.bpmStart === bilan.bpmEnd ? bilan.bpmEnd : `${bilan.bpmStart} → ${bilan.bpmEnd}`}</dd></div>
-      </dl>
-      <div className="loop-strip" role="img" aria-label={`${bilan.clean} gammes propres sur ${bilan.tours}`}>
-        {bilan.strip.map((clean, i) => <span key={i} className={clean ? 'ok' : 'no'} />)}
-      </div>
-      {bilan.byBpm.length > 1 && (
-        <table className="loop-table">
-          <thead><tr><th scope="col">BPM</th><th scope="col">Gammes</th><th scope="col">Propres</th><th scope="col">Erreurs</th></tr></thead>
-          <tbody>
-            {bilan.byBpm.map((b) => <tr key={b.bpm}><th scope="row">{b.bpm}</th><td>{b.tours}</td><td>{b.clean}</td><td>{b.errors}</td></tr>)}
-          </tbody>
-        </table>
-      )}
-      {bilan.weak.length > 0 && (
-        <p className="t-small">
-          À reprendre : {bilan.weak.map((w) => `corde ${r.tuning.strings.length - w.string} case ${w.fret} (${w.count})`).join(', ')}.
-        </p>
-      )}
-    </section>
-  );
   // journal d'analyse, à retirer une fois la détection réglée
   const tourLogPanel = loopMode && !ladder && tourLog && (
     <details className="tour-log">
@@ -784,6 +782,35 @@ export function SequencePage() {
       <pre tabIndex={0}>{tourLog}</pre>
     </details>
   );
+  const replay = () => {
+    setSummaryOpen(false);
+    if (!desktop) { setPlaying(true); openLandscape(); }
+    begin();
+  };
+  const summaryDialog = summaryOpen && saved && (
+    <SessionSummary
+      title={r.title}
+      subtitle={`${positionLabelPlain(r.position, settings.noteNotation)} · ${subtitle}`}
+      saved={saved}
+      bilan={loopMode ? bilan : null}
+      autoStopped={autoStopped}
+      stringLabel={(s) => r.tuning.strings.length - s}
+      {...(loopMode ? { onProgress: () => { setSummaryOpen(false); setView('progression'); } } : {})}
+      onReplay={replay}
+      onClose={() => setSummaryOpen(false)}
+    />
+  );
+  const viewField = (
+    <Segmented<'jeu' | 'progression'>
+      size="sm"
+      label="Vue de la page"
+      value={ladder ? 'jeu' : view}
+      onChange={(v) => { if (!ladder) setView(v); }}
+      options={[{ value: 'jeu', label: 'Exercice' }, { value: 'progression', label: 'Progression' }]}
+    />
+  );
+  const progressView = view === 'progression' && !ladder;
+  const progressPanel = <SequenceProgress journal={readAttempts(progressStore())} form={form} />;
   const statusNote = status && <p className="t-small numpad-feedback no" role="status">{status}</p>;
   const howScoredBody = (
     <>
@@ -850,6 +877,8 @@ export function SequencePage() {
             <span className="badge badge-count">{countBadge}</span>
           </header>
 
+          <div className="seq-view">{viewField}</div>
+          {progressView ? progressPanel : (
           <section className="play-tab">
             <div className="play-tab-bar">
               <div className="play-degrees" role="img" aria-label={`Couleurs des degrés : ${degrees.map((it) => it.name).join(', ')}`}>
@@ -865,6 +894,7 @@ export function SequencePage() {
             </div>
             {tab}
           </section>
+          )}
 
           {neckOpen && neckPanel && (
             <dialog
@@ -902,8 +932,8 @@ export function SequencePage() {
             </section>
           )}
 
-          {bilanPanel}
           {tourLogPanel}
+          {summaryDialog}
 
           <div className="play-nav">
             <LevelsNav
@@ -992,6 +1022,8 @@ export function SequencePage() {
         </div>
       </header>
 
+      <div className="seq-view">{viewField}</div>
+      {progressView ? progressPanel : (
       <section className="mplay-tab">
         <div className="mplay-bar">
           <PixelButton variant="primary" className="mplay-play" onClick={openPlay}>▶ Jouer</PixelButton>
@@ -1004,11 +1036,12 @@ export function SequencePage() {
           {passLine}
           {savedNote}
           {statusNote}
-          {bilanPanel}
           {tourLogPanel}
         </div>
         {neckPanel}
       </section>
+      )}
+      {summaryDialog}
 
       <div className="mplay-levels">
         <LevelsNav

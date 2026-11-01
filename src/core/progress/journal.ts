@@ -50,6 +50,20 @@ export type AttemptModule = 'gammes' | 'accords';
  */
 export type AttemptLevel = 1 | 2 | 3 | 4 | 5;
 
+/** Une série de la gamme en boucle au micro (D127) : forme compacte, le journal est plafonné. */
+export interface LoopRun {
+  /** Tempo de départ et d'arrivée (BPM de croches). */
+  from: number;
+  to: number;
+  /** Tours joués, dont propres. */
+  tours: number;
+  clean: number;
+  /** Notes fausses, manquées ou hors tempo. */
+  errors: number;
+  /** Plus longue suite de tours propres. */
+  streak: number;
+}
+
 export interface Attempt {
   /** Identifiant stable (sert à dédupliquer un import). */
   id: string;
@@ -131,6 +145,8 @@ export interface Attempt {
   bpmBest?: number;
   /** Séquence : nombre de passes jouées dans la session. */
   passes?: number;
+  /** Gamme en boucle au micro : les séries de la session. Mesure de progression, pas une preuve (ni XP, ni vitesse). */
+  runs?: LoopRun[];
 }
 
 export function zoneOf(fret: number): number {
@@ -250,6 +266,20 @@ function isAttempt(v: unknown): v is Attempt {
     && typeof a.fretMin === 'number';
 }
 
+const inBpm = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 40 && v <= 200;
+const count = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 100_000;
+
+/** Séries valides d'un journal ; une série incohérente est écartée plutôt que corrigée. */
+function normalizeRuns(v: unknown): LoopRun[] {
+  if (!Array.isArray(v)) return [];
+  return v.flatMap((x): LoopRun[] => {
+    const r = (x ?? {}) as Partial<LoopRun>;
+    if (!inBpm(r.from) || !inBpm(r.to) || !count(r.tours) || !count(r.clean) || !count(r.errors) || !count(r.streak)) return [];
+    if (r.clean > r.tours || r.streak > r.clean) return [];
+    return [{ from: r.from, to: r.to, tours: r.tours, clean: r.clean, errors: r.errors, streak: r.streak }];
+  });
+}
+
 /** Normalise une tentative venue du stockage ou d'un import (valeurs bornées, jamais d'exception). */
 export function normalizeAttempt(v: unknown): Attempt | null {
   if (!isAttempt(v)) return null;
@@ -306,6 +336,7 @@ export function normalizeAttempt(v: unknown): Attempt | null {
       ? { bpmBest: Math.round(a.bpmBest) } : {}),
     ...(typeof a.passes === 'number' && Number.isFinite(a.passes) && a.passes >= 0 && a.passes <= 10_000
       ? { passes: Math.round(a.passes) } : {}),
+    ...(normalizeRuns(a.runs).length > 0 ? { runs: normalizeRuns(a.runs) } : {}),
   };
 }
 

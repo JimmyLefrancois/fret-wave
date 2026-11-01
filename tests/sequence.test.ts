@@ -6,6 +6,7 @@ import {
   LADDER_MAX, LADDER_START, judgePass, ladderStart, ladderStep, loopCountBeat, loopLeft, loopNoteIndex, loopRises, loopStep, pauseDue, startTempo,
   TOURS_START, formatTourLog, heardInTour, judgeTour, loopBilan, playedTours, tourDecides, tourRaise, tourRecord, type TourResult,
 } from '../src/modules/gammes/sequence';
+import { loopHistory, playerStopped, sessionRuns, type TourRow } from '../src/modules/gammes/sequence';
 import { COUNT_IN_TICKS as LOOP_COUNT_TICKS } from '../src/modules/gammes/blind';
 import { normalizeAttempt, nodeIdOf, type Attempt } from '../src/core/progress/journal';
 import { cardsFrom } from '../src/core/progress/scheduler';
@@ -415,5 +416,55 @@ describe('gamme en boucle : tours au micro', () => {
     expect(tourDecides(TOURS_START, 1, 100)).toBe(true);
     expect(tourDecides(TOURS_START, 0, 100)).toBe(false);
     expect(tourDecides(TOURS_START, 1, LADDER_MAX)).toBe(false);
+  });
+});
+
+describe('gamme en boucle : séries, historique, arrêt au silence', () => {
+  const note = (mark: 'right' | 'missed') => ({ target: { string: 0, fret: 5 }, mark }) as unknown as TourRow['result']['notes'][number];
+  const tour = (bpm: number, clean: boolean): TourRow => ({
+    bpm,
+    result: { correct: clean ? 4 : 3, total: 4, offTime: 0, errors: clean ? 0 : 1, missedStrings: [], clean, lag: 0, notes: [note('right')] },
+  });
+  const base = { id: 'a', ts: 1, kind: 'sequence', scaleId: 'pent', tonic: 'A', tuningId: 'standard', system: 'caged', positionId: 'p', formIndex: 2,
+    level: 4, strings: 6, correct: null, total: null, seconds: 60, fretMin: 5, missedStrings: [], tempoOk: false, pattern: 'scale' } as Attempt;
+  const form = { scaleId: 'pent', system: 'caged', formIndex: 2 };
+
+  it('résume une session en une série compacte', () => {
+    expect(sessionRuns([tour(60, true), tour(60, true), tour(60, false), tour(65, true)]))
+      .toEqual([{ from: 60, to: 65, tours: 4, clean: 3, errors: 1, streak: 2 }]);
+    expect(sessionRuns([])).toEqual([]);
+  });
+
+  it('garde les séries au journal et écarte celles qui sont incohérentes', () => {
+    const run = { from: 60, to: 65, tours: 4, clean: 3, errors: 1, streak: 2 };
+    expect(normalizeAttempt({ ...base, runs: [run, { ...run, clean: 9 }, { ...run, to: 500 }] })?.runs).toEqual([run]);
+    expect(normalizeAttempt({ ...base, runs: 'x' })).not.toHaveProperty('runs');
+  });
+
+  it('une série mesurée ne rapporte toujours rien', () => {
+    expect(xpForAttempt({ ...base, runs: [{ from: 60, to: 65, tours: 4, clean: 4, errors: 0, streak: 4 }] })).toBe(0);
+  });
+
+  it('l’historique ne lit que les gammes mesurées de cette forme, dans l’ordre', () => {
+    const run = { from: 60, to: 70, tours: 5, clean: 4, errors: 1, streak: 3 };
+    const journal: Attempt[] = [
+      { ...base, ts: 20, runs: [run, { ...run, to: 80, streak: 1 }] },
+      { ...base, ts: 10, runs: [run] },
+      { ...base, ts: 30 }, // sans micro
+      { ...base, ts: 40, formIndex: 3, runs: [run] },
+      { ...base, ts: 50, pattern: 'g3', runs: [run] },
+    ];
+    expect(loopHistory(journal, form)).toEqual([
+      { ts: 10, bpm: 70, streak: 3, tours: 5, clean: 4 },
+      { ts: 20, bpm: 80, streak: 3, tours: 10, clean: 8 },
+    ]);
+  });
+
+  it('s’arrête après 2 s sans attaque, comptées depuis le premier temps si rien n’a été joué', () => {
+    expect(playerStopped(1999, 0, 0)).toBe(false);
+    expect(playerStopped(2000, 0, 0)).toBe(true);
+    expect(playerStopped(3000, 0, 1500)).toBe(false);
+    expect(playerStopped(3500, 0, 1500)).toBe(true);
+    expect(playerStopped(2500, 1000, 0)).toBe(false);
   });
 });
