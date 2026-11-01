@@ -90,3 +90,21 @@ export function navigate(route: RouteName): void {
 export function hrefOf(route: RouteName): string {
   return ROUTE_HREF[route];
 }
+
+const EXERCISE_ROUTES: readonly RouteName[] = ['training', 'review', 'sequences', 'impro', 'chord'];
+
+/** La route d'exercice d'où l'on arrive, s'il y en a une : c'est là que l'accordeur propose de revenir. */
+export function exerciseOrigin(previous: RouteName | null): RouteName | null {
+  return previous && EXERCISE_ROUTES.includes(previous) ? previous : null;
+}
+
+let previous: RouteName | null = null;
+if (typeof window !== 'undefined') {
+  window.addEventListener('hashchange', (e) => {
+    previous = parseRoute(new URL(e.oldURL).hash);
+  });
+}
+
+export function previousRoute(): RouteName | null {
+  return previous;
+}

@@ -3255,10 +3255,17 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 
   .mplay-more { display: flex; justify-content: center; }
   /* dépliés, les détails partent du bouton : pas d'écart, un seul trait entre les deux */
-  .mplay-more:has(+ .panel) { margin-block-end: calc(-1 * (var(--gap-block) + var(--bw))); }
-  .mplay-more:has(+ .panel) .btn { box-shadow: none; }
+  .mplay-more:has(+ .mplay-details) { margin-block-end: calc(-1 * (var(--gap-block) + var(--bw))); }
+  .mplay-more:has(+ .mplay-details) .btn { box-shadow: none; }
   .mplay-more .btn,
   .mplay-foot .btn { width: 100%; color: var(--text); background: var(--surface); border-color: var(--line); }
+  /* un seul bloc de détails : chaque catégorie garde son titre, un trait la sépare de la précédente */
+  .mplay-details { min-width: 0; background: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
+  .mplay-details > .panel,
+  .mplay-details > .tab-legend { margin: 0; padding: 14px 14px; background: none; border: 0; box-shadow: none; }
+  .mplay-details > .panel::before,
+  .mplay-details > .panel::after { content: none; }
+  .mplay-details > :is(.panel, .tab-legend) + :is(.panel, .tab-legend) { border-block-start: var(--bw) solid var(--line-soft); }
   .mplay-levels-help { display: grid; gap: var(--gap-inside); margin: 0; }
   .mplay-levels-help dt { font-weight: 700; }
   .mplay-levels-help dd { margin: 0; color: var(--muted); }
@@ -3334,3 +3341,9 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .land-count { font-size: 22px; line-height: 1; text-align: center; }
 .land-status.ok { border-block-start-color: var(--ok); }
 .land-status.no { border-block-start-color: var(--danger); }
+
+/* Popup de fin d'accordage */
+.play-neck-dialog.tuned-dialog { width: min(360px, calc(100vw - 32px)); margin: auto; padding: 20px; }
+.tuned-title { margin: 0 0 16px; font-size: 22px; font-weight: 700; text-align: center; color: var(--ok); }
+.tuned-actions { display: grid; gap: var(--gap-inside); }
+.tuned-actions form { display: grid; margin: 0; }

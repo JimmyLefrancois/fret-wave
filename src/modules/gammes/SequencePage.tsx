@@ -764,7 +764,7 @@ export function SequencePage() {
       </div>
 
       {infoOpen && (
-        <>
+        <div className="mplay-details">
           <Panel className="span-12" label="Séquence">
             {liaisons.length > 0 && (
               <p className="t-small"><strong>Travail</strong> : ce que tu entraînes. Motifs : une figure qui se répète à l’intérieur de la position. Liaisons : le passage d’une position à une autre.</p>
@@ -780,7 +780,7 @@ export function SequencePage() {
             {micOn && <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer le micro</PixelButton>}
           </Panel>
           <Panel className="span-12" label="Comment c’est noté ?">{howScoredBody}</Panel>
-        </>
+        </div>
       )}
 
       <footer className="mplay-foot">

@@ -746,14 +746,17 @@ export function ChordLessonPage() {
                   {v.frets.some((f) => f === 0) ? `, dont ${v.frets.filter((f) => f === 0).length} à vide` : ''}
                   {v.frets.some((f) => f === null) ? ` · ${v.frets.filter((f) => f === null).length} étouffée${v.frets.filter((f) => f === null).length > 1 ? 's' : ''}` : ''}
                 </p>
-                <p className={`t-small ${tuningFresh.stale ? 'ko' : 't-dim'}`}>
-                  {tuningFresh.text}
-                  {tuningFresh.stale ? ' — ' : ' · '}
-                  <button type="button" className="linklike" onClick={() => navigate('tuner')}>
-                    {tuningFresh.stale ? 'accorder' : 'accordeur'}
-                  </button>
-                  {tuningFresh.stale ? ' : une guitare à −20 cents fait échouer des notes justes.' : ''}
-                </p>
+                {tuningFresh.stale ? (
+                  <>
+                    <p className="t-small ko">Accorde ta guitare d’abord, sans ça les exercices pourraient échouer.</p>
+                    <PixelButton variant="primary" onClick={() => navigate('tuner')}>Accorder</PixelButton>
+                  </>
+                ) : (
+                  <p className="t-small t-dim">
+                    {tuningFresh.text} ·{' '}
+                    <button type="button" className="linklike" onClick={() => navigate('tuner')}>accordeur</button>
+                  </p>
+                )}
               </div>
             </div>
             <div className="row">

@@ -1573,7 +1573,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
       </div>
 
       {infoOpen && (
-        <>
+        <div className="mplay-details">
           <Panel className="span-12" label="Exercice">
             {levelText}
             {level === 3 && gridEstimate}
@@ -1582,7 +1582,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
           </Panel>
           {tabLegend}
           <Panel className="span-12" label="Comment c’est noté ?">{howScoredBody}</Panel>
-        </>
+        </div>
       )}
 
       {/* en séance, la file mène : on n'en sort pas d'ici */}

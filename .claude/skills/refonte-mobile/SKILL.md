@@ -16,9 +16,9 @@ Mêmes choix que le bureau, **mais les blocs restent** : ils conviennent mieux �
 - **L'action d'abord.** En-tête collant (`.mplay-head`, `top: 0`) : retour, titre, sous-titre, niveau, puis action principale et tempo sur une rangée sur une page d'écoute. Il reste petit (116 px sur Jouer). Sur une page d'exercice, l'action est dans le bloc.
 - **Les réglages au-dessus de ce qu'ils règlent**, dans le même bloc, séparés par un trait. Segments sans libellé quand les options parlent d'elles-mêmes. Interrupteurs sans cadre, sur une rangée.
 - **Position : `‹` à gauche, « Position 1 / 5 » centré, `›` à droite.** Rien d'autre sur cette rangée, et elle passe au-dessus du contenu : un contrôle situé sous un contenu haut est à un écran de défilement. C'est un écart voulu avec le bureau.
-- **Niveaux en onglets, sur une rangée** (`.mplay-levels`) : numéro et titre, le niveau courant en cyan plein. Les précisions des tuiles vont dans les Détails.
+- **Niveaux en une seule barre d'onglets** (`.mplay-levels`), pas en tuiles séparées : numéro et titre, un filet entre deux, le niveau courant en cyan plein. Les précisions des tuiles vont dans les Détails.
 - **La tablature à la verticale n'est pas exploitable.** Sur une page d'écoute, le manche est la vue principale, dans la page, et la note jouée s'y cadre (`NeckView`, prop `playback`). La tablature s'ouvre en plein écran paysage par un bouton « Tablature ».
-- **Théorie fermée**, derrière « ▸ Détails de la gamme », en blocs `Panel`.
+- **Théorie fermée**, derrière « ▸ Détails de la gamme » : un seul bloc collé au bouton (`.mplay-details`), des `Panel` aplatis, un trait entre catégories, titres gardés.
 - **Pas de doublon.** Un bouton qui mène au même endroit qu'un onglet disparaît (S'exercer, Improviser, Séquences sur Jouer). Son texte d'aide va dans les Détails.
 - **Une série de boutons de même nature a une seule taille** : une grille à colonnes égales, pas une rangée fluide, même si la dernière rangée reste incomplète. Des groupes logiques (toniques naturelles, puis altérées) partagent la même grille et sont séparés par un trait léger (`--line-soft`). Sur `/gammes`, 7 colonnes font 32 px de large à 320 px : surveille la zone tactile.
 - **Un séparateur a le même espace dessus et dessous.** Mesure-le : la marge automatique entre enfants d'un `.panel` s'ajoute souvent d'un seul côté.

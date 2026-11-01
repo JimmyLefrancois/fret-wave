@@ -152,7 +152,9 @@
 
 | D123 | **Options de jeu dans la vue paysage** (ta demande du 2026-10-31, essayée au Niv2 puis validée) | Niv2, Niv3 et Séquences : le portrait ne garde qu'un bloc « ▶ Jouer » et une phrase d'explication par niveau ; l'indication « Touche Jouer… » disparaît, sauf en session mélangée ou à froid, qui gardent leurs réglages en portrait. Position, sens, tempo, noires/croches, à l'aveugle, grille, motif et micro passent dans la barre paysage, sur une à trois rangées. **Séquences** : Jouer ouvre la vue, Commencer y lance la session (remplace D122 sur ce point), les réglages s'effacent pendant le jeu. Le manche des liaisons reste en portrait, sous Jouer. **À l'aveugle** : lancé depuis la vue, il revient en portrait sans remise à zéro. Barème et journal non modifiés. |
 
-**D1-D123 tranchées, sauf D113 réservé** (D13 écartée ; D7 remplacée par D14 ; D18 tranchée ; **D24 = la typographie de la 1d**, ajoutée au journal). **En attente** : le bonus d'XP « à l'aveugle » (D84, proposé). Sinon la suite (phase 5) est décrite au §12 de `PROJECT.md`.
+| D124 | **Détails et accordage** (ta demande du 2026-11-01) | Téléphone : niveaux en une seule barre d'onglets ; détails en un seul bloc collé à leur bouton, catégories séparées par un trait (titres gardés). Leçon d'accord : si l'accordage manque ou date, « Accorde ta guitare d'abord, sans ça les exercices pourraient échouer. » et un bouton Accorder. **Accordeur** : toutes les cordes justes pendant la visite ouvrent la popup « Guitare accordée ! », avec « Retourner à l'exercice » si l'on vient d'une page d'exercice (`exerciseOrigin`). Une série en cours n'est pas conservée. Aucune règle, aucun barème modifié. |
+
+**D1-D124 tranchées, sauf D113 réservé** (D13 écartée ; D7 remplacée par D14 ; D18 tranchée ; **D24 = la typographie de la 1d**, ajoutée au journal). **En attente** : le bonus d'XP « à l'aveugle » (D84, proposé). Sinon la suite (phase 5) est décrite au §12 de `PROJECT.md`.
 
 ---
 

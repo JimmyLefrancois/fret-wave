@@ -16,6 +16,7 @@ import { AudioEngine } from '../core/audio/engine';
 import { describeInputError, type InputEngine } from '../core/input/engine';
 import { estimateLatency, noiseFloorDb, suggestThreshold, type LatencyPair } from '../core/input/calibration';
 import { nearestOpenString, noteNameOf, tuneStatus } from '../core/input/match';
+import { exerciseOrigin, navigate, previousRoute } from './router';
 import { newSweep, readTuningRecord, sweepTick, tuningFreshness, writeTuningRecord } from '../core/input/tuningGuide';
 import { progressStore } from '../core/progress';
 import * as clock from '../core/clock';
@@ -174,16 +175,34 @@ export function TunerPage() {
     timers.current.push(guard);
   };
 
+  // pris à l'arrivée : la route précédente change si l'on revient plus tard
+  const [origin] = useState(() => exerciseOrigin(previousRoute()));
+  // toutes les cordes tenues justes pendant cette visite : la popup s'ouvre
+  const [tuned, setTuned] = useState(false);
   const info = engine ? describeInputError(engine.state, engine.error) : null;
   const latencyMs = input.latencies[input.source];
 
   return (
     <main className="shell">
       <h1 className="page-title tuner-title span-12">Accordeur</h1>
+      {tuned && (
+        <dialog
+          ref={(d) => { if (d && !d.open) d.showModal(); }}
+          className="play-neck-dialog tuned-dialog"
+          aria-label="Guitare accordée"
+          onClose={() => setTuned(false)}
+        >
+          <p className="tuned-title">Guitare accordée !</p>
+          <div className="tuned-actions">
+            {origin && <PixelButton variant="primary" onClick={() => navigate(origin)}>Retourner à l’exercice</PixelButton>}
+            <form method="dialog"><PixelButton variant="quiet" onClick={() => setTuned(false)}>Fermer</PixelButton></form>
+          </div>
+        </dialog>
+      )}
       <Panel className="span-12" accent="yellow" label={`${tuning.nameFr} · ${input.a4} Hz`}>
         <div className="tuner-card">
           <div>
-            <TunerList engine={engine} tuning={tuning} notation={settings.noteNotation} a4={input.a4} />
+            <TunerList engine={engine} tuning={tuning} notation={settings.noteNotation} a4={input.a4} onTuned={() => setTuned(true)} />
           </div>
           <div className="tuner-side">
             <div className="tuner-actions">
@@ -349,7 +368,7 @@ export function TunerPage() {
  * Liste des cordes, abonnée au moteur d'entrée : elle se re-rend ~47 fois par seconde sans entraîner
  * la page (les panneaux de réglage ne changent pas 47 fois par seconde).
  */
-function TunerList(props: { engine: InputEngine | null; tuning: Tuning; notation: NoteNotation; a4: number }) {
+function TunerList(props: { engine: InputEngine | null; tuning: Tuning; notation: NoteNotation; a4: number; onTuned: () => void }) {
   const { engine, tuning, notation, a4 } = props;
   const subscribe = useCallback((cb: () => void) => (engine ? engine.subscribe(cb) : () => {}), [engine]);
   const version = useSyncExternalStore(subscribe, () => engine?.version ?? 0, () => 0);
@@ -370,6 +389,7 @@ function TunerList(props: { engine: InputEngine | null; tuning: Tuning; notation
     if (next.done.length === total && sweep.done.length < total) {
       writeTuningRecord(progressStore(), { at: clock.now(), tuningId: tuning.id, strings: total });
       setFresh(tuningFreshness(readTuningRecord(progressStore()), clock.nowDate()));
+      props.onTuned();
     }
   }, [version]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -708,7 +708,7 @@ export function ScaleDiscoveryPage() {
       </div>
 
       {infoOpen && (
-        <>
+        <div className="mplay-details">
           <Panel className="span-12" label="Lecture" right={<span className="badge">{r.formula}</span>}>
             {parentNote}
             {moreOptions}
@@ -754,7 +754,7 @@ export function ScaleDiscoveryPage() {
               tentative de l’exercice sert à la révision, une écoute ici ne prouve rien.
             </p>
           </Panel>
-        </>
+        </div>
       )}
 
       <footer className="mplay-foot">
