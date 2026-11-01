@@ -10,6 +10,12 @@
  * Une **seule tentative par session** (motif, tempo de départ, meilleur tempo validé, passes, précision) :
  * le journal plafonné à 2 000 entrées ne doit pas se remplir de passes. Elle nourrit la **vitesse** de la
  * forme (« maîtrisée »), jamais « apprise » ni la révision.
+ *
+ * **Gamme en boucle** (D125, travail par défaut) : la gamme tourne sur le métronome, au tempo choisi, sans
+ * pause ; avec l'option +5 BPM toutes les N répétitions, un décompte précède chaque hausse de tempo.
+ * Sans micro, rien n'est écouté ni noté. Au micro, mode tolérant (D126) : chaque tour est jugé, la gamme ne
+ * s'arrête pas, et le tempo ne monte qu'après N tours propres d'affilée. Dans les deux cas, une activité au
+ * journal, sans XP (le détail des séries viendra au journal avec le lot suivant).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
@@ -31,23 +37,43 @@ import { describeInputError, type InputEngine, type InputFrame } from '../../cor
 import { targetsFor, type HoleLike, type Target } from '../../core/input/match';
 import { useInputSettings } from '../../core/input/settings';
 import {
-  SEQUENCE_LABEL, SEQUENCE_PATTERNS, isLiaison, liaisonToScore, liaisonsFor, linkNeckNotes, neckNotes, sequenceToScore,
+  PPQ, SEQUENCE_LABEL, SEQUENCE_PATTERNS, isLiaison, liaisonToScore, liaisonsFor, linkNeckNotes, neckNotes, sequenceToScore,
   type NeckNote, type SequencePattern, type TabScore,
 } from '../../core/tab';
 import { extendedPosition, linkedPair, positionsOnNeck } from '../../core/theory';
 import {
   appendAttempt, newAttemptId, nodeIdOf, progressStore, readAttempts, xpForAttempt, type Attempt,
 } from '../../core/progress';
-import { blindGrid, scoreBlind, type BlindGrid, type HeardNote } from './blind';
+import { COUNT_IN_TICKS, blindGrid, scoreBlind, type BlindGrid, type HeardNote } from './blind';
 import { clickMasked } from './exercise';
 import { degreesOf, fmtDegree, legendFor, positionLabelPlain, resolveScale } from './resolve';
 import {
-  LADDER_MAX, LADDER_MIN, judgePass, ladderStart, ladderStep, pauseDue, startTempo,
-  type LadderState, type PassResult,
+  LADDER_MAX, LADDER_MIN, LOOP_EVERY_MAX, LOOP_STEP, judgePass, ladderStart, ladderStep, loopCountBeat, loopLeft, loopNoteIndex, loopRises, loopStep,
+  formatTourLog, heardInTour, judgeTour, loopBilan, pauseDue, playedTours, startTempo, TOURS_START, tourDecides, tourRaise, tourRecord,
+  type LadderState, type LoopBilan, type PassResult, type TourLog, type TourResult, type TourRow, type TourStats,
 } from './sequence';
 import * as clock from '../../core/clock';
 
 type Phase = 'idle' | 'countin' | 'pass' | 'between';
+type Work = 'gamme' | 'motifs' | 'liaisons';
+
+/** Le détail de la dernière session au micro, gardé pour l'analyse. */
+const TOUR_LOG_KEY = 'fretwave.tourlog.v1';
+const TOUR_LOG_MAX = 150;
+function readTourLog(): string {
+  try {
+    return progressStore()?.getItem(TOUR_LOG_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+function saveTourLog(text: string): void {
+  try {
+    progressStore()?.setItem(TOUR_LOG_KEY, text);
+  } catch {
+    // stockage plein ou refusé : le détail reste à l'écran
+  }
+}
 
 /** Cibles de la séquence, dans l'ordre de jeu (clé `colonne:corde`, comme les trous de l'exercice). */
 function targetsOf(score: TabScore): Target[] {
@@ -75,7 +101,11 @@ export function SequencePage() {
   const input = useInputSettings();
 
   const [wanted, setPattern] = useState<SequencePattern>('g3');
-  const [liaisonMode, setLiaisonMode] = useState(takeLiaisonRequest);
+  const [work, setWork] = useState<Work>(() => (takeLiaisonRequest() ? 'liaisons' : 'gamme'));
+  // gamme en boucle : +5 BPM toutes les `loopEvery` répétitions (0 = tempo fixe)
+  const [loopEvery, setLoopEvery] = useState(0);
+  const loopEveryRef = useRef(loopEvery);
+  loopEveryRef.current = loopEvery;
   const [startDegree, setStartDegree] = useState('1');
   const [phase, setPhase] = useState<Phase>('idle');
   const [ladder, setLadder] = useState<LadderState | null>(null);
@@ -84,7 +114,22 @@ export function SequencePage() {
   const [shift, setShift] = useState(0);
   const [manualBpm, setManualBpm] = useState(60);
   const [now, setNow] = useState(() => clock.now());
-  const [saved, setSaved] = useState<{ xp: number; verified: boolean } | null>(null);
+  // gamme en boucle au micro : chaque tour est jugé
+  const [loopListen, setLoopListen] = useState(false);
+  const [tours, setTours] = useState<TourStats>(TOURS_START);
+  const [lastTour, setLastTour] = useState<TourResult | null>(null);
+  const toursRef = useRef(TOURS_START);
+  const scored = useRef(false);
+  const judged = useRef(0);
+  const relance = useRef(0);
+  const tourLag = useRef<number | null>(null);
+  const masked = useRef<HeardNote[]>([]);
+  const tourLogs = useRef<TourLog[]>([]);
+  const tourRows = useRef<TourRow[]>([]);
+  const [bilan, setBilan] = useState<LoopBilan | null>(null);
+  const [tourLog, setTourLog] = useState(readTourLog);
+  const [logCopied, setLogCopied] = useState(false);
+  const [saved, setSaved] = useState<{ xp: number; verified: boolean; loop?: { reps: number; bpm: number; clean: number | null } } | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const [neckOpen, setNeckOpen] = useState(false);
@@ -114,10 +159,11 @@ export function SequencePage() {
 
   const liaisons = useMemo(() => (r.position ? liaisonsFor(r.positions, r.position) : []), [r.positions, r.position]);
   // une liaison indisponible sur cette position retombe sur la première possible, ou sur les motifs
-  const inLiaisons = liaisonMode && liaisons.length > 0;
-  const pattern: SequencePattern = inLiaisons
+  const loopMode = work === 'gamme';
+  const inLiaisons = work === 'liaisons' && liaisons.length > 0;
+  const pattern: SequencePattern = loopMode ? 'scale' : inLiaisons
     ? (isLiaison(wanted) && liaisons.includes(wanted) ? wanted : liaisons[0]!)
-    : isLiaison(wanted) ? 'g3' : wanted;
+    : isLiaison(wanted) || wanted === 'scale' ? 'g3' : wanted;
   const form = r.position ? { scaleId: r.def.id, system: r.selection.system, formIndex: r.position.formIndex ?? r.position.index } : null;
   // départs proposés : les degrés de la gamme présents sur la position (un choix d'une autre gamme retombe sur le premier)
   const startDegrees = useMemo(
@@ -176,6 +222,71 @@ export function SequencePage() {
   const bpm = ladder ? ladder.bpm : manualBpm;
   const running = phase === 'countin' || phase === 'pass';
 
+  /** Juge les tours finis, en laissant aux dernières notes le temps d'arriver. */
+  const settleTours = (all = false) => {
+    const g = gridRef.current;
+    if (!scored.current || !g) return;
+    const n = targets.length;
+    const tempo = g.grid.score.tempo;
+    const eighth = 30 / tempo;
+    const elapsed = (performance.now() - passStartPerf.current) / 1000;
+    const wait = all ? 0 : Math.max(eighth, 0.4) + (tourLag.current ?? 0);
+    while (elapsed >= (judged.current + 1) * n * eighth + wait) {
+      const lag = tourLag.current;
+      const window = heardInTour(heard.current, judged.current, n, tempo, lag);
+      const res = judgeTour(targets, window, tempo, { centsTolerance: inputRef.current.centsTolerance });
+      tourLogs.current = [...tourLogs.current, {
+        tour: ladderRef.current?.passes ?? 0,
+        bpm: tempo, lag, result: res, heard: window, masked: heardInTour(masked.current, judged.current, n, tempo, lag),
+      }].slice(-TOUR_LOG_MAX);
+      tourRows.current.push({ bpm: tempo, result: res });
+      if (res.lag !== null) tourLag.current = res.lag;
+      judged.current += 1;
+      for (const st of res.missedStrings) session.current.missed.add(st);
+      toursRef.current = tourRecord(toursRef.current, res);
+      const lad = ladderRef.current;
+      if (lad) {
+        ladderRef.current = { ...lad, passes: lad.passes + 1 };
+        setLadder(ladderRef.current);
+      }
+      setTours(toursRef.current);
+      setLastTour(res);
+    }
+  };
+
+  /** Fin d'une répétition : au micro, un tour décisif s'arrête pour être jugé, puis on relance sur un décompte. */
+  const nextLoop = (time: number) => {
+    const lad = ladderRef.current;
+    if (!lad) return;
+    if (scored.current) {
+      if (!tourDecides(toursRef.current, loopEveryRef.current, lad.bpm)) return;
+      // le retour au début sonnerait un clic avant l'arrêt
+      player.current?.setMetronome(false);
+      setPhase('between');
+      setShift(0);
+      relance.current = window.setTimeout(() => {
+        player.current?.stop();
+        settleTours(true);
+        const now = ladderRef.current;
+        if (!now) return;
+        const up = tourRaise(toursRef.current, loopEveryRef.current, now.bpm);
+        toursRef.current = up.stats;
+        ladderRef.current = { ...now, bpm: up.bpm };
+        setTours(up.stats);
+        setShift(up.bpm - now.bpm);
+        setLadder(ladderRef.current);
+        void startPass(up.bpm);
+      }, 1000);
+      return;
+    }
+    const next = loopStep(lad, loopEveryRef.current);
+    if (next.bpm !== lad.bpm) player.current?.setTempoAt(next.bpm, time);
+    player.current?.setLoopStart(loopRises(next, loopEveryRef.current) ? 0 : COUNT_IN_TICKS);
+    ladderRef.current = next;
+    setShift(next.bpm - lad.bpm);
+    setLadder(next);
+  };
+
   /** Une passe : une mesure de décompte, puis la grille de la séquence en croches au tempo du palier. */
   const startPass = async (tempo: number) => {
     if (!score || targets.length === 0) return;
@@ -183,7 +294,11 @@ export function SequencePage() {
     const g = blindGrid(targets.length, tempo, 2);
     try {
       await p.init();
-      await p.load(g.score, { loop: false });
+      await p.load(g.score, loopMode
+        // la boucle saute le décompte (nombre de notes pair : le temps tombe juste à chaque tour), sauf
+        // quand le tempo monte : elle le reprend, et il donne le nouveau tempo (`nextLoop`)
+        ? { loop: true, loopRange: { from: !scored.current && loopRises(ladderStart(tempo), loopEvery) ? 0 : COUNT_IN_TICKS, to: COUNT_IN_TICKS + targets.length * (PPQ / 2) }, onLoop: nextLoop, countInTicks: COUNT_IN_TICKS }
+        : { loop: false, countInTicks: COUNT_IN_TICKS });
       p.setMetronome(true);
       p.onEnded = null;
       await p.play();
@@ -192,6 +307,8 @@ export function SequencePage() {
       passStartPerf.current = t0 + g.countIn * 1000;
       gridRef.current = g;
       heard.current = [];
+      masked.current = [];
+      judged.current = 0;
       acted.current = null;
       setConsumed(0);
       setPhase('countin');
@@ -236,7 +353,8 @@ export function SequencePage() {
       if (!g) return;
       const perf = performance.now();
       if (phase === 'countin' && perf >= passStartPerf.current) setPhase('pass');
-      if (phase === 'pass' && perf >= passStartPerf.current + (g.grid.seconds + 60 / g.grid.score.tempo) * 1000) endPass();
+      settleTours();
+      if (phase === 'pass' && !loopMode && perf >= passStartPerf.current + (g.grid.seconds + 60 / g.grid.score.tempo) * 1000) endPass();
     }, 80);
     return () => window.clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -244,7 +362,7 @@ export function SequencePage() {
 
   // entre deux passes : 2 s pour lire le verdict, puis la suivante (au tempo du palier)
   useEffect(() => {
-    if (phase !== 'between' || !ladder) return;
+    if (phase !== 'between' || !ladder || loopMode) return;
     const t = window.setTimeout(() => void startPass(ladder.bpm), 2000);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -252,8 +370,16 @@ export function SequencePage() {
 
   const begin = () => {
     if (!form) return;
-    const start = listening ? startTempo(readAttempts(progressStore()), form, pattern) : manualBpm;
+    const start = listening && !loopMode ? startTempo(readAttempts(progressStore()), form, pattern) : manualBpm;
     session.current = { startedAt: clock.now(), correct: 0, total: 0, missed: new Set(), verified: false };
+    scored.current = loopMode && loopListen;
+    toursRef.current = TOURS_START;
+    tourLag.current = null;
+    tourLogs.current = [];
+    tourRows.current = [];
+    setBilan(null);
+    setTours(TOURS_START);
+    setLastTour(null);
     setSaved(null);
     setLastPass(null);
     setShift(0);
@@ -265,12 +391,29 @@ export function SequencePage() {
 
   /** Écrit la session (une seule tentative) et s'arrête. */
   const stopSession = () => {
+    window.clearTimeout(relance.current);
+    settleTours(true); // le tour tout juste fini compte ; celui qui vient de commencer, non
     player.current?.stop();
-    const lad = ladderRef.current;
+    const played = scored.current ? playedTours(tourRows.current) : [];
+    const running = ladderRef.current;
+    const lad = running && scored.current ? { ...running, passes: played.length } : running;
     const s = session.current;
     setPhase('idle');
     setLadder(null);
-    if (!lad || !form || !r.position || lad.passes === 0) return;
+    if (!lad || !form || !r.position) return;
+    if (scored.current) {
+      setBilan(loopBilan(played));
+      const text = formatTourLog(
+        `Session du ${new Date(clock.now()).toLocaleString('fr-FR')} | ${r.title} | ${positionLabelPlain(r.position, settings.noteNotation)} | `
+        + `départ ${lad.start} BPM | +5 toutes les ${loopEveryRef.current} (0 = fixe) | source ${inputRef.current.source} | `
+        + `latence réglée ${inputRef.current.latencies[inputRef.current.source] ?? 0} ms | tolérance ${inputRef.current.centsTolerance} cents`,
+        tourLogs.current.map((l) => (l.tour >= played.length ? { ...l, dropped: true } : l)),
+      );
+      setTourLog(text);
+      setLogCopied(false);
+      saveTourLog(text);
+    }
+    if (lad.passes === 0) return;
     const verified = s.verified && s.total > 0;
     const attempt: Attempt = {
       id: newAttemptId(clock.now(), nodeIdOf({ ...form, kind: 'sequence' }), readAttempts(progressStore()).length),
@@ -289,7 +432,7 @@ export function SequencePage() {
       total: verified ? s.total : null,
       seconds: Math.round((clock.now() - s.startedAt) / 1000),
       fretMin: r.position.fretMin,
-      missedStrings: [...s.missed],
+      missedStrings: scored.current ? [...new Set(played.flatMap((t) => t.result.missedStrings))] : [...s.missed],
       tempoOk: lad.best !== null,
       pattern,
       bpmStart: lad.start,
@@ -299,7 +442,7 @@ export function SequencePage() {
       ...(verified ? { mic: true as const } : {}),
     };
     appendAttempt(progressStore(), attempt);
-    setSaved({ xp: xpForAttempt(attempt), verified });
+    setSaved({ xp: xpForAttempt(attempt), verified, ...(loopMode ? { loop: { reps: lad.passes, bpm: lad.bpm, clean: scored.current ? played.filter((t) => t.result.clean).length : null } } : {}) });
   };
 
   // quitter la page écrit la session en cours (sinon une demi-heure de travail disparaîtrait)
@@ -359,14 +502,15 @@ export function SequencePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing]);
 
-  // le micro s'ouvre seul dès que le navigateur le permet
+  // le micro s'ouvre seul dès que le navigateur le permet ; la gamme en boucle n'écoute rien, il attend les motifs ou les liaisons
   useEffect(() => {
+    if (loopMode) return;
     let cancelled = false;
     void micPermission().then((permission) => {
       if (!cancelled && canAutoOpenMic(permission, navigator.userActivation?.hasBeenActive ?? false)) setMicOn(true);
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [loopMode]);
 
   useEffect(() => {
     if (!engine) return;
@@ -378,7 +522,9 @@ export function SequencePage() {
 
   // --- écoute : une attaque = une note de la passe (le décompte et les clics ne comptent pas)
   const handleFrame = (f: InputFrame) => {
-    if (phase !== 'pass' || !f.stable || (!f.isNew && !f.onset)) return;
+    // l'arrêt d'un tour décisif écoute encore : ses dernières notes arrivent après le retour de boucle
+    const live = loopMode ? scored.current && (phase === 'pass' || phase === 'between') : phase === 'pass';
+    if (!live || !f.stable || (!f.isNew && !f.onset)) return;
     const g = gridRef.current;
     if (!g) return;
     const perf = performance.now();
@@ -386,10 +532,14 @@ export function SequencePage() {
     const eighthMs = 30_000 / g.grid.score.tempo;
     const prev = acted.current;
     if (prev && prev.midi === f.stable.midi && perf - prev.at < Math.min(400, eighthMs * 0.6)) return;
-    if (clickMasked((perf - clickPerf.current) / 1000, g.grid.score.tempo, midi)) return;
+    if (clickMasked((perf - clickPerf.current) / 1000, g.grid.score.tempo, midi)) {
+      if (scored.current) masked.current.push({ midi, t: (perf - (inputRef.current.latencies[inputRef.current.source] ?? 0) - passStartPerf.current) / 1000 });
+      return;
+    }
     acted.current = { midi: f.stable.midi, at: perf };
     const latency = inputRef.current.latencies[inputRef.current.source] ?? 0;
     heard.current.push({ midi, t: (perf - latency - passStartPerf.current) / 1000 });
+    if (scored.current) return; // jugée tour par tour (`settleTours`)
     const sc = scoreBlind(targets, heard.current, { centsTolerance: input.centsTolerance, dedupeSeconds: Math.min(0.4, (eighthMs / 1000) * 0.6) });
     setConsumed(sc.consumed);
     if (sc.consumed >= targets.length) endPass();
@@ -406,7 +556,22 @@ export function SequencePage() {
       mic: { set: (v: boolean) => setMicOn(v), state: () => engine?.state ?? 'idle' },
       begin: () => begin(),
       stop: () => stopSession(),
-      setPattern: (p: SequencePattern) => setPattern(p),
+      setPattern: (p: SequencePattern) => { setPattern(p); setWork(isLiaison(p) ? 'liaisons' : 'motifs'); },
+      setLoop: (every: number) => { setWork('gamme'); setLoopEvery(every); },
+      setListen: (v: boolean) => { setLoopListen(v); if (v) setMicOn(true); },
+      tours,
+      lastTour,
+      // un tour « joué » sans guitare, juste à temps sauf les rangs de `wrong`. Ne sert qu'aux outils de vérification.
+      tourLog,
+      bilan,
+      feedTour: (tour: number, wrong: number[] = [], shift = 0.03) => {
+        const g = gridRef.current;
+        if (!g) return;
+        const eighth = 30 / g.grid.score.tempo;
+        heard.current.push(...targets.map((t, i) => ({ midi: wrong.includes(i) ? t.midi + 1 : t.midi, t: shift + (tour * targets.length + i) * eighth })));
+      },
+      setBpm: (b: number) => setManualBpm(b),
+      tick: () => player.current?.getTick() ?? 0,
       // une passe « jouée » sans guitare : les hauteurs attendues, à la croche, décalées de `shift` s ;
       // `stretch` > 1 = l'élève traîne (passe à tester hors tempo). Ne sert qu'aux outils de vérification.
       feedPass: (shift = 0.05, stretch = 1, wrong: number[] = []) => {
@@ -436,13 +601,15 @@ export function SequencePage() {
 
   const g = gridRef.current;
   const perf = performance.now();
-  const countLeft = phase === 'countin' && g ? Math.max(1, Math.ceil((passStartPerf.current - perf) / (60_000 / g.grid.score.tempo))) : null;
+  const loopTick = loopMode && running ? player.current?.getTick() ?? 0 : null;
+  const countLeft = loopTick !== null ? loopCountBeat(loopTick)
+    : phase === 'countin' && g ? Math.max(1, Math.ceil((passStartPerf.current - perf) / (60_000 / g.grid.score.tempo))) : null;
   // curseur : la note attendue au micro ; sans micro, celle du temps qui passe
-  const cursor = phase === 'pass'
-    ? listening
-      ? targets[consumed]?.key
-      : g ? targets[Math.min(targets.length - 1, Math.max(0, Math.floor((perf - passStartPerf.current) / (30_000 / g.grid.score.tempo))))]?.key : undefined
-    : undefined;
+  const loopNote = loopTick !== null ? loopNoteIndex(loopTick, targets.length) : null;
+  const cursor = phase !== 'pass' ? undefined
+    : loopMode ? (loopNote === null ? undefined : targets[loopNote]?.key)
+      : listening ? targets[consumed]?.key
+        : g ? targets[Math.min(targets.length - 1, Math.max(0, Math.floor((perf - passStartPerf.current) / (30_000 / g.grid.score.tempo))))]?.key : undefined;
   const sessionMs = ladder ? now - session.current.startedAt : 0;
 
   const tab = (
@@ -475,19 +642,23 @@ export function SequencePage() {
         <p className="t-small t-dim">{liaisonNeck.text}</p>
       </Panel>
     );
-  const workField = liaisons.length > 0 && (
+  const workField = (
       <div className="field">
         <span className="t-label">Travail</span>
-        <Segmented<'motifs' | 'liaisons'>
+        <Segmented<Work>
           size="sm"
           label="Type de travail"
-          value={inLiaisons ? 'liaisons' : 'motifs'}
-          onChange={(v) => { if (!ladder) setLiaisonMode(v === 'liaisons'); }}
-          options={[{ value: 'motifs', label: 'Motifs' }, { value: 'liaisons', label: 'Liaisons' }]}
+          value={loopMode ? 'gamme' : inLiaisons ? 'liaisons' : 'motifs'}
+          onChange={(v) => { if (!ladder) setWork(v); }}
+          options={[
+            { value: 'gamme', label: 'Gamme' },
+            { value: 'motifs', label: 'Motifs' },
+            ...(liaisons.length > 0 ? [{ value: 'liaisons' as const, label: 'Liaisons' }] : []),
+          ]}
         />
       </div>
     );
-  const patternField = (
+  const patternField = !loopMode && (
     <div className="field">
       <span className="t-label">{inLiaisons ? 'Liaison' : 'Motif'}</span>
       <Segmented<SequencePattern>
@@ -514,23 +685,105 @@ export function SequencePage() {
   const startHint = pattern === 'cycle' && (
     <p className="t-small t-dim">Monte depuis ce degré, descends jusqu’en bas de la position, reviens-y : sortir de l’habitude de partir de la fondamentale.</p>
   );
+  const tempoStep = loopMode ? LOOP_STEP : 4;
   const manualTempo = (
     <div className="tempo">
-      <button type="button" className="tempo-btn" onClick={() => setManualBpm((b) => Math.max(LADDER_MIN, b - 4))} aria-label="Moins vite">−</button>
+      <button type="button" className="tempo-btn" onClick={() => setManualBpm((b) => Math.max(LADDER_MIN, b - tempoStep))} aria-label="Moins vite">−</button>
       <span className="tempo-val">♪ {manualBpm}</span>
-      <button type="button" className="tempo-btn" onClick={() => setManualBpm((b) => Math.min(LADDER_MAX, b + 4))} aria-label="Plus vite">+</button>
+      <button type="button" className="tempo-btn" onClick={() => setManualBpm((b) => Math.min(LADDER_MAX, b + tempoStep))} aria-label="Plus vite">+</button>
     </div>
   );
+  const listenField = loopMode && (
+    <div className="field">
+      <span className="t-label">Écoute</span>
+      <Segmented<'off' | 'tolerant'>
+        size="sm"
+        label="Écoute au micro"
+        value={loopListen ? 'tolerant' : 'off'}
+        onChange={(v) => { if (!ladder) { setLoopListen(v === 'tolerant'); if (v === 'tolerant') setMicOn(true); } }}
+        options={[{ value: 'off', label: 'Sans micro' }, { value: 'tolerant', label: 'Tolérant' }]}
+      />
+    </div>
+  );
+  const rampField = loopMode && (
+    <div className="tempo">
+      <button type="button" className="tempo-btn" onClick={() => setLoopEvery((n) => Math.max(0, n - 1))} aria-label="Hausse de tempo moins fréquente">−</button>
+      <span className="tempo-val">{loopEvery === 0 ? 'BPM fixe' : `+${LOOP_STEP} BPM / ${loopEvery === 1 ? 'gamme' : `${loopEvery} gammes`}`}</span>
+      <button type="button" className="tempo-btn" onClick={() => setLoopEvery((n) => Math.min(LOOP_EVERY_MAX, n + 1))} aria-label="Plus de répétitions avant la hausse de tempo">+</button>
+    </div>
+  );
+  const scoredRun = loopMode && !!ladder && scored.current;
+  const untilRise = loopMode && ladder ? (scoredRun ? (loopEvery > 0 && bpm < LADDER_MAX ? loopEvery - tours.rise : null) : loopLeft(ladder, loopEvery)) : null;
+  const propres = (n: number) => (n > 1 ? `${n} gammes propres` : `${n} gamme propre`);
+  const riseNews = untilRise !== null && (
+    <p className="t-small t-dim" role="status">+{LOOP_STEP} BPM dans {scoredRun ? propres(untilRise) : untilRise === 1 ? '1 gamme' : `${untilRise} gammes`}</p>
+  );
+  const tourLine = scoredRun && lastTour && (
+    <p className={`seq-line ${lastTour.clean ? 'ok' : 'no'}`} role="status">
+      <span className="verdict-mark" aria-hidden="true">{lastTour.clean ? '✓' : '✕'}</span>
+      {lastTour.clean ? 'propre' : `${lastTour.errors} ${lastTour.errors > 1 ? 'erreurs' : 'erreur'}${lastTour.offTime > 0 ? `, ${lastTour.offTime} hors tempo` : ''}`} · série {tours.streak}
+    </p>
+  );
+  const loopNews = (tourLine || riseNews) && <>{tourLine}{riseNews}</>;
+  const countBadge = loopMode && ladder
+    ? scoredRun ? `${tours.clean} / ${ladder.passes} propres` : `${ladder.passes} ${ladder.passes > 1 ? 'gammes' : 'gamme'}`
+    : `${phase === 'pass' && listening ? `${consumed} / ${targets.length}` : targets.length} notes`;
+  const subtitle = loopMode ? 'gamme en boucle' : `séquence ${SEQUENCE_LABEL[pattern]}${pattern === 'cycle' ? ` depuis la ${fmtDegree(start)}` : ''}`;
+  const tempoHint = loopMode
+    ? 'Gamme : la position monte et descend sans s’arrêter sur le métronome, au tempo de base choisi. En option, le tempo monte de 5 BPM toutes les quelques répétitions, avec un décompte avant chaque hausse. Tolérant : le micro juge chaque tour sans couper la gamme, et seuls les tours propres d’affilée font monter le tempo. Sinon, on relance au même tempo.'
+    : listening ? 'Palier automatique : +4 après deux passes propres, −5 après deux échecs.' : 'Sans micro : ni palier, ni XP — la tablature et le métronome seulement.';
   const pauseNote = ladder && pauseDue(sessionMs) && (
       <p className="t-small" role="status">Dix minutes de séquences : une pause de deux minutes, main relâchée, et la précision revient.</p>
     );
   const savedNote = saved && (
       <p className="t-small" role="status">
-        {saved.verified
+        {saved.loop
+          ? `${saved.loop.reps} ${saved.loop.reps > 1 ? 'gammes' : 'gamme'}${saved.loop.clean !== null ? ` dont ${saved.loop.clean} ${saved.loop.clean > 1 ? 'propres' : 'propre'}` : ''}, jusqu’à ${saved.loop.bpm} BPM. Enregistré comme activité, sans XP.`
+          : saved.verified
           ? `Session enregistrée${saved.xp > 0 ? ` : +${saved.xp} XP` : ''}.${isLiaison(pattern) ? '' : ' Le meilleur tempo validé compte pour la vitesse de la forme.'}`
           : 'Session enregistrée comme activité, non vérifiée : sans micro, l’app n’entend rien.'}
       </p>
     );
+  const copyLog = () => {
+    void navigator.clipboard?.writeText(tourLog).then(() => setLogCopied(true), () => {});
+  };
+  const bilanPanel = loopMode && !ladder && bilan && (
+    <section className="loop-bilan" aria-label="Bilan de la session">
+      <h2 className="t-label">Bilan</h2>
+      <dl className="loop-stats">
+        <div><dt>Gammes</dt><dd>{bilan.tours}</dd></div>
+        <div><dt>Propres</dt><dd>{bilan.clean}</dd></div>
+        <div><dt>Meilleure série</dt><dd>{bilan.bestStreak}</dd></div>
+        <div><dt>Précision</dt><dd>{Math.round(bilan.accuracy * 100)} %</dd></div>
+        <div><dt>Hors tempo</dt><dd>{bilan.offTime}</dd></div>
+        <div><dt>Tempo</dt><dd>{bilan.bpmStart === bilan.bpmEnd ? bilan.bpmEnd : `${bilan.bpmStart} → ${bilan.bpmEnd}`}</dd></div>
+      </dl>
+      <div className="loop-strip" role="img" aria-label={`${bilan.clean} gammes propres sur ${bilan.tours}`}>
+        {bilan.strip.map((clean, i) => <span key={i} className={clean ? 'ok' : 'no'} />)}
+      </div>
+      {bilan.byBpm.length > 1 && (
+        <table className="loop-table">
+          <thead><tr><th scope="col">BPM</th><th scope="col">Gammes</th><th scope="col">Propres</th><th scope="col">Erreurs</th></tr></thead>
+          <tbody>
+            {bilan.byBpm.map((b) => <tr key={b.bpm}><th scope="row">{b.bpm}</th><td>{b.tours}</td><td>{b.clean}</td><td>{b.errors}</td></tr>)}
+          </tbody>
+        </table>
+      )}
+      {bilan.weak.length > 0 && (
+        <p className="t-small">
+          À reprendre : {bilan.weak.map((w) => `corde ${r.tuning.strings.length - w.string} case ${w.fret} (${w.count})`).join(', ')}.
+        </p>
+      )}
+    </section>
+  );
+  // journal d'analyse, à retirer une fois la détection réglée
+  const tourLogPanel = loopMode && !ladder && tourLog && (
+    <details className="tour-log">
+      <summary className="t-small t-dim">Détail technique (développement)</summary>
+      <PixelButton variant="quiet" onClick={copyLog}>{logCopied ? 'Copié' : 'Copier le détail des gammes'}</PixelButton>
+      <pre tabIndex={0}>{tourLog}</pre>
+    </details>
+  );
   const statusNote = status && <p className="t-small numpad-feedback no" role="status">{status}</p>;
   const howScoredBody = (
     <>
@@ -540,6 +793,7 @@ export function SequencePage() {
         tablature visible : il prouve la <strong>vitesse</strong> d’une forme, pas qu’on la sait par cœur. Les liaisons
         travaillent le passage d’une forme à l’autre : elles ne comptent pas pour la vitesse d’une forme.
       </p>
+      <p className="t-small">La gamme en boucle ne rapporte ni XP ni preuve de vitesse. En tolérant, un tour est propre sans note fausse, manquée ou nettement hors tempo.</p>
       <p className="t-small t-dim">
         Une seule tentative par session au journal. Le tempo validé le plus haut sert de départ la fois suivante.
       </p>
@@ -553,13 +807,13 @@ export function SequencePage() {
     <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1 || !!ladder}>Position ›</PixelButton>
   );
   const degrees = legendFor(r.def);
-  const beginLabel = `▶ Commencer ${listening ? `(${startTempo(readAttempts(progressStore()), form, pattern)} BPM)` : `à ${manualBpm} BPM`}`;
+  const beginLabel = `▶ Commencer ${listening && !loopMode ? `(${startTempo(readAttempts(progressStore()), form, pattern)} BPM)` : `à ${manualBpm} BPM`}`;
 
 
   if (desktop) {
     // micro fermé, c'est lui l'action principale : Commencer garde le cyan des modes, le magenta reste unique
-    const micFirst = !micOn && !ladder;
-    const hasNews = countLeft !== null || lastPass || !micOn || ladder?.best || (ladder && pauseDue(sessionMs)) || saved || status;
+    const micFirst = !micOn && !ladder && !loopMode;
+    const hasNews = countLeft !== null || (lastPass && !loopMode) || (!micOn && !loopMode) || ladder?.best || loopNews || (ladder && pauseDue(sessionMs)) || saved || status;
     return (
       <main className="shell play-shell">
         <div className="play-surface">
@@ -571,13 +825,13 @@ export function SequencePage() {
                   <h1 className="page-title">{r.title}</h1>
                   <span className="tag tag-on">Niv4</span>
                 </div>
-                <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · séquence {SEQUENCE_LABEL[pattern]}{pattern === 'cycle' ? ` depuis la ${fmtDegree(start)}` : ''}</p>
+                <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {subtitle}</p>
               </div>
             </div>
             {micFirst && (
               <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>▶ Ouvrir le micro</PixelButton>
             )}
-            {!listening && !ladder ? manualTempo : (
+            {(loopMode || !listening) && !ladder ? manualTempo : (
               <div className="seq-tempo">
                 <span className="seq-bpm">♪ {bpm}</span>
                 {shift !== 0 && (
@@ -590,9 +844,10 @@ export function SequencePage() {
             {ladder ? (
               <PixelButton variant="primary" onClick={stopSession}>Terminer la session</PixelButton>
             ) : (
-              <PixelButton variant={micFirst ? 'ghost' : 'primary'} className={micFirst ? 'train-grid' : ''} onClick={begin}>{beginLabel}</PixelButton>
+              <PixelButton variant={micFirst ? 'ghost' : 'primary'} className={micFirst ? 'train-grid' : ''} onClick={begin} disabled={loopMode && loopListen && !listening}>{beginLabel}</PixelButton>
             )}
-            <span className="badge badge-count">{phase === 'pass' && listening ? `${consumed} / ${targets.length}` : targets.length} notes</span>
+            {!ladder && rampField}
+            <span className="badge badge-count">{countBadge}</span>
           </header>
 
           <section className="play-tab">
@@ -603,6 +858,7 @@ export function SequencePage() {
                 ))}
               </div>
               {workField}
+              {listenField}
               {patternField}
               {startField}
               {neckPanel && <PixelButton variant="quiet" onClick={() => setNeckOpen(true)}>Vue manche</PixelButton>}
@@ -630,20 +886,24 @@ export function SequencePage() {
             <section className="train-answer">
               {countLeft !== null ? (
                 <p className="seq-count" aria-live="assertive">{countLeft}</p>
-              ) : lastPass && phase !== 'pass' ? (
+              ) : lastPass && phase !== 'pass' && !loopMode ? (
                 <p className={`seq-line ${lastPass.ok ? 'ok' : 'no'}`} role="status">
                   <span className="verdict-mark" aria-hidden="true">{lastPass.ok ? '✓' : '✕'}</span>
                   {Math.round(lastPass.accuracy * 100)} % · {lastPass.inTime ? 'en place' : 'pas en place'} — {lastPass.ok ? 'réussie' : 'à reprendre'}
                 </p>
-              ) : !micOn ? (
+              ) : !micOn && !loopMode ? (
                 <p className="seq-line seq-idle">Sans micro : tempo manuel, rien n’est vérifié.</p>
               ) : null}
               {ladder?.best ? <p className="t-small t-dim">validé : {ladder.best} BPM</p> : null}
+              {loopNews}
               {pauseNote}
               {savedNote}
               {statusNote}
             </section>
           )}
+
+          {bilanPanel}
+          {tourLogPanel}
 
           <div className="play-nav">
             <LevelsNav
@@ -682,9 +942,9 @@ export function SequencePage() {
                   ) : (
                     <p className="t-small"><strong>Motif</strong> : la figure jouée, en montant puis en descendant. Par 3 et par 4 : des groupes de 3 ou 4 notes voisines, qui repartent une note plus haut (1 2 3, 2 3 4…). Tierces : une note, puis celle d’après la suivante (1 3, 2 4…). Quartes : une note, puis la troisième d’après (1 4, 2 5…). Saut de corde : une corde, puis celle d’après la suivante. Tour : toute la position, depuis le degré de ton choix.</p>
                   )}
-                  <p className="t-small"><strong>Départ</strong> : le degré d’où part le tour. Ce réglage n’apparaît qu’avec le motif « tour ».</p>
+                  {!loopMode && <p className="t-small"><strong>Départ</strong> : le degré d’où part le tour. Ce réglage n’apparaît qu’avec le motif « tour ».</p>}
                   {startHint}
-                  <p className="t-small t-dim">{listening ? 'Palier automatique : +4 après deux passes propres, −5 après deux échecs.' : 'Sans micro : ni palier, ni XP — la tablature et le métronome seulement.'}</p>
+                  <p className="t-small t-dim">{tempoHint}</p>
                   {micOn && (
                     <div className="row">
                       <PixelButton variant="quiet" onClick={() => setMicOn(false)} disabled={!!ladder}>Fermer le micro</PixelButton>
@@ -708,12 +968,12 @@ export function SequencePage() {
   }
 
   // Téléphone : comme l'entraînement, le portrait règle et lance, la session se joue en paysage sur une ligne
-  const micFirst = !micOn && !ladder;
+  const micFirst = !micOn && !ladder && !loopMode;
   const openPlay = () => {
     setPlaying(true);
     openLandscape();
   };
-  const passLine = lastPass && phase !== 'pass' && (
+  const passLine = lastPass && phase !== 'pass' && !loopMode && (
     <p className={`seq-line ${lastPass.ok ? 'ok' : 'no'}`} role="status">
       <span className="verdict-mark" aria-hidden="true">{lastPass.ok ? '✓' : '✕'}</span>
       {Math.round(lastPass.accuracy * 100)} % · {lastPass.inTime ? 'en place' : 'pas en place'} — {lastPass.ok ? 'réussie' : 'à reprendre'}
@@ -726,7 +986,7 @@ export function SequencePage() {
           <button type="button" className="back" onClick={() => navigate('training')} aria-label="Retour à l’entraînement">‹</button>
           <div className="mplay-title">
             <h1 className="page-title">{r.title}</h1>
-            <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · séquence {SEQUENCE_LABEL[pattern]}{pattern === 'cycle' ? ` depuis la ${fmtDegree(start)}` : ''}</p>
+            <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · {subtitle}</p>
           </div>
           <span className="tag tag-on">Niv4</span>
         </div>
@@ -736,12 +996,16 @@ export function SequencePage() {
         <div className="mplay-bar">
           <PixelButton variant="primary" className="mplay-play" onClick={openPlay}>▶ Jouer</PixelButton>
           <p className="t-small t-dim mplay-play-note">
-            La tablature s’ouvre en paysage. Règle le motif, la position et le tempo, puis touche Commencer : elle défile sur la note attendue, et le tempo monte tout seul au micro.
+            {loopMode
+              ? 'La tablature s’ouvre en paysage. Règle la position, le tempo de base et la hausse de tempo, puis touche Commencer : la gamme tourne jusqu’à ce que tu t’arrêtes.'
+              : 'La tablature s’ouvre en paysage. Règle le motif, la position et le tempo, puis touche Commencer : elle défile sur la note attendue, et le tempo monte tout seul au micro.'}
           </p>
           {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
           {passLine}
           {savedNote}
           {statusNote}
+          {bilanPanel}
+          {tourLogPanel}
         </div>
         {neckPanel}
       </section>
@@ -774,9 +1038,9 @@ export function SequencePage() {
             ) : (
               <p className="t-small"><strong>Motif</strong> : la figure jouée, en montant puis en descendant. Par 3 et par 4 : des groupes de 3 ou 4 notes voisines, qui repartent une note plus haut (1 2 3, 2 3 4…). Tierces : une note, puis celle d’après la suivante (1 3, 2 4…). Quartes : une note, puis la troisième d’après (1 4, 2 5…). Saut de corde : une corde, puis celle d’après la suivante. Tour : toute la position, depuis le degré de ton choix.</p>
             )}
-            <p className="t-small"><strong>Départ</strong> : le degré d’où part le tour. Ce réglage n’apparaît qu’avec le motif « tour ».</p>
+            {!loopMode && <p className="t-small"><strong>Départ</strong> : le degré d’où part le tour. Ce réglage n’apparaît qu’avec le motif « tour ».</p>}
             {startHint}
-            <p className="t-small t-dim">{listening ? 'Palier automatique : +4 après deux passes propres, −5 après deux échecs.' : 'Sans micro : ni palier, ni XP — la tablature et le métronome seulement.'}</p>
+            <p className="t-small t-dim">{tempoHint}</p>
             {micOn && <PixelButton variant="quiet" onClick={() => setMicOn(false)}>Fermer le micro</PixelButton>}
           </Panel>
           <Panel className="span-12" label="Comment c’est noté ?">{howScoredBody}</Panel>
@@ -800,11 +1064,13 @@ export function SequencePage() {
                   <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1} ariaLabel="Position suivante">›</PixelButton>
                 </div>
                 {workField}
+                {listenField}
                 {patternField}
                 {startField}
-                {!listening && manualTempo}
+                {(loopMode || !listening) && manualTempo}
+                {rampField}
                 {micFirst && <PixelButton variant="primary" className="mic-spark" onClick={() => setMicOn(true)} disabled={micBusy}>▶ Ouvrir le micro</PixelButton>}
-                <PixelButton variant={micFirst ? 'ghost' : 'primary'} onClick={begin}>{beginLabel}</PixelButton>
+                <PixelButton variant={micFirst ? 'ghost' : 'primary'} onClick={begin} disabled={loopMode && loopListen && !listening}>{beginLabel}</PixelButton>
               </>
             )}
             <span className="tab-full-title">{ladder ? SEQUENCE_LABEL[pattern] : ''}</span>
@@ -814,13 +1080,13 @@ export function SequencePage() {
                 {shift !== 0 && <span className={`seq-shift ${shift > 0 ? 'up' : 'down'}`} role="status">{shift > 0 ? `↑ +${shift}` : `↓ ${shift}`}</span>}
               </div>
             )}
-            <span className="badge badge-count">{phase === 'pass' && listening ? `${consumed} / ${targets.length}` : targets.length} notes</span>
+            <span className="badge badge-count">{countBadge}</span>
           </div>
           <div className="land-body">{tab}</div>
           {countLeft !== null ? (
             <p className="land-status land-count" aria-live="assertive">{countLeft}</p>
-          ) : (passLine || pauseNote || statusNote) && (
-            <div className="land-status">{passLine}{pauseNote}{statusNote}</div>
+          ) : (passLine || loopNews || pauseNote || statusNote) && (
+            <div className="land-status">{passLine}{loopNews}{pauseNote}{statusNote}</div>
           )}
         </LandscapeView>
       )}

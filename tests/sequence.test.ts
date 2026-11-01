@@ -3,8 +3,10 @@ import { generatePositions, TUNINGS } from '../src/core/theory';
 import { PPQ, SEQUENCE_PATTERNS, sequenceToScore, validateScore, type MotifPattern } from '../src/core/tab';
 import { targetsFor } from '../src/core/input/match';
 import {
-  LADDER_START, judgePass, ladderStart, ladderStep, pauseDue, startTempo,
+  LADDER_MAX, LADDER_START, judgePass, ladderStart, ladderStep, loopCountBeat, loopLeft, loopNoteIndex, loopRises, loopStep, pauseDue, startTempo,
+  TOURS_START, formatTourLog, heardInTour, judgeTour, loopBilan, playedTours, tourDecides, tourRaise, tourRecord, type TourResult,
 } from '../src/modules/gammes/sequence';
+import { COUNT_IN_TICKS as LOOP_COUNT_TICKS } from '../src/modules/gammes/blind';
 import { normalizeAttempt, nodeIdOf, type Attempt } from '../src/core/progress/journal';
 import { cardsFrom } from '../src/core/progress/scheduler';
 import { isSpeedProof, summarizeNodes } from '../src/core/progress/mastery';
@@ -221,5 +223,197 @@ describe('séquences : journal, vitesse, XP', () => {
   it('XP : barème d’une transition (10 × précision, +5 à ≥ 95 %) ; 0 sans micro (non vérifiée)', () => {
     expect(xpForAttempt(base)).toBe(Math.round(10 * 39 / 40) + 5);
     expect(xpForAttempt({ ...base, mic: undefined, correct: null, total: null })).toBe(0);
+  });
+});
+
+describe('séquences : gamme en boucle', () => {
+  const session = (every: number, reps: number, bpm = 60) => {
+    let s = ladderStart(bpm);
+    for (let i = 0; i < reps; i++) s = loopStep(s, every);
+    return s;
+  };
+
+  it('monte et descend sans répéter le sommet ni la note du bas : le nombre de notes reste pair', () => {
+    for (const pos of [box, nps]) {
+      const score = sequenceToScore(pos, std, 'scale');
+      expect(validateScore(score)).toEqual([]);
+      const midis = score.measures.flatMap((m) => m.events).filter((e) => e.kind === 'notes').map((e) => e.notes[0]!.midi);
+      expect(midis.length).toBe(2 * pos.notes.length - 2);
+      expect(midis.length % 2).toBe(0);
+      const looped = [...midis, midis[0]!];
+      expect(looped.slice(1).every((m, i) => m !== looped[i])).toBe(true);
+    }
+  });
+
+  it('+5 BPM toutes les N répétitions, au début de la répétition suivante', () => {
+    expect(session(3, 2).bpm).toBe(60);
+    expect(session(3, 3).bpm).toBe(65);
+    expect(session(3, 6).bpm).toBe(70);
+    expect(session(1, 4).bpm).toBe(80);
+  });
+
+  it('tempo fixe : les répétitions comptent, le tempo ne bouge pas', () => {
+    const s = session(0, 12, 85);
+    expect(s).toMatchObject({ bpm: 85, start: 85, passes: 12, best: null });
+    expect(loopLeft(s, 0)).toBeNull();
+  });
+
+  it('jamais au-dessus de la borne du tempo, et plus rien à annoncer une fois atteinte', () => {
+    const s = session(1, 5, 195);
+    expect(s.bpm).toBe(LADDER_MAX);
+    expect(loopLeft(s, 1)).toBeNull();
+  });
+
+  it('annonce les répétitions restantes avant la hausse', () => {
+    expect(loopLeft(session(3, 0), 3)).toBe(3);
+    expect(loopLeft(session(3, 2), 3)).toBe(1);
+    expect(loopLeft(session(3, 3), 3)).toBe(3);
+  });
+
+  it('le curseur attend la fin du décompte, puis revient à la première note à chaque tour', () => {
+    expect(loopNoteIndex(LOOP_COUNT_TICKS - 1, 10)).toBeNull();
+    expect(loopNoteIndex(LOOP_COUNT_TICKS, 10)).toBe(0);
+    expect(loopNoteIndex(LOOP_COUNT_TICKS + 3 * (PPQ / 2), 10)).toBe(3);
+    expect(loopNoteIndex(LOOP_COUNT_TICKS + 10 * (PPQ / 2), 10)).toBe(0);
+  });
+
+  it('le décompte ne revient qu’après la répétition qui fait monter le tempo', () => {
+    // répétitions déjà finies → la répétition en cours se termine-t-elle sur une hausse ?
+    expect([0, 1, 2, 3, 4, 5].map((n) => loopRises(session(3, n), 3))).toEqual([false, false, true, false, false, true]);
+    expect([0, 1, 2].map((n) => loopRises(session(1, n), 1))).toEqual([true, true, true]);
+    expect(loopRises(session(0, 7), 0)).toBe(false);
+    expect(loopRises(session(1, 0, LADDER_MAX), 1)).toBe(false); // tempo au maximum : plus de hausse, plus de décompte
+  });
+
+  it('le décompte affiche 4, 3, 2, 1 puis s’efface', () => {
+    expect([0, PPQ, 2 * PPQ, 3 * PPQ, 4 * PPQ - 1].map(loopCountBeat)).toEqual([4, 3, 2, 1, 1]);
+    expect(loopCountBeat(LOOP_COUNT_TICKS)).toBeNull();
+  });
+
+  it('au journal : le motif survit à la relecture, sans XP ni preuve de vitesse', () => {
+    const a: Attempt = {
+      id: 'x', ts: 1, kind: 'sequence', scaleId: 'pentatonic-minor', tonic: 'A', tuningId: 'standard', system: 'boxes',
+      positionId: 'p', formIndex: 0, level: 4, strings: 6, correct: null, total: null, seconds: 300, fretMin: 5,
+      missedStrings: [], tempoOk: false, pattern: 'scale', bpmStart: 60, passes: 20, fullPosition: true,
+    };
+    expect(normalizeAttempt(a)?.pattern).toBe('scale');
+    expect(xpForAttempt(a)).toBe(0);
+    expect(isSpeedProof(a, 60)).toBe(false);
+  });
+});
+
+describe('gamme en boucle : tours au micro', () => {
+  const score = sequenceToScore(box, std, 'scale');
+  const tgts = targetsFor(
+    score.measures.flatMap((m) => m.events).filter((e) => e.kind === 'notes').map((e, i) => {
+      const n = e.notes[0]!;
+      return { key: `${i}:${n.string}`, columnIndex: i, string: n.string, fret: n.fret, note: n.note, fn: n.fn };
+    }),
+    std,
+  );
+  const n = tgts.length;
+  const eighth = 0.25; // 120 BPM
+  const played = (tour: number, shift = 0.04) => tgts.map((t, i) => ({ midi: t.midi, t: (tour * n + i) * eighth + shift }));
+  const judge = (notes: { midi: number; t: number }[], tour = 0) =>
+    judgeTour(tgts, heardInTour(notes, tour, n, 120), 120, { centsTolerance: 30 });
+  const propre: TourResult = { correct: 4, total: 4, offTime: 0, errors: 0, missedStrings: [], clean: true, lag: null, notes: [] };
+  const raté: TourResult = { ...propre, correct: 3, errors: 1, clean: false };
+
+  it('un tour bien joué est propre, même avec un retard constant, et chaque tour reste dans sa fenêtre', () => {
+    const notes = [...played(0, 0.12), ...played(1, 0.12), ...played(2, 0.12)];
+    expect(judge(notes, 1)).toMatchObject({ correct: n, errors: 0, offTime: 0, clean: true });
+  });
+
+  it('un retard du micro plus long qu’une demi-croche ne fait pas déborder la dernière note sur le tour suivant', () => {
+    const lag = 0.17;
+    const notes = [...played(0, lag), ...played(1, lag), ...played(2, lag)];
+    const premier = judgeTour(tgts, heardInTour(notes, 0, n, 120), 120, { centsTolerance: 30 });
+    expect(premier.clean).toBe(true);
+    expect(premier.lag).toBeCloseTo(lag, 5);
+    for (const tour of [1, 2]) {
+      expect(judgeTour(tgts, heardInTour(notes, tour, n, 120, premier.lag), 120, { centsTolerance: 30 }).clean).toBe(true);
+    }
+  });
+
+  it('le détail dit, note à note, ce qui a été entendu', () => {
+    const faux = played(0);
+    faux[3] = { ...faux[3]!, midi: faux[3]!.midi + 1 };
+    const heard = heardInTour(faux, 0, n, 120);
+    const text = formatTourLog('Session', [{ tour: 0, bpm: 120, lag: null, result: judgeTour(tgts, heard, 120, { centsTolerance: 30 }), heard, masked: [] }]);
+    expect(text).toContain('Tour 1 | 120 BPM');
+    expect(text).toContain('non mesuré');
+    expect(text).toMatch(/04 .* : FAUSSE/);
+    expect(text).toMatch(/05 .* : juste \+40 ms/);
+    expect(text).toContain(`entendu : ${heard[0]!.t.toFixed(3)} s`);
+    expect(text).toContain('écarté (clic) : rien');
+  });
+
+  describe('fin de session', () => {
+    const row = (notes: { midi: number; t: number }[]) => ({ bpm: 120, result: judge(notes) });
+    const complet = row(played(0));
+    const vide = row([]);
+    const coupé = row(played(0).slice(0, 8));
+    const fauteFinale = played(0);
+    fauteFinale[n - 1] = { ...fauteFinale[n - 1]!, midi: fauteFinale[n - 1]!.midi + 1 };
+
+    it('les tours joués après l’arrêt ne comptent pas, entiers ou commencés', () => {
+      expect(playedTours([complet, complet, vide, vide])).toHaveLength(2);
+      expect(playedTours([complet, coupé])).toHaveLength(1);
+      expect(playedTours([vide])).toHaveLength(0);
+    });
+
+    it('un trou au milieu de la session reste une erreur, une fausse note finale aussi', () => {
+      expect(playedTours([complet, vide, complet])).toHaveLength(3);
+      expect(playedTours([complet, row(fauteFinale)])).toHaveLength(2);
+    });
+
+    it('le bilan : séries, tempos et cases à reprendre', () => {
+      const lent = { ...row(fauteFinale), bpm: 120 };
+      const vite = { ...complet, bpm: 125 };
+      const b = loopBilan([complet, complet, lent, lent, vite])!;
+      expect(b).toMatchObject({ tours: 5, clean: 3, errors: 2, bestStreak: 2, bpmStart: 120, bpmEnd: 125 });
+      expect(b.strip).toEqual([true, true, false, false, true]);
+      expect(b.byBpm).toEqual([{ bpm: 120, tours: 4, clean: 2, errors: 2 }, { bpm: 125, tours: 1, clean: 1, errors: 0 }]);
+      expect(b.accuracy).toBeCloseTo((5 * n - 2) / (5 * n));
+      expect(b.weak).toEqual([{ string: tgts[n - 1]!.string, fret: tgts[n - 1]!.fret, count: 2 }]);
+      expect(loopBilan([])).toBeNull();
+    });
+  });
+
+  it('une note fausse ou oubliée est une erreur, le tour suivant repart à zéro', () => {
+    const faux = played(0);
+    faux[3] = { ...faux[3]!, midi: faux[3]!.midi + 1 };
+    expect(judge(faux).clean).toBe(false);
+    expect(judge(faux).errors).toBe(1);
+    const oubli = played(0).filter((_, i) => i !== 5);
+    expect(judge(oubli).errors).toBe(1);
+    expect(judge([...oubli, ...played(1)], 1).clean).toBe(true);
+  });
+
+  it('une note juste nettement hors de sa place n’est pas propre', () => {
+    const notes = played(0);
+    notes[6] = { ...notes[6]!, t: notes[6]!.t + 0.2 };
+    expect(judge(notes)).toMatchObject({ errors: 0, offTime: 1, clean: false });
+  });
+
+  it('les séries : une erreur remet à zéro, le meilleur enchaînement reste', () => {
+    const s = [propre, propre, raté, propre].reduce(tourRecord, TOURS_START);
+    expect(s).toMatchObject({ clean: 3, errors: 1, streak: 1, bestStreak: 2, rise: 1 });
+  });
+
+  it('le tempo ne monte qu’après N tours propres d’affilée, sinon on relance au même tempo', () => {
+    const deux = tourRecord(tourRecord(TOURS_START, propre), propre);
+    expect(tourRaise(deux, 2, 100)).toMatchObject({ bpm: 105, stats: { rise: 0, streak: 2 } });
+    const cassé = tourRecord(tourRecord(TOURS_START, propre), raté);
+    expect(tourRaise(cassé, 2, 100)).toMatchObject({ bpm: 100, stats: { rise: 0 } });
+    expect(tourRaise(deux, 0, 100).bpm).toBe(100);
+  });
+
+  it('seul le tour qui complète les N propres est décisif', () => {
+    expect(tourDecides(TOURS_START, 2, 100)).toBe(false);
+    expect(tourDecides(tourRecord(TOURS_START, propre), 2, 100)).toBe(true);
+    expect(tourDecides(TOURS_START, 1, 100)).toBe(true);
+    expect(tourDecides(TOURS_START, 0, 100)).toBe(false);
+    expect(tourDecides(TOURS_START, 1, LADDER_MAX)).toBe(false);
   });
 });

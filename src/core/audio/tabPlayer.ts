@@ -13,14 +13,20 @@ import { interpretChord } from '../theory';
 import type { NoteName } from '../theory/types';
 import { droneMidis, type DroneKind } from './drone';
 import { AudioEngine } from './engine';
-import { metronomeClicks } from './metronome';
+import { COUNT_IN_SOUND, metronomeClicks } from './metronome';
 
 export type PlayerState = 'stopped' | 'playing' | 'paused';
 
 export interface PlayerOptions extends PlayOptions {
   loop?: boolean;
+  /** Boucle sur une partie du score (ticks) : ce qui précède `from`, un décompte, n'est joué qu'une fois. */
+  loopRange?: { from: number; to: number };
+  /** Appelé à chaque retour au début de la boucle, avec son heure audio. */
+  onLoop?: (time: number) => void;
   /** Clics supplémentaires entre les temps. */
   subdivide?: boolean;
+  /** Longueur du décompte en tête de score (ticks) : ses clics ont un timbre à part. */
+  countInTicks?: number;
 }
 
 export interface TriggeredNote {
@@ -64,6 +70,8 @@ export class TabPlayer {
   clicksPlayed = 0;
   /** Rappels en double ignorés depuis le dernier `load` (diagnostic). */
   duplicateCallbacks = 0;
+
+  private loopListener: ((time: number) => void) | null = null;
 
   constructor(private readonly engine: AudioEngine = AudioEngine.get()) {}
 
@@ -116,21 +124,25 @@ export class TabPlayer {
       }, `${ev.tick}i`);
     }
 
-    for (const click of metronomeClicks(score, { subdivide: opts.subdivide })) {
+    for (const click of metronomeClicks(score, { subdivide: opts.subdivide, countInTicks: opts.countInTicks })) {
       let lastClick = -1;
       transport.schedule((time) => {
         if (Math.abs(time - lastClick) < 1e-6) return; // même garde-fou que les notes
         lastClick = time;
         if (!this.metronomeOn) return;
-        engine.metronome?.click(time, click.accent);
+        engine.metronome?.click(time, click.accent, click.countIn ? COUNT_IN_SOUND : undefined);
         this.clicksPlayed++;
       }, `${click.tick}i`);
     }
 
     if (opts.loop) {
       transport.loop = true;
-      transport.loopStart = 0;
-      transport.loopEnd = `${this.total}i`;
+      transport.loopStart = `${opts.loopRange?.from ?? 0}i`;
+      transport.loopEnd = `${opts.loopRange?.to ?? this.total}i`;
+      if (opts.onLoop) {
+        this.loopListener = opts.onLoop;
+        transport.on('loop', opts.onLoop);
+      }
     } else {
       transport.loop = false;
       transport.schedule((time) => {
@@ -151,6 +163,16 @@ export class TabPlayer {
 
   setTempo(bpm: number): void {
     if (this.engine.tone) this.engine.tone.getTransport().bpm.value = bpm;
+  }
+
+  /** Déplace le début de la boucle : vaut pour le prochain retour, pas pour celui en cours. */
+  setLoopStart(tick: number): void {
+    if (this.engine.tone) this.engine.tone.getTransport().loopStart = `${tick}i`;
+  }
+
+  /** Change le tempo à une heure audio précise (`onLoop` : sans décaler la première note de la boucle). */
+  setTempoAt(bpm: number, time: number): void {
+    this.engine.tone?.getTransport().bpm.setValueAtTime(bpm, time);
   }
 
   setMetronome(on: boolean): void {
@@ -196,7 +218,12 @@ export class TabPlayer {
   /** `cut` : coupe les cordes qui sonnent encore (arrêt demandé) ; faux à la fin naturelle du morceau. */
   stop(cut = true): void {
     if (!this.engine.tone) return;
-    this.engine.tone.getTransport().stop();
+    const transport = this.engine.tone.getTransport();
+    if (this.loopListener) {
+      transport.off('loop', this.loopListener);
+      this.loopListener = null;
+    }
+    transport.stop();
     this.state = 'stopped';
     if (cut) this.engine.guitar?.stopAll(undefined, 0.04);
     this.engine.drone?.stop(cut ? 0.5 : 1.2);

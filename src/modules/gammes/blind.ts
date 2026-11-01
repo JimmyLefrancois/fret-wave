@@ -107,6 +107,9 @@ export function scoreBlind(targets: readonly Target[], heard: readonly HeardNote
   };
 }
 
+/** Le décompte d'une mesure de 4 temps, en ticks. */
+export const COUNT_IN_TICKS = 4 * PPQ;
+
 export interface BlindGrid {
   /** Score de silences : une mesure de décompte, puis la grille de la série. */
   score: TabScore;

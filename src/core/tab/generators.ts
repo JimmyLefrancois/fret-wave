@@ -188,8 +188,8 @@ export function positionToScore(pos: Position, tuning: Tuning, opts: PositionSco
  * Motifs de séquence : groupes de 3, groupes de 4, tierces, quartes (dans la gamme, pas chromatiques),
  * saut de corde (corde n, puis n+2) et tour de la position depuis un degré choisi.
  */
-export type SequencePattern = 'g3' | 'g4' | 'thirds' | 'fourths' | 'skip' | 'cycle' | LiaisonPattern;
-export type MotifPattern = Exclude<SequencePattern, LiaisonPattern>;
+export type SequencePattern = 'g3' | 'g4' | 'thirds' | 'fourths' | 'skip' | 'cycle' | 'scale' | LiaisonPattern;
+export type MotifPattern = Exclude<SequencePattern, LiaisonPattern | 'scale'>;
 export const SEQUENCE_PATTERNS: readonly MotifPattern[] = ['g3', 'g4', 'thirds', 'fourths', 'skip', 'cycle'];
 
 /** Liaisons : deux positions voisines, traversée de toutes les positions, position étendue. */
@@ -205,6 +205,7 @@ export const SEQUENCE_LABEL: Readonly<Record<SequencePattern, string>> = {
   fourths: 'quartes',
   skip: 'saut de corde',
   cycle: 'tour',
+  scale: 'gamme',
   link: 'deux positions',
   traverse: 'traversée',
   extended: 'position étendue',
@@ -256,13 +257,15 @@ export interface SequenceScoreOptions extends PositionScoreOptions {
  * reprendre le sommet : pas de note répétée au demi-tour (`… 3 4 5 · 4 3 2 …`), comme on la travaille.
  * Croches, doigtés de la position (`fingeringsForPosition`, MUSIC_DESIGN §3.8).
  */
-export function sequenceToScore(pos: Position, tuning: Tuning, pattern: MotifPattern, opts: SequenceScoreOptions = {}): TabScore {
+export function sequenceToScore(pos: Position, tuning: Tuning, pattern: MotifPattern | 'scale', opts: SequenceScoreOptions = {}): TabScore {
   const def = getScale(pos.scaleId);
   const chars = new Set(def.characteristic ?? []);
   const fingers = fingeringsForPosition(pos);
   const sorted = [...pos.notes].sort((a, b) => a.midi - b.midi || a.string - b.string);
   let order: PositionNote[];
-  if (pattern === 'skip') order = skipOrder(sorted);
+  // la gamme se joue en boucle : ni le sommet ni la note du bas ne sont répétés, le nombre de notes reste pair
+  if (pattern === 'scale') order = [...sorted, ...[...sorted].reverse().slice(1, -1)];
+  else if (pattern === 'skip') order = skipOrder(sorted);
   else if (pattern === 'cycle') order = cycleOrder(sorted, opts.startDegree);
   else {
     if (sorted.length < PATTERN_STEPS[pattern].length + 1) throw new Error(`position trop courte pour le motif ${pattern}`);

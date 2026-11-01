@@ -56,7 +56,7 @@ import {
 } from './exercise';
 import { REVIEW_MAX, buildReviewQueue, moreDue, sessionFact, type ReviewTarget } from './review';
 import { coldNext, countsAsProof, lookRemaining, retryLine, type ColdStep } from './coldReview';
-import { blindGrid, countInBeat, scoreBlind, type BlindGrid, type HeardNote } from './blind';
+import { COUNT_IN_TICKS, blindGrid, countInBeat, scoreBlind, type BlindGrid, type HeardNote } from './blind';
 import * as clock from '../../core/clock';
 
 type HoleMark = 'right' | 'revealed';
@@ -355,7 +355,7 @@ export function ScaleTrainingPage({ initialMixed = false }: { initialMixed?: boo
     const bg = blindGrid(total, settings.trainingTempo, settings.gridSubdivision);
     try {
       await p.init();
-      await p.load(bg.score, { loop: false });
+      await p.load(bg.score, { loop: false, countInTicks: COUNT_IN_TICKS });
       p.setMetronome(true);
       p.onEnded = null;
       await p.play();

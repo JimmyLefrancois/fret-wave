@@ -4,7 +4,8 @@ import {
   type KeyValueStore,
 } from '../src/core/audio/mixer';
 import { droneMidis, droneRootMidi } from '../src/core/audio/drone';
-import { isCompound, metronomeClicks } from '../src/core/audio/metronome';
+import { CLICK_SOUNDS, COUNT_IN_SOUND, isCompound, metronomeClicks } from '../src/core/audio/metronome';
+import { COUNT_IN_TICKS, blindGrid } from '../src/modules/gammes/blind';
 import { CEILING, COMPRESSOR, HIGHPASS_HZ, LIMITER_DB, ceilingCurve, makeReverbIR } from '../src/core/audio/master';
 import { scoreTonic } from '../src/core/audio/tabPlayer';
 import { verifyTriggered } from '../src/core/audio/verify';
@@ -84,6 +85,20 @@ describe('réglages audio mémorisés', () => {
     const s = loadSettings(null);
     s.volumes.master = 0.1;
     expect(DEFAULT_SETTINGS.volumes.master).toBe(DEFAULT_VOLUMES.master);
+  });
+});
+
+describe('décompte', () => {
+  it('seuls les clics de la mesure de décompte sont marqués', () => {
+    const g = blindGrid(4, 60, 1);
+    const clicks = metronomeClicks(g.score, { countInTicks: COUNT_IN_TICKS });
+    expect(clicks.filter((c) => c.countIn).map((c) => c.tick)).toEqual([0, 1, 2, 3].map((b) => b * PPQ));
+    expect(clicks.length).toBeGreaterThan(4);
+    expect(metronomeClicks(g.score).some((c) => c.countIn)).toBe(false);
+  });
+  it('un timbre connu, autre que celui du métronome par défaut', () => {
+    expect(CLICK_SOUNDS).toContain(COUNT_IN_SOUND);
+    expect(COUNT_IN_SOUND).not.toBe('bois');
   });
 });
 

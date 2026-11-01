@@ -48,7 +48,7 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 1. **Rappel à froid des cartes dues** (`review.ts`, `coldReview.ts`, D87) : N3 sur la position entière en aller-retour, sans annotation ni légende ni « Écouter d'abord » ; seul cet essai compte. Sous 80 % : « Regarde la forme » (10/20/30 s, défaut 20) puis rattrapage `afterReveal` (pratique du jour, hors Leitner/maîtrise/XP, sans étoiles). « Passer » à chaque étape. Réglages `coldReview` (activé) et `lookSeconds`. Correctif au passage : une prise d'impro servait de « dernière tentative » d'une forme en révision.
 2. **« Apprise » / « maîtrisée » plus exigeantes** (`mastery.ts`, D85, D86, D88) : réussite **forte** exigée (position entière, N3 ou N2 au micro) ; vitesse `speedVerified` (N3 au micro propre, grille tenue à 2 × cible notes/min, ou séquence validée) ; « maîtrisée (vitesse non vérifiée) » sinon. Journal : `mic`, `fullPosition`, `gridNpm`, `blind`, `afterReveal` (optionnels, lecture tolérante). Grille en **croches** et borne **200 BPM** ; tempo cible réglable (80 BPM en croches). Le **hub annonce les formes repassées en apprentissage** ; l'exercice dit **ce qui manque** pour « apprise ».
 3. **Série à l'aveugle** (`blind.ts`) : option du N3 active seulement micro ouvert ; **aucune tablature montée** pendant la série (0 canvas mesuré), décompte d'une mesure, niveau d'entrée, Terminer ; verdict d'un coup à la fin.
-4. **Séquences avec palier** (`sequenceToScore`, `sequence.ts`, `SequencePage.tsx`, `#/gammes/sequences`, D84, D90) : par 3, par 4, tierces, quartes ; passe jugée en justesse **et en place** ; +4 / −5 / plancher au départ / 40-200 ; une tentative par session ; sans micro, tempo manuel non vérifié. Liens depuis l'écoute et l'entraînement.
+4. **Séquences** : gamme en boucle, travail par défaut, non notée (D125), puis motifs et liaisons. **Palier** (`sequenceToScore`, `sequence.ts`, `SequencePage.tsx`, `#/gammes/sequences`, D84, D90) : par 3, par 4, tierces, quartes ; passe jugée en justesse **et en place** ; +4 / −5 / plancher au départ / 40-200 ; une tentative par session ; sans micro, tempo manuel non vérifié. Liens depuis l'écoute et l'entraînement.
 5. **Aller-retour par défaut** (D91, ta demande) : l'écran d'exercice, la révision ordinaire et le rappel à froid ouvrent sur la position entière, montée puis descente — sur la box 1, le N2 pose 8 trous sur 23 notes (2 sur 4 auparavant). Les segments 1/2/3 cordes et « montée » restent dans les réglages de la série, pour s'échauffer.
 
 **Passe de design du module (deux critiques Impeccable : 22/40 puis 27/40, archivées dans `.impeccable/critique/`)**
@@ -242,6 +242,14 @@ Les cinq propositions du bilan de la phase 5 sont **placées**, pas notées. Tro
 **Ce que la phase 5 ne déplace pas** : les propositions P1-P5 du §9.1 restent où elles sont (P1 et P2 faites en 4a, P3 en phase 7, P4 faite en 4b, P5 en fin de phase 5 = Q5).
 
 ## 12. Prochaine étape : la phase 6 (Défi Accords), puis le reste de la 5 sur instrument réel
+
+**Chantier en cours : gamme en boucle de Séquences (D125, D126, plan du 2026-11-01)**
+1. Écoute continue et mode tolérant : **fait**, validé sur guitare à 80 BPM (USB, 88 notes sur 88). Reste un log à tempo rapide avant le lot 3, et un contrôle du bilan sur téléphone.
+2. Journal : une ligne par session (plafond de 2 000 lignes), liste compacte des séries `{bpm départ, bpm arrivée, tours, tours propres, erreurs}`. Vérifier que ces champs passent dans la synchro du compte.
+3. Strict et records : une erreur coupe la série, écran « Série / Record », « Rejouer » au BPM de base. Records par gamme, système et position : BPM fixe (plus longue série à ce BPM) et évolutif (BPM le plus haut sans erreur). Avant : traiter les attaques parasites (log : midi 47,70 entre Do et Ré, ignorée de justesse) et rendre la tolérance hors tempo réglable.
+4. Onglet « Progression » sur la page Séquences : courbes de BPM et de séries.
+
+Décisions : erreur = note fausse, manquée ou nettement hors tempo ; évolutif au micro : seuls N tours propres d'affilée font monter ; mode sans micro conservé ; pas d'XP pour l'instant. **[À TRANCHER]** preuve de vitesse (proposition : strict seulement). Le « Détail technique » est à retirer à la fin.
 
 **Où on en est** : les phases 0 à 4b sont livrées, la **refonte d'interface** est mergée sur `master` (D54-D66), la **phase 5 est livrée côté analyse** (D67-D69, matrice de confusion publiée, étape « Plaquer » écoutée) et le déploiement Pages est câblé.
 

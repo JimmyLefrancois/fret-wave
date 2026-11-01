@@ -13,11 +13,14 @@ export interface Click {
   /** Tick absolu. */
   tick: number;
   accent: ClickAccent;
+  /** Clic du décompte : un autre timbre que le métronome (`COUNT_IN_SOUND`). */
+  countIn?: true;
 }
 
 export const isCompound = ([num, den]: readonly [number, number]): boolean => den === 8 && num >= 6 && num % 3 === 0;
 
-export function metronomeClicks(score: TabScore, opts: { subdivide?: boolean } = {}): Click[] {
+/** `countInTicks` : les clics avant ce tick sont ceux du décompte. */
+export function metronomeClicks(score: TabScore, opts: { subdivide?: boolean; countInTicks?: number } = {}): Click[] {
   const starts = measureStarts(score);
   const out: Click[] = [];
   score.measures.forEach((_, mi) => {
@@ -33,7 +36,8 @@ export function metronomeClicks(score: TabScore, opts: { subdivide?: boolean } =
       for (let t = 0; t < len; t += subStep) if (t % step !== 0) out.push({ tick: starts[mi]! + t, accent: 'sub' });
     }
   });
-  return out.sort((a, b) => a.tick - b.tick);
+  const countIn = opts.countInTicks ?? 0;
+  return out.map((c) => (c.tick < countIn ? { ...c, countIn: true as const } : c)).sort((a, b) => a.tick - b.tick);
 }
 
 const CLICK_HZ: Record<ClickAccent, number> = { bar: 1568, beat: 1046.5, sub: 784 };
@@ -41,6 +45,8 @@ const CLICK_LEVEL: Record<ClickAccent, number> = { bar: 0.5, beat: 0.38, sub: 0.
 
 export const CLICK_SOUNDS = ['bois', 'bip', 'cloche', 'sec'] as const;
 export type ClickSound = (typeof CLICK_SOUNDS)[number];
+/** Timbre du décompte : on entend sans regarder quand la mesure de préparation s'arrête. */
+export const COUNT_IN_SOUND: ClickSound = 'cloche';
 
 /** Timbres synthétisés (aucun fichier) : `ratio` transpose le clic, `drop` fait descendre sa hauteur. */
 const SOUND: Record<ClickSound, { type: OscillatorType; ratio: number; decay: number; gain: number; drop: boolean }> = {
