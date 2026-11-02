@@ -10,13 +10,9 @@ import { useEffect, useRef } from 'react';
 import { CanvasSurface } from '../core/tab';
 import { drawSceneMotion, drawSceneStill, makeStars, sceneGeometry } from '../core/themes';
 import type { ThemeTokens } from '../core/themes';
+import { sceneViewport } from '../core/themes/sceneViewport';
 
 const FPS = 30;
-
-/** Pixels CSS par pixel logique du décor : 2 partout (même densité que la tablature), 3 sur très grand écran. */
-function scaleFor(cssW: number, cssH: number): number {
-  return Math.max(2, Math.min(3, Math.round(Math.min(cssW, cssH) / 500)));
-}
 
 export type SceneVariant = 'poster' | 'calm';
 
@@ -62,11 +58,11 @@ export function SceneBackground(props: {
     const resize = () => {
       const cssW = window.innerWidth;
       const cssH = window.innerHeight;
-      const S = scaleFor(cssW, cssH);
       const dpr = window.devicePixelRatio || 1;
-      k = Math.max(1, Math.round(S * dpr));
-      const lw = Math.ceil(cssW / S);
-      const lh = Math.ceil(cssH / S);
+      const viewport = sceneViewport(cssW, cssH, dpr);
+      k = viewport.pixelScale;
+      const lw = viewport.logicalWidth;
+      const lh = viewport.logicalHeight;
       // grand écran : horizon plus bas pour que le soleil passe SOUS le titre du hub
       const wide = cssW >= 900;
       // le décor couvre tout l'écran : horizon bas, soleil dans la bande haute (l'affiche du hub, puis
@@ -79,8 +75,8 @@ export function SceneBackground(props: {
       for (const c of [still, motion]) {
         c.width = lw * k;
         c.height = lh * k;
-        c.style.width = `${lw * (k / dpr)}px`;
-        c.style.height = `${lh * (k / dpr)}px`;
+        c.style.width = `${viewport.cssWidth}px`;
+        c.style.height = `${viewport.cssHeight}px`;
       }
 
       const ctx = still.getContext('2d');

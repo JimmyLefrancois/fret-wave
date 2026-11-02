@@ -1,0 +1,38 @@
+[
+  {
+    "theme": "synthwave",
+    "width": 1100,
+    "route": "tab",
+    "overflow": {
+      "width": 1144,
+      "viewport": 1100
+    }
+  },
+  {
+    "theme": "synthwave",
+    "width": 1440,
+    "route": "tab",
+    "overflow": {
+      "width": 1471,
+      "viewport": 1440
+    }
+  },
+  {
+    "theme": "dawn",
+    "width": 1100,
+    "route": "tab",
+    "overflow": {
+      "width": 1144,
+      "viewport": 1100
+    }
+  },
+  {
+    "theme": "dawn",
+    "width": 1440,
+    "route": "tab",
+    "overflow": {
+      "width": 1471,
+      "viewport": 1440
+    }
+  }
+]

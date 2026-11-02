@@ -5,3 +5,5 @@ dist
 .shots
 .wrangler
 .dev.vars
+.certs/
+.omc/state/

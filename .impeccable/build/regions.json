@@ -1,0 +1,100 @@
+{
+  "regions": [
+    {
+      "id": "navigation",
+      "kind": "chrome",
+      "pixelBox": {
+        "x": 0,
+        "y": 0,
+        "w": 252,
+        "h": 1024
+      },
+      "note": "Navigation latérale persistante, boutons et marque en DOM.",
+      "codeDrawn": true
+    },
+    {
+      "id": "title",
+      "kind": "text",
+      "pixelBox": {
+        "x": 296,
+        "y": 49,
+        "w": 733,
+        "h": 62
+      },
+      "note": "Titre de gamme dynamique, sans-serif existante imposée par le projet.",
+      "codeDrawn": true
+    },
+    {
+      "id": "selectors",
+      "kind": "control",
+      "pixelBox": {
+        "x": 300,
+        "y": 142,
+        "w": 855,
+        "h": 61
+      },
+      "note": "Trois sélecteurs natifs : tonique, gamme et accordage.",
+      "codeDrawn": true
+    },
+    {
+      "id": "tabs",
+      "kind": "control",
+      "pixelBox": {
+        "x": 296,
+        "y": 239,
+        "w": 1207,
+        "h": 48
+      },
+      "note": "Navigation entre Découvrir, Séquences et Improviser.",
+      "codeDrawn": true
+    },
+    {
+      "id": "work",
+      "kind": "control",
+      "pixelBox": {
+        "x": 317,
+        "y": 329,
+        "w": 647,
+        "h": 61
+      },
+      "note": "Choix de gamme en boucle, motifs, liaisons.",
+      "codeDrawn": true
+    },
+    {
+      "id": "positions",
+      "kind": "control",
+      "pixelBox": {
+        "x": 316,
+        "y": 419,
+        "w": 82,
+        "h": 361
+      },
+      "note": "Positions numérotées liées aux positions musicales existantes.",
+      "codeDrawn": true
+    },
+    {
+      "id": "score",
+      "kind": "chrome",
+      "pixelBox": {
+        "x": 452,
+        "y": 427,
+        "w": 1023,
+        "h": 353
+      },
+      "note": "Tablature : moteur canvas existant, hors refonte Impeccable, contenu dynamique.",
+      "codeDrawn": true
+    },
+    {
+      "id": "transport",
+      "kind": "control",
+      "pixelBox": {
+        "x": 316,
+        "y": 835,
+        "w": 1162,
+        "h": 121
+      },
+      "note": "Tempo, mode, microphone et lecture avec leurs états existants.",
+      "codeDrawn": true
+    }
+  ]
+}

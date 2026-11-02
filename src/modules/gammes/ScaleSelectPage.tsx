@@ -17,7 +17,7 @@ import {
 } from '../../core/theory';
 import { SCALE_GROUPS } from './content';
 import { fmtDegree, positionLabelPlain, resolveScale, scaleGroupOf, scaleTitle } from './resolve';
-import { reviewDelayText, reviewSummary } from './review';
+import { reviewSummary } from './review';
 
 const SYSTEM_LABEL: Record<PositionSystem, string> = {
   '3nps': '3 notes par corde',
@@ -77,9 +77,7 @@ export function ScaleSelectPage() {
             ▶ Réviser {review.forms.length > 1 ? `ces ${review.forms.length} formes` : 'cette forme'}
           </PixelButton>
         </Panel>
-      ) : review.nextDue !== null && (
-        <p className="t-small t-dim review-next">Rien à réviser pour l’instant · {reviewDelayText(review.nextDue - clock.now())}.</p>
-      )}
+      ) : null}
 
       <Panel className="span-5 panel-fill" accent="magenta" label="1 · La gamme">
         <p className="t-label tonics-label">Tonique</p>

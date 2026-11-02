@@ -1,8 +1,17 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { readFileSync } from 'node:fs';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  server: {
+    port: 5173,
+    strictPort: true,
+    https: command === 'serve' && !process.env.VITEST ? {
+      key: readFileSync(new URL('./.certs/localhost-key.pem', import.meta.url)),
+      cert: readFileSync(new URL('./.certs/localhost.pem', import.meta.url)),
+    } : undefined,
+  },
   plugins: [
     react(),
     // PWA hors ligne complète, sons compris (D118). `prompt` : c'est `src/app/pwa.ts` qui décide quand recharger.
@@ -38,4 +47,4 @@ export default defineConfig({
     }),
   ],
   test: { include: ['tests/**/*.test.ts'] },
-});
+}));
