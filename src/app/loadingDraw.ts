@@ -3,27 +3,24 @@
  * la tablature). Testée pixel par pixel (barre proportionnelle, rien hors des bornes, aucune couleur hors palette).
  */
 import { drawText, drawTextScaled, textWidth, type Surface } from '../core/tab';
+import { SYNTHWAVE, type ThemeTokens } from '../core/themes';
 
 export const LOADING_W = 160;
 export const LOADING_H = 90;
 
-export const LOADING_PALETTE = {
-  sky: '#0D0221',
-  skyLow: '#1A0B3B',
-  sunTop: '#FFD23F',
-  sunMid: '#FF9E3D',
-  sunLow: '#FF2A6D',
-  grid: '#7A1FA2',
-  gridFar: '#3A1C71',
-  title: '#F3E9FF',
-  text: '#A99AC9',
-  barFrame: '#05D9E8',
-  barOn: '#FF2A6D',
-  barOnHi: '#FF9E3D',
-  barOff: '#261447',
-  panel: '#150A33',
-  error: '#FF5C7A',
-} as const;
+export function loadingPalette(theme: ThemeTokens) {
+  const p = theme.palette, scene = theme.scene;
+  return {
+    sky: p.bg, skyLow: scene.skyMid,
+    sunTop: scene.sunCore, sunMid: scene.sunMid, sunLow: scene.sunOuter,
+    grid: scene.gridLine, gridFar: scene.gridFar,
+    title: p.text, text: p.dim, barFrame: p.cyan,
+    barOn: p.magenta, barOnHi: p.orange, barOff: p.surfaceHi,
+    panel: p.surface, error: p.danger,
+  };
+}
+
+export const LOADING_PALETTE = loadingPalette(SYNTHWAVE);
 
 export interface LoadingState {
   /** 0-1. */
@@ -57,11 +54,14 @@ const centered = (s: Surface, y: number, text: string, color: string) => {
   drawText(s, Math.max(0, Math.floor((s.width - textWidth(t)) / 2)), y, t, color);
 };
 
-export function drawLoadingScreen(s: Surface, st: LoadingState): void {
-  const P = LOADING_PALETTE;
+export function drawLoadingScreen(target: Surface, st: LoadingState, theme: ThemeTokens = SYNTHWAVE): void {
+  const P = loadingPalette(theme);
+  let s = target;
   const W = s.width, H = s.height;
+  const offsetX = Math.floor((W - LOADING_W) / 2);
+  const offsetY = Math.floor((H - LOADING_H) / 2);
   s.fillRect(0, 0, W, H, P.sky);
-  const horizon = 36;
+  const horizon = offsetY + 36;
   s.fillRect(0, horizon - 14, W, 14, P.skyLow);
 
   // soleil rayé : demi-disque de rayon 18, bandes sombres de plus en plus épaisses vers le bas
@@ -83,7 +83,7 @@ export function drawLoadingScreen(s: Surface, st: LoadingState): void {
     y += step;
     step += 1;
   }
-  for (let i = -10; i <= 10; i++) {
+  for (let i = -Math.ceil(W / 6); i <= Math.ceil(W / 6); i++) {
     let prevX: number | null = null;
     for (let yy = horizon + 1; yy < H; yy++) {
       const t = (yy - horizon) / (H - horizon);
@@ -97,11 +97,17 @@ export function drawLoadingScreen(s: Surface, st: LoadingState): void {
     }
   }
 
+  // Les éléments utiles gardent leur taille et restent centrés dans le décor étendu.
+  s = {
+    width: LOADING_W,
+    height: LOADING_H,
+    fillRect: (x, y, w, h, color, alpha) => target.fillRect(x + offsetX, y + offsetY, w, h, color, alpha),
+  };
   // titre
   const title = 'FRETWAVE';
   const tw = title.length * 6 * 2 - 2;
-  drawTextScaled(s, Math.floor((W - tw) / 2) + 1, 6 + 1, title, P.barOn, 2);
-  drawTextScaled(s, Math.floor((W - tw) / 2), 6, title, P.title, 2);
+  drawTextScaled(s, Math.floor((LOADING_W - tw) / 2) + 1, 6 + 1, title, P.barOn, 2);
+  drawTextScaled(s, Math.floor((LOADING_W - tw) / 2), 6, title, P.title, 2);
 
   // panneau de la barre
   s.fillRect(BAR_X - 6, BAR_Y - 13, BAR_W + 12, 46, P.panel);

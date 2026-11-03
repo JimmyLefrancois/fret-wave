@@ -736,9 +736,9 @@ label.inline input[type='range'] { width: 140px; }
 canvas.pix { position: absolute; left: 0; top: 0; display: block; image-rendering: pixelated; }
 canvas.pix.labels { z-index: 2; }
 
-.loading { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: var(--bg); }
-canvas.pix-loading { display: block; image-rendering: pixelated; }
-.loading-actions { display: flex; gap: 12px; }
+.loading { position: relative; width: 100%; height: 100vh; height: 100dvh; overflow: hidden; background: var(--bg); }
+canvas.pix-loading { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.loading-actions { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); left: 0; right: 0; display: flex; justify-content: center; gap: 12px; }
 .mixer { display: grid; gap: 4px; margin: 8px 0; }
 .mixer.compact { flex-basis: 100%; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 2px 16px; margin: 0; }
 /* Une rangée de mixeur est un `<label class="inline mix-row">` : `label.inline` (spécificité 0,1,1)

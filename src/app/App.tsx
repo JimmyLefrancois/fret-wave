@@ -102,6 +102,7 @@ export function App() {
     const frac = p ? p.loadedBytes / p.totalBytes : 0;
     return (
       <LoadingScreen
+        theme={getTheme(settings.theme)}
         progress={engine.state === 'error' ? frac : p ? 0.05 + 0.95 * frac : engine.tone ? 0.05 : 0.02}
         label={engine.tone ? 'CHARGEMENT DU SON' : 'DÉMARRAGE DU SON'}
         detail={p ? `${name ?? engine.settings.instrument.toUpperCase()} · ${(p.totalBytes / 1e6).toFixed(1).replace('.', ',')} MO` : undefined}

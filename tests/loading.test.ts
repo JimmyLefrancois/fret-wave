@@ -4,6 +4,7 @@ import {
   BAR_BLOCKS, BAR_H, BAR_W, BAR_X, BAR_Y, LOADING_H, LOADING_PALETTE, LOADING_W, drawLoadingScreen, fitText, type LoadingState,
 } from '../src/app/loadingDraw';
 import { writePng } from './helpers/png';
+import { THEMES } from '../src/core/themes';
 
 const P = LOADING_PALETTE;
 const render = (st: LoadingState) => {
@@ -18,6 +19,26 @@ const litBlocks = (s: BufferSurface) => {
 };
 
 describe('écran de chargement pixel', () => {
+  it('utilise les couleurs du thème actif pour le fond et le panneau', () => {
+    for (const theme of Object.values(THEMES)) {
+      const s = new BufferSurface(LOADING_W, LOADING_H);
+      drawLoadingScreen(s, { progress: 0.5, label: 'X' }, theme);
+      expect(s.pixel(0, 0)).toBe(theme.palette.bg.toUpperCase());
+      expect(s.pixel(BAR_X - 5, BAR_Y - 12)).toBe(theme.palette.surface.toUpperCase());
+      expect(s.pixel(BAR_X, BAR_Y)).toBe(theme.palette.cyan.toUpperCase());
+    }
+  });
+  it('étend le décor et centre la barre sur les écrans larges et hauts', () => {
+    for (const [width, height] of [[320, 90], [160, 240]] as const) {
+      const s = new BufferSurface(width, height, '#000000');
+      drawLoadingScreen(s, { progress: 0.5, label: 'X' });
+      const x = Math.floor((width - LOADING_W) / 2);
+      const y = Math.floor((height - LOADING_H) / 2);
+      expect(s.pixel(x + BAR_X, y + BAR_Y)).toBe(P.barFrame);
+      expect(s.pixel(0, 0)).toBe(P.sky);
+      expect(s.pixel(width - 1, height - 1)).not.toBe('#000000');
+    }
+  });
   it('la barre est proportionnelle à l\'avancement : 0 % → aucun bloc, 100 % → tous, croissante et sans trou', () => {
     expect(litBlocks(render({ progress: 0, label: 'CHARGEMENT DU SON' }))).toBe(0);
     expect(litBlocks(render({ progress: 1, label: 'CHARGEMENT DU SON' }))).toBe(BAR_BLOCKS);
