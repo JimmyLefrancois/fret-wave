@@ -113,7 +113,7 @@ export function SettingsPage() {
               label="Notation des notes"
               options={[{ value: 'fr', label: 'Solfège' }, { value: 'en', label: 'Anglo' }]}
             />
-            <p className="t-small t-dim">Le modèle reste en anglo-saxon ; seul l’affichage change.</p>
+            <p className="t-small t-dim">Choisis comment afficher les noms des notes.</p>
           </div>
           <div className="field">
             <span className="t-label">Accords</span>
@@ -153,8 +153,7 @@ export function SettingsPage() {
             })}
           </div>
           <p className="t-small t-dim">
-            Les couleurs d’intervalles ne changent jamais avec l’ambiance : elles portent le sens des notes.
-            Seul le décor et l’encre changent — les deux ambiances disent la même chose.
+            Les couleurs des intervalles restent les mêmes dans les deux ambiances. Le décor et le texte changent.
           </p>
         </Panel>
 
@@ -168,8 +167,8 @@ export function SettingsPage() {
               options={LOOK_SECONDS.map((s) => ({ value: s, label: `${s} s` }))}
             />
             <p className="t-small t-dim">
-              Seul l’essai à froid compte : celui qui suit l’observation est enregistré, sans effet sur la révision. Un
-              essai réussi la réponse sous les yeux ne prouve rien.
+              Seul le premier essai, fait de mémoire, compte pour la révision. L’essai après observation est enregistré,
+              mais ne modifie pas la prochaine échéance.
             </p>
           </div>
         </Panel>
@@ -220,8 +219,8 @@ export function SettingsPage() {
             <strong>{input.latencies[input.source] > 0 ? `${input.latencies[input.source]} ms` : 'non mesurée'}</strong>
           </p>
           <p className="t-small t-dim">
-            Le micro donne une hauteur, jamais une corde. Il exige HTTPS (ou localhost) ; un casque évite qu’il reprenne
-            le son de l’app.
+            Le micro détecte la hauteur de la note, mais pas la corde jouée. Il nécessite une connexion HTTPS ou localhost.
+            Un casque évite qu’il capte le son de l’app.
           </p>
         </Panel>
 
@@ -262,8 +261,8 @@ export function SettingsPage() {
           </div>
           {dataMsg && <p className="t-small data-msg" role="status">{dataMsg}</p>}
           <p className="t-small t-dim">
-            L’import fusionne par identifiant : importer deux fois le même fichier ne double rien. Un fichier d’une autre
-            version est refusé avec sa raison, pas appliqué à moitié.
+            L’import fusionne les données : tu peux importer deux fois le même fichier sans créer de doublons.
+            Si le fichier vient d’une autre version, il est refusé et la raison s’affiche.
           </p>
           {!connected && (!confirmWipe ? (
             <PixelButton variant="danger" onClick={() => setConfirmWipe(true)}>Effacer les données locales</PixelButton>

@@ -709,7 +709,7 @@ export function SequencePage() {
     </div>
   );
   const startHint = pattern === 'cycle' && (
-    <p className="t-small t-dim">Monte depuis ce degré, descends jusqu’en bas de la position, reviens-y : sortir de l’habitude de partir de la fondamentale.</p>
+    <p className="t-small t-dim">Pars de ce degré, monte, descends jusqu’en bas de la position, puis reviens à ton point de départ. Cela change du départ sur la fondamentale.</p>
   );
   const tempoStep = loopMode ? LOOP_STEP : 4;
   const manualTempo = (
@@ -759,7 +759,7 @@ export function SequencePage() {
     ? 'Gamme : la position monte et descend sans s’arrêter sur le métronome, au tempo de base choisi. En option, le tempo monte de 5 BPM toutes les quelques répétitions, avec un décompte avant chaque hausse. Tolérant : le micro juge chaque tour sans couper la gamme, et seuls les tours propres d’affilée font monter le tempo. Sinon, on relance au même tempo.'
     : listening ? 'Palier automatique : +4 après deux passes propres, −5 après deux échecs.' : 'Sans micro : pas de palier, la tablature et le métronome seulement.';
   const pauseNote = ladder && pauseDue(sessionMs) && (
-      <p className="t-small" role="status">Dix minutes de séquences : une pause de deux minutes, main relâchée, et la précision revient.</p>
+      <p className="t-small" role="status">Après dix minutes de séquences, fais une pause de deux minutes et relâche la main.</p>
     );
   const savedNote = saved && (
       <p className="t-small" role="status">
@@ -767,7 +767,7 @@ export function SequencePage() {
           ? `${saved.loop.reps} ${saved.loop.reps > 1 ? 'gammes' : 'gamme'}${saved.loop.clean !== null ? ` dont ${saved.loop.clean} ${saved.loop.clean > 1 ? 'propres' : 'propre'}` : ''}, jusqu’à ${saved.loop.bpm} BPM.`
           : saved.verified
           ? 'Session enregistrée.'
-          : 'Session enregistrée, non vérifiée : sans micro, l’app n’entend rien.'}
+          : 'Session enregistrée sans vérification au micro.'}
       </p>
     );
   const copyLog = () => {
@@ -817,8 +817,8 @@ export function SequencePage() {
   const howScoredBody = (
     <>
       <p className="t-small">
-        Une passe est réussie à ≥ 95 % de notes justes <strong>et</strong> en place : neuf notes sur dix à moins d’une
-        demi-croche de leur temps (un retard constant ne compte pas, c’est la latence).
+        Pour réussir une passe, joue au moins 95 % des notes justes et place neuf notes sur dix à moins d’une
+        demi-croche de leur temps. Un retard constant est considéré comme de la latence.
       </p>
       <p className="t-small">En tolérant, un tour de gamme est propre sans note fausse, manquée ou nettement hors tempo.</p>
       <p className="t-small t-dim">
@@ -987,8 +987,8 @@ export function SequencePage() {
       <section className="mplay-tab">
         <div className="mplay-bar">
           <PixelButton variant="primary" className="mplay-play mic-spark" onClick={openPlay}>▶ Jouer</PixelButton>
-          <p className="t-small t-dim mplay-play-note">Touche Jouer : l’écran passe automatiquement en paysage, avec tous les réglages.</p>
-          {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+          <p className="t-small t-dim mplay-play-note">Touche « Jouer » pour passer en paysage avec tes réglages.</p>
+          {micBusy && <p className="t-small t-dim">Ouverture du micro…</p>}
           {passLine}
           {savedNote}
           {statusNote}

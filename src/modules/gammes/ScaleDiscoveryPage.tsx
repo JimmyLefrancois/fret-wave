@@ -268,7 +268,7 @@ export function ScaleDiscoveryPage() {
           />
           {linkOn && (
             <>
-              <p className="t-small t-dim">En pointillés, les cases communes : c’est par elles que la main passe d’une position à l’autre.</p>
+              <p className="t-small t-dim">Les cases en pointillés sont communes aux deux positions. Utilise-les pour passer de l’une à l’autre.</p>
               <PixelButton variant="quiet" onClick={() => { requestLiaison(); navigate('sequences'); }}>
                 Travailler la liaison ›
               </PixelButton>
@@ -539,7 +539,7 @@ export function ScaleDiscoveryPage() {
                       <span key={i} className={Number(s) === 1 ? 'semi' : ''} style={{ flexGrow: Number(s) }}>{s}</span>
                     ))}
                   </div>
-                  <p className="t-small t-dim">Chaque chiffre compte les cases : 1 = un demi-ton, 2 = un ton.</p>
+                  <p className="t-small t-dim">Les chiffres indiquent le nombre de cases : 1 pour un demi-ton, 2 pour un ton.</p>
                   {structureOpen && structure}
                 </PlaySection>
                 <PlaySection title="Lecture">{parentNote}{moreOptions}</PlaySection>

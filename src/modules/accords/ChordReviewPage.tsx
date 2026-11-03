@@ -195,7 +195,7 @@ export function ChordReviewPage() {
         applyRight(verdict.target.key);
         break;
       case 'tuning':
-        setFeedback({ ok: false, text: `${Math.abs(verdict.cents).toFixed(0)} cents ${verdict.cents > 0 ? 'haut' : 'bas'} : ce n’est pas ta mémoire, c’est l’accord — passe par l’accordeur.` });
+        setFeedback({ ok: false, text: `La note est trop ${verdict.cents > 0 ? 'haute' : 'basse'} de ${Math.abs(verdict.cents).toFixed(0)} cents. Vérifie ton accordage.` });
         break;
       case 'octave':
         setFeedback({ ok: false, text: 'une octave d’écart avec la note visée (le micro se trompe parfois sur les cordes graves) : rejoue la note seule, un peu plus fort.' });
@@ -311,7 +311,7 @@ export function ChordReviewPage() {
                 <strong>{sessionDone.forms}</strong> accord{sessionDone.forms > 1 ? 's' : ''} · précision moyenne{' '}
                 <strong>{Math.round(sessionDone.accuracy * 100)} %</strong>
               </p>
-              <p className="t-small">Les échéances sont recalculées : l’accueil les affiche.</p>
+              <p className="t-small">Tes prochaines révisions sont indiquées sur l’accueil.</p>
               {retryLine(sessionDone.retries) && <p className="t-small">{retryLine(sessionDone.retries)}</p>}
               <div className="row">
                 {more > 0 && <PixelButton variant="primary" onClick={startSession}>Encore {more} accord{more > 1 ? 's' : ''} dû{more > 1 ? 's' : ''}</PixelButton>}
@@ -332,7 +332,7 @@ export function ChordReviewPage() {
                 </p>
               )}
               {mic.error && <p className="t-small mic-line-error" role="alert">{mic.error}</p>}
-              {mic.busy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+              {mic.busy && <p className="t-small t-dim">Ouverture du micro…</p>}
               {showShape && <ChordBoxView voicing={voicing} maxScale={3} />}
               {result ? (
                 <>

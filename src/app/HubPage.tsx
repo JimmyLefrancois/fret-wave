@@ -74,7 +74,7 @@ export function HubPage() {
           </PixelButton>
           </> : <p className="t-body t-dim">Aucun accord à réviser aujourd’hui.</p>}
           {!hasKnownChords && (
-            <p className="t-body">Pour avoir des accords à réviser, va sur la page Accords et coche « Je connais cet accord » pour les accords que tu connais déjà.</p>
+            <p className="t-body">Dans Accords, coche « Je connais cet accord » pour ajouter les accords que tu connais à tes révisions.</p>
           )}
           <div className="hub-chord-learn">
             <PixelButton className="mic-spark" onClick={() => navigate('chordLearn')}>Apprendre un nouvel accord</PixelButton>

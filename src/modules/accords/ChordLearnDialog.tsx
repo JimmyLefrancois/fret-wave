@@ -17,7 +17,7 @@ function Preview({ suggestion }: { suggestion: ChordSuggestion }) {
       <div className="chord-learn-diagram"><ChordBoxView voicing={voicing} maxScale={3} /></div>
       <div className="chord-learn-guide">
         <p className="t-body">{reason}</p>
-        <p className="t-small t-dim">Pose les doigts, puis joue chaque corde lentement pour entendre chaque note.</p>
+        <p className="t-small t-dim">Place tes doigts, puis joue les cordes une par une pour entendre chaque note.</p>
         <p className="t-small t-dim">1 : index · 2 : majeur · 3 : annulaire · 4 : auriculaire<br />× : ne pas jouer · ○ : corde à vide</p>
         {voicing.note && <p className="t-small t-dim">{voicing.note}</p>}
         <div className="row">
@@ -68,7 +68,7 @@ export function ChordLearnDialog({ marks, onKnown, onClose }: {
           </div>
         </footer>
       </> : <div className="chord-learn-guide">
-        <p className="t-body">Aucun nouvel accord à proposer parmi les formes disponibles pour ton répertoire.</p>
+        <p className="t-body">Tu as découvert tous les accords proposés pour ton répertoire.</p>
         <p className="t-small t-dim">Tu peux explorer la liste ou le dictionnaire, et continuer à réviser tes accords connus.</p>
       </div>}
     </dialog>, document.body,

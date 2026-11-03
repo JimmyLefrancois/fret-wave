@@ -347,7 +347,7 @@ export function ScaleReviewPage() {
       case 'tuning':
         setFeedback({
           ok: false,
-          text: `${Math.abs(v.cents).toFixed(0)} cents ${v.cents > 0 ? 'haut' : 'bas'} : ce n’est pas ta mémoire, c’est l’accord — passe par l’accordeur.`,
+          text: `La note est trop ${v.cents > 0 ? 'haute' : 'basse'} de ${Math.abs(v.cents).toFixed(0)} cents. Vérifie ton accordage.`,
         });
         break;
       case 'octave':
@@ -648,7 +648,7 @@ export function ScaleReviewPage() {
         <strong>{sessionDone.forms}</strong> forme{sessionDone.forms > 1 ? 's' : ''} · précision moyenne{' '}
         <strong>{Math.round(sessionDone.accuracy * 100)} %</strong>
       </p>
-      <p className="t-small">Les échéances sont recalculées : le haut de la page Gammes les affiche.</p>
+      <p className="t-small">Tes prochaines révisions sont indiquées en haut de la page Gammes.</p>
       {retryLine(sessionDone.retries) && <p className="t-small">{retryLine(sessionDone.retries)}</p>}
       <div className="row">
         {/* la séance s'arrête à 5 ; s'il reste des dues (8 au plus aujourd'hui), on propose la suite (D97) */}
@@ -816,7 +816,7 @@ export function ScaleReviewPage() {
                     </p>
                   )}
                   {micError && <p className="t-small mic-line-error" role="alert">{micError}</p>}
-                  {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+                  {micBusy && <p className="t-small t-dim">Ouverture du micro…</p>}
                 </section>
               )}
             </>
@@ -879,10 +879,10 @@ export function ScaleReviewPage() {
                   {result ? 'Voir la correction' : '▶ Jouer'}
                 </PixelButton>
               )}
-              {canPlay && !result && <p className="t-small t-dim mplay-play-note">Touche Jouer : l’écran passe automatiquement en paysage, avec la tablature et le micro.</p>}
+              {canPlay && !result && <p className="t-small t-dim mplay-play-note">Touche « Jouer » pour passer en paysage avec la tablature et le micro.</p>}
               {skip}
               {micError && <p className="t-small mic-line-error" role="alert">{micError}</p>}
-              {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+              {micBusy && <p className="t-small t-dim">Ouverture du micro…</p>}
             </div>
           </section>
         )}

@@ -87,7 +87,7 @@ export function ChordDictionaryPage() {
               </div>
             </div>
           </>
-        ) : <p className="t-small t-dim">Aucune forme jouable trouvée pour cet accord.</p>}
+        ) : <p className="t-small t-dim">Aucune forme jouable n’a été trouvée pour cet accord.</p>}
       </Panel>
     </div></main>
   );

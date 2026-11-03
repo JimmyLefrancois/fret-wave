@@ -326,8 +326,8 @@ export function ImproPage() {
   );
   const howToPlay = (
     <>
-      <p className="t-small t-dim">Ouvre le micro, démarre l’accompagnement, et joue ce que tu entends : tes notes s’inscrivent sur la tablature.</p>
-      <p className="t-small t-dim">La grille tourne, l’accord courant s’allume : joue ses notes sur les temps forts, le reste en passage.</p>
+      <p className="t-small t-dim">Ouvre le micro, lance l’accompagnement et joue : tes notes apparaîtront sur la tablature.</p>
+      <p className="t-small t-dim">L’accord en cours s’allume dans la grille. Essaie de jouer ses notes sur les temps forts et les autres en passage.</p>
     </>
   );
   const chordNotes = (
@@ -403,7 +403,7 @@ export function ImproPage() {
 
           {(recent.length > 0 || summary || micBusy || status) && (
             <section className="train-answer">
-              {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+              {micBusy && <p className="t-small t-dim">Ouverture du micro…</p>}
               {status && <p className="t-small ko">{status}</p>}
               {recent.length > 0 && take}
             </section>
@@ -473,8 +473,8 @@ export function ImproPage() {
         <section className="mplay-tab">
           <div className="mplay-bar">
             <PixelButton variant="primary" className="mplay-play mic-spark" onClick={openPlay} disabled={!score}>▶ Jouer</PixelButton>
-            <p className="t-small t-dim mplay-play-note">Touche Jouer : l’écran passe automatiquement en paysage, avec tous les réglages.</p>
-            {micBusy && <p className="t-small t-dim">ouverture du périphérique…</p>}
+            <p className="t-small t-dim mplay-play-note">Touche « Jouer » pour passer en paysage avec tes réglages.</p>
+            {micBusy && <p className="t-small t-dim">Ouverture du micro…</p>}
             {status && <p className="t-small ko">{status}</p>}
           </div>
         </section>
