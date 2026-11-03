@@ -11,6 +11,8 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 ---
 
 
+**Réglages au téléphone (D144)** : une seule surface, rubriques séparées par des filets ; fonctions et ordre conservés.
+
 ## État exact de la révision des accords et de l'accueil (D139)
 
 - **Fait, testé** : coches de la liste, révision arpégée au micro, accueil à l'ouverture (`tests/chordReview.test.ts`).

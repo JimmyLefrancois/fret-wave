@@ -1984,10 +1984,37 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 
 }
 
-/* Page Réglages : sur téléphone, la surface ne se voit pas (ses enfants gardent la colonne du shell).
-   Au bureau, une seule surface à deux colonnes. Les groupes sont séparés par un filet pointillé entre
+/* Page Réglages : une surface, en colonne au téléphone et à deux colonnes au bureau.
+   Les groupes sont séparés par un filet pointillé entre
    deux rangées et par un trait plein entre les colonnes, jamais par un cadre dans le cadre. */
 .set-surface { display: contents; }
+@media (max-width: 899px) {
+  .set-surface {
+    display: block;
+    min-width: 0;
+    background: var(--surface);
+    border: var(--bw) solid var(--line);
+    box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink);
+  }
+  .set-surface > .page-head {
+    margin: 0;
+    padding: 14px;
+    background: var(--surface-hi);
+    border: 0;
+    border-block-end: var(--bw) solid var(--line);
+  }
+  .set-surface > .panel {
+    margin: 0;
+    padding: 18px 14px;
+    background: none;
+    border: 0;
+    border-block-end: var(--bw) dashed var(--line-soft);
+    box-shadow: none;
+  }
+  .set-surface > .panel:last-child { border-block-end: 0; }
+  .set-surface > .panel::before, .set-surface > .panel::after { content: none; }
+  .set-surface .switch { background: none; border: 0; padding-inline: 0; }
+}
 @media (min-width: 900px) {
   .set-surface {
     grid-column: 1 / -1;
@@ -2028,7 +2055,10 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   .set-surface > .panel::after { content: none; }
   .set-surface > .span-12.panel { background: var(--surface); }
   .set-surface > .panel .panel-head { margin-bottom: 12px; }
-  /* Mouvement : cinq interrupteurs en deux colonnes, pour que la colonne ne reste pas creuse */
+  /* Les interrupteurs restent des commandes, sans ajouter de cadres dans la surface. */
+  .set-surface .switch { background: none; border: 0; padding-inline: 0; }
+  .set-surface > .page-head .page-title { font-size: 22px; line-height: 1.1; }
+  /* Mouvement : interrupteurs en deux colonnes. */
   .set-switches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; align-content: start; }
   .set-switches > .panel-head { grid-column: 1 / -1; }
 }
