@@ -253,6 +253,7 @@ Barre opaque (`--bg-deep`, trait 2 px `--line`) à six destinations au bureau, c
 
 ### Page Manche (D145)
 Bureau : une surface. En-tête : le titre, puis tonique, gamme et accordage sous lui, alignés à droite, puis une ligne de réglages du manche (cases de/à, ♯/♭ hors gamme, sélecteurs de 38 px), le manche, puis « Notes affichées » : douze interrupteurs carrés en grille, chacun avec un carré de la teinte de sa pastille (`intervalStyle`), éteint en `--dim` et carré à 30 %, allumé sur `--surface-hi` ; raccourcis en boutons à trait fin, actif en cyan. Hors des cases choisies et sur les cordes assombries, un voile (panneau mêlé de noir, 72 %) recouvre le manche et ses pastilles ; la référence n'y est plus cerclée.
+Téléphone (D146) : la même surface, dans un seul cadre, des filets à la place des blocs. Gamme dans l'en-tête (tonique et gamme, accordage dessous), cases et ♯/♭ sur deux rangées au-dessus du manche, puis les notes sur quatre colonnes (six à partir de 560 px), raccourcis en grille de deux (quatre à partir de 560 px).
 
 ### Tablature (composant signature)
 Panneau de tablature dessiné au canvas : cordes fines, barres de mesure, chiffres sur pastilles colorées par intervalle avec contour qui sépare du fond (sombre en nuit, papier en aube), curseur de lecture magenta à cœur clair. Sur aube, le panneau s'éclaircit (`#FFFBF5`, encre `#2B0B2E`) mais les aplats d'intervalle restent saturés. Le chiffre sur pastille a toujours un contour : jamais de scanlines dessus.

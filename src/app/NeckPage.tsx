@@ -12,8 +12,7 @@ import { resolveScale } from '../modules/gammes/resolve';
 import { NeckView } from './NeckView';
 import { useScaleSelection } from './scaleSession';
 import { useSettings } from './settings';
-import { Chip, Panel, Segmented, Switch } from './ui';
-import { useDesktop } from './useDesktop';
+import { Segmented, Switch } from './ui';
 
 type Spelling = 'sharp' | 'flat';
 interface NeckPrefs {
@@ -58,7 +57,6 @@ function loadPrefs(): NeckPrefs {
 }
 
 export function NeckPage() {
-  const desktop = useDesktop();
   const settings = useSettings();
   const selection = useScaleSelection();
   const r = useMemo(() => resolveScale(selection, settings.noteNotation), [selection, settings.noteNotation]);
@@ -96,7 +94,6 @@ export function NeckPage() {
   /** Les bornes restent dans l'ordre : déplacer l'une au-delà de l'autre entraîne l'autre. */
   const setFrom = (from: number) => patch({ from, to: Math.max(from, prefs.to) });
   const setTo = (to: number) => patch({ to, from: Math.min(to, prefs.from) });
-  const fretLabel = (f: number) => (f === 0 ? '0 (à vide)' : String(f));
 
   const toggle = (pc: number) => patch({ shown: shown.has(pc) ? prefs.shown.filter((n) => n !== pc) : [...prefs.shown, pc].sort((a, b) => a - b) });
   const toggleFocus = (pc: number) => patch({ focus: focus.has(pc) ? [...focus].filter((n) => n !== pc) : [...focus, pc].sort((a, b) => a - b) });
@@ -119,9 +116,9 @@ export function NeckPage() {
       label={`${whole ? '' : `cases ${prefs.from} à ${prefs.to}, `}${prefs.shown.length === 12 ? 'toutes les notes' : prefs.shown.length === 0 ? 'aucune note' : prefs.shown.map(nameOf).join(', ')}`}
     />
   );
-  const fretSelect = (value: number, onChange: (f: number) => void, aria: string, short = false) => (
+  const fretSelect = (value: number, onChange: (f: number) => void, aria: string) => (
     <select value={value} aria-label={aria} onChange={(e) => onChange(Number(e.target.value))}>
-      {FRETS.map((f) => <option key={f} value={f}>{short ? String(f) : fretLabel(f)}</option>)}
+      {FRETS.map((f) => <option key={f} value={f}>{f}</option>)}
     </select>
   );
   const spellingControl = (
@@ -141,152 +138,79 @@ export function NeckPage() {
   ];
   const subtitle = <p className="t-small t-dim">Notes de {r.title}. Ajoute ou retire des notes à la main.</p>;
 
-  if (desktop) {
-    return (
-      <main className="shell"><div className="tool-surface neck-surface">
-        <header className="page-head neck-head">
-          <div>
-            <h1 className="page-title">Manche</h1>
-            {subtitle}
-          </div>
-          <ScaleSelectors scale={r} />
-        </header>
-
-        {/* réglages du manche au-dessus de lui, sur une ligne */}
-        <div className="neck-bar">
-          <div className="neck-field">
-            <span className="t-label">Cases</span>
-            {fretSelect(prefs.from, setFrom, 'De la case', true)}
-            <span className="neck-dash" aria-hidden="true">→</span>
-            {fretSelect(prefs.to, setTo, 'À la case', true)}
-            {!whole && <button type="button" className="neck-reset" onClick={() => patch({ from: 0, to: LAST })}>Tout le manche</button>}
-          </div>
-          <div className="neck-field neck-spelling">
-            <span className="t-label">Hors gamme</span>
-            {spellingControl}
-          </div>
-        </div>
-
-        <div className="neck-main">{neck}</div>
-
-        <div className="neck-notes-bar">
-          <div className="neck-notes-head">
-            <span className="t-label">Notes affichées</span>
-            {outerSwitch}
-            <div className="neck-presets" role="group" aria-label="Raccourcis">
-              {presets.map(({ label, list }) => (
-                <button key={label} type="button" className={`neck-reset ${same(list) ? 'on' : ''}`} aria-pressed={same(list)} onClick={() => patch({ shown: list })}>{label}</button>
-              ))}
-            </div>
-          </div>
-          <div className="neck-notes" role="group" aria-label="Notes affichées">
-            {ALL.map((pc) => {
-              const st = intervalStyle(degreeOf(pc));
-              const on = shown.has(pc);
-              return (
-                <button key={pc} type="button" className={`neck-note ${on ? 'on' : ''}`} aria-pressed={on} onClick={() => toggle(pc)}>
-                  <span className="neck-swatch" style={{ background: st.fill }} aria-hidden="true" />
-                  {nameOf(pc)}
-                </button>
-              );
-            })}
-          </div>
-          <div className="neck-notes-head neck-focus-head">
-            <span className="t-label">Mettre en avant</span>
-            <span className="t-small t-dim">{focus.size > 0 ? 'Les autres notes affichées s’estompent.' : 'Coche une ou plusieurs notes affichées.'}</span>
-            {focus.size > 0 && (
-              <div className="neck-presets">
-                <button type="button" className="neck-reset" onClick={() => patch({ focus: [] })}>Effacer</button>
-              </div>
-            )}
-          </div>
-          <div className="neck-notes" role="group" aria-label="Notes mises en avant">
-            {ALL.map((pc) => {
-              const st = intervalStyle(degreeOf(pc));
-              const on = focus.has(pc);
-              return (
-                <button key={pc} type="button" className={`neck-note neck-focus ${on ? 'on' : ''}`} aria-pressed={on} disabled={!shown.has(pc)} onClick={() => toggleFocus(pc)}>
-                  <span className="neck-swatch" style={{ background: st.fill }} aria-hidden="true" />
-                  {nameOf(pc)}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div></main>
-    );
-  }
-
+  // Une seule surface au bureau comme au téléphone (D146) : la gamme dans l'en-tête, les réglages du manche
+  // au-dessus de lui, puis les notes. Seule la mise en page change avec la largeur (app.css, « Page Manche »).
   return (
-    <main className="shell"><div className="tool-surface">
-      <header className="page-head">
+    <main className="shell"><div className="tool-surface neck-surface">
+      <header className="page-head neck-head">
         <div>
           <h1 className="page-title">Manche</h1>
           {subtitle}
         </div>
+        <ScaleSelectors scale={r} />
       </header>
-      <ScaleSelectors scale={r} />
 
-      <Panel className="span-12" accent="cyan">
-        {neck}
-      </Panel>
-
-      <Panel className="span-12" label="Cases">
-        <div className="neck-page-options">
-          <label className="field">
-            <span className="t-label">De la case</span>
-            <select value={prefs.from} onChange={(e) => setFrom(Number(e.target.value))}>
-              {FRETS.map((f) => <option key={f} value={f}>{fretLabel(f)}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span className="t-label">À la case</span>
-            <select value={prefs.to} onChange={(e) => setTo(Number(e.target.value))}>
-              {FRETS.map((f) => <option key={f} value={f}>{fretLabel(f)}</option>)}
-            </select>
-          </label>
-          <Chip small selected={whole} onClick={() => patch({ from: 0, to: LAST })}>Tout le manche</Chip>
+      {/* réglages du manche au-dessus de lui, sur une ligne */}
+      <div className="neck-bar">
+        <div className="neck-field">
+          <span className="t-label">Cases</span>
+          {fretSelect(prefs.from, setFrom, 'De la case')}
+          <span className="neck-dash" aria-hidden="true">→</span>
+          {fretSelect(prefs.to, setTo, 'À la case')}
+          {!whole && <button type="button" className="neck-reset" onClick={() => patch({ from: 0, to: LAST })}>Tout le manche</button>}
         </div>
-      </Panel>
-
-      <Panel className="span-12" label="Notes affichées">
-        <div className="neck-page-notes">
-          {ALL.map((pc) => (
-            <Chip key={pc} selected={shown.has(pc)} onClick={() => toggle(pc)}>{nameOf(pc)}</Chip>
-          ))}
+        <div className="neck-field neck-spelling">
+          <span className="t-label">Hors gamme</span>
+          {spellingControl}
         </div>
-        <div className="row">
-          {presets.map(({ label, list }) => (
-            <Chip key={label} small selected={same(list)} onClick={() => patch({ shown: list })}>{label}</Chip>
-          ))}
-        </div>
-      </Panel>
+      </div>
 
-      <Panel className="span-12" label="Mettre en avant">
-        <p className="t-small t-dim">{focus.size > 0 ? 'Les autres notes affichées s’estompent.' : 'Coche une ou plusieurs notes affichées.'}</p>
-        <div className="neck-page-notes">
-          {ALL.map((pc) => (
-            <Chip key={pc} selected={focus.has(pc)} disabled={!shown.has(pc)} onClick={() => toggleFocus(pc)}>{nameOf(pc)}</Chip>
-          ))}
-        </div>
-        {focus.size > 0 && <div className="row"><Chip small onClick={() => patch({ focus: [] })}>Effacer</Chip></div>}
-      </Panel>
+      <div className="neck-main">{neck}</div>
 
-      <Panel className="span-12" label="Affichage">
-        <div className="neck-page-options">
-          <div className="field">
-            <span className="t-label">Notes hors gamme</span>
-            <Segmented<Spelling>
-              size="sm"
-              label="Altérations"
-              value={prefs.spelling}
-              onChange={(spelling) => patch({ spelling })}
-              options={[{ value: 'sharp', label: '♯ dièses' }, { value: 'flat', label: '♭ bémols' }]}
-            />
-          </div>
+      <div className="neck-notes-bar">
+        <div className="neck-notes-head">
+          <span className="t-label">Notes affichées</span>
           {outerSwitch}
+          <div className="neck-presets" role="group" aria-label="Raccourcis">
+            {presets.map(({ label, list }) => (
+              <button key={label} type="button" className={`neck-reset ${same(list) ? 'on' : ''}`} aria-pressed={same(list)} onClick={() => patch({ shown: list })}>{label}</button>
+            ))}
+          </div>
         </div>
-      </Panel>
+        <div className="neck-notes" role="group" aria-label="Notes affichées">
+          {ALL.map((pc) => {
+            const st = intervalStyle(degreeOf(pc));
+            const on = shown.has(pc);
+            return (
+              <button key={pc} type="button" className={`neck-note ${on ? 'on' : ''}`} aria-pressed={on} onClick={() => toggle(pc)}>
+                <span className="neck-swatch" style={{ background: st.fill }} aria-hidden="true" />
+                {nameOf(pc)}
+              </button>
+            );
+          })}
+        </div>
+        <div className="neck-notes-head neck-focus-head">
+          <span className="t-label">Mettre en avant</span>
+          <span className="t-small t-dim">{focus.size > 0 ? 'Les autres notes affichées s’estompent.' : 'Coche une ou plusieurs notes affichées.'}</span>
+          {focus.size > 0 && (
+            <div className="neck-presets">
+              <button type="button" className="neck-reset" onClick={() => patch({ focus: [] })}>Effacer</button>
+            </div>
+          )}
+        </div>
+        <div className="neck-notes" role="group" aria-label="Notes mises en avant">
+          {ALL.map((pc) => {
+            const st = intervalStyle(degreeOf(pc));
+            const on = focus.has(pc);
+            return (
+              <button key={pc} type="button" className={`neck-note neck-focus ${on ? 'on' : ''}`} aria-pressed={on} disabled={!shown.has(pc)} onClick={() => toggleFocus(pc)}>
+                <span className="neck-swatch" style={{ background: st.fill }} aria-hidden="true" />
+                {nameOf(pc)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div></main>
   );
 }

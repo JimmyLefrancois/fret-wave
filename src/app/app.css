@@ -1609,11 +1609,6 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .neck canvas { display: block; image-rendering: pixelated; }
 .neck-stage { position: relative; margin-inline: auto; }
 .neck-overlay { position: absolute; inset: 0; pointer-events: none; }
-/* page Manche : les douze notes à cocher, puis les réglages d'affichage */
-.neck-page-notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: var(--gap-tight); margin-block-end: var(--gap-inside); }
-.neck-page-options { display: flex; flex-wrap: wrap; align-items: end; gap: var(--gap-inside) 24px; }
-.neck-page-options .field { display: grid; gap: 6px; margin: 0; }
-.neck-page-options select { width: auto; min-width: 140px; }
 .neck-link { display: grid; gap: var(--gap-inside); justify-items: start; margin-block-start: var(--gap-inside); }
 
 /* ---- page Métronome (D112) : à l'arrêt tout est là, en jeu les temps prennent la place ----------------- */
@@ -2311,11 +2306,62 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .loop-table th, .loop-table td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line-soft); }
 .loop-table thead th { font-weight: 500; color: var(--muted); }
 
-/* Page Manche au bureau : une surface. Réglages du manche sur une ligne au-dessus de lui, le manche, puis
-   les douze notes en interrupteurs, chacune avec la teinte qu'elle prend sur le manche. */
+/* Page Manche : une surface au bureau comme au téléphone. En-tête avec la gamme, réglages du manche sur une
+   ligne au-dessus de lui, le manche, puis les douze notes en interrupteurs, chacune avec la teinte qu'elle
+   prend sur le manche. Les commandes sont communes ; seule la mise en page dépend de la largeur. */
+.neck-field { display: flex; align-items: center; gap: 10px; }
+.neck-field .t-label { margin: 0; }
+.neck-surface select { width: auto; min-height: 38px; padding: 0 8px; font-size: 15px; }
+.neck-dash { color: var(--dim); }
+.neck-bar .segmented { flex-wrap: nowrap; padding: 0; }
+.neck-notes-head .switch { display: flex; align-items: center; gap: 8px; width: auto; min-height: 38px; margin: 0; padding: 0 2px; background: none; border: 0; }
+.neck-main .neck { scrollbar-color: var(--line) transparent; }
+.neck-notes-bar { display: grid; gap: 12px; border-block-start: var(--bw) solid var(--line-soft); }
+.neck-notes-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
+.neck-notes-head .t-label { margin: 0; }
+.neck-presets { display: flex; gap: 6px; margin-inline-start: auto; }
+.neck-reset {
+  min-height: 32px;
+  padding: 0 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--muted);
+  background: none;
+  border: var(--bw) solid var(--line-soft);
+  cursor: pointer;
+}
+.neck-reset:hover { color: var(--text); border-color: var(--line); }
+.neck-reset.on { color: var(--cyan); border-color: var(--cyan); }
+.neck-notes { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; }
+.neck-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 6px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dim);
+  background: var(--surface);
+  border: var(--bw) solid var(--line-soft);
+  cursor: pointer;
+}
+.neck-note:hover { color: var(--text); border-color: var(--line); }
+.neck-note.on { color: var(--text); background: var(--surface-hi); border-color: var(--line); }
+.neck-swatch { flex: none; width: 12px; height: 12px; border: 2px solid var(--bg-deep); opacity: 0.3; }
+.neck-note.on .neck-swatch { opacity: 1; }
+.neck-reset:focus-visible, .neck-note:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+/* seconde rangée : les notes mises en avant, séparées des notes affichées par un filet pointillé */
+.neck-focus-head { margin-block-start: 6px; padding-block-start: 14px; border-block-start: var(--bw) dashed var(--line-soft); }
+.neck-focus-head .t-small { margin: 0; }
+.neck-note.neck-focus.on { color: var(--cyan); background: var(--surface-hi); border-color: var(--cyan); }
+.neck-note:disabled { opacity: 0.35; cursor: default; }
+.neck-note:disabled:hover { color: var(--dim); border-color: var(--line-soft); }
+
 @media (min-width: 900px) {
   .neck-surface > .page-head { padding: 24px 28px; }
-  /* comme l'en-tête de Jouer : le titre à gauche, la gamme (tonique, gamme, accordage) à droite */
   /* le titre, puis la gamme (tonique, gamme, accordage) sous lui, alignée à droite */
   .neck-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .neck-head .practice-selectors { justify-self: end; grid-template-columns: 96px auto auto; gap: 12px; max-width: none; margin: 0; }
@@ -2327,59 +2373,33 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
     padding: 16px 28px;
     border-block-end: var(--bw) solid var(--line-soft);
   }
-  .neck-field { display: flex; align-items: center; gap: 10px; }
-  .neck-field .t-label { margin: 0; }
-  .neck-surface select { width: auto; min-height: 38px; padding: 0 8px; font-size: 15px; }
-  .neck-dash { color: var(--dim); }
-  .neck-bar .segmented { flex-wrap: nowrap; padding: 0; }
-  .neck-notes-head .switch { display: flex; align-items: center; gap: 8px; width: auto; min-height: 38px; margin: 0; padding: 0 2px; background: none; border: 0; }
-
   .neck-main { padding: 20px 28px; }
-  .neck-main .neck { scrollbar-color: var(--line) transparent; }
+  .neck-notes-bar { padding: 18px 28px 24px; }
+}
 
-  .neck-notes-bar { display: grid; gap: 12px; padding: 18px 28px 24px; border-block-start: var(--bw) solid var(--line-soft); }
-  .neck-notes-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
-  .neck-presets { margin-inline-start: auto; }
-  .neck-notes-head .t-label { margin: 0; }
-  .neck-presets { display: flex; gap: 6px; }
-  .neck-reset {
-    min-height: 32px;
-    padding: 0 12px;
-    font-family: var(--font-body);
-    font-size: 14px;
-    color: var(--muted);
-    background: none;
-    border: var(--bw) solid var(--line-soft);
-    cursor: pointer;
-  }
-  .neck-reset:hover { color: var(--text); border-color: var(--line); }
-  .neck-reset.on { color: var(--cyan); border-color: var(--cyan); }
-
-  .neck-notes { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; }
-  .neck-note {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: 44px;
-    padding: 0 6px;
-    font-family: var(--font-body);
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--dim);
-    background: var(--surface);
-    border: var(--bw) solid var(--line-soft);
-    cursor: pointer;
-  }
-  .neck-note:hover { color: var(--text); border-color: var(--line); }
-  .neck-note.on { color: var(--text); background: var(--surface-hi); border-color: var(--line); }
-  .neck-swatch { flex: none; width: 12px; height: 12px; border: 2px solid var(--bg-deep); opacity: 0.3; }
-  .neck-note.on .neck-swatch { opacity: 1; }
-  .neck-reset:focus-visible, .neck-note:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
-  /* seconde rangée : les notes mises en avant, séparées des notes affichées par un filet pointillé */
-  .neck-focus-head { margin-block-start: 6px; padding-block-start: 14px; border-block-start: var(--bw) dashed var(--line-soft); }
-  .neck-focus-head .t-small { margin: 0; }
-  .neck-note.neck-focus.on { color: var(--cyan); background: var(--surface-hi); border-color: var(--cyan); }
-  .neck-note:disabled { opacity: 0.35; cursor: default; }
-  .neck-note:disabled:hover { color: var(--dim); border-color: var(--line-soft); }
+/* Téléphone : le même ordre dans un seul cadre, des filets à la place des blocs. Les notes passent sur
+   quatre colonnes, les raccourcis sur une grille de deux. */
+@media (max-width: 899px) {
+  .workspace .neck-surface { display: block; min-width: 0; background: var(--surface); border: var(--bw) solid var(--line); box-shadow: var(--shadow) var(--shadow) 0 var(--shadow-ink); }
+  .workspace .neck-surface > .neck-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 0; padding: 14px; background: none; border: 0; border-block-end: var(--bw) solid var(--line); }
+  .neck-head .practice-selectors { margin: 0; }
+  .neck-bar { display: grid; gap: 10px; padding: 12px 14px; border-block-end: var(--bw) solid var(--line-soft); }
+  .neck-field { flex-wrap: wrap; gap: 8px 10px; }
+  .neck-field > .t-label { min-width: 84px; }
+  .neck-surface select { min-height: 40px; }
+  .neck-bar .segmented { flex: 1; max-width: 280px; }
+  .neck-bar .segmented .seg { flex: 1 1 0; }
+  .neck-main { padding: 12px 0 12px 8px; }
+  .neck-notes-bar { padding: 14px; }
+  .neck-notes-head { gap: 6px 16px; }
+  .neck-presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); flex-basis: 100%; margin-inline-start: 0; }
+  .neck-reset { min-height: 40px; }
+  .neck-notes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .neck-focus-head .t-small { flex-basis: 100%; }
+  .neck-focus-head .neck-presets { display: flex; flex-basis: auto; }
+}
+/* tablette en portrait : assez de place pour une rangée de raccourcis et six notes par rangée */
+@media (min-width: 560px) and (max-width: 899px) {
+  .neck-presets { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .neck-notes { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
