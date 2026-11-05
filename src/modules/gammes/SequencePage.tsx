@@ -1,4 +1,5 @@
 import { PracticeHeader, PositionRail, PositionStepper } from './PracticeHeader';
+import { DegreePills } from './DegreePills';
 /**
  * Module Gammes — **séquences avec palier de tempo** (lot « mémoire et vitesse », MUSIC_DESIGN §3.5).
  *
@@ -47,7 +48,7 @@ import {
 } from '../../core/progress';
 import { COUNT_IN_TICKS, blindGrid, scoreBlind, type BlindGrid, type HeardNote } from './blind';
 import { clickMasked } from './exercise';
-import { degreesOf, fmtDegree, legendFor, positionLabelPlain, resolveScale } from './resolve';
+import { degreesOf, fmtDegree, positionLabelPlain, resolveScale } from './resolve';
 import {
   LADDER_MAX, LADDER_MIN, LOOP_EVERY_MAX, LOOP_STEP, judgePass, ladderStart, ladderStep, loopCountBeat, loopLeft, loopNoteIndex, loopRises, loopStep,
   formatTourLog, heardInTour, judgeTour, loopBilan, pauseDue, playedTours, playerStopped, sessionRuns, startTempo, TOURS_START, tourDecides, tourRaise, tourRecord,
@@ -826,7 +827,6 @@ export function SequencePage() {
       </p>
     </>
   );
-  const degrees = legendFor(r.def);
   const beginLabel = `▶ Commencer ${listening && !loopMode ? `(${startTempo(readAttempts(progressStore()), form, pattern)} BPM)` : `à ${manualBpm} BPM`}`;
 
 
@@ -843,11 +843,7 @@ export function SequencePage() {
           {progressView ? progressPanel : (
           <section className="play-tab practice-tab">
             <div className="play-tab-bar">
-              <div className="play-degrees" role="img" aria-label={`Couleurs des degrés : ${degrees.map((it) => it.name).join(', ')}`}>
-                {degrees.map((it) => (
-                  <span key={it.fn} className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
-                ))}
-              </div>
+              <DegreePills def={r.def} tonic={r.tonic} notation={settings.noteNotation} />
               {workField}
               {listenField}
               {patternField}

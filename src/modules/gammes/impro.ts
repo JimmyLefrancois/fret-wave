@@ -11,7 +11,8 @@
  * une grille, pas encore celui qu'on demande à un débutant : l'écran montre le nom de l'accord, et le
  * chiffrage en second.
  */
-import type { ChordContext, ChordQuality } from '../../core/impro/classify';
+import { CHORD_INTERVALS, type ChordContext, type ChordQuality } from '../../core/impro/classify';
+import { getScale, semitonesOf, type ScaleDef } from '../../core/theory';
 
 export type BackingStyle = 'synthwave' | 'lofi';
 export type BackingMode = 'minor' | 'major';
@@ -125,4 +126,70 @@ const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#',
 
 export function chordName(root: number, quality: ChordQuality): string {
   return `${SHARP_NAMES[((root % 12) + 12) % 12]}${QUALITY_SUFFIX[quality]}`;
+}
+
+/* --- grille au choix -------------------------------------------------------------------------------
+   L'élève remplace les accords de la boucle. Un accord est **cohérent avec la gamme** quand toutes ses
+   notes en font partie. Les pentatoniques et les blues n'ont pas assez de notes pour porter des accords
+   (La pentatonique mineure n'a ni Fa ni Si) : on prend alors la gamme à sept notes dont elles sont
+   tirées (éolien pour le mineur, ionien pour le majeur), celle sur laquelle on les joue en pratique. */
+
+/** Gamme de référence pour bâtir les accords : la gamme elle-même, ou sa gamme parente à sept notes. */
+export function harmonyScaleOf(def: ScaleDef): ScaleDef {
+  if (def.id === 'pentatonic-major' || def.id === 'blues-major') return getScale('ionian');
+  if (def.family === 'pentatonic' || def.family === 'blues') return getScale('aeolian');
+  return def;
+}
+
+const QUALITY_ORDER: readonly ChordQuality[] = ['maj', 'min', 'sus4', 'maj7', 'dom7', 'min7'];
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+/** Altération du degré, depuis la qualité de l'intervalle (« 3m » → ♭III, « 4A » → ♯IV). */
+const ACCIDENTAL: Record<string, string> = { m: '♭', d: '♭', A: '♯', M: '', P: '' };
+/** Hors gamme : orthographe par défaut d'un demi-ton. */
+const CHROMATIC_ROMAN = ['I', '♭II', 'II', '♭III', 'III', 'IV', '♭V', 'V', '♭VI', 'VI', '♭VII', 'VII'];
+
+/** Chiffrage romain d'un accord (« ♭VI », « ii7 », « ♭IIImaj7 »), orthographié selon la gamme. */
+export function romanOf(offset: number, quality: ChordQuality, def?: ScaleDef): string {
+  const off = ((offset % 12) + 12) % 12;
+  let base = CHROMATIC_ROMAN[off]!;
+  if (def) {
+    const i = semitonesOf(def).findIndex((st) => ((st % 12) + 12) % 12 === off);
+    const m = i >= 0 ? /^(\d+)([PMmdA])$/.exec(def.intervals[i]!) : null;
+    if (m) base = `${ACCIDENTAL[m[2]!] ?? ''}${ROMAN[(Number(m[1]) - 1) % 7]}`;
+  }
+  const minor = quality === 'min' || quality === 'min7';
+  const numeral = minor ? base.toLowerCase() : base;
+  const suffix: Record<ChordQuality, string> = { maj: '', min: '', sus4: 'sus4', maj7: 'maj7', dom7: '7', min7: '7' };
+  return `${numeral}${suffix[quality]}`;
+}
+
+/**
+ * Accords proposés pour une gamme : sur chaque degré de la gamme de référence, chaque qualité dont toutes
+ * les notes appartiennent à cette gamme. Ordre : degré, puis triades avant septièmes.
+ */
+export function chordChoices(def: ScaleDef): ImproChordSpec[] {
+  const own = chordsInScale(harmonyScaleOf(def));
+  if (own.length >= 4) return own;
+  // gamme symétrique sans quinte juste (tons entiers) : trop peu d'accords, on se rabat sur le mode
+  // majeur ou mineur que dit sa tierce, comme l'accompagnement par défaut
+  const major = semitonesOf(def).some((st) => st % 12 === 4);
+  return chordsInScale(getScale(major ? 'ionian' : 'aeolian'));
+}
+
+function chordsInScale(ref: ScaleDef): ImproChordSpec[] {
+  const pcs = new Set(semitonesOf(ref).map((st) => ((st % 12) + 12) % 12));
+  const out: ImproChordSpec[] = [];
+  for (const root of [...pcs].sort((a, b) => a - b)) {
+    for (const quality of QUALITY_ORDER) {
+      if (CHORD_INTERVALS[quality].every((iv) => pcs.has((root + iv) % 12))) {
+        out.push({ offset: root, quality, roman: romanOf(root, quality, ref) });
+      }
+    }
+  }
+  return out;
+}
+
+/** Un accord fait-il partie des choix ? (même degré, même qualité) */
+export function sameChord(a: Pick<ImproChordSpec, 'offset' | 'quality'>, b: Pick<ImproChordSpec, 'offset' | 'quality'>): boolean {
+  return ((a.offset % 12) + 12) % 12 === ((b.offset % 12) + 12) % 12 && a.quality === b.quality;
 }

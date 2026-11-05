@@ -25,6 +25,7 @@ describe('routeur par hash', () => {
     expect(parseRoute('#/gammes/jouer')).toBe('scale');
     expect(parseRoute('#/gammes/jouer/')).toBe('scale');
     expect(parseRoute('#/reglages')).toBe('settings');
+    expect(parseRoute('#/manche')).toBe('neck');
     expect(parseRoute('#tab')).toBe('tab');
     expect(parseRoute('#audio')).toBe('audio');
     expect(parseRoute('#theorie')).toBe('theory');

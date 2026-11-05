@@ -5,7 +5,7 @@
  */
 import {
   TUNINGS, defaultSystem, degreeLabels, distinctTranspositions, fmtNote, fmtPositionLabel,
-  generatePositions, getScale, parentMajorTonic, pitchClassOf, positionSupport, semitonesOf, simpleSpellings,
+  generatePositions, getScale, parentMajorTonic, scaleNotes, pitchClassOf, positionSupport, semitonesOf, simpleSpellings,
   tonicSpellings, MAJOR_KEYS,
   type DegreeLabel, type NoteName, type NoteNotation, type Position, type PositionSystem, type ScaleDef,
   type SystemAvailability, type Tuning,
@@ -63,6 +63,12 @@ export function legendFor(def: ScaleDef): LegendItem[] {
     const st = intervalStyle(raw);
     return { fn, name: degreeName(fn), fill: st.fill, digit: st.digit, root: st.root, characteristic: chars.has(fn) };
   });
+}
+
+/** Degrés de la gamme avec la note qu'ils désignent sur cette tonique (« ♭3 » → « Do » en La). */
+export function degreeNotes(def: ScaleDef, tonic: NoteName, notation: NoteNotation): { item: LegendItem; note: string }[] {
+  const notes = scaleNotes(def, tonic);
+  return legendFor(def).map((item, i) => ({ item, note: fmtNote(notes[i]!, notation) }));
 }
 
 /** Une corde, de la fondamentale à l'octave : 13 cases, la pastille de la note ou `null`. */

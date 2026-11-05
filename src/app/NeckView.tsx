@@ -22,13 +22,19 @@ export interface NeckViewProps {
   /** Description lue par les lecteurs d'écran (« Position 2, cases 4 à 8 »). */
   label: string;
   maxScale?: number;
+  /** Cases choisies : le manche s'assombrit autour d'elles, et la vue défile jusqu'à elles. */
+  shade?: NeckRange | null;
+  /** Cordes assombries (index 0 = corde grave). */
+  dimStrings?: readonly number[];
+  /** Cadrage imposé (pas de fenêtre autour de la zone) : le conteneur défile s'il ne tient pas. */
+  range?: NeckRange;
   /** Suivi de lecture : la note entendue est cadrée sur le manche. */
   playback?: { score: TabScore; player: TabPlayer; transport: 'stopped' | 'playing' | 'paused' };
 }
 
 const MIN_SCALE = 2;
 
-export function NeckView({ tuning, notes, zone, notation, label, maxScale = 3, playback }: NeckViewProps) {
+export function NeckView({ tuning, notes, zone, notation, label, maxScale = 3, shade = null, range, dimStrings, playback }: NeckViewProps) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const overlay = useRef<HTMLCanvasElement>(null);
@@ -49,10 +55,11 @@ export function NeckView({ tuning, notes, zone, notation, label, maxScale = 3, p
   }, []);
 
   const layout = useMemo(() => {
-    const full = layoutNeck(tuning, notes, { range: neckRange(zone, 'full'), zone, notation });
+    if (range) return layoutNeck(tuning, notes, { range, zone, notation, shade, dimStrings });
+    const full = layoutNeck(tuning, notes, { range: neckRange(zone, 'full'), zone, notation, shade, dimStrings });
     if (!avail || avail >= full.width * MIN_SCALE) return full;
-    return layoutNeck(tuning, notes, { range: neckRange(zone, 'window'), zone, notation });
-  }, [tuning, notes, zone, notation, avail]);
+    return layoutNeck(tuning, notes, { range: neckRange(zone, 'window'), zone, notation, shade, dimStrings });
+  }, [tuning, notes, zone, notation, avail, shade, range, dimStrings]);
 
   const scale = Math.max(MIN_SCALE, Math.min(maxScale, Math.floor((avail || layout.width * MIN_SCALE) / layout.width)));
   const tabTheme = useThemeTokens().tab;
@@ -72,6 +79,21 @@ export function NeckView({ tuning, notes, zone, notation, label, maxScale = 3, p
     s.fillRect(0, 0, layout.width, layout.height, tabTheme.panel);
     drawNeck(s, layout, tabTheme);
   }, [layout, k, tabTheme]);
+
+  // cases choisies hors de vue (téléphone) : on amène leur début au bord gauche, avec une case d'air
+  const shadeFrom = shade?.from ?? null;
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el || shadeFrom === null || el.scrollWidth <= el.clientWidth) return;
+    const v = layout.veil;
+    const leftVeil = shadeFrom > 0 && v.length > 0 && v[0]!.x <= layout.wireX[0]! ? v[0]! : null;
+    const rightVeil = v.find((q) => q !== leftVeil) ?? null;
+    const selLeft = (leftVeil ? leftVeil.x + leftVeil.w : 0) * scale;
+    const selRight = (rightVeil ? rightVeil.x : layout.width) * scale;
+    // déjà en vue : on ne bouge rien (sur un grand écran le manche entier tient presque)
+    if (selLeft >= el.scrollLeft && selRight <= el.scrollLeft + el.clientWidth) return;
+    el.scrollTo({ left: Math.max(0, selLeft - layout.fretW * scale), behavior: 'smooth' });
+  }, [shadeFrom, layout, scale]);
 
   const score = playback?.score;
   const player = playback?.player;

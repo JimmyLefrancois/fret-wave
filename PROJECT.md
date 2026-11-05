@@ -11,6 +11,8 @@ Légende : **[HYP]** hypothèse prise sans te bloquer · **[À TRANCHER]** déci
 ---
 
 
+**Page Manche (D145)** : `#/manche`, toutes les notes du manche, notes à cocher, plage de cases et cordes de Mi assombries ; testée (`tests/fretboardNotes.test.ts`), vérifiée au navigateur de 900 à 1920 px dans les deux thèmes et à 390 px.
+
 **Réglages au téléphone (D144)** : une seule surface, rubriques séparées par des filets ; fonctions et ordre conservés.
 
 ## État exact de la révision des accords et de l'accueil (D139)

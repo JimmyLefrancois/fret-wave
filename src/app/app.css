@@ -579,6 +579,9 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   box-shadow: 0 0 10px -2px currentColor;
 }
 .legend-name { font-size: 15px; color: var(--text); }
+/* bandeau des degrés : la pastille, et sa note dessous */
+.degree-cell { display: inline-grid; justify-items: center; gap: 3px; min-inline-size: 26px; }
+.degree-note { font-size: 11.5px; line-height: 1; color: var(--dim); white-space: nowrap; }
 .legend-item .tag { margin-left: 2px; }
 
 /* la gamme sur une corde : treize cases, le fil de la corde passe sous les pastilles */
@@ -682,6 +685,7 @@ select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   font-weight: 600;
   font-size: min(11.5px, 2.9vw);
   letter-spacing: 0;
+  text-decoration: none;
   cursor: pointer;
 }
 .navbtn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
@@ -1466,6 +1470,29 @@ details[open] > * + * { margin-block-start: var(--gap-inside); }
 .impro-chord-name { font-family: var(--font-label); font-size: 13px; color: var(--text); }
 .impro-chord-roman { font-size: 11.5px; color: var(--dim); }
 .impro-chord.on .impro-chord-roman { color: var(--magenta); }
+/* le nom de l'accord est un menu : l'élève choisit l'accord de chaque mesure */
+.impro-chord .impro-chord-select {
+  width: 100%;
+  min-height: 32px;
+  padding: 0 4px;
+  font-size: 13px;
+  text-align: center;
+  text-align-last: center;
+  background: var(--bg);
+  border: var(--bw) solid var(--line-soft);
+  cursor: pointer;
+}
+.impro-chord.on .impro-chord-select { border-color: var(--magenta); }
+.impro-chord-notes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 6px;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.impro-chord.on .impro-chord-notes { color: var(--text); }
 
 
 .impro-notes { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1582,6 +1609,11 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .neck canvas { display: block; image-rendering: pixelated; }
 .neck-stage { position: relative; margin-inline: auto; }
 .neck-overlay { position: absolute; inset: 0; pointer-events: none; }
+/* page Manche : les douze notes à cocher, puis les réglages d'affichage */
+.neck-page-notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: var(--gap-tight); margin-block-end: var(--gap-inside); }
+.neck-page-options { display: flex; flex-wrap: wrap; align-items: end; gap: var(--gap-inside) 24px; }
+.neck-page-options .field { display: grid; gap: 6px; margin: 0; }
+.neck-page-options select { width: auto; min-width: 140px; }
 .neck-link { display: grid; gap: var(--gap-inside); justify-items: start; margin-block-start: var(--gap-inside); }
 
 /* ---- page Métronome (D112) : à l'arrêt tout est là, en jeu les temps prennent la place ----------------- */
@@ -1795,7 +1827,7 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
   /* la tablature prend la marge de la surface : quelques pastilles de plus tiennent sans défiler */
   .play-tab > :not(.tabview) { margin-inline: 12px; }
   .play-tab-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding-block-end: var(--gap-block); border-block-end: var(--bw) solid var(--line-soft); }
-  .play-degrees { display: flex; gap: 4px; }
+  .play-degrees { display: flex; gap: 6px; }
   .play-tab-bar .field { display: flex; align-items: center; gap: 10px; margin: 0; }
   .play-tab-bar .segmented { flex-wrap: nowrap; padding: 0; }
   .play-tab-bar .switch-hint { display: none; }
@@ -2278,3 +2310,76 @@ button.level:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px
 .loop-table { width: 100%; max-width: 420px; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
 .loop-table th, .loop-table td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line-soft); }
 .loop-table thead th { font-weight: 500; color: var(--muted); }
+
+/* Page Manche au bureau : une surface. Réglages du manche sur une ligne au-dessus de lui, le manche, puis
+   les douze notes en interrupteurs, chacune avec la teinte qu'elle prend sur le manche. */
+@media (min-width: 900px) {
+  .neck-surface > .page-head { padding: 24px 28px; }
+  /* comme l'en-tête de Jouer : le titre à gauche, la gamme (tonique, gamme, accordage) à droite */
+  /* le titre, puis la gamme (tonique, gamme, accordage) sous lui, alignée à droite */
+  .neck-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .neck-head .practice-selectors { justify-self: end; grid-template-columns: 96px auto auto; gap: 12px; max-width: none; margin: 0; }
+  .neck-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+    padding: 16px 28px;
+    border-block-end: var(--bw) solid var(--line-soft);
+  }
+  .neck-field { display: flex; align-items: center; gap: 10px; }
+  .neck-field .t-label { margin: 0; }
+  .neck-surface select { width: auto; min-height: 38px; padding: 0 8px; font-size: 15px; }
+  .neck-dash { color: var(--dim); }
+  .neck-bar .segmented { flex-wrap: nowrap; padding: 0; }
+  .neck-notes-head .switch { display: flex; align-items: center; gap: 8px; width: auto; min-height: 38px; margin: 0; padding: 0 2px; background: none; border: 0; }
+
+  .neck-main { padding: 20px 28px; }
+  .neck-main .neck { scrollbar-color: var(--line) transparent; }
+
+  .neck-notes-bar { display: grid; gap: 12px; padding: 18px 28px 24px; border-block-start: var(--bw) solid var(--line-soft); }
+  .neck-notes-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
+  .neck-presets { margin-inline-start: auto; }
+  .neck-notes-head .t-label { margin: 0; }
+  .neck-presets { display: flex; gap: 6px; }
+  .neck-reset {
+    min-height: 32px;
+    padding: 0 12px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted);
+    background: none;
+    border: var(--bw) solid var(--line-soft);
+    cursor: pointer;
+  }
+  .neck-reset:hover { color: var(--text); border-color: var(--line); }
+  .neck-reset.on { color: var(--cyan); border-color: var(--cyan); }
+
+  .neck-notes { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; }
+  .neck-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 6px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--dim);
+    background: var(--surface);
+    border: var(--bw) solid var(--line-soft);
+    cursor: pointer;
+  }
+  .neck-note:hover { color: var(--text); border-color: var(--line); }
+  .neck-note.on { color: var(--text); background: var(--surface-hi); border-color: var(--line); }
+  .neck-swatch { flex: none; width: 12px; height: 12px; border: 2px solid var(--bg-deep); opacity: 0.3; }
+  .neck-note.on .neck-swatch { opacity: 1; }
+  .neck-reset:focus-visible, .neck-note:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+  /* seconde rangée : les notes mises en avant, séparées des notes affichées par un filet pointillé */
+  .neck-focus-head { margin-block-start: 6px; padding-block-start: 14px; border-block-start: var(--bw) dashed var(--line-soft); }
+  .neck-focus-head .t-small { margin: 0; }
+  .neck-note.neck-focus.on { color: var(--cyan); background: var(--surface-hi); border-color: var(--cyan); }
+  .neck-note:disabled { opacity: 0.35; cursor: default; }
+  .neck-note:disabled:hover { color: var(--dim); border-color: var(--line-soft); }
+}

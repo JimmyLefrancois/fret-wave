@@ -251,6 +251,9 @@ Le magenta reste à l'action principale, une seule à l'écran. **Ouvrir le micr
 ### Navigation
 Barre opaque (`--bg-deep`, trait 2 px `--line`) à six destinations au bureau, cinq au téléphone où Réglages passe dans l'en-tête, icônes pixel pleines 10×10 dessinées à ×2 (20 px). Téléphone : en bas, pleine largeur, icône au-dessus d'un libellé sans-serif de 11,5 px au plus (la taille suit la largeur pour que six onglets tiennent), 56 px de haut. Bureau (≥ 900 px) : en haut, onglets alignés à gauche sur le bord du contenu, icône et libellé de 14 px sur une ligne, 52 px de haut, sans cadre ni mot-symbole (la marque vit dans l'affiche de l'accueil). Repos en `--dim`, survol en `--text`, actif en magenta (icône et libellé), sans halo. Libellé tronqué par ellipse, jamais à la ligne.
 
+### Page Manche (D145)
+Bureau : une surface. En-tête : le titre, puis tonique, gamme et accordage sous lui, alignés à droite, puis une ligne de réglages du manche (cases de/à, ♯/♭ hors gamme, sélecteurs de 38 px), le manche, puis « Notes affichées » : douze interrupteurs carrés en grille, chacun avec un carré de la teinte de sa pastille (`intervalStyle`), éteint en `--dim` et carré à 30 %, allumé sur `--surface-hi` ; raccourcis en boutons à trait fin, actif en cyan. Hors des cases choisies et sur les cordes assombries, un voile (panneau mêlé de noir, 72 %) recouvre le manche et ses pastilles ; la référence n'y est plus cerclée.
+
 ### Tablature (composant signature)
 Panneau de tablature dessiné au canvas : cordes fines, barres de mesure, chiffres sur pastilles colorées par intervalle avec contour qui sépare du fond (sombre en nuit, papier en aube), curseur de lecture magenta à cœur clair. Sur aube, le panneau s'éclaircit (`#FFFBF5`, encre `#2B0B2E`) mais les aplats d'intervalle restent saturés. Le chiffre sur pastille a toujours un contour : jamais de scanlines dessus.
 

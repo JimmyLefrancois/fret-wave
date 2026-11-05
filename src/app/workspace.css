@@ -115,11 +115,11 @@
 @media (max-width: 899px) {
   .mobile-brand { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 16px; background: var(--bg-deep); border-bottom: var(--bw) solid var(--line); position: relative; z-index: 2; }
   .mobile-brand .brand { font-size: 18px; }
-  .mobile-brand button { display: grid; place-items: center; width: 44px; height: 44px; color: var(--muted); background: var(--surface); border: var(--bw) solid var(--line); }
+  .mobile-brand .mobile-settings { display: grid; place-items: center; width: 44px; height: 44px; color: var(--muted); background: var(--surface); border: var(--bw) solid var(--line); }
   .workspace .shell { max-width: 768px; padding: 18px 12px 0; }
   .workspace .app-content { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
-  .workspace .bottombar { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .workspace .navbtn { height: 64px; font-size: 12px; }
+  .workspace .bottombar { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .workspace .navbtn { height: 64px; font-size: 11px; }
   .workspace .page-title { font-size: clamp(25px, 6.8vw, 36px); }
   /* le bas de page ne dépend pas du dernier bloc : pas de marge en plus au-dessus de la navigation */
   .workspace .shell > .panel:last-child { margin-bottom: 0; }

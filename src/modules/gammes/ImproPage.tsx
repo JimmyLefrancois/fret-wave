@@ -23,7 +23,7 @@ import { ensureInputEngine, windowFor } from '../../app/inputSession';
 import { CHORD_INTERVALS, judgeNote, ROLE_LABEL, summarizeImpro, type ImproNote, type ImproStats, type NoteRole } from '../../core/impro/classify';
 import { locateInScore, scoreNotes, type PlacedNote } from '../../core/impro/locate';
 import { positionToScore } from '../../core/tab/generators';
-import { Chip, Panel, PixelButton } from '../../app/ui';
+import { Chip, Panel, PixelButton, Segmented } from '../../app/ui';
 import { TabView } from '../../app/TabView';
 import { useSettings } from '../../app/settings';
 import { useDesktop } from '../../app/useDesktop';
@@ -33,8 +33,11 @@ import { PlaySection } from './PlaySection';
 import { setScaleSelection, useScaleSelection } from '../../app/scaleSession';
 import { fmtNote, pitchClassOf } from '../../core/theory';
 import { noteNameOf } from '../../core/input/match';
-import { chordAtMeasure, chordName, backingsFor, IMPRO_BACKINGS, STYLE_LABEL, type BackingMode, type BackingStyle } from './impro';
-import { legendFor, positionLabelPlain, resolveScale } from './resolve';
+import { chordAtMeasure, chordChoices, chordName, backingsFor, IMPRO_BACKINGS, sameChord, STYLE_LABEL, type BackingMode, type BackingStyle, type ImproBackage, type ImproChordSpec } from './impro';
+import { DegreePills } from './DegreePills';
+import { ANNOTATIONS } from './annotations';
+import type { AnnotationKind } from '../../core/tab';
+import { positionLabelPlain, resolveScale } from './resolve';
 
 const ROLE_CLASS: Record<NoteRole, string> = {
   chord: 'impro-role-chord',
@@ -92,7 +95,22 @@ export function ImproPage() {
   }, [scalePcs, tonicPc]);
 
   const [style, setStyle] = useState<BackingStyle>('synthwave');
-  const backing = useMemo(() => backingsFor(mode).find((b) => b.style === style) ?? IMPRO_BACKINGS[0]!, [mode, style]);
+  const preset = useMemo(() => backingsFor(mode).find((b) => b.style === style) ?? IMPRO_BACKINGS[0]!, [mode, style]);
+  /** Accords proposés pour la grille : ceux dont toutes les notes sont dans la gamme (ou sa parente). */
+  const choices = useMemo(() => chordChoices(r.def), [r.def]);
+  /**
+   * Grille choisie par l'élève. Elle vaut pour un style, une gamme et une tonique : en changer revient à
+   * la grille du style, plutôt que de garder des accords qui n'appartiennent plus à la gamme.
+   */
+  const gridKey = `${preset.id}|${r.def.id}|${r.tonic}`;
+  const [custom, setCustom] = useState<{ key: string; chords: ImproChordSpec[] } | null>(null);
+  const customChords = custom?.key === gridKey ? custom.chords : null;
+  const backing: ImproBackage = useMemo(() => (customChords ? { ...preset, chords: customChords } : preset), [preset, customChords]);
+  const setChordAt = (i: number, spec: ImproChordSpec) => {
+    const next = [...backing.chords];
+    next[i] = spec;
+    setCustom(next.every((c, k) => sameChord(c, preset.chords[k]!)) ? null : { key: gridKey, chords: next });
+  };
   const [tempo, setTempo] = useState(backing.tempo);
   useEffect(() => setTempo(backing.tempo), [backing.tempo]);
 
@@ -268,6 +286,7 @@ export function ImproPage() {
     for (const t of flashTimers.current) window.clearTimeout(t);
   }, []);
 
+  const [annotation, setAnnotation] = useState<AnnotationKind>('degree');
   const live = useMemo(() => (takes.length > 0 ? summarizeImpro(takes) : null), [takes]);
   const recent = takes.slice(-8);
   const lane = r.position ? `${positionLabelPlain(r.position, settings.noteNotation)} · ${r.title}` : r.title;
@@ -277,7 +296,7 @@ export function ImproPage() {
       score={score}
       notes={settings.noteNotation}
       chords={settings.chordNotation}
-      annotation="none"
+      annotation={annotation}
       mode="wrap"
       scale="auto"
       reduceMotion={settings.reduceMotion}
@@ -286,6 +305,15 @@ export function ImproPage() {
       hideRhythm
       oneLine={wide || landscape}
       {...(flash.length > 0 ? { flash } : {})}
+    />
+  );
+  const annotationOptions = (
+    <Segmented
+      size="sm"
+      label="Annotation"
+      value={annotation}
+      onChange={setAnnotation}
+      options={ANNOTATIONS.map((a) => ({ value: a.value, label: a.label }))}
     />
   );
   const styleChips = (
@@ -298,15 +326,37 @@ export function ImproPage() {
   const chordGrid = (
     <div className="impro-grid">
       {backing.chords.map((c, i) => {
-        const name = chordName(((tonicPc + c.offset) % 12 + 12) % 12, c.quality);
+        const root = ((tonicPc + c.offset) % 12 + 12) % 12;
+        const name = chordName(root, c.quality);
+        const notes = CHORD_INTERVALS[c.quality].map((iv) => fmtNote(noteNameOf(60 + root + iv), settings.noteNotation));
         return (
           <div key={`${c.roman}-${i}`} className={`impro-chord ${transport === 'playing' && i === measure ? 'on' : ''}`}>
-            <span className="impro-chord-name">{name}</span>
-            <span className="impro-chord-roman">{c.roman}</span>
+            {(() => {
+              const known = choices.findIndex((o) => sameChord(o, c));
+              return (
+                <select
+                  className="impro-chord-name impro-chord-select"
+                  aria-label={`Accord de la mesure ${i + 1}`}
+                  value={known >= 0 ? String(known) : 'off'}
+                  onChange={(e) => { const o = choices[Number(e.target.value)]; if (o) setChordAt(i, o); }}
+                >
+                  {known < 0 && <option value="off">{name} (hors gamme)</option>}
+                  {choices.map((o, k) => (
+                    <option key={k} value={k}>{chordName(((tonicPc + o.offset) % 12 + 12) % 12, o.quality)} · {o.roman}</option>
+                  ))}
+                </select>
+              );
+            })()}
+            <span className="impro-chord-notes" aria-label={`Notes de ${name} : ${notes.join(', ')}`}>
+              {notes.map((n, k) => <span key={k}>{n}</span>)}
+            </span>
           </div>
         );
       })}
     </div>
+  );
+  const resetGrid = customChords && (
+    <PixelButton variant="quiet" onClick={() => setCustom(null)}>↺ Grille {STYLE_LABEL[style]}</PixelButton>
   );
   const tempoControl = (
     <div className="tempo-group">
@@ -321,7 +371,7 @@ export function ImproPage() {
   const accompaniment = (
     <>
       <p className="t-small">{lane} · {tempo} BPM</p>
-      <p className="t-small t-dim">{backing.why}</p>
+      <p className="t-small t-dim">{customChords ? 'Grille personnalisée : choisis chaque accord dans la grille, parmi ceux qui tiennent dans la gamme.' : backing.why}</p>
     </>
   );
   const howToPlay = (
@@ -329,11 +379,6 @@ export function ImproPage() {
       <p className="t-small t-dim">Ouvre le micro, lance l’accompagnement et joue : tes notes apparaîtront sur la tablature.</p>
       <p className="t-small t-dim">L’accord en cours s’allume dans la grille. Essaie de jouer ses notes sur les temps forts et les autres en passage.</p>
     </>
-  );
-  const chordNotes = (
-    <p className="t-small t-dim">
-      Notes de l’accord : {CHORD_INTERVALS[chord.quality].map((iv) => fmtNote(noteNameOf(60 + chord.root + iv), settings.noteNotation)).join(' · ')}
-    </p>
   );
   const take = (
     <>
@@ -375,7 +420,6 @@ export function ImproPage() {
     const playing = transport === 'playing';
     // micro fermé, c'est lui l'action principale : Démarrer garde le cyan des modes, le magenta reste unique
     const micFirst = !micOn && !playing;
-    const degrees = legendFor(r.def);
     return (
       <main className="shell play-shell">
         <div className="play-surface practice-surface">
@@ -383,10 +427,10 @@ export function ImproPage() {
 
           <section className="play-tab practice-tab">
             <div className="play-tab-bar">
-              <div className="play-degrees" role="img" aria-label={`Couleurs des degrés : ${degrees.map((it) => it.name).join(', ')}`}>
-                {degrees.map((it) => (
-                  <span key={it.fn} className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
-                ))}
+              <DegreePills def={r.def} tonic={r.tonic} notation={settings.noteNotation} />
+              <div className="field">
+                <span className="t-label">Annotation</span>
+                {annotationOptions}
               </div>
               <div className="field">
                 <span className="t-label">Style</span>
@@ -396,7 +440,7 @@ export function ImproPage() {
             </div>
             <div className="impro-live">
               {chordGrid}
-              {chordNotes}
+              {resetGrid}
             </div>
             <div className="practice-score"><PositionRail scale={r} disabled={transport === 'playing'} /><div className="practice-score-body"><p className="practice-position">{positionLabelPlain(r.position!, settings.noteNotation)}</p>{tab}</div></div>
           </section>
@@ -516,6 +560,7 @@ export function ImproPage() {
                   <PixelButton variant="quiet" onClick={() => setScaleSelection({ positionIndex: Math.min(r.positions.length - 1, r.selection.positionIndex + 1) })} disabled={r.selection.positionIndex >= r.positions.length - 1} ariaLabel="Position suivante">›</PixelButton>
                 </div>
                 <div className="row">{styleChips}</div>
+                {annotationOptions}
               </>
             )}
             {tempoControl}
@@ -527,7 +572,7 @@ export function ImproPage() {
             )}
             {live && <span className="badge badge-count">{live.notes} notes</span>}
           </div>
-          <div className="land-chords">{chordGrid}{chordNotes}</div>
+          <div className="land-chords">{chordGrid}{resetGrid}</div>
           <div className="land-body">{tab}</div>
           {status && <div className="land-status"><p className="t-small ko">{status}</p></div>}
         </LandscapeView>

@@ -6,11 +6,10 @@ import { SCALE_GROUPS } from './content';
 import { type ResolvedScale } from './resolve';
 import { ScaleTabs, type ScaleTab } from './ScaleTabs';
 
-/** Les réglages communs précèdent l'outil ; ils ne changent jamais pendant une prise. */
-export function PracticeHeader({ scale: r, current, disabled = false }: { scale: ResolvedScale; current: ScaleTab; disabled?: boolean }) {
+/** Tonique, gamme et accordage : la sélection partagée par les pages de gamme et la page Manche. */
+export function ScaleSelectors({ scale: r, disabled = false }: { scale: ResolvedScale; disabled?: boolean }) {
   const settings = useSettings();
-  return <header className="practice-head">
-    <h1 className="page-title">{r.title}</h1>
+  return (
     <fieldset className="practice-selectors" disabled={disabled}>
       <legend className="sr-only">Choisir la gamme</legend>
       <label><span className="sr-only">Tonique</span><select aria-label="Tonique" value={r.selection.tonic} onChange={e => setScaleSelection({ tonic: e.target.value, positionIndex: 0 })}>
@@ -23,6 +22,14 @@ export function PracticeHeader({ scale: r, current, disabled = false }: { scale:
         {Object.values(TUNINGS).map(t => <option key={t.id} value={t.id}>{t.nameFr}</option>)}
       </select></label>
     </fieldset>
+  );
+}
+
+/** Les réglages communs précèdent l'outil ; ils ne changent jamais pendant une prise. */
+export function PracticeHeader({ scale: r, current, disabled = false }: { scale: ResolvedScale; current: ScaleTab; disabled?: boolean }) {
+  return <header className="practice-head">
+    <h1 className="page-title">{r.title}</h1>
+    <ScaleSelectors scale={r} disabled={disabled} />
     <ScaleTabs current={current} />
   </header>;
 }

@@ -1,4 +1,5 @@
 import { PracticeHeader, PositionRail, PositionStepper } from './PracticeHeader';
+import { DegreePills } from './DegreePills';
 /**
  * Module Gammes — « Découvrir » (BRIEF.md §2, docs/ARCHITECTURE.md §6.3).
  * La gamme est écrite en tablature, en aller-retour, avec :
@@ -29,13 +30,8 @@ import { LandscapeView, openLandscape } from '../../app/LandscapeView';
 import {
   compareChoices, counterpartPosition, differingDegrees, markDegrees, neighbourPositions, relativeDegrees, samePlaceIndex,
 } from './compare';
+import { ANNOTATIONS } from './annotations';
 
-const ANNOTATIONS: { value: AnnotationKind; label: string }[] = [
-  { value: 'note', label: 'Notes' },
-  { value: 'degree', label: 'Degrés' },
-  { value: 'interval', label: 'Intervalles' },
-  { value: 'finger', label: 'Doigtés' },
-];
 
 /** Sous-ensembles de cordes du découpage : on commence par les cordes graves (début de la montée). */
 type StringLimit = 0 | 2 | 3 | 4;
@@ -492,11 +488,7 @@ export function ScaleDiscoveryPage() {
 
           <section className="play-tab practice-tab">
             <div className="play-tab-bar">
-              <div className="play-degrees" role="img" aria-label={`Couleurs des degrés : ${legend.map((it) => it.name).join(', ')}`}>
-                {legend.map((it) => (
-                  <span key={it.fn} className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
-                ))}
-              </div>
+              <DegreePills def={r.def} tonic={r.tonic} notation={settings.noteNotation} />
               <div className="field">
                 <span className="t-label">Annotation</span>
                 {annotationOptions}

@@ -10,6 +10,7 @@
  * c'est la seule mesure honnête de ce qui est retenu. Une case révélée après deux erreurs compte comme fausse.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DegreePills } from './DegreePills';
 import { navigate } from '../../app/router';
 import { clearFormReview, peekFormReview, setScaleSelection, useScaleSelection } from '../../app/scaleSession';
 import { useSettings } from '../../app/settings';
@@ -26,7 +27,7 @@ import { neckNotes, positionToScore } from '../../core/tab';
 import {
   PASS, appendAttempt, cardOf, cardsFrom, newAttemptId, nodeIdOf, progressStore, readAttempts, type Attempt,
 } from '../../core/progress';
-import { degreeName, fmtDegree, legendFor, positionLabelPlain, resolveScale } from './resolve';
+import { degreeName, fmtDegree, positionLabelPlain, resolveScale } from './resolve';
 import { TabLegend } from './TabLegend';
 import { PlaySection } from './PlaySection';
 import { useDesktop } from '../../app/useDesktop';
@@ -758,7 +759,6 @@ export function ScaleReviewPage() {
     </>
   );
   const skip = coldActive && <PixelButton variant="quiet" onClick={nextInQueue}>Passer · forme suivante</PixelButton>;
-  const degrees = legendFor(r.def);
   const headTag = queue.length > 0 ? `Session ${qIndex + 1} / ${queue.length}${coldActive ? ' · à froid' : ''}` : 'Révision';
   const subtitle = <p className="t-small t-dim">{positionLabelPlain(r.position, settings.noteNotation)} · position entière, aller-retour</p>;
   const back = <button type="button" className="back" onClick={leave} aria-label="Retour à Gammes">‹</button>;
@@ -789,11 +789,7 @@ export function ScaleReviewPage() {
             <div className="play-tab-bar">
               {/* à froid, rien ne fuit : pas de légende avant la fin de la série */}
               {tabLegend !== false && (
-                <div className="play-degrees" role="img" aria-label={`Couleurs des degrés : ${degrees.map((it) => it.name).join(', ')}`}>
-                  {degrees.map((it) => (
-                    <span key={it.fn} className="legend-pill" style={{ background: it.fill, color: it.digit }}>{it.fn}</span>
-                  ))}
-                </div>
+                <DegreePills def={r.def} tonic={r.tonic} notation={settings.noteNotation} />
               )}
               {skip}
             </div>

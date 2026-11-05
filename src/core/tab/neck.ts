@@ -16,6 +16,8 @@
 import { fingeringsForPosition, noteKey } from '../theory/fingerings';
 import { fmtNote, fmtStringLabel } from '../theory/notation';
 import { sharedNotes, type Position } from '../theory/positions';
+import { degreeLabels, pitchClassOf, scaleNotes, type ScaleDef } from '../theory/scales';
+import type { NoteName } from '../theory/types';
 import type { NoteNotation } from '../theory/types';
 import type { Tuning } from '../theory/tunings';
 import { mix, type TabTheme } from './colors';
@@ -79,6 +81,70 @@ export function neckNotes(pos: Position, kind: AnnotationKind, notation: NoteNot
   });
 }
 
+/** Noms des douze notes, en dièses ou en bémols (modèle anglo, formaté ensuite par `fmtNote`). */
+export const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
+export const FLAT_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'] as const;
+/** Degré d'une note par rapport à une référence, pour la teinte de la pastille. */
+export const DEGREE_OF_SEMITONE = ['1', 'b2', '2', 'b3', '3', '4', '#4', '5', 'b6', '6', 'b7', '7'] as const;
+
+export interface FretboardOptions {
+  /** Classes de hauteur à montrer (0 = Do). */
+  pitchClasses: ReadonlySet<number>;
+  /** Classe de hauteur de référence : elle donne le degré, donc la couleur. */
+  reference: number;
+  spelling: 'sharp' | 'flat';
+  notation: NoteNotation;
+  /** Dernière case incluse. */
+  maxFret: number;
+  /**
+   * Orthographe d'une gamme (voir `scaleSpellings`) : ses notes gardent leur nom et leur degré
+   * (« Si♭ » et « 4 » en Fa majeur, pas « La♯ » ni « ♯3 ») ; les autres suivent `spelling`.
+   */
+  spellings?: ReadonlyMap<number, { note: NoteName; degree: string }>;
+  /** Notes mises en avant : dès qu'il y en a une, les autres notes affichées s'estompent. */
+  focus?: ReadonlySet<number>;
+}
+
+/** Nom et degré de chaque note d'une gamme, rangés par classe de hauteur. */
+export function scaleSpellings(def: ScaleDef, tonic: NoteName): Map<number, { note: NoteName; degree: string }> {
+  const notes = scaleNotes(def, tonic);
+  const degrees = degreeLabels(def);
+  return new Map(notes.map((note, i) => [pitchClassOf(note), { note, degree: degrees[i]! }]));
+}
+
+/** Toutes les notes du manche (cordes à vide comprises) dont la classe de hauteur est choisie. */
+export function fretboardNotes(tuning: Tuning, o: FretboardOptions): NeckNote[] {
+  const names = o.spelling === 'flat' ? FLAT_NAMES : SHARP_NAMES;
+  const out: NeckNote[] = [];
+  tuning.strings.forEach((open, string) => {
+    const base = pitchClassOf(open);
+    for (let fret = 0; fret <= o.maxFret; fret++) {
+      const pc = (base + fret) % 12;
+      if (!o.pitchClasses.has(pc)) continue;
+      const own = o.spellings?.get(pc);
+      out.push({
+        string,
+        fret,
+        degree: own?.degree ?? DEGREE_OF_SEMITONE[(pc - o.reference + 12) % 12]!,
+        label: fmtNote(own?.note ?? names[pc]!, o.notation),
+        ...(o.focus && o.focus.size > 0 && !o.focus.has(pc) ? { dim: true } : {}),
+      });
+    }
+  });
+  return out;
+}
+
+/**
+ * Les deux cordes extrêmes (grave et aiguë) : en standard, les deux Mi, qui portent les mêmes notes.
+ * `same` dit si elles sonnent la même note à vide (faux en Drop D, en 7 cordes…).
+ */
+export function outerStrings(tuning: Tuning): { strings: [number, number]; pcs: [number, number]; same: boolean } {
+  const last = tuning.strings.length - 1;
+  const lo = pitchClassOf(tuning.strings[0]!);
+  const hi = pitchClassOf(tuning.strings[last]!);
+  return { strings: [0, last], pcs: [lo, hi], same: lo === hi };
+}
+
 /** Deux positions sur le même manche : la première en plein, l'autre estompée, leurs cases communes marquées. */
 export function linkNeckNotes(pos: Position, other: Position, kind: AnnotationKind, notation: NoteNotation = 'fr'): NeckNote[] {
   const key = (n: { string: number; fret: number }) => noteKey(n.string, n.fret);
@@ -116,6 +182,10 @@ export interface NeckLayout {
   inlays: { x: number; y: number }[];
   /** Zone de la position (cases fretMin → fretMax), en fond. */
   zone: { x: number; w: number } | null;
+  /** Bandes assombries hors des cases choisies (option `shade`) : le manche s'éteint autour d'elles. */
+  veil: { x: number; w: number }[];
+  /** Cordes assombries (option `dimStrings`) : une bande par corde, sur toute la longueur du manche. */
+  stringVeil: { x: number; y: number; w: number; h: number }[];
   pills: PillLayout[];
 }
 
@@ -134,7 +204,7 @@ export function neckRange(zone: NeckRange, mode: 'full' | 'window', maxFret = 24
 export function layoutNeck(
   tuning: Tuning,
   notes: readonly NeckNote[],
-  opts: { range: NeckRange; zone?: NeckRange | null; notation?: NoteNotation },
+  opts: { range: NeckRange; zone?: NeckRange | null; notation?: NoteNotation; shade?: NeckRange | null; dimStrings?: readonly number[] },
 ): NeckLayout {
   const m = NECK_METRICS;
   const n = tuning.strings.length;
@@ -168,6 +238,8 @@ export function layoutNeck(
   const numbers: NeckLayout['numbers'] = [];
   const marked = new Set(INLAYS.filter((f) => f >= Math.max(1, range.from) && f <= range.to));
   if (!nut) marked.add(range.from); // une fenêtre dit toujours où elle commence
+  // cases choisies : leurs bornes sont numérotées, on lit tout de suite « de 5 à 8 »
+  if (opts.shade) for (const f of [opts.shade.from, opts.shade.to]) if (f >= Math.max(1, range.from) && f <= range.to) marked.add(f);
   for (const f of [...marked].sort((a, b) => a - b)) {
     const text = String(f);
     numbers.push({ x: cellX(f) - Math.floor(textWidth(text) / 2), y: numY, text });
@@ -193,6 +265,29 @@ export function layoutNeck(
       })()
     : null;
 
+  // le voile couvre tout le manche hors des cases choisies (case 0 = colonne des cordes à vide)
+  const veil: NeckLayout['veil'] = [];
+  const sh = opts.shade;
+  if (sh) {
+    const neckLeft = m.padL + labelW;
+    const neckRight = width;
+    const from = Math.max(range.from, sh.from);
+    const to = Math.min(range.to, sh.to);
+    if (from > to) veil.push({ x: neckLeft, w: neckRight - neckLeft });
+    else {
+      const inLeft = from === 0 ? neckLeft : xOfWire(from - 1) + 1;
+      const inRight = xOfWire(to);
+      if (inLeft > neckLeft) veil.push({ x: neckLeft, w: inLeft - neckLeft });
+      if (inRight + 1 < neckRight) veil.push({ x: inRight + 1, w: neckRight - inRight - 1 });
+    }
+  }
+
+  // une corde assombrie : la bande va d'une moitié d'écart à l'autre, sans mordre sur ses voisines
+  const half = Math.floor(METRICS.stringStep / 2);
+  const stringVeil: NeckLayout['stringVeil'] = (opts.dimStrings ?? [])
+    .filter((st) => st >= 0 && st < n)
+    .map((st) => ({ x: m.padL + labelW, y: stringY[st]! - half, w: width - m.padL - labelW, h: 2 * half + 1 }));
+
   const pills: PillLayout[] = shown.map((note, i) => {
     const w = pillW[i]!;
     return {
@@ -209,13 +304,14 @@ export function layoutNeck(
       characteristic: false,
       passing: false,
       // la tonique (degré 1 juste) est cerclée : on lit la forme à partir d'elle
-      highlight: note.degree === '1' && !note.dim,
+      // …sauf sur une corde assombrie : un anneau vif autour d'une note éteinte attirerait l'œil
+      highlight: note.degree === '1' && !note.dim && !(opts.dimStrings ?? []).includes(note.string),
       ...(note.dim ? { dim: true } : {}),
       ...(note.shared ? { shared: true } : {}),
     };
   });
 
-  return { width, height, range, fretW, nut, stringY, wireX, wireStart, labels, numbers, inlays, zone, pills };
+  return { width, height, range, fretW, nut, stringY, wireX, wireStart, labels, numbers, inlays, zone, veil, stringVeil, pills };
 }
 
 export function drawNeck(s: Surface, l: NeckLayout, theme: TabTheme): void {
@@ -258,6 +354,19 @@ export function drawNeck(s: Surface, l: NeckLayout, theme: TabTheme): void {
     }
   }
   for (const p of l.pills) drawPill(s, theme, p);
+  // par-dessus tout, notes comprises : hors des cases choisies, le manche s'assombrit
+  // une case à la fois sous les deux voiles serait deux fois plus sombre : on ne voile la corde que dans
+  // les cases choisies, le voile des cases fait le reste
+  for (const r of l.stringVeil) {
+    const cuts = [...l.veil].sort((a, b) => a.x - b.x);
+    let x = r.x;
+    for (const c of cuts) {
+      if (c.x > x) s.fillRect(x, r.y, Math.min(c.x, r.x + r.w) - x, r.h, mix(theme.panel, '#000000', 0.6), 0.72);
+      x = Math.max(x, c.x + c.w);
+    }
+    if (x < r.x + r.w) s.fillRect(x, r.y, r.x + r.w - x, r.h, mix(theme.panel, '#000000', 0.6), 0.72);
+  }
+  for (const v of l.veil) s.fillRect(v.x, firstY - 7, v.w, lastY - firstY + 15, mix(theme.panel, '#000000', 0.6), 0.72);
 }
 
 /** La note qui sonne : un cadre de 2 px autour de sa pastille, sur une couche à part, le manche ne se redessine pas. */

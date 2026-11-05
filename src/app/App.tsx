@@ -8,7 +8,8 @@ import { applyTheme, getTheme } from '../core/themes';
 import { AudioPage } from './AudioPage';
 import { LoadingScreen } from './LoadingScreen';
 import { MetronomePage } from './MetronomePage';
-import { ACTIVE_ROUTE, navigate, parseRoute, ROUTE_HREF, type RouteName } from './router';
+import { NeckPage } from './NeckPage';
+import { ACTIVE_ROUTE, parseRoute, ROUTE_HREF, type RouteName } from './router';
 import { SceneBackground } from './SceneBackground';
 import { SettingsPage } from './SettingsPage';
 import { useSettings } from './settings';
@@ -35,6 +36,7 @@ const NAV: { route: RouteName; label: string; icon: IconName }[] = [
   { route: 'hub', label: 'Accueil', icon: 'navHome' },
   { route: 'gammes', label: 'Gammes', icon: 'navScales' },
   { route: 'accords', label: 'Accords', icon: 'navChords' },
+  { route: 'neck', label: 'Manche', icon: 'navNeck' },
   { route: 'tuner', label: 'Accordeur', icon: 'navTuner' },
   { route: 'metronome', label: 'Métronome', icon: 'navMetronome' },
   // La page « Son » (outil de contrôle de la 1c) sort de la barre : elle reste joignable depuis les réglages
@@ -54,6 +56,7 @@ function Page({ route }: { route: RouteName }) {
     case 'chordLearn': return <ChordsPage learning />;
     case 'dictionary': return <ChordDictionaryPage />;
     case 'chordReview': return <ChordReviewPage />;
+    case 'neck': return <NeckPage />;
     case 'tuner': return <TunerPage />;
     case 'metronome': return <MetronomePage />;
     case 'settings': return <SettingsPage />;
@@ -126,23 +129,24 @@ export function App() {
         variant="poster"
         sunX={0.82}
       />
-      <header className="mobile-brand"><a href={ROUTE_HREF.hub} className="brand">Fretwave</a><button type="button" aria-label="Réglages" onClick={() => navigate('settings')}><PixelIcon name="navSliders" size={24} /></button></header>
+      <header className="mobile-brand"><a href={ROUTE_HREF.hub} className="brand">Fretwave</a><a className="mobile-settings" href={ROUTE_HREF.settings} aria-label="Réglages"><PixelIcon name="navSliders" size={24} /></a></header>
       <div id="main-content" tabIndex={-1} className={`app-content ${isDevPage ? 'dev' : ''}`}>
         <Page route={route} />
       </div>
       <nav className="bottombar" aria-label="Navigation principale">
         {desktop && <a className="brand" href={ROUTE_HREF.gammes}>Fretwave</a>}
         {NAV.filter(n => desktop || n.route !== 'settings').map((n) => (
-          <button
+          // de vrais liens : clic molette, Ctrl+clic et « ouvrir dans un nouvel onglet » marchent ; le
+          // routeur suit le changement d'adresse (hashchange), sans gestionnaire de clic
+          <a
             key={n.route}
-            type="button"
+            href={ROUTE_HREF[n.route]}
             className={`navbtn nav-${n.route} ${ACTIVE_ROUTE[route] === n.route ? 'on' : ''}`}
             aria-current={ACTIVE_ROUTE[route] === n.route ? 'page' : undefined}
-            onClick={() => navigate(n.route)}
           >
             <PixelIcon name={n.icon} size={20} />
             <span>{n.label}</span>
-          </button>
+          </a>
         ))}
         {desktop && <p className="nav-offline">Disponible hors ligne</p>}
       </nav>
